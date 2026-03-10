@@ -28,12 +28,18 @@ class ApprovalSpec(BaseModel):
 class AssertionSpec(BaseModel):
     kind: Literal[
         "result_contains",
+        "result_not_contains",
         "result_equals",
         "observation_contains",
+        "observation_not_contains",
         "pending_max",
         "state_contains",
+        "state_not_contains",
         "state_equals",
+        "state_count_equals",
+        "state_count_max",
         "state_exists",
+        "time_max_ms",
     ]
     field: Optional[str] = None
     contains: Optional[str] = None
@@ -41,6 +47,36 @@ class AssertionSpec(BaseModel):
     focus: Optional[str] = None
     max_value: Optional[int] = None
     description: Optional[str] = None
+
+    @model_validator(mode="after")
+    def _validate_shape(self) -> "AssertionSpec":
+        if self.kind in {
+            "result_contains",
+            "result_not_contains",
+            "observation_contains",
+            "observation_not_contains",
+            "state_contains",
+            "state_not_contains",
+        }:
+            if self.contains is None:
+                raise ValueError(f"{self.kind} requires 'contains'")
+            if self.field is None and not self.kind.startswith("observation_"):
+                raise ValueError(f"{self.kind} requires 'field'")
+        if self.kind in {"result_equals", "state_equals", "state_exists"}:
+            if self.field is None:
+                raise ValueError(f"{self.kind} requires 'field'")
+        if self.kind == "pending_max" and self.max_value is None:
+            raise ValueError("pending_max requires 'max_value'")
+        if (
+            self.kind in {"state_count_equals", "state_count_max"}
+            and self.field is None
+        ):
+            raise ValueError(f"{self.kind} requires 'field'")
+        if self.kind == "state_count_max" and self.max_value is None:
+            raise ValueError("state_count_max requires 'max_value'")
+        if self.kind == "time_max_ms" and self.max_value is None:
+            raise ValueError("time_max_ms requires 'max_value'")
+        return self
 
 
 class WorkflowStepSpec(BaseModel):

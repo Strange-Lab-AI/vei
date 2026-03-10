@@ -76,6 +76,7 @@ def evaluate_assertions(
     observation: dict[str, Any],
     pending: dict[str, int],
     state: dict[str, Any],
+    time_ms: int,
 ) -> List[str]:
     return evaluate_assertion_specs(
         assertions=step.expect,
@@ -83,6 +84,7 @@ def evaluate_assertions(
         observation=observation,
         pending=pending,
         state=state,
+        time_ms=time_ms,
     )
 
 
@@ -93,6 +95,7 @@ def evaluate_assertion_specs(
     observation: dict[str, Any],
     pending: dict[str, int],
     state: dict[str, Any],
+    time_ms: int,
 ) -> List[str]:
     failures: List[str] = []
     for assertion in assertions:
@@ -102,6 +105,7 @@ def evaluate_assertion_specs(
             observation=observation,
             pending=pending,
             state=state,
+            time_ms=time_ms,
         )
         if msg:
             failures.append(msg)
@@ -115,12 +119,22 @@ def _assertion_failure(
     observation: dict[str, Any],
     pending: dict[str, int],
     state: dict[str, Any],
+    time_ms: int,
 ) -> Optional[str]:
     if assertion.kind == "result_contains":
         value = _resolve_field(result, assertion.field)
         needle = assertion.contains or ""
         if needle not in str(value):
             return f"expected result field '{assertion.field}' to contain '{needle}'"
+        return None
+
+    if assertion.kind == "result_not_contains":
+        value = _resolve_field(result, assertion.field)
+        needle = assertion.contains or ""
+        if needle in str(value):
+            return (
+                f"expected result field '{assertion.field}' to not contain '{needle}'"
+            )
         return None
 
     if assertion.kind == "result_equals":
@@ -139,6 +153,14 @@ def _assertion_failure(
         needle = assertion.contains or ""
         if needle not in str(value):
             return f"expected observation '{focus}' to contain '{needle}'"
+        return None
+
+    if assertion.kind == "observation_not_contains":
+        focus = assertion.focus or "summary"
+        value = _resolve_field(observation, focus)
+        needle = assertion.contains or ""
+        if needle in str(value):
+            return f"expected observation '{focus}' to not contain '{needle}'"
         return None
 
     if assertion.kind == "pending_max":
@@ -160,6 +182,13 @@ def _assertion_failure(
             return f"expected state field '{assertion.field}' to contain '{needle}'"
         return None
 
+    if assertion.kind == "state_not_contains":
+        value = _resolve_field(state, assertion.field)
+        needle = assertion.contains or ""
+        if needle in str(value):
+            return f"expected state field '{assertion.field}' to not contain '{needle}'"
+        return None
+
     if assertion.kind == "state_equals":
         value = _resolve_field(state, assertion.field)
         expected = assertion.equals
@@ -174,6 +203,38 @@ def _assertion_failure(
         value = _resolve_field(state, assertion.field)
         if value is None:
             return f"expected state field '{assertion.field}' to exist"
+        return None
+
+    if assertion.kind == "state_count_equals":
+        value = _resolve_field(state, assertion.field)
+        count = _resolve_count(value)
+        expected = assertion.equals
+        if count is None:
+            return f"state field '{assertion.field}' is not countable: {value!r}"
+        if count != expected:
+            return (
+                f"expected state field '{assertion.field}' count == {expected!r}, "
+                f"got {count!r}"
+            )
+        return None
+
+    if assertion.kind == "state_count_max":
+        value = _resolve_field(state, assertion.field)
+        count = _resolve_count(value)
+        max_value = assertion.max_value if assertion.max_value is not None else 0
+        if count is None:
+            return f"state field '{assertion.field}' is not countable: {value!r}"
+        if count > max_value:
+            return (
+                f"expected state field '{assertion.field}' count <= {max_value}, "
+                f"got {count}"
+            )
+        return None
+
+    if assertion.kind == "time_max_ms":
+        max_value = assertion.max_value if assertion.max_value is not None else 0
+        if time_ms > max_value:
+            return f"expected workflow time <= {max_value} ms, got {time_ms} ms"
         return None
 
     return f"unknown assertion kind: {assertion.kind}"
@@ -195,3 +256,14 @@ def _resolve_field(payload: Any, field: str | None) -> Any:
             continue
         return None
     return current
+
+
+def _resolve_count(value: Any) -> int | None:
+    if value is None:
+        return None
+    if isinstance(value, (str, list, tuple, set, dict)):
+        return len(value)
+    try:
+        return len(value)  # type: ignore[arg-type]
+    except Exception:  # noqa: BLE001
+        return None

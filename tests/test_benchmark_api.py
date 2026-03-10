@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import csv
 import json
 from pathlib import Path
 
+import pytest
 import typer.testing
 
 from vei.benchmark.api import (
@@ -18,9 +20,46 @@ from vei.benchmark.api import (
 from vei.benchmark.models import BenchmarkCaseSpec
 from vei.benchmark.workflows import get_benchmark_family_workflow_spec
 from vei.cli.vei_eval import app as eval_app
-from vei.cli.vei_report import load_all_results
+from vei.cli.vei_report import (
+    generate_csv_report,
+    generate_markdown_leaderboard,
+    load_all_results,
+)
 from vei.data.rollout import rollout_procurement
 from vei.world.api import create_world_session, get_catalog_scenario
+
+
+def _build_security_report_results(root_dir: Path) -> list[dict[str, object]]:
+    run_benchmark_case(
+        BenchmarkCaseSpec(
+            runner="workflow",
+            scenario_name="oauth_app_containment",
+            workflow_name="security_containment",
+            workflow_variant="internal_only_review",
+            seed=700,
+            artifacts_dir=root_dir / "internal_only_review",
+        )
+    )
+    run_benchmark_case(
+        BenchmarkCaseSpec(
+            runner="workflow",
+            scenario_name="oauth_app_containment",
+            workflow_name="security_containment",
+            workflow_variant="customer_notify",
+            seed=701,
+            artifacts_dir=root_dir / "customer_notify",
+        )
+    )
+    run_benchmark_case(
+        BenchmarkCaseSpec(
+            runner="scripted",
+            scenario_name="oauth_app_containment",
+            seed=702,
+            artifacts_dir=root_dir / "scripted_case",
+            score_mode="full",
+        )
+    )
+    return load_all_results(root_dir)
 
 
 def test_run_benchmark_case_scripted_writes_kernel_diagnostics(tmp_path: Path) -> None:
@@ -289,6 +328,27 @@ def test_run_benchmark_case_workflow_runner_variant(tmp_path: Path) -> None:
     )
 
 
+def test_onboarding_workflow_uses_negative_count_and_deadline_assertions(
+    tmp_path: Path,
+) -> None:
+    workflow = get_benchmark_family_workflow_spec("enterprise_onboarding_migration")
+    success_kinds = {item.kind for item in workflow.success_assertions}
+    assert {"state_not_contains", "state_count_equals", "time_max_ms"} <= success_kinds
+
+    result = run_benchmark_case(
+        BenchmarkCaseSpec(
+            runner="workflow",
+            scenario_name="acquired_sales_onboarding",
+            workflow_name="enterprise_onboarding_migration",
+            seed=912,
+            artifacts_dir=tmp_path / "workflow_onboarding_case",
+        )
+    )
+
+    assert result.status == "ok"
+    assert result.success is True
+
+
 def test_vei_eval_benchmark_cli_workflow_runner(tmp_path: Path) -> None:
     runner = typer.testing.CliRunner()
     result = runner.invoke(
@@ -365,3 +425,95 @@ def test_report_loads_workflow_benchmark_diagnostics(tmp_path: Path) -> None:
     assert results[0]["diagnostics"]["workflow_name"] == "security_containment"
     assert results[0]["diagnostics"]["initial_snapshot_id"] is not None
     assert results[0]["metrics"]["elapsed_ms"] >= 0
+
+
+def test_report_attaches_workflow_baseline_deltas(tmp_path: Path) -> None:
+    results = _build_security_report_results(tmp_path / "baseline_delta")
+
+    baseline_row = next(
+        item
+        for item in results
+        if item["runner"] == "workflow"
+        and item["diagnostics"]["workflow_variant"] == "customer_notify"
+    )
+    variant_row = next(
+        item
+        for item in results
+        if item["runner"] == "workflow"
+        and item["diagnostics"]["workflow_variant"] == "internal_only_review"
+    )
+    scripted_row = next(item for item in results if item["runner"] == "scripted")
+
+    assert baseline_row["baseline"]["available"] is True
+    assert baseline_row["baseline"]["workflow_variant"] == "customer_notify"
+    assert baseline_row["baseline"]["workflow_valid"] is True
+    assert baseline_row["baseline"]["workflow_issue_count"] == 0
+    assert baseline_row["baseline_delta"]["composite_score_delta"] == pytest.approx(0.0)
+    assert baseline_row["baseline_delta"]["workflow_valid_delta"] == 0
+    assert baseline_row["baseline_delta"]["workflow_issue_count_delta"] == 0
+    assert baseline_row["baseline_delta"]["steps_taken_delta"] == 0
+    assert baseline_row["baseline_delta"]["time_ms_delta"] == 0
+
+    assert variant_row["baseline"]["workflow_variant"] == "customer_notify"
+    assert variant_row["baseline_delta"]["workflow_valid_delta"] == 0
+    assert variant_row["baseline_delta"]["workflow_issue_count_delta"] == 0
+    assert variant_row["baseline_delta"]["composite_score_delta"] == pytest.approx(
+        variant_row["score"]["composite_score"]
+        - baseline_row["score"]["composite_score"]
+    )
+    assert variant_row["baseline_delta"]["steps_taken_delta"] == (
+        variant_row["score"]["steps_taken"] - baseline_row["score"]["steps_taken"]
+    )
+
+    assert scripted_row["baseline"]["workflow_variant"] == "customer_notify"
+    assert scripted_row["baseline_delta"]["workflow_valid_delta"] is None
+    assert scripted_row["baseline_delta"]["workflow_issue_count_delta"] is None
+    assert scripted_row["baseline_delta"]["composite_score_delta"] == pytest.approx(
+        scripted_row["score"]["composite_score"]
+        - baseline_row["score"]["composite_score"]
+    )
+
+
+def test_csv_report_includes_workflow_baseline_delta_columns(tmp_path: Path) -> None:
+    results = _build_security_report_results(tmp_path / "csv_delta")
+    output_path = tmp_path / "leaderboard.csv"
+
+    generate_csv_report(results, output_path)
+
+    rows = list(csv.DictReader(output_path.open(encoding="utf-8")))
+    variant_row = next(
+        item
+        for item in rows
+        if item["runner"] == "workflow"
+        and item["workflow_variant"] == "internal_only_review"
+    )
+    variant_result = next(
+        item
+        for item in results
+        if item["runner"] == "workflow"
+        and item["diagnostics"]["workflow_variant"] == "internal_only_review"
+    )
+
+    assert rows
+    assert "delta_evidence_preservation" in rows[0]
+    assert "workflow_issue_count_delta" in rows[0]
+    assert variant_row["baseline_available"] == "True"
+    assert variant_row["baseline_workflow_variant"] == "customer_notify"
+    assert variant_row["baseline_workflow_valid"] == "True"
+    assert variant_row["workflow_issue_count_delta"] == "0"
+    assert float(variant_row["composite_score_delta"]) == pytest.approx(
+        variant_result["baseline_delta"]["composite_score_delta"]
+    )
+
+
+def test_markdown_report_includes_workflow_baseline_section(tmp_path: Path) -> None:
+    results = _build_security_report_results(tmp_path / "markdown_delta")
+
+    markdown = generate_markdown_leaderboard(results)
+
+    assert "## Workflow Baselines" in markdown
+    assert "security_containment (customer_notify)" in markdown
+    assert (
+        "| Model | Success | Score | Δ Score | Steps | Δ Steps | Baseline | Dimensions |"
+        in markdown
+    )

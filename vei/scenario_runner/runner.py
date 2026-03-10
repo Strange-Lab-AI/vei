@@ -90,6 +90,7 @@ def run_compiled_workflow(
                 observation=observation,
                 pending=pending,
                 state=current_state,
+                time_ms=router.bus.clock_ms,
             )
             ok = not assertion_failures
             step_results.append(
@@ -156,6 +157,7 @@ def run_compiled_workflow(
             observation=final_observation,
             pending=final_pending,
             state=final_state.model_dump(mode="json"),
+            time_ms=router.bus.clock_ms,
         ):
             dynamic_issues.append(
                 ValidationIssue(
