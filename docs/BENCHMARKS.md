@@ -52,7 +52,7 @@ vei-eval benchmark \
   --run-id security_family
 ```
 
-The `workflow` runner executes the typed family playbook and its reusable assertions directly. Each family can expose multiple named variants backed by typed parameter presets. The other runners still use the same family selection and scoring pipeline, but they act freely inside the scenario instead of following the deterministic workflow baseline.
+The `workflow` runner executes the typed family playbook and its reusable assertions directly. Each family can expose multiple named variants backed by typed parameter presets. Those workflows can now express negative assertions, count checks, and virtual-time deadlines in the same DSL. The other runners still use the same family selection and scoring pipeline, but they act freely inside the scenario instead of following the deterministic workflow baseline.
 
 ## 2. Frontier Suites
 
@@ -88,6 +88,8 @@ vei-report generate \
   --format markdown \
   --output LEADERBOARD.md
 ```
+
+When a run directory contains workflow-family results alongside scripted, BC, or LLM runs for the same family/scenario, `vei-report` now treats the family's primary workflow variant as the canonical baseline and emits delta reporting against it in markdown, CSV, and JSON output. That includes score, time, step-count, workflow-validation, and family-dimension deltas where they are available.
 
 ```bash
 vei-report summary --root _vei_out/frontier_eval/<run-id>

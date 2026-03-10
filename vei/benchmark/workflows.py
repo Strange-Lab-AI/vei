@@ -30,6 +30,9 @@ class EnterpriseOnboardingMigrationWorkflowParams(BaseModel):
     doc_id: str = "GDRIVE-2201"
     manager_email: str = "maya.rex@example.com"
     opportunity_id: str = "D-100"
+    allowed_share_count: int = 1
+    revoked_share_email: str = "channel-partner@example.net"
+    deadline_max_ms: int = 86_400_000
     transfer_note: str = "Manager assumes ownership after acquisition cutover."
     onboarding_note: str = "Wave 1 migration completed successfully."
 
@@ -79,6 +82,9 @@ _PARAMETER_DESCRIPTIONS: Dict[str, Dict[str, str]] = {
         "doc_id": "Inherited shared document that must be restricted.",
         "manager_email": "Manager receiving ownership and final access review.",
         "opportunity_id": "Open opportunity transferred during the cutover.",
+        "allowed_share_count": "Expected post-migration sharing count for the inherited document.",
+        "revoked_share_email": "External share that must be removed during the cutover.",
+        "deadline_max_ms": "Virtual-time deadline for the onboarding workflow to complete.",
         "transfer_note": "Note attached to the document ownership transfer.",
         "onboarding_note": "Final HRIS note recording onboarding completion.",
     },
@@ -464,7 +470,23 @@ def _build_enterprise_onboarding_spec(
                         {
                             "kind": "result_equals",
                             "field": "shared_with_count",
-                            "equals": 1,
+                            "equals": params.allowed_share_count,
+                        },
+                        {
+                            "kind": "state_count_equals",
+                            "field": (
+                                f"components.google_admin.drive_shares.{params.doc_id}."
+                                "shared_with"
+                            ),
+                            "equals": params.allowed_share_count,
+                        },
+                        {
+                            "kind": "state_not_contains",
+                            "field": (
+                                f"components.google_admin.drive_shares.{params.doc_id}."
+                                "shared_with"
+                            ),
+                            "contains": params.revoked_share_email,
                         },
                     ],
                     "on_failure": "continue",
@@ -559,9 +581,24 @@ def _build_enterprise_onboarding_spec(
                     "equals": params.manager_email,
                 },
                 {
+                    "kind": "state_count_equals",
+                    "field": f"components.google_admin.drive_shares.{params.doc_id}.shared_with",
+                    "equals": params.allowed_share_count,
+                },
+                {
+                    "kind": "state_not_contains",
+                    "field": f"components.google_admin.drive_shares.{params.doc_id}.shared_with",
+                    "contains": params.revoked_share_email,
+                },
+                {
                     "kind": "state_equals",
                     "field": f"components.crm.deals.{params.opportunity_id}.owner",
                     "equals": params.manager_email,
+                },
+                {
+                    "kind": "time_max_ms",
+                    "max_value": params.deadline_max_ms,
+                    "description": "Complete onboarding before the virtual next-morning deadline.",
                 },
             ],
             "failure_paths": [

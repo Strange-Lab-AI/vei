@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 from vei.scenario_engine.api import compile_workflow
 from vei.scenario_runner.api import run_workflow, validate_workflow
 
@@ -203,6 +205,75 @@ def test_run_workflow_supports_state_assertions_and_list_indexing() -> None:
             "visibility"
         ]
         == "internal"
+    )
+
+
+def test_run_workflow_supports_negative_count_and_time_assertions() -> None:
+    spec = {
+        "name": "workflow-negative-count-time",
+        "objective": {
+            "statement": "Restrict sharing before a virtual deadline.",
+            "success": ["share restricted before deadline"],
+        },
+        "world": {"catalog": "acquired_sales_onboarding"},
+        "steps": [
+            {
+                "step_id": "restrict_share",
+                "description": "Restrict inherited sharing",
+                "tool": "google_admin.restrict_drive_share",
+                "args": {
+                    "doc_id": "GDRIVE-2201",
+                    "visibility": "internal",
+                    "note": "Remove external share before migration deadline.",
+                },
+                "expect": [
+                    {
+                        "kind": "state_not_contains",
+                        "field": "components.google_admin.drive_shares.GDRIVE-2201.shared_with",
+                        "contains": "channel-partner@example.net",
+                    },
+                    {
+                        "kind": "state_count_equals",
+                        "field": "components.google_admin.drive_shares.GDRIVE-2201.shared_with",
+                        "equals": 1,
+                    },
+                ],
+            }
+        ],
+        "success_assertions": [
+            {"kind": "time_max_ms", "max_value": 10_000},
+            {
+                "kind": "state_count_max",
+                "field": "components.google_admin.drive_shares.GDRIVE-2201.shared_with",
+                "max_value": 1,
+            },
+        ],
+    }
+    compiled = compile_workflow(spec, seed=77)
+    result = run_workflow(compiled, seed=77, connector_mode="sim")
+
+    assert result.ok
+    assert result.steps[0].ok
+
+
+def test_compile_workflow_rejects_malformed_temporal_assertion() -> None:
+    spec = _workflow_spec()
+    spec["success_assertions"] = [{"kind": "time_max_ms"}]
+
+    with pytest.raises(ValueError):
+        compile_workflow(spec, seed=12)
+
+
+def test_run_workflow_fails_virtual_deadline_assertion() -> None:
+    spec = _workflow_spec()
+    spec["success_assertions"] = [{"kind": "time_max_ms", "max_value": -1}]
+    compiled = compile_workflow(spec, seed=56)
+
+    result = run_workflow(compiled, seed=56, connector_mode="sim")
+
+    assert not result.ok
+    assert any(
+        "workflow time" in issue.message for issue in result.dynamic_validation.issues
     )
 
 

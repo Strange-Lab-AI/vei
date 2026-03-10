@@ -16,6 +16,8 @@ from typing import Any, Dict, List, Optional
 
 import typer
 
+from vei.benchmark.families import get_benchmark_family_manifest
+
 
 app = typer.Typer(
     name="vei-report", help="Generate evaluation reports and leaderboards"
@@ -179,17 +181,21 @@ def load_all_results(root_dir: Path) -> List[Dict[str, Any]]:
         except Exception:
             continue
 
-    return results
+    return _attach_workflow_baseline_deltas(results)
 
 
 def generate_csv_report(results: List[Dict], output_path: Path) -> None:
     """Generate CSV report with all results."""
+    _attach_workflow_baseline_deltas(results)
 
     dimension_keys = _ordered_dimension_keys(results)
     rows = []
     for r in results:
         score = r["score"]
         dims = score.get("dimensions", {})
+        baseline = r.get("baseline", {})
+        baseline_delta = r.get("baseline_delta", {})
+        delta_dims = baseline_delta.get("dimension_deltas", {})
 
         row = {
             "model": r["model"],
@@ -213,12 +219,30 @@ def generate_csv_report(results: List[Dict], output_path: Path) -> None:
             "llm_calls": r.get("metrics", {}).get("llm_calls", 0),
             "total_tokens": r.get("metrics", {}).get("total_tokens", 0),
             "estimated_cost_usd": r.get("metrics", {}).get("estimated_cost_usd"),
+            "baseline_available": baseline.get("available", False),
+            "baseline_workflow_name": baseline.get("workflow_name"),
+            "baseline_workflow_variant": baseline.get("workflow_variant"),
+            "baseline_workflow_valid": baseline.get("workflow_valid"),
+            "baseline_workflow_issue_count": baseline.get("workflow_issue_count"),
+            "baseline_success": baseline.get("success"),
+            "baseline_composite_score": baseline.get("composite_score"),
+            "baseline_steps_taken": baseline.get("steps_taken"),
+            "baseline_time_ms": baseline.get("time_ms"),
+            "workflow_valid_delta": baseline_delta.get("workflow_valid_delta"),
+            "workflow_issue_count_delta": baseline_delta.get(
+                "workflow_issue_count_delta"
+            ),
+            "success_delta": baseline_delta.get("success_delta"),
+            "composite_score_delta": baseline_delta.get("composite_score_delta"),
+            "steps_delta": baseline_delta.get("steps_taken_delta"),
+            "time_delta_ms": baseline_delta.get("time_ms_delta"),
             "initial_snapshot_id": r.get("diagnostics", {}).get("initial_snapshot_id"),
             "final_snapshot_id": r.get("diagnostics", {}).get("final_snapshot_id"),
             "artifacts_dir": r.get("artifacts_dir"),
         }
         for key in dimension_keys:
             row[key] = dims.get(key, 0.0)
+            row[f"delta_{key}"] = delta_dims.get(key)
         rows.append(row)
 
     if not rows:
@@ -232,6 +256,7 @@ def generate_csv_report(results: List[Dict], output_path: Path) -> None:
 
 def generate_markdown_leaderboard(results: List[Dict]) -> str:
     """Generate markdown leaderboard."""
+    _attach_workflow_baseline_deltas(results)
 
     if not results:
         return "No results to display."
@@ -326,6 +351,30 @@ def generate_markdown_leaderboard(results: List[Dict]) -> str:
         values = " | ".join(f"{dims.get(key, 0):.2f}" for key in dimension_keys)
         lines.append(f"| {stat['model']} | {values} |")
 
+    workflow_baselines = _select_workflow_baselines(results)
+    if workflow_baselines:
+        lines.extend(["", "---", "", "## Workflow Baselines", ""])
+        lines.append(
+            "| Scenario | Family | Baseline Workflow | Score | Steps | Time (ms) |"
+        )
+        lines.append(
+            "|----------|--------|-------------------|-------|-------|-----------|"
+        )
+        for (family, scenario), baseline_result in sorted(
+            workflow_baselines.items(), key=lambda item: (item[0][1], item[0][0])
+        ):
+            baseline = _build_baseline_summary(baseline_result)
+            workflow_label = (
+                f"{baseline.get('workflow_name')} ({baseline.get('workflow_variant')})"
+                if baseline.get("workflow_variant")
+                else str(baseline.get("workflow_name"))
+            )
+            lines.append(
+                f"| {scenario} | {family} | {workflow_label} | "
+                f"{baseline.get('composite_score', 0.0):.3f} | "
+                f"{baseline.get('steps_taken', 0)} | {baseline.get('time_ms', 0)} |"
+            )
+
     lines.extend(["", "---", "", "## Detailed Results by Scenario", ""])
 
     # Group by scenario
@@ -336,8 +385,12 @@ def generate_markdown_leaderboard(results: List[Dict]) -> str:
     for scenario, scenario_results in sorted(by_scenario.items()):
         lines.append(f"### {scenario}")
         lines.append("")
-        lines.append("| Model | Success | Score | Steps | Dimensions |")
-        lines.append("|-------|---------|-------|-------|------------|")
+        lines.append(
+            "| Model | Success | Score | Δ Score | Steps | Δ Steps | Baseline | Dimensions |"
+        )
+        lines.append(
+            "|-------|---------|-------|---------|-------|---------|----------|------------|"
+        )
 
         for r in sorted(
             scenario_results,
@@ -348,6 +401,17 @@ def generate_markdown_leaderboard(results: List[Dict]) -> str:
             success_icon = "✅" if score.get("success") else "❌"
             composite = score.get("composite_score", 0.0)
             steps = score.get("steps_taken", 0)
+            baseline = r.get("baseline", {})
+            baseline_delta = r.get("baseline_delta", {})
+            baseline_label = (
+                f"{baseline.get('workflow_name')}:{baseline.get('workflow_variant')}"
+                if baseline.get("available") and baseline.get("workflow_variant")
+                else (
+                    str(baseline.get("workflow_name"))
+                    if baseline.get("available")
+                    else "n/a"
+                )
+            )
 
             # Top 3 dimensions
             dims = score.get("dimensions", {})
@@ -355,7 +419,10 @@ def generate_markdown_leaderboard(results: List[Dict]) -> str:
             dims_str = ", ".join([f"{k[:3]}:{v:.2f}" for k, v in top_dims])
 
             lines.append(
-                f"| {r['model']} | {success_icon} | {composite:.3f} | {steps} | {dims_str} |"
+                f"| {r['model']} | {success_icon} | {composite:.3f} | "
+                f"{_format_signed_float(baseline_delta.get('composite_score_delta'))} | "
+                f"{steps} | {_format_signed_int(baseline_delta.get('steps_taken_delta'))} | "
+                f"{baseline_label} | {dims_str} |"
             )
 
         lines.append("")
@@ -565,6 +632,10 @@ def quick_summary(
         f"Success Rate: {success_rate*100:.1f}% ({success_count}/{len(results)})"
     )
     typer.echo(f"Avg Composite Score: {avg_composite:.3f}")
+    typer.echo(
+        f"Workflow Baselines: {len(_select_workflow_baselines(results))} "
+        f"({sum(1 for r in results if r.get('baseline', {}).get('available'))} runs with deltas)"
+    )
     typer.echo("")
     typer.echo(f"Models Tested: {len(by_model)}")
     for model, model_results in sorted(
@@ -614,6 +685,148 @@ def _ordered_dimension_keys(results: List[Dict[str, Any]]) -> List[str]:
 
 def _dimension_label(name: str) -> str:
     return name.replace("_", " ").title()
+
+
+def _attach_workflow_baseline_deltas(
+    results: List[Dict[str, Any]]
+) -> List[Dict[str, Any]]:
+    baselines = _select_workflow_baselines(results)
+    for result in results:
+        baseline = baselines.get(_baseline_key(result))
+        result["baseline"] = _build_baseline_summary(baseline)
+        result["baseline_delta"] = _build_baseline_delta(result, baseline)
+    return results
+
+
+def _select_workflow_baselines(
+    results: List[Dict[str, Any]],
+) -> Dict[tuple[str, str], Dict[str, Any]]:
+    grouped: Dict[tuple[str, str], List[Dict[str, Any]]] = defaultdict(list)
+    for result in results:
+        key = _baseline_key(result)
+        if key is None or result.get("runner") != "workflow":
+            continue
+        grouped[key].append(result)
+
+    baselines: Dict[tuple[str, str], Dict[str, Any]] = {}
+    for key, candidates in grouped.items():
+        primary_variant = _primary_variant_for_family(key[0])
+        ranked = sorted(
+            candidates,
+            key=lambda item: _baseline_rank(item, primary_variant),
+            reverse=True,
+        )
+        if ranked:
+            baselines[key] = ranked[0]
+    return baselines
+
+
+def _baseline_key(result: Dict[str, Any]) -> tuple[str, str] | None:
+    family = result.get("family") or result.get("score", {}).get("benchmark_family")
+    scenario = result.get("scenario")
+    if not family or not scenario:
+        return None
+    return (str(family), str(scenario))
+
+
+def _primary_variant_for_family(family_name: str) -> str | None:
+    try:
+        return get_benchmark_family_manifest(family_name).primary_workflow_variant
+    except KeyError:
+        return None
+
+
+def _baseline_rank(
+    result: Dict[str, Any], primary_variant: str | None
+) -> tuple[int, int, int, int]:
+    diagnostics = result.get("diagnostics", {})
+    variant = diagnostics.get("workflow_variant")
+    return (
+        1 if primary_variant and variant == primary_variant else 0,
+        1 if diagnostics.get("workflow_name") else 0,
+        1 if result.get("status") == "ok" else 0,
+        1 if result.get("score", {}).get("success") else 0,
+    )
+
+
+def _build_baseline_summary(baseline: Dict[str, Any] | None) -> Dict[str, Any]:
+    if baseline is None:
+        return {"available": False}
+    score = baseline.get("score", {})
+    diagnostics = baseline.get("diagnostics", {})
+    workflow_validation = baseline.get("score", {}).get("workflow_validation", {})
+    return {
+        "available": True,
+        "scenario": baseline.get("scenario"),
+        "family": baseline.get("family") or score.get("benchmark_family"),
+        "model": baseline.get("model"),
+        "provider": baseline.get("provider"),
+        "runner": baseline.get("runner"),
+        "status": baseline.get("status"),
+        "success": bool(score.get("success", False)),
+        "workflow_name": diagnostics.get("workflow_name"),
+        "workflow_variant": diagnostics.get("workflow_variant"),
+        "workflow_valid": workflow_validation.get(
+            "ok", diagnostics.get("workflow_valid")
+        ),
+        "workflow_issue_count": int(workflow_validation.get("issue_count", 0)),
+        "composite_score": float(score.get("composite_score", 0.0)),
+        "steps_taken": int(score.get("steps_taken", 0)),
+        "time_ms": int(score.get("time_elapsed_ms", 0)),
+        "artifacts_dir": baseline.get("artifacts_dir"),
+    }
+
+
+def _build_baseline_delta(
+    result: Dict[str, Any], baseline: Dict[str, Any] | None
+) -> Dict[str, Any]:
+    if baseline is None:
+        return {"available": False, "dimension_deltas": {}}
+    result_score = result.get("score", {})
+    baseline_score = baseline.get("score", {})
+    result_dims = result_score.get("dimensions", {})
+    baseline_dims = baseline_score.get("dimensions", {})
+    dimension_keys = sorted(set(result_dims) | set(baseline_dims))
+    result_workflow = result_score.get("workflow_validation", {})
+    baseline_workflow = baseline_score.get("workflow_validation", {})
+    workflow_valid_delta = None
+    workflow_issue_count_delta = None
+    if result_workflow:
+        workflow_valid_delta = int(bool(result_workflow.get("ok", False))) - int(
+            bool(baseline_workflow.get("ok", False))
+        )
+        workflow_issue_count_delta = int(result_workflow.get("issue_count", 0)) - int(
+            baseline_workflow.get("issue_count", 0)
+        )
+    return {
+        "available": True,
+        "workflow_valid_delta": workflow_valid_delta,
+        "workflow_issue_count_delta": workflow_issue_count_delta,
+        "success_delta": int(bool(result_score.get("success", False)))
+        - int(bool(baseline_score.get("success", False))),
+        "composite_score_delta": float(result_score.get("composite_score", 0.0))
+        - float(baseline_score.get("composite_score", 0.0)),
+        "steps_taken_delta": int(result_score.get("steps_taken", 0))
+        - int(baseline_score.get("steps_taken", 0)),
+        "time_ms_delta": int(result_score.get("time_elapsed_ms", 0))
+        - int(baseline_score.get("time_elapsed_ms", 0)),
+        "dimension_deltas": {
+            key: float(result_dims.get(key, 0.0)) - float(baseline_dims.get(key, 0.0))
+            for key in dimension_keys
+        },
+    }
+
+
+def _format_signed_float(value: Any) -> str:
+    if value is None:
+        return "n/a"
+    return f"{float(value):+0.3f}"
+
+
+def _format_signed_int(value: Any) -> str:
+    if value is None:
+        return "n/a"
+    return f"{int(value):+d}"
 
 
 if __name__ == "__main__":
