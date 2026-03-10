@@ -6,6 +6,19 @@
 
 VEI is a deterministic, MCP-native enterprise simulator for training, evaluating, and replaying agent behavior against synthetic business systems. The stable boundary is the world kernel: a `WorldSession` owns world state, event queues, snapshots, branches, replay, injection, actor state, and receipts.
 
+## Core Primitives
+
+VEI now exposes one coherent product shape:
+
+- `Blueprint`: typed composition of scenario, facades, workflow, and contract
+- `Scenario`: seeded enterprise world and difficulty/tool manifest
+- `Facade`: typed enterprise surface grouped by capability domain
+- `Contract`: success predicates, forbidden predicates, observation boundary, policy invariants, reward terms, and intervention rules
+- `Run`: workflow, benchmark, demo, and suite executions over the same world kernel
+- `Snapshot`: branchable world-state checkpoint with replay and receipts
+
+The older per-app router twins are still used, but they are now wrapped as a typed facade catalog rather than presented as the product ontology by themselves.
+
 ## License
 
 This repository is licensed under the Business Source License 1.1 in [LICENSE](LICENSE).
@@ -52,6 +65,7 @@ vei-llm-test \
 
 - Deterministic simulator with replayable traces
 - Stable world-kernel API with snapshot, branch, restore, replay, inject, and event inspection
+- Typed blueprint and facade catalog over the existing enterprise twins
 - Enterprise twins for Slack, Mail, Browser, Docs, Tickets, DB, ERP/CRM, Okta-style identity, ServiceDesk, Google Admin, SIEM, Datadog, PagerDuty, feature flags, HRIS, and Jira-style issue flows
 - Scenario compilation, dataset rollout, BC training, benchmark execution, and release packaging
 - Reusable benchmark families for security containment, enterprise onboarding/migration, and revenue incident response
@@ -102,6 +116,8 @@ events = world.list_events()
 Useful helpers:
 
 - Scenario manifests: `list_scenario_manifest()`, `get_scenario_manifest(name)`
+- Facade catalog: `list_facade_manifest_entries()`, `get_facade_manifest_entry(name)`
+- Blueprint catalog: `list_blueprint_entries()`, `build_blueprint_for_family_entry(name)`, `build_blueprint_for_scenario_entry(name)`
 - Benchmark families: `list_benchmark_family_manifest_entries()`, `get_benchmark_family_manifest_entry(name)`
 - Release packaging: `build_release_version()`, `export_release_dataset(...)`, `export_release_benchmark(...)`, `run_release_nightly(...)`
 
@@ -125,6 +141,7 @@ VEI_LLM_LIVE_BYPASS=1 make llm-live
 ## Supported CLI Surface
 
 - Runtime: `vei-llm-test`, `vei-smoke`, `vei-demo`, `vei-world`
+- Ontology: `vei-blueprint`
 - Release/Ops: `vei-release dataset|benchmark|nightly`
 - Scenarios: `vei-scenarios list|manifest|dump`
 - DSL/corpus: `vei-det sample-workflow|compile-workflow|run-workflow|generate-corpus|filter-corpus`
@@ -222,6 +239,7 @@ Artifacts from batch evaluation include:
 
 - `aggregate_results.json`
 - per-scenario `benchmark_result.json`
+- benchmark runs also write `blueprint.json`
 - `benchmark_summary.json`
 - benchmark-family runs also write `contract.json`
 - demo runs also write `leaderboard.md`, `leaderboard.csv`, `leaderboard.json`, and `demo_result.json`

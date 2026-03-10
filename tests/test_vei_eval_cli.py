@@ -73,10 +73,16 @@ def test_vei_eval_demo_cli_creates_report_and_state_artifacts(tmp_path: Path) ->
     assert demo_result["baseline_branch"]
     assert demo_result["comparison_branch"]
     assert demo_result["inspection_commands"]
+    assert demo_result["baseline_blueprint_path"].endswith("blueprint.json")
+    assert demo_result["comparison_blueprint_path"].endswith("blueprint.json")
     assert demo_result["baseline_contract_path"].endswith("contract.json")
     assert demo_result["comparison_contract_path"].endswith("contract.json")
     assert (demo_dir / "state").exists()
+    assert (demo_dir / "baseline" / "oauth_app_containment" / "blueprint.json").exists()
     assert (demo_dir / "baseline" / "oauth_app_containment" / "contract.json").exists()
+    assert (
+        demo_dir / "comparison" / "oauth_app_containment" / "blueprint.json"
+    ).exists()
     assert (
         demo_dir / "comparison" / "oauth_app_containment" / "contract.json"
     ).exists()
@@ -110,4 +116,5 @@ def test_vei_eval_suite_cli_creates_canonical_suite_artifacts(tmp_path: Path) ->
     assert suite_result["summary"]["total_runs"] == len(expected_families)
     assert set(suite_result["scenario_names"]) == expected_families
     assert set(suite_result["case_artifacts_dirs"]) == expected_families
+    assert set(suite_result["blueprint_paths"]) == expected_families
     assert set(suite_result["contract_paths"]) == expected_families

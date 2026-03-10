@@ -32,6 +32,7 @@ from vei.benchmark.models import (
     BenchmarkMetrics,
     BenchmarkWorkflowVariantManifest,
 )
+from vei.blueprint.api import build_blueprint_for_scenario
 from vei.contract.api import build_contract_from_workflow
 from vei.data.models import VEIDataset
 from vei.rl.policy_bc import BCPPolicy, run_policy
@@ -106,6 +107,10 @@ def run_benchmark_case(spec: BenchmarkCaseSpec) -> BenchmarkCaseResult:
     artifacts_dir.mkdir(parents=True, exist_ok=True)
     scenario = get_scenario(spec.scenario_name)
     _write_scenario_metadata(artifacts_dir, scenario)
+    _write_json(
+        artifacts_dir / "blueprint.json",
+        build_blueprint_for_scenario(spec.scenario_name).model_dump(mode="json"),
+    )
 
     started_at = time.monotonic()
     try:
@@ -245,6 +250,15 @@ def _run_workflow_case(spec: BenchmarkCaseSpec) -> BenchmarkCaseResult:
         )
     workflow_spec, workflow_variant = workflow_contract
     compiled = compile_workflow(workflow_spec, seed=spec.seed)
+    _write_json(
+        spec.artifacts_dir / "blueprint.json",
+        build_blueprint_for_scenario(
+            spec.scenario_name,
+            family_name=_infer_benchmark_family(spec.scenario_name),
+            workflow_name=compiled.spec.name,
+            workflow_variant=workflow_variant,
+        ).model_dump(mode="json"),
+    )
     _write_json(
         spec.artifacts_dir / "contract.json",
         build_contract_from_workflow(compiled).model_dump(mode="json"),
@@ -545,6 +559,15 @@ def _validate_nonworkflow_case_against_contract(
     workflow_spec, workflow_variant = workflow_contract
     compiled = compile_workflow(workflow_spec, seed=spec.seed)
     _write_json(
+        spec.artifacts_dir / "blueprint.json",
+        build_blueprint_for_scenario(
+            spec.scenario_name,
+            family_name=_infer_benchmark_family(spec.scenario_name),
+            workflow_name=compiled.spec.name,
+            workflow_variant=workflow_variant,
+        ).model_dump(mode="json"),
+    )
+    _write_json(
         spec.artifacts_dir / "contract.json",
         build_contract_from_workflow(compiled).model_dump(mode="json"),
     )
@@ -683,6 +706,13 @@ def _apply_workflow_validation(
     )
     diagnostics.workflow_valid = bool(validation.get("ok", False))
     diagnostics.workflow_step_count = int(validation.get("step_count", 0))
+
+
+def _infer_benchmark_family(scenario_name: str) -> str | None:
+    try:
+        return get_scenario(scenario_name).metadata.get("benchmark_family")
+    except Exception:  # noqa: BLE001
+        return None
 
 
 def _collect_metrics(

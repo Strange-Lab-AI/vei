@@ -3,6 +3,14 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Dict, Iterable, Optional, Protocol
 
+from vei.blueprint.api import (
+    build_blueprint_for_family as _build_blueprint_for_family,
+    build_blueprint_for_scenario as _build_blueprint_for_scenario,
+    get_facade_manifest as _get_facade_manifest,
+    list_blueprint_specs as _list_blueprint_specs,
+    list_facade_manifest as _list_facade_manifest,
+)
+from vei.blueprint.models import BlueprintSpec, FacadeManifest
 from vei.corpus.api import CorpusBundle, GeneratedWorkflowSpec, generate_corpus
 from vei.benchmark.api import (
     BenchmarkFamilyManifest,
@@ -218,6 +226,39 @@ def get_benchmark_family_manifest_entry(name: str) -> BenchmarkFamilyManifest:
 
 def list_benchmark_family_manifest_entries() -> list[BenchmarkFamilyManifest]:
     return list_benchmark_family_manifest()
+
+
+def get_facade_manifest_entry(name: str) -> FacadeManifest:
+    return _get_facade_manifest(name)
+
+
+def list_facade_manifest_entries() -> list[FacadeManifest]:
+    return _list_facade_manifest()
+
+
+def build_blueprint_for_family_entry(
+    family_name: str, *, variant_name: str | None = None
+) -> BlueprintSpec:
+    return _build_blueprint_for_family(family_name, variant_name=variant_name)
+
+
+def build_blueprint_for_scenario_entry(
+    scenario_name: str,
+    *,
+    family_name: str | None = None,
+    workflow_name: str | None = None,
+    workflow_variant: str | None = None,
+) -> BlueprintSpec:
+    return _build_blueprint_for_scenario(
+        scenario_name,
+        family_name=family_name,
+        workflow_name=workflow_name,
+        workflow_variant=workflow_variant,
+    )
+
+
+def list_blueprint_entries() -> list[BlueprintSpec]:
+    return _list_blueprint_specs()
 
 
 def get_benchmark_family_workflow_spec(name: str) -> WorkflowScenarioSpec:

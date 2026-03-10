@@ -81,6 +81,7 @@ def test_run_benchmark_case_scripted_writes_kernel_diagnostics(tmp_path: Path) -
     assert result.diagnostics.snapshot_count >= 2
     assert "dimensions" in result.score
     assert (artifacts / "benchmark_result.json").exists()
+    assert (artifacts / "blueprint.json").exists()
     assert (artifacts / "score.json").exists()
 
 
@@ -290,6 +291,7 @@ def test_run_benchmark_case_for_family_scenario_includes_family_dimensions(
     assert result.diagnostics.workflow_name == "security_containment"
     assert result.diagnostics.workflow_variant == "customer_notify"
     assert (artifacts / "workflow_validation.json").exists()
+    assert (artifacts / "blueprint.json").exists()
     assert (artifacts / "contract.json").exists()
 
 
@@ -323,6 +325,7 @@ def test_run_benchmark_case_workflow_runner(tmp_path: Path) -> None:
     assert result.score["workflow_validation"]["success_assertions_failed"] == 0
     assert (artifacts / "workflow_result.json").exists()
     assert (artifacts / "workflow_score.json").exists()
+    assert (artifacts / "blueprint.json").exists()
     assert (artifacts / "workflow_validation.json").exists()
     assert (artifacts / "contract.json").exists()
 
@@ -355,6 +358,7 @@ def test_run_benchmark_case_bc_family_includes_workflow_validation(
     assert result.score["workflow_validation"]["validation_mode"] == "state"
     assert result.score["workflow_validation"]["success_assertion_count"] == 5
     assert "success_assertions_failed" in result.score["workflow_validation"]
+    assert (tmp_path / "bc_family_case" / "blueprint.json").exists()
 
 
 def test_run_benchmark_case_llm_family_includes_workflow_validation(
@@ -451,6 +455,7 @@ def test_run_benchmark_case_llm_family_includes_workflow_validation(
     assert result.score["workflow_validation"]["ok"] is True
     assert result.score["workflow_validation"]["success_assertions_failed"] == 0
     assert result.diagnostics.workflow_valid is True
+    assert (tmp_path / "llm_family_case" / "blueprint.json").exists()
     assert (tmp_path / "llm_family_case" / "workflow_validation.json").exists()
 
 

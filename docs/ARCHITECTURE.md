@@ -2,6 +2,21 @@
 
 VEI is a deterministic, MCP-native enterprise simulator built around one stable boundary: `WorldSession`.
 
+## Core Primitives
+
+- `Blueprint`
+  - typed composition of scenario, facades, workflow, and contract
+- `Scenario`
+  - seeded enterprise world plus manifest metadata
+- `Facade`
+  - typed enterprise surface grouped by capability domain
+- `Contract`
+  - explicit success predicates, forbidden predicates, observation boundary, policy invariants, reward terms, and intervention rules
+- `Run`
+  - workflow, benchmark, demo, and suite executions
+- `Snapshot`
+  - branchable world-state checkpoint over the kernel
+
 ## Runtime Shape
 
 ```text
@@ -37,9 +52,14 @@ The router is a transport and tool-dispatch adapter. Mutable enterprise state be
   - `cancel_event`
 - `vei.sdk`
   - `create_session`
-  - scenario/benchmark manifest helpers
+  - scenario/facade/blueprint/benchmark manifest helpers
   - release/export helpers
   - workflow compile/run helpers
+- `vei.blueprint`
+  - typed facade catalog
+  - scenario and family blueprint builders
+- `vei.contract`
+  - contract builders and evaluators
 
 ## Supported Entry Points
 
@@ -59,6 +79,27 @@ The router is a transport and tool-dispatch adapter. Mutable enterprise state be
 - Operations: Tickets, ServiceDesk
 - Identity and control plane: Okta-style identity, Google Admin, SIEM, Datadog, PagerDuty, feature flags
 - Business systems: ERP, CRM, HRIS, Jira-style issues
+
+## Capability Domains
+
+VEI keeps the current router twins, but the public ontology now groups them as facades under capability domains:
+
+- `comm_graph`
+  - Slack, Mail, Calendar
+- `doc_graph`
+  - Browser, Docs
+- `work_graph`
+  - Tickets, ServiceDesk, Jira
+- `identity_graph`
+  - Identity, Google Admin, HRIS
+- `revenue_graph`
+  - CRM
+- `obs_graph`
+  - SIEM, Datadog, PagerDuty
+- `ops_graph`
+  - Feature flags, ERP
+- `data_graph`
+  - Database
 
 ## Design Rules
 

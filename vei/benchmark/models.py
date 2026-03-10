@@ -163,6 +163,8 @@ class BenchmarkDemoResult(BaseModel):
     report_json_path: Path
     baseline_artifacts_dir: Path
     comparison_artifacts_dir: Path
+    baseline_blueprint_path: Path
+    comparison_blueprint_path: Path
     baseline_contract_path: Path
     comparison_contract_path: Path
     baseline_branch: Optional[str] = None
@@ -191,5 +193,6 @@ class BenchmarkSuiteResult(BaseModel):
     report_csv_path: Path
     report_json_path: Path
     case_artifacts_dirs: Dict[str, Path] = Field(default_factory=dict)
+    blueprint_paths: Dict[str, Path] = Field(default_factory=dict)
     contract_paths: Dict[str, Path] = Field(default_factory=dict)
     summary: BenchmarkBatchSummary
