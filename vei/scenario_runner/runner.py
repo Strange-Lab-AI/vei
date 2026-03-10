@@ -7,7 +7,13 @@ from vei.router.core import Router
 from vei.scenario_engine.compiler import CompiledWorkflow
 from vei.world.session import WorldSession
 
-from .models import ScenarioRunResult, StepExecution, ValidationIssue, ValidationReport
+from .models import (
+    ScenarioRunResult,
+    StepExecution,
+    ValidationIssue,
+    ValidationReport,
+    WorkflowOutcomeValidation,
+)
 from .validator import (
     evaluate_assertion_specs,
     evaluate_assertions,
@@ -194,6 +200,67 @@ def run_compiled_workflow(
     )
 
 
+def validate_compiled_workflow_outcome(
+    workflow: CompiledWorkflow,
+    *,
+    state: dict,
+    time_ms: int = 0,
+    available_tools: List[str] | None = None,
+    result: object | None = None,
+    observation: dict | None = None,
+    pending: dict[str, int] | None = None,
+) -> WorkflowOutcomeValidation:
+    static_report = static_validate_workflow(workflow, available_tools=available_tools)
+    if not static_report.ok:
+        return WorkflowOutcomeValidation(
+            ok=False,
+            workflow_name=workflow.spec.name,
+            static_validation=static_report,
+            dynamic_validation=ValidationReport(ok=False, issues=[]),
+            step_count=len(workflow.steps),
+            success_assertion_count=len(workflow.spec.success_assertions),
+            success_assertions_passed=0,
+            success_assertions_failed=len(workflow.spec.success_assertions),
+            metadata={
+                "validation_mode": "state",
+                "time_ms": time_ms,
+            },
+        )
+
+    failures = evaluate_assertion_specs(
+        assertions=workflow.spec.success_assertions,
+        result=result or {},
+        observation=observation or {},
+        pending=pending or _pending_summary_from_state(state),
+        state=state,
+        time_ms=time_ms,
+    )
+    dynamic_issues = [
+        ValidationIssue(code="success_assertion.failed", message=failure)
+        for failure in failures
+    ]
+    dynamic_report = ValidationReport(
+        ok=not any(issue.severity == "error" for issue in dynamic_issues),
+        issues=dynamic_issues,
+    )
+    assertion_count = len(workflow.spec.success_assertions)
+    failed_count = len(failures)
+    return WorkflowOutcomeValidation(
+        ok=static_report.ok and dynamic_report.ok,
+        workflow_name=workflow.spec.name,
+        static_validation=static_report,
+        dynamic_validation=dynamic_report,
+        step_count=len(workflow.steps),
+        success_assertion_count=assertion_count,
+        success_assertions_passed=max(0, assertion_count - failed_count),
+        success_assertions_failed=failed_count,
+        metadata={
+            "validation_mode": "state",
+            "time_ms": time_ms,
+        },
+    )
+
+
 def _resolve_failure_target(
     workflow: CompiledWorkflow, on_failure: str, current_index: int
 ) -> Optional[int]:
@@ -241,3 +308,17 @@ def _focus_for_tool(tool: str) -> str:
     ):
         return "erp"
     return "browser"
+
+
+def _pending_summary_from_state(state: dict) -> dict[str, int]:
+    summary: dict[str, int] = {"total": 0}
+    pending_events = state.get("pending_events", [])
+    if not isinstance(pending_events, list):
+        return summary
+    for event in pending_events:
+        if not isinstance(event, dict):
+            continue
+        target = str(event.get("target", "unknown"))
+        summary[target] = summary.get(target, 0) + 1
+        summary["total"] += 1
+    return summary

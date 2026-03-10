@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import csv
 import json
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -26,6 +27,7 @@ from vei.cli.vei_report import (
     load_all_results,
 )
 from vei.data.rollout import rollout_procurement
+from vei.rl.policy_bc import BCPPolicy
 from vei.world.api import create_world_session, get_catalog_scenario
 
 
@@ -278,6 +280,13 @@ def test_run_benchmark_case_for_family_scenario_includes_family_dimensions(
     assert result.score["benchmark_family"] == "security_containment"
     assert result.diagnostics.benchmark_family == "security_containment"
     assert "evidence_preservation" in result.score["dimensions"]
+    assert result.score["workflow_name"] == "security_containment"
+    assert result.score["workflow_variant"] == "customer_notify"
+    assert result.score["workflow_validation"]["validation_mode"] == "state"
+    assert result.score["workflow_validation"]["success_assertion_count"] == 5
+    assert result.diagnostics.workflow_name == "security_containment"
+    assert result.diagnostics.workflow_variant == "customer_notify"
+    assert (artifacts / "workflow_validation.json").exists()
 
 
 def test_run_benchmark_case_workflow_runner(tmp_path: Path) -> None:
@@ -302,8 +311,133 @@ def test_run_benchmark_case_workflow_runner(tmp_path: Path) -> None:
     assert result.diagnostics.initial_snapshot_id is not None
     assert result.diagnostics.final_snapshot_id is not None
     assert result.diagnostics.latest_snapshot_label == "workflow.final"
+    assert result.score["workflow_validation"]["validation_mode"] == "workflow"
+    assert result.score["workflow_validation"]["success_assertion_count"] == 5
+    assert result.score["workflow_validation"]["success_assertions_failed"] == 0
     assert (artifacts / "workflow_result.json").exists()
     assert (artifacts / "workflow_score.json").exists()
+    assert (artifacts / "workflow_validation.json").exists()
+
+
+def test_run_benchmark_case_bc_family_includes_workflow_validation(
+    tmp_path: Path,
+) -> None:
+    policy_path = tmp_path / "bc_policy.json"
+    BCPPolicy(
+        tool_counts={"browser.read": 1},
+        arg_templates={"browser.read": {}},
+    ).save(policy_path)
+
+    result = run_benchmark_case(
+        BenchmarkCaseSpec(
+            runner="bc",
+            scenario_name="oauth_app_containment",
+            seed=913,
+            artifacts_dir=tmp_path / "bc_family_case",
+            bc_model_path=policy_path,
+            score_mode="full",
+        )
+    )
+
+    assert result.status == "ok"
+    assert result.score["workflow_name"] == "security_containment"
+    assert result.score["workflow_validation"]["validation_mode"] == "state"
+    assert result.score["workflow_validation"]["success_assertion_count"] == 5
+    assert "success_assertions_failed" in result.score["workflow_validation"]
+
+
+def test_run_benchmark_case_llm_family_includes_workflow_validation(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def fake_run(
+        cmd: list[str],
+        *,
+        env: dict[str, str],
+        capture_output: bool,
+        text: bool,
+        timeout: int,
+    ) -> subprocess.CompletedProcess[str]:
+        del capture_output, text, timeout
+        artifacts = Path(cmd[cmd.index("--artifacts") + 1])
+        session = create_world_session(
+            seed=int(env["VEI_SEED"]),
+            artifacts_dir=str(artifacts),
+            scenario=get_catalog_scenario(env["VEI_SCENARIO"]),
+            branch=env["VEI_SCENARIO"],
+        )
+        session.call_tool(
+            "google_admin.preserve_oauth_evidence",
+            {"app_id": "OAUTH-9001", "note": "preserve before containment"},
+        )
+        session.call_tool(
+            "google_admin.suspend_oauth_app",
+            {"app_id": "OAUTH-9001", "reason": "containment"},
+        )
+        session.call_tool(
+            "siem.preserve_evidence",
+            {
+                "case_id": "CASE-0001",
+                "alert_id": "ALT-9001",
+                "note": "preserve alert evidence before notification decision",
+            },
+        )
+        session.call_tool(
+            "siem.update_case",
+            {
+                "case_id": "CASE-0001",
+                "customer_notification_required": True,
+                "note": "Will notify impacted customers.",
+            },
+        )
+        snapshot = session.snapshot("llm.final")
+        snapshots_dir = artifacts / "snapshots"
+        snapshots_dir.mkdir(parents=True, exist_ok=True)
+        (snapshots_dir / f"{snapshot.snapshot_id:09d}.json").write_text(
+            json.dumps(
+                {
+                    "index": snapshot.snapshot_id,
+                    "branch": snapshot.branch,
+                    "clock_ms": snapshot.time_ms,
+                    "data": snapshot.data.model_dump(mode="json"),
+                    "label": snapshot.label,
+                }
+            ),
+            encoding="utf-8",
+        )
+        (artifacts / "llm_metrics.json").write_text(
+            json.dumps(
+                {
+                    "calls": 3,
+                    "prompt_tokens": 120,
+                    "completion_tokens": 45,
+                    "total_tokens": 165,
+                }
+            ),
+            encoding="utf-8",
+        )
+        return subprocess.CompletedProcess(cmd, 0, stdout="ok", stderr="")
+
+    monkeypatch.setattr("vei.benchmark.api.subprocess.run", fake_run)
+
+    result = run_benchmark_case(
+        BenchmarkCaseSpec(
+            runner="llm",
+            scenario_name="oauth_app_containment",
+            seed=914,
+            artifacts_dir=tmp_path / "llm_family_case",
+            model="fake-gpt",
+            provider="openai",
+            score_mode="full",
+        )
+    )
+
+    assert result.status == "ok"
+    assert result.score["workflow_name"] == "security_containment"
+    assert result.score["workflow_validation"]["validation_mode"] == "state"
+    assert result.score["workflow_validation"]["ok"] is True
+    assert result.score["workflow_validation"]["success_assertions_failed"] == 0
+    assert result.diagnostics.workflow_valid is True
+    assert (tmp_path / "llm_family_case" / "workflow_validation.json").exists()
 
 
 def test_run_benchmark_case_workflow_runner_variant(tmp_path: Path) -> None:
@@ -466,8 +600,8 @@ def test_report_attaches_workflow_baseline_deltas(tmp_path: Path) -> None:
     )
 
     assert scripted_row["baseline"]["workflow_variant"] == "customer_notify"
-    assert scripted_row["baseline_delta"]["workflow_valid_delta"] is None
-    assert scripted_row["baseline_delta"]["workflow_issue_count_delta"] is None
+    assert scripted_row["baseline_delta"]["workflow_valid_delta"] == -1
+    assert scripted_row["baseline_delta"]["workflow_issue_count_delta"] is not None
     assert scripted_row["baseline_delta"]["composite_score_delta"] == pytest.approx(
         scripted_row["score"]["composite_score"]
         - baseline_row["score"]["composite_score"]

@@ -18,6 +18,18 @@ class ValidationReport(BaseModel):
     issues: List[ValidationIssue] = Field(default_factory=list)
 
 
+class WorkflowOutcomeValidation(BaseModel):
+    ok: bool
+    workflow_name: str
+    static_validation: ValidationReport
+    dynamic_validation: ValidationReport
+    step_count: int = 0
+    success_assertion_count: int = 0
+    success_assertions_passed: int = 0
+    success_assertions_failed: int = 0
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+
+
 class StepExecution(BaseModel):
     step_id: str
     tool: str

@@ -54,6 +54,8 @@ vei-eval benchmark \
 
 The `workflow` runner executes the typed family playbook and its reusable assertions directly. Each family can expose multiple named variants backed by typed parameter presets. Those workflows can now express negative assertions, count checks, and virtual-time deadlines in the same DSL. The other runners still use the same family selection and scoring pipeline, but they act freely inside the scenario instead of following the deterministic workflow baseline.
 
+For benchmark-family scenarios, scripted, BC, and LLM runners now also emit `workflow_validation` artifacts derived from the same family workflow spec, so freeform runs can be compared against the deterministic contract instead of only against raw score output.
+
 ## 2. Frontier Suites
 
 `vei-eval-frontier` remains the curated long-horizon suite for harder reasoning and safety-heavy tasks. It is implemented on the shared benchmark core, not as a separate reporting stack.

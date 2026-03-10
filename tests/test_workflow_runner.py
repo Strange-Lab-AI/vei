@@ -3,7 +3,12 @@ from __future__ import annotations
 import pytest
 
 from vei.scenario_engine.api import compile_workflow
-from vei.scenario_runner.api import run_workflow, validate_workflow
+from vei.scenario_runner.api import (
+    run_workflow,
+    validate_workflow,
+    validate_workflow_outcome,
+)
+from vei.world.api import create_world_session, get_catalog_scenario
 
 
 def _workflow_spec() -> dict:
@@ -274,6 +279,89 @@ def test_run_workflow_fails_virtual_deadline_assertion() -> None:
     assert not result.ok
     assert any(
         "workflow time" in issue.message for issue in result.dynamic_validation.issues
+    )
+
+
+def test_validate_workflow_outcome_reuses_success_assertions() -> None:
+    spec = {
+        "name": "workflow-outcome-validation",
+        "objective": {
+            "statement": "Restrict sharing before a virtual deadline.",
+            "success": ["share restricted before deadline"],
+        },
+        "world": {"catalog": "acquired_sales_onboarding"},
+        "steps": [
+            {
+                "step_id": "restrict_share",
+                "description": "Restrict inherited sharing",
+                "tool": "google_admin.restrict_drive_share",
+                "args": {
+                    "doc_id": "GDRIVE-2201",
+                    "visibility": "internal",
+                    "note": "Remove external share before migration deadline.",
+                },
+            }
+        ],
+        "success_assertions": [
+            {"kind": "time_max_ms", "max_value": 10_000},
+            {
+                "kind": "state_count_max",
+                "field": "components.google_admin.drive_shares.GDRIVE-2201.shared_with",
+                "max_value": 1,
+            },
+        ],
+    }
+    compiled = compile_workflow(spec, seed=73)
+    result = run_workflow(compiled, seed=73, connector_mode="sim")
+
+    validation = validate_workflow_outcome(
+        compiled,
+        state=result.final_state,
+        time_ms=int(result.metadata.get("time_ms", 0)),
+        available_tools=["google_admin.restrict_drive_share"],
+    )
+
+    assert validation.ok
+    assert validation.success_assertion_count == 2
+    assert validation.success_assertions_passed == 2
+    assert validation.success_assertions_failed == 0
+
+
+def test_validate_workflow_outcome_reports_failed_success_assertions() -> None:
+    spec = {
+        "name": "workflow-outcome-validation-fail",
+        "objective": {
+            "statement": "Restrict sharing before a virtual deadline.",
+            "success": ["share restricted before deadline"],
+        },
+        "world": {"catalog": "acquired_sales_onboarding"},
+        "steps": [],
+        "success_assertions": [
+            {
+                "kind": "state_equals",
+                "field": "components.google_admin.drive_shares.GDRIVE-2201.visibility",
+                "equals": "internal",
+            }
+        ],
+    }
+    compiled = compile_workflow(spec, seed=74)
+    session = create_world_session(
+        seed=74,
+        scenario=get_catalog_scenario("acquired_sales_onboarding"),
+    )
+    validation = validate_workflow_outcome(
+        compiled,
+        state=session.current_state().model_dump(mode="json"),
+        time_ms=0,
+    )
+
+    assert not validation.ok
+    assert validation.success_assertion_count == 1
+    assert validation.success_assertions_passed == 0
+    assert validation.success_assertions_failed == 1
+    assert any(
+        issue.code == "success_assertion.failed"
+        for issue in validation.dynamic_validation.issues
     )
 
 

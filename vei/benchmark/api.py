@@ -36,6 +36,8 @@ from vei.data.models import VEIDataset
 from vei.rl.policy_bc import BCPPolicy, run_policy
 from vei.scenario_engine.api import compile_workflow
 from vei.scenario_runner.api import run_workflow
+from vei.scenario_runner.api import validate_workflow_outcome
+from vei.scenario_runner.models import ScenarioRunResult, WorkflowOutcomeValidation
 from vei.score_core import compute_score
 from vei.score_frontier import compute_frontier_score
 from vei.world.api import create_world_session
@@ -160,6 +162,7 @@ def _run_local_case(spec: BenchmarkCaseSpec) -> BenchmarkCaseResult:
         scenario=get_scenario(spec.scenario_name),
         branch=spec.branch or spec.scenario_name,
     )
+    router = session.router
     session.register_actor(
         ActorState(
             actor_id=f"{spec.runner}.baseline",
@@ -208,6 +211,20 @@ def _run_local_case(spec: BenchmarkCaseSpec) -> BenchmarkCaseResult:
             else None
         ),
     )
+    available_tools = [tool.name for tool in router.registry.list()]
+    workflow_validation = _validate_nonworkflow_case_against_contract(
+        spec=spec,
+        state=final_snapshot.data,
+        time_ms=router.bus.clock_ms,
+        available_tools=available_tools,
+        observation=router.snapshot_observation("browser").model_dump(),
+        pending=router.pending(),
+    )
+    _apply_workflow_validation(
+        score=score,
+        diagnostics=diagnostics,
+        validation=workflow_validation,
+    )
     return BenchmarkCaseResult(
         spec=spec,
         status="ok",
@@ -220,25 +237,12 @@ def _run_local_case(spec: BenchmarkCaseSpec) -> BenchmarkCaseResult:
 
 
 def _run_workflow_case(spec: BenchmarkCaseSpec) -> BenchmarkCaseResult:
-    workflow_name = spec.workflow_name or resolve_benchmark_workflow_name(
-        scenario_name=spec.scenario_name
-    )
-    if workflow_name is None:
+    workflow_contract = _resolve_workflow_contract(spec)
+    if workflow_contract is None:
         raise ValueError(
             f"no benchmark workflow is registered for scenario {spec.scenario_name}"
         )
-
-    workflow_spec = get_benchmark_family_workflow_spec(workflow_name)
-    workflow_variant = None
-    if isinstance(workflow_spec.metadata, dict):
-        raw_variant = workflow_spec.metadata.get("workflow_variant")
-        if raw_variant is not None:
-            workflow_variant = str(raw_variant)
-    if spec.workflow_variant:
-        workflow_spec = get_benchmark_family_workflow_spec(
-            workflow_name, variant_name=spec.workflow_variant
-        )
-        workflow_variant = spec.workflow_variant
+    workflow_spec, workflow_variant = workflow_contract
     compiled = compile_workflow(workflow_spec, seed=spec.seed)
     workflow_result = run_workflow(
         compiled,
@@ -279,14 +283,15 @@ def _run_workflow_case(spec: BenchmarkCaseSpec) -> BenchmarkCaseResult:
         artifacts_dir=spec.artifacts_dir,
         state=final_state,
     )
-    score["workflow_validation"] = {
-        "ok": workflow_result.ok,
-        "static_ok": workflow_result.static_validation.ok,
-        "dynamic_ok": workflow_result.dynamic_validation.ok,
-        "issue_count": len(workflow_result.dynamic_validation.issues),
-    }
+    workflow_validation = _workflow_validation_from_workflow_run(
+        workflow=compiled,
+        workflow_variant=workflow_variant,
+        workflow_result=workflow_result,
+    )
+    score["workflow_validation"] = workflow_validation
     score["workflow_name"] = workflow_result.workflow_name
     score["workflow_variant"] = workflow_variant
+    _write_json(spec.artifacts_dir / "workflow_validation.json", workflow_validation)
     if "success" in score:
         score["success"] = bool(score.get("success", False) and workflow_result.ok)
     else:
@@ -304,7 +309,7 @@ def _run_workflow_case(spec: BenchmarkCaseSpec) -> BenchmarkCaseResult:
     diagnostics.workflow_name = workflow_result.workflow_name
     diagnostics.workflow_variant = workflow_variant
     diagnostics.workflow_valid = workflow_result.ok
-    diagnostics.workflow_step_count = len(workflow_result.steps)
+    diagnostics.workflow_step_count = len(compiled.steps)
     diagnostics.initial_snapshot_id = workflow_result.initial_snapshot_id
     diagnostics.final_snapshot_id = workflow_result.final_snapshot_id
     diagnostics.latest_snapshot_label = workflow_result.final_snapshot_label
@@ -382,6 +387,18 @@ def _run_llm_case(spec: BenchmarkCaseSpec) -> BenchmarkCaseResult:
         transcript=transcript,
     )
     diagnostics = _collect_world_diagnostics(artifacts_dir=spec.artifacts_dir)
+    workflow_validation = None
+    if latest_snapshot is not None:
+        workflow_validation = _validate_nonworkflow_case_against_contract(
+            spec=spec,
+            state=latest_snapshot.data,
+            time_ms=latest_snapshot.time_ms,
+        )
+        _apply_workflow_validation(
+            score=score,
+            diagnostics=diagnostics,
+            validation=workflow_validation,
+        )
     error = None
     status = "ok"
     if completed.returncode != 0:
@@ -485,6 +502,133 @@ def _normalize_score(
         "policy": policy,
         "legacy": True,
     }
+
+
+def _resolve_workflow_contract(
+    spec: BenchmarkCaseSpec,
+) -> tuple[Any, str | None] | None:
+    workflow_name = spec.workflow_name or resolve_benchmark_workflow_name(
+        scenario_name=spec.scenario_name
+    )
+    if workflow_name is None:
+        return None
+    workflow_spec = get_benchmark_family_workflow_spec(
+        workflow_name, variant_name=spec.workflow_variant
+    )
+    workflow_variant = None
+    if isinstance(workflow_spec.metadata, dict):
+        raw_variant = workflow_spec.metadata.get("workflow_variant")
+        if raw_variant is not None:
+            workflow_variant = str(raw_variant)
+    if spec.workflow_variant:
+        workflow_variant = spec.workflow_variant
+    return workflow_spec, workflow_variant
+
+
+def _validate_nonworkflow_case_against_contract(
+    *,
+    spec: BenchmarkCaseSpec,
+    state: WorldState,
+    time_ms: int,
+    available_tools: List[str] | None = None,
+    observation: Dict[str, Any] | None = None,
+    pending: Dict[str, int] | None = None,
+) -> Dict[str, Any] | None:
+    workflow_contract = _resolve_workflow_contract(spec)
+    if workflow_contract is None:
+        return None
+    workflow_spec, workflow_variant = workflow_contract
+    compiled = compile_workflow(workflow_spec, seed=spec.seed)
+    validation = validate_workflow_outcome(
+        compiled,
+        state=state.model_dump(mode="json"),
+        time_ms=time_ms,
+        available_tools=available_tools,
+        observation=observation,
+        pending=pending,
+    )
+    payload = _workflow_validation_from_outcome(
+        workflow=compiled,
+        workflow_variant=workflow_variant,
+        validation=validation,
+    )
+    _write_json(spec.artifacts_dir / "workflow_validation.json", payload)
+    return payload
+
+
+def _workflow_validation_from_workflow_run(
+    *,
+    workflow: Any,
+    workflow_variant: str | None,
+    workflow_result: ScenarioRunResult,
+) -> Dict[str, Any]:
+    failed_success_assertions = sum(
+        1
+        for issue in workflow_result.dynamic_validation.issues
+        if issue.code == "success_assertion.failed"
+    )
+    success_assertion_count = len(workflow.spec.success_assertions)
+    return {
+        "workflow_name": workflow_result.workflow_name,
+        "workflow_variant": workflow_variant,
+        "validation_mode": "workflow",
+        "ok": workflow_result.ok,
+        "static_ok": workflow_result.static_validation.ok,
+        "dynamic_ok": workflow_result.dynamic_validation.ok,
+        "issue_count": len(workflow_result.dynamic_validation.issues),
+        "step_count": len(workflow.steps),
+        "success_assertion_count": success_assertion_count,
+        "success_assertions_passed": max(
+            0, success_assertion_count - failed_success_assertions
+        ),
+        "success_assertions_failed": failed_success_assertions,
+    }
+
+
+def _workflow_validation_from_outcome(
+    *,
+    workflow: Any,
+    workflow_variant: str | None,
+    validation: WorkflowOutcomeValidation,
+) -> Dict[str, Any]:
+    return {
+        "workflow_name": validation.workflow_name,
+        "workflow_variant": workflow_variant,
+        "validation_mode": str(validation.metadata.get("validation_mode", "state")),
+        "ok": validation.ok,
+        "static_ok": validation.static_validation.ok,
+        "dynamic_ok": validation.dynamic_validation.ok,
+        "issue_count": len(validation.dynamic_validation.issues),
+        "step_count": len(workflow.steps),
+        "success_assertion_count": validation.success_assertion_count,
+        "success_assertions_passed": validation.success_assertions_passed,
+        "success_assertions_failed": validation.success_assertions_failed,
+    }
+
+
+def _apply_workflow_validation(
+    *,
+    score: Dict[str, Any],
+    diagnostics: BenchmarkDiagnostics,
+    validation: Dict[str, Any] | None,
+) -> None:
+    if validation is None:
+        return
+    score["workflow_name"] = validation.get("workflow_name")
+    score["workflow_variant"] = validation.get("workflow_variant")
+    score["workflow_validation"] = validation
+    diagnostics.workflow_name = (
+        str(validation.get("workflow_name"))
+        if validation.get("workflow_name") is not None
+        else None
+    )
+    diagnostics.workflow_variant = (
+        str(validation.get("workflow_variant"))
+        if validation.get("workflow_variant") is not None
+        else None
+    )
+    diagnostics.workflow_valid = bool(validation.get("ok", False))
+    diagnostics.workflow_step_count = int(validation.get("step_count", 0))
 
 
 def _collect_metrics(
