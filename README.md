@@ -292,3 +292,23 @@ vei-release nightly \
 ## Contributor Notes
 
 `bd` state is local-only under `.beads/` and should stay out of Git.
+
+## Workspace Hygiene
+
+The repo source of truth is:
+
+- `vei/`
+- `tests/`
+- `docs/`
+- `tools/`
+- top-level config such as `pyproject.toml`, `Makefile`, `README.md`, and `.agents.yml`
+
+Local-only generated folders such as `_vei_out/`, `.artifacts/`, `.mypy_cache/`, `.pytest_cache/`, `.ruff_cache/`, and `vei.egg-info/` are disposable.
+
+To prune local clutter while keeping the current canonical demo, latest live artifact, reusable datasets, your virtualenv, local `bd` state, and local Codex state:
+
+```bash
+make clean-workspace
+```
+
+`archive_data/` is intentionally left alone by that target because it may contain local imported source data rather than regenerated outputs.

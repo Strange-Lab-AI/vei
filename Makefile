@@ -7,7 +7,7 @@ VENV_BIN := $(VENV)/bin
 DEPS := black==24.8.0 ruff==0.6.8 mypy==1.11.2 bandit==1.7.9 detect-secrets==1.5.0 pip-audit==2.7.3 pytest==9.0.2 pytest-timeout==2.4.0 pytest-cov==7.0.0 pre-commit==4.4.0
 PIPAPI_PYTHON := $(abspath $(VENV_BIN)/python)
 
-.PHONY: setup bootstrap check test llm-live deps-audit all clean
+.PHONY: setup bootstrap check test llm-live deps-audit all clean clean-workspace
 
 $(VENV)/bin/activate:
 	$(PYTHON) -m venv $(VENV)
@@ -65,6 +65,14 @@ deps-audit: $(SETUP_STAMP)
 	fi
 
 all: check test llm-live deps-audit
+
+clean-workspace:
+	rm -rf .artifacts .coverage .coverage.* .mypy_cache .pytest_cache ".pytest_cache 2" .ruff_cache vei.egg-info
+	find . -name '.DS_Store' -delete
+	@mkdir -p _vei_out/demo _vei_out/llm_live _vei_out/datasets
+	find _vei_out -mindepth 1 -maxdepth 1 ! -name demo ! -name llm_live ! -name datasets -exec rm -rf {} +
+	find _vei_out/demo -mindepth 1 -maxdepth 1 ! -name security_blueprint_demo -exec rm -rf {} +
+	find _vei_out/llm_live -mindepth 1 -maxdepth 1 ! -name latest -exec rm -rf {} +
 
 clean:
 	rm -rf $(VENV) $(SETUP_STAMP)
