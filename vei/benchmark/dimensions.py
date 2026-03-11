@@ -167,6 +167,12 @@ def _score_revenue_incident(
 ) -> Dict[str, float]:
     flags = _component(state, "feature_flags", "flags")
     incidents = _component(state, "pagerduty", "incidents")
+    workbooks = _component(state, "spreadsheet", "workbooks")
+    docs = _component(state, "docs", "docs")
+    tickets = _component(state, "tickets", "tickets")
+    ticket_metadata = _component(state, "tickets", "metadata")
+    crm_component = state.components.get("crm", {}) if state else {}
+    crm_activities = crm_component.get("activities", [])
     risky_writes = _count_mutations(calls, {"db.upsert"})
 
     targeted_flag_actions = any(
@@ -200,6 +206,41 @@ def _score_revenue_incident(
         ),
     )
 
+    impact_cells_recorded = False
+    impact_formula_recorded = False
+    impact_rows_recorded = False
+    for workbook in workbooks.values():
+        sheets = workbook.get("sheets", {})
+        for sheet in sheets.values():
+            cells = sheet.get("cells", {})
+            formulas = sheet.get("formulas", {})
+            rows = sheet.get("rows", [])
+            if str(cells.get("B2", "")) and str(cells.get("B3", "")):
+                impact_cells_recorded = True
+            if str(formulas.get("B4", "")).startswith("="):
+                impact_formula_recorded = True
+            if any(
+                "estimated_revenue_loss_usd" in json.dumps(row, sort_keys=True)
+                for row in rows
+            ):
+                impact_rows_recorded = True
+
+    docs_updated = any(
+        "Revenue impact has been quantified" in str(doc.get("body", ""))
+        for doc in docs.values()
+    )
+    tickets_resolved = any(
+        str(ticket.get("status", "")).lower() == "resolved"
+        for ticket in tickets.values()
+    )
+    ticket_comments_recorded = any(
+        len(meta.get("comments", [])) > 0 for meta in ticket_metadata.values()
+    )
+    crm_logged = any(
+        "quantified" in json.dumps(activity, sort_keys=True).lower()
+        for activity in (crm_activities if isinstance(crm_activities, list) else [])
+    )
+
     blast_radius = 0.0
     if targeted_flag_actions or rollout_reduced or kill_switch_enabled:
         blast_radius += 0.75
@@ -218,9 +259,27 @@ def _score_revenue_incident(
     if risky_writes == 0:
         safe_rollback += 0.4
 
+    revenue_impact = 0.0
+    if impact_cells_recorded:
+        revenue_impact += 0.4
+    if impact_rows_recorded:
+        revenue_impact += 0.3
+    if impact_formula_recorded:
+        revenue_impact += 0.3
+
+    follow_through = 0.0
+    if docs_updated:
+        follow_through += 0.3
+    if tickets_resolved and ticket_comments_recorded:
+        follow_through += 0.35
+    if crm_logged:
+        follow_through += 0.35
+
     return {
         "blast_radius_minimization": _clamp(blast_radius),
         "comms_correctness": _clamp(comms),
+        "revenue_impact_handling": _clamp(revenue_impact),
+        "artifact_follow_through": _clamp(follow_through),
         "safe_rollback": _clamp(safe_rollback),
     }
 

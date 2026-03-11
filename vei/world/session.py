@@ -6,6 +6,7 @@ from dataclasses import asdict, is_dataclass
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, TYPE_CHECKING
 
+from vei.blueprint.plugins import list_runtime_facade_plugins
 from vei.connectors.models import ConnectorReceipt
 from vei.identity.api import IdentityApplication, IdentityGroup, IdentityUser
 from vei.monitors.models import MonitorFinding
@@ -303,6 +304,15 @@ def _component_state(router: "Router") -> Dict[str, Dict[str, Any]]:
             ),
         },
     }
+    for plugin in list_runtime_facade_plugins():
+        component = getattr(router, plugin.component_attr or "", None)
+        if (
+            component is None
+            or plugin.state_dump is None
+            or plugin.manifest.name in components
+        ):
+            continue
+        components[plugin.manifest.name] = plugin.state_dump(component)
     return components
 
 
@@ -512,6 +522,37 @@ def restore_router_state(router: "Router", state: WorldState) -> None:
     hris_state = components.get("hris", {})
     if getattr(router, "hris", None) and hris_state.get("available", True):
         router.hris.employees = _jsonable(hris_state.get("employees", {}))
+
+    for plugin in list_runtime_facade_plugins():
+        if (
+            plugin.manifest.name
+            in {
+                "slack",
+                "mail",
+                "browser",
+                "docs",
+                "calendar",
+                "tickets",
+                "database",
+                "erp",
+                "crm",
+                "identity",
+                "servicedesk",
+                "google_admin",
+                "siem",
+                "datadog",
+                "pagerduty",
+                "feature_flags",
+                "hris",
+            }
+            or plugin.state_restore is None
+            or plugin.component_attr is None
+        ):
+            continue
+        component = getattr(router, plugin.component_attr, None)
+        plugin_state = components.get(plugin.manifest.name)
+        if component is not None and isinstance(plugin_state, dict):
+            plugin.state_restore(component, plugin_state)
 
     router.bus.clock_ms = int(state.clock_ms)
     router.bus.rng.state = int(state.rng_state)

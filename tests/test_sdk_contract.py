@@ -6,6 +6,8 @@ from vei.router.tool_providers import PrefixToolProvider
 from vei.router.tool_registry import ToolSpec
 from vei.sdk import (
     SessionHook,
+    build_blueprint_asset_for_family_entry,
+    compile_blueprint_entry,
     create_session,
     filter_enterprise_corpus,
     generate_enterprise_corpus,
@@ -188,6 +190,7 @@ def test_sdk_benchmark_family_workflow_helpers() -> None:
 
     variants = list_benchmark_family_workflow_variants("revenue_incident_mitigation")
     assert {item.variant_name for item in variants} == {
+        "revenue_ops_flightdeck",
         "kill_switch_backstop",
         "canary_floor",
     }
@@ -205,3 +208,14 @@ def test_sdk_benchmark_family_workflow_helpers() -> None:
     assert result.final_state["scenario"]["metadata"]["workflow_variant"] == (
         "internal_only_review"
     )
+
+
+def test_sdk_blueprint_helpers_compile_assets() -> None:
+    asset = build_blueprint_asset_for_family_entry(
+        "revenue_incident_mitigation", variant_name="revenue_ops_flightdeck"
+    )
+    compiled = compile_blueprint_entry(asset)
+
+    assert asset.workflow_variant == "revenue_ops_flightdeck"
+    assert compiled.asset.name == asset.name
+    assert "spreadsheet" in {item.name for item in compiled.facades}

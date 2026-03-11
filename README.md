@@ -11,6 +11,8 @@ VEI is a deterministic, MCP-native enterprise simulator for training, evaluating
 VEI now exposes one coherent product shape:
 
 - `Blueprint`: typed composition of scenario, facades, workflow, and contract
+- `BlueprintAsset`: authored blueprint root that declares scenario, requested facades, workflow, and metadata
+- `CompiledBlueprint`: compiled blueprint with resolved facades, state roots, workflow defaults, contract defaults, and run defaults
 - `Scenario`: seeded enterprise world and difficulty/tool manifest
 - `Facade`: typed enterprise surface grouped by capability domain
 - `Contract`: success predicates, forbidden predicates, observation boundary, policy invariants, reward terms, and intervention rules
@@ -66,7 +68,8 @@ vei-llm-test \
 - Deterministic simulator with replayable traces
 - Stable world-kernel API with snapshot, branch, restore, replay, inject, and event inspection
 - Typed blueprint and facade catalog over the existing enterprise twins
-- Enterprise twins for Slack, Mail, Browser, Docs, Tickets, DB, ERP/CRM, Okta-style identity, ServiceDesk, Google Admin, SIEM, Datadog, PagerDuty, feature flags, HRIS, and Jira-style issue flows
+- Blueprint compiler with explicit facade plugins and authored `BlueprintAsset -> CompiledBlueprint` flow
+- Enterprise twins for Slack, Mail, Browser, Docs, Spreadsheet, Tickets, DB, ERP/CRM, Okta-style identity, ServiceDesk, Google Admin, SIEM, Datadog, PagerDuty, feature flags, HRIS, and Jira-style issue flows
 - Scenario compilation, dataset rollout, BC training, benchmark execution, and release packaging
 - Reusable benchmark families for security containment, enterprise onboarding/migration, and revenue incident response
 
@@ -117,7 +120,7 @@ Useful helpers:
 
 - Scenario manifests: `list_scenario_manifest()`, `get_scenario_manifest(name)`
 - Facade catalog: `list_facade_manifest_entries()`, `get_facade_manifest_entry(name)`
-- Blueprint catalog: `list_blueprint_entries()`, `build_blueprint_for_family_entry(name)`, `build_blueprint_for_scenario_entry(name)`
+- Blueprint catalog: `list_blueprint_entries()`, `build_blueprint_asset_for_family_entry(name)`, `build_blueprint_for_family_entry(name)`, `compile_blueprint_entry(asset)`
 - Benchmark families: `list_benchmark_family_manifest_entries()`, `get_benchmark_family_manifest_entry(name)`
 - Release packaging: `build_release_version()`, `export_release_dataset(...)`, `export_release_benchmark(...)`, `run_release_nightly(...)`
 
@@ -141,7 +144,7 @@ VEI_LLM_LIVE_BYPASS=1 make llm-live
 ## Supported CLI Surface
 
 - Runtime: `vei-llm-test`, `vei-smoke`, `vei-demo`, `vei-world`
-- Ontology: `vei-blueprint`
+- Ontology: `vei-blueprint asset|compile|show|facades`
 - Release/Ops: `vei-release dataset|benchmark|nightly`
 - Scenarios: `vei-scenarios list|manifest|dump`
 - DSL/corpus: `vei-det sample-workflow|compile-workflow|run-workflow|generate-corpus|filter-corpus`
@@ -215,6 +218,25 @@ vei-eval demo \
 
 That command runs the deterministic family workflow baseline plus a comparison runner, writes `leaderboard.md` / `leaderboard.csv` / `leaderboard.json`, stores inspectable world state under `_vei_out/demo/security_demo/state` for follow-up `vei-world` inspection, and records explicit `contract.json` artifacts for both the baseline and comparison paths. Contract evaluation now separates oracle state from agent-visible observation so hidden state can be graded without making the demo omniscient.
 
+Flagship blueprint-driven revenue/ops demo:
+
+```bash
+vei-blueprint asset \
+  --family revenue_incident_mitigation \
+  --workflow-variant revenue_ops_flightdeck
+
+vei-blueprint compile \
+  --family revenue_incident_mitigation \
+  --workflow-variant revenue_ops_flightdeck
+
+vei-eval demo \
+  --family revenue_incident_mitigation \
+  --artifacts-root _vei_out/demo \
+  --run-id revenue_ops_demo
+```
+
+That flow shows the full engine shape: authored `BlueprintAsset`, compiled blueprint, the deterministic workflow baseline, a freer comparison run, `contract.json`, and inspectable state/snapshot artifacts. The flagship revenue workflow now spans Spreadsheet, Docs, CRM, feature flags, Datadog, PagerDuty, Tickets, and Slack in one mixed-stack run.
+
 Canonical multi-family workflow suite:
 
 ```bash
@@ -239,12 +261,13 @@ Artifacts from batch evaluation include:
 
 - `aggregate_results.json`
 - per-scenario `benchmark_result.json`
+- benchmark runs also write `blueprint_asset.json`
 - benchmark runs also write `blueprint.json`
 - `benchmark_summary.json`
 - benchmark-family runs also write `contract.json`
 - demo runs also write `leaderboard.md`, `leaderboard.csv`, `leaderboard.json`, and `demo_result.json`
 - suite runs also write `leaderboard.md`, `leaderboard.csv`, `leaderboard.json`, and `suite_result.json`
-- family-level dimension scores such as evidence preservation, blast radius, least privilege, oversharing avoidance, deadline compliance, comms correctness, and safe rollback
+- family-level dimension scores such as evidence preservation, blast radius, least privilege, oversharing avoidance, deadline compliance, revenue impact handling, artifact follow-through, comms correctness, and safe rollback
 
 Render a report from any benchmark or frontier batch:
 

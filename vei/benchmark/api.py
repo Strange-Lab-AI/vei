@@ -32,7 +32,10 @@ from vei.benchmark.models import (
     BenchmarkMetrics,
     BenchmarkWorkflowVariantManifest,
 )
-from vei.blueprint.api import build_blueprint_for_scenario
+from vei.blueprint.api import (
+    build_blueprint_asset_for_scenario,
+    build_blueprint_for_scenario,
+)
 from vei.contract.api import build_contract_from_workflow
 from vei.data.models import VEIDataset
 from vei.rl.policy_bc import BCPPolicy, run_policy
@@ -107,9 +110,12 @@ def run_benchmark_case(spec: BenchmarkCaseSpec) -> BenchmarkCaseResult:
     artifacts_dir.mkdir(parents=True, exist_ok=True)
     scenario = get_scenario(spec.scenario_name)
     _write_scenario_metadata(artifacts_dir, scenario)
-    _write_json(
-        artifacts_dir / "blueprint.json",
-        build_blueprint_for_scenario(spec.scenario_name).model_dump(mode="json"),
+    _write_blueprint_artifacts(
+        artifacts_dir=artifacts_dir,
+        scenario_name=spec.scenario_name,
+        family_name=_infer_benchmark_family(spec.scenario_name),
+        workflow_name=spec.workflow_name,
+        workflow_variant=spec.workflow_variant,
     )
 
     started_at = time.monotonic()
@@ -250,14 +256,12 @@ def _run_workflow_case(spec: BenchmarkCaseSpec) -> BenchmarkCaseResult:
         )
     workflow_spec, workflow_variant = workflow_contract
     compiled = compile_workflow(workflow_spec, seed=spec.seed)
-    _write_json(
-        spec.artifacts_dir / "blueprint.json",
-        build_blueprint_for_scenario(
-            spec.scenario_name,
-            family_name=_infer_benchmark_family(spec.scenario_name),
-            workflow_name=compiled.spec.name,
-            workflow_variant=workflow_variant,
-        ).model_dump(mode="json"),
+    _write_blueprint_artifacts(
+        artifacts_dir=spec.artifacts_dir,
+        scenario_name=spec.scenario_name,
+        family_name=_infer_benchmark_family(spec.scenario_name),
+        workflow_name=compiled.spec.name,
+        workflow_variant=workflow_variant,
     )
     _write_json(
         spec.artifacts_dir / "contract.json",
@@ -713,6 +717,36 @@ def _infer_benchmark_family(scenario_name: str) -> str | None:
         return get_scenario(scenario_name).metadata.get("benchmark_family")
     except Exception:  # noqa: BLE001
         return None
+
+
+def _write_blueprint_artifacts(
+    *,
+    artifacts_dir: Path,
+    scenario_name: str,
+    family_name: str | None,
+    workflow_name: str | None,
+    workflow_variant: str | None,
+) -> None:
+    asset = build_blueprint_asset_for_scenario(
+        scenario_name,
+        family_name=family_name,
+        workflow_name=workflow_name,
+        workflow_variant=workflow_variant,
+    )
+    compiled = build_blueprint_for_scenario(
+        scenario_name,
+        family_name=family_name,
+        workflow_name=workflow_name,
+        workflow_variant=workflow_variant,
+    )
+    _write_json(
+        artifacts_dir / "blueprint_asset.json",
+        asset.model_dump(mode="json"),
+    )
+    _write_json(
+        artifacts_dir / "blueprint.json",
+        compiled.model_dump(mode="json"),
+    )
 
 
 def _collect_metrics(

@@ -4,6 +4,8 @@ from typing import Any
 from mcp.server.fastmcp import server as fserver
 from pydantic import BaseModel, Field
 
+from vei.blueprint.plugins import list_runtime_facade_plugins
+
 from .core import Router, MCPError
 from .tool_registry import ToolSpec
 from .alias_packs import ERP_ALIAS_PACKS, CRM_ALIAS_PACKS
@@ -1090,8 +1092,15 @@ def create_mcp_server(
         "hris.",
         "jira.",
     )
+    plugin_prefixes: list[str] = list(dynamic_prefixes)
+    for plugin in list_runtime_facade_plugins():
+        if plugin.provider_factory is None:
+            continue
+        for prefix in plugin.tool_prefixes:
+            if prefix not in plugin_prefixes:
+                plugin_prefixes.append(prefix)
     for spec in sorted(R().registry.list(), key=lambda item: item.name):
-        if spec.name.startswith(dynamic_prefixes):
+        if spec.name.startswith(tuple(plugin_prefixes)):
             _register_passthrough(spec.name, spec.description)
 
     @srv.tool(

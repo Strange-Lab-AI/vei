@@ -96,6 +96,51 @@ def test_checkout_control_planes_cover_monitoring_incident_and_flags() -> None:
     assert kill_switch["enabled"] is True
 
 
+def test_checkout_mixed_stack_includes_spreadsheet_docs_and_crm() -> None:
+    router = Router(
+        seed=42042,
+        artifacts_dir=None,
+        scenario=get_catalog_scenario("checkout_spike_mitigation"),
+    )
+
+    workbooks = router.call_and_step("spreadsheet.list_workbooks", {})
+    updated_row = router.call_and_step(
+        "spreadsheet.upsert_row",
+        {
+            "workbook_id": "WB-CHK-1",
+            "sheet_id": "sheet-impact",
+            "match_field": "metric",
+            "match_value": "estimated_revenue_loss_usd",
+            "table_id": "tbl-impact",
+            "row": {
+                "metric": "estimated_revenue_loss_usd",
+                "value": 128000,
+                "notes": "Impact updated while canary rollback is active.",
+            },
+        },
+    )
+    doc = router.call_and_step(
+        "docs.update",
+        {
+            "doc_id": "RUN-CHK-1",
+            "body": "Revenue impact has been quantified and customer guidance updated.",
+        },
+    )
+    activity = router.call_and_step(
+        "crm.log_activity",
+        {
+            "kind": "note",
+            "deal_id": "D-812",
+            "note": "Estimated revenue loss quantified for incident follow-through.",
+        },
+    )
+
+    assert workbooks["total"] == 1
+    assert updated_row["row_count"] >= 2
+    assert doc["doc_id"] == "RUN-CHK-1"
+    assert activity["ok"] is True
+
+
 def test_onboarding_surfaces_cover_hris_jira_and_salesforce_aliases() -> None:
     router = Router(
         seed=42042,
@@ -166,3 +211,4 @@ def test_acceptance_scenarios_appear_in_manifest_catalog() -> None:
     assert "google_admin" in manifests["oauth_app_containment"].tool_families
     assert "hris" in manifests["acquired_sales_onboarding"].tool_families
     assert "datadog" in manifests["checkout_spike_mitigation"].tool_families
+    assert "spreadsheet" in manifests["checkout_spike_mitigation"].tool_families

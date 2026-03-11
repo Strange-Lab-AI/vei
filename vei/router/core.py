@@ -12,6 +12,7 @@ from typing import Any, Dict, Iterable, List, Optional
 from urllib.parse import urlparse
 
 from pydantic import BaseModel
+from vei.blueprint.plugins import FacadePlugin, list_runtime_facade_plugins
 from vei.connectors import (
     ConnectorInvocationError,
     create_default_runtime,
@@ -736,6 +737,7 @@ class Router:
 
         self.registry = ToolRegistry()
         self.tool_providers: List[ToolProvider] = []
+        self.facade_plugins: Dict[str, Dict[str, Any]] = {}
         self._seed_tool_registry()
         self.alias_map = self._build_alias_map()
         self._register_alias_specs(self.alias_map)
@@ -840,6 +842,7 @@ class Router:
         self.hris = HrisSim(self.scenario)
         self.register_tool_provider(HrisToolProvider(self.hris))
         self.register_tool_provider(JiraToolProvider(self.tickets))
+        self._bootstrap_facade_plugins()
 
         self.connector_mode = parse_adapter_mode(
             connector_mode or os.environ.get("VEI_CONNECTOR_MODE")
@@ -1068,6 +1071,9 @@ class Router:
                 )
             result = self._execute(tool, args)
             return {"tool": tool, "result": Router._jsonable(result)}
+        plugin_delivery = self._deliver_plugin_event(target, payload)
+        if plugin_delivery is not None:
+            return plugin_delivery
         # Unknown targets are intentionally ignored but surfaced in trace/state.
         return {"ignored": True, "reason": f"unsupported target '{target}'"}
 
@@ -1186,6 +1192,99 @@ class Router:
         """Register a provider and copy its specs into the registry."""
         self.tool_providers.append(provider)
         self._register_tool_specs(provider.specs())
+
+    def _bootstrap_facade_plugins(self) -> None:
+        for plugin in list_runtime_facade_plugins():
+            component = (
+                getattr(self, plugin.component_attr, None)
+                if plugin.component_attr
+                else None
+            )
+            if component is None and plugin.component_factory and plugin.component_attr:
+                component = plugin.component_factory(self, self.scenario)
+                setattr(self, plugin.component_attr, component)
+            if plugin.component_attr and component is not None:
+                self.facade_plugins[plugin.manifest.name] = {
+                    "plugin": plugin,
+                    "component": component,
+                }
+                if plugin.provider_factory is not None:
+                    self.register_tool_provider(plugin.provider_factory(component))
+
+    def _event_targets(self) -> List[str]:
+        targets = [
+            "slack",
+            "mail",
+            "calendar",
+            "docs",
+            "tickets",
+            "db",
+            "erp",
+            "crm",
+            "okta",
+            "servicedesk",
+            "google_admin",
+            "siem",
+            "datadog",
+            "pagerduty",
+            "feature_flags",
+            "hris",
+            "jira",
+            "tool",
+        ]
+        for entry in self.facade_plugins.values():
+            plugin: FacadePlugin = entry["plugin"]
+            for target in plugin.event_targets:
+                if target not in targets:
+                    targets.append(target)
+        return targets
+
+    def _plugin_focus_for_tool(self, tool: str) -> Optional[str]:
+        for entry in self.facade_plugins.values():
+            plugin: FacadePlugin = entry["plugin"]
+            for prefix in plugin.tool_prefixes:
+                if tool.startswith(prefix):
+                    return plugin.focuses[0] if plugin.focuses else plugin.manifest.name
+        return None
+
+    def _plugin_summary(self, focus: str) -> Optional[str]:
+        for entry in self.facade_plugins.values():
+            plugin: FacadePlugin = entry["plugin"]
+            if plugin.matches_focus(focus) and plugin.summary_builder is not None:
+                return plugin.summary_builder(self, entry["component"])
+        return None
+
+    def _plugin_action_menu(self, focus: str) -> Optional[List[Dict[str, Any]]]:
+        for entry in self.facade_plugins.values():
+            plugin: FacadePlugin = entry["plugin"]
+            if plugin.matches_focus(focus) and plugin.action_menu_builder is not None:
+                return plugin.action_menu_builder(self, entry["component"])
+        return None
+
+    def _deliver_plugin_event(
+        self, target: str, payload: Dict[str, Any]
+    ) -> Optional[Dict[str, Any]]:
+        for entry in self.facade_plugins.values():
+            plugin: FacadePlugin = entry["plugin"]
+            if target not in plugin.event_targets:
+                continue
+            component = entry["component"]
+            if plugin.event_handler is not None:
+                return plugin.event_handler(self, component, payload)
+            tool = payload.get("tool")
+            args = payload.get("args", {})
+            if not isinstance(tool, str):
+                raise MCPError(
+                    "invalid_event",
+                    f"{target} event payload must include string 'tool'",
+                )
+            if not isinstance(args, dict):
+                raise MCPError(
+                    "invalid_event", f"{target} event payload args must be an object"
+                )
+            result = self._execute(tool, args)
+            return {"tool": tool, "result": Router._jsonable(result)}
+        return None
 
     def _register_tool_specs(self, specs: Iterable[ToolSpec]) -> None:
         for spec in specs:
@@ -1682,6 +1781,11 @@ class Router:
             "okta",
             "servicedesk",
         ]
+        for entry in self.facade_plugins.values():
+            plugin: FacadePlugin = entry["plugin"]
+            for focus in plugin.focuses:
+                if focus not in focuses:
+                    focuses.append(focus)
         focus_menus: Dict[str, List[Dict[str, Any]]] = {}
         for focus in focuses:
             menu = self._action_menu(focus)
@@ -1696,24 +1800,29 @@ class Router:
             }
             for spec in sorted(self.registry.list(), key=lambda item: item.name)
         ]
+        software = [
+            "slack",
+            "mail",
+            "browser",
+            "docs",
+            "calendar",
+            "tickets",
+            "db",
+            "erp",
+            "crm",
+            "okta",
+            "servicedesk",
+        ]
+        for entry in self.facade_plugins.values():
+            plugin: FacadePlugin = entry["plugin"]
+            if plugin.manifest.name not in software:
+                software.append(plugin.manifest.name)
         return {
             "instructions": (
                 "Use MCP tools against the virtual enterprise. "
                 "Typical loop: observe -> call one tool -> observe again."
             ),
-            "software": [
-                "slack",
-                "mail",
-                "browser",
-                "docs",
-                "calendar",
-                "tickets",
-                "db",
-                "erp",
-                "crm",
-                "okta",
-                "servicedesk",
-            ],
+            "software": software,
             "tools": tools,
             "focus_action_menus": focus_menus,
             "examples": [
@@ -1988,6 +2097,9 @@ class Router:
                 return prefix
         if tool.startswith("salesforce.") or tool.startswith("hubspot."):
             return "crm"
+        plugin_focus = self._plugin_focus_for_tool(resolved)
+        if plugin_focus:
+            return plugin_focus
         return "browser"
 
     def inject(
@@ -2012,26 +2124,7 @@ class Router:
 
         Returns the number of delivered events per target and the new time.
         """
-        delivered = {
-            "slack": 0,
-            "mail": 0,
-            "calendar": 0,
-            "docs": 0,
-            "tickets": 0,
-            "db": 0,
-            "erp": 0,
-            "crm": 0,
-            "okta": 0,
-            "servicedesk": 0,
-            "google_admin": 0,
-            "siem": 0,
-            "datadog": 0,
-            "pagerduty": 0,
-            "feature_flags": 0,
-            "hris": 0,
-            "jira": 0,
-            "tool": 0,
-        }
+        delivered = {target: 0 for target in self._event_targets()}
         target_time = self.bus.clock_ms + max(0, int(dt_ms))
         # Deliver in order at due timestamps
         while (self.bus.peek_due_time() is not None) and (
@@ -2191,29 +2284,13 @@ class Router:
                 else len(issues)
             )
             return f"Jira: {total} issues"
+        plugin_summary = self._plugin_summary(focus)
+        if plugin_summary is not None:
+            return plugin_summary
         return ""
 
     def _pending_counts(self) -> Dict[str, int]:
-        counts = {
-            "slack": 0,
-            "mail": 0,
-            "docs": 0,
-            "calendar": 0,
-            "tickets": 0,
-            "db": 0,
-            "erp": 0,
-            "crm": 0,
-            "okta": 0,
-            "servicedesk": 0,
-            "google_admin": 0,
-            "siem": 0,
-            "datadog": 0,
-            "pagerduty": 0,
-            "feature_flags": 0,
-            "hris": 0,
-            "jira": 0,
-            "tool": 0,
-        }
+        counts = {target: 0 for target in self._event_targets()}
         for _, _, event in self.bus._heap:
             counts[event.target] = counts.get(event.target, 0) + 1
         counts["total"] = self.bus.pending_count()
@@ -2858,4 +2935,7 @@ class Router:
                     "args_schema": {"issue_id": "str", "body": "str", "author": "str?"},
                 },
             ]
+        plugin_action_menu = self._plugin_action_menu(focus)
+        if plugin_action_menu is not None:
+            return plugin_action_menu
         return []

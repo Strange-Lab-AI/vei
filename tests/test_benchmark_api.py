@@ -80,6 +80,7 @@ def test_run_benchmark_case_scripted_writes_kernel_diagnostics(tmp_path: Path) -
     assert result.diagnostics.branch == "multi_channel"
     assert result.diagnostics.snapshot_count >= 2
     assert "dimensions" in result.score
+    assert (artifacts / "blueprint_asset.json").exists()
     assert (artifacts / "benchmark_result.json").exists()
     assert (artifacts / "blueprint.json").exists()
     assert (artifacts / "score.json").exists()

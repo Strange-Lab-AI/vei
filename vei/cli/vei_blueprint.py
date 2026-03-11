@@ -6,8 +6,11 @@ from typing import Optional
 import typer
 
 from vei.blueprint.api import (
+    build_blueprint_asset_for_family,
+    build_blueprint_asset_for_scenario,
     build_blueprint_for_family,
     build_blueprint_for_scenario,
+    compile_blueprint,
     list_blueprint_specs,
     list_facade_manifest,
 )
@@ -53,6 +56,69 @@ def show_blueprint(
             workflow_variant=workflow_variant,
         )
     typer.echo(json.dumps(blueprint.model_dump(mode="json"), indent=indent))
+
+
+@app.command("asset")
+def show_blueprint_asset(
+    family: Optional[str] = typer.Option(
+        None, help="Benchmark family name to render as a blueprint asset"
+    ),
+    scenario: Optional[str] = typer.Option(
+        None, help="Scenario name to render as a blueprint asset"
+    ),
+    workflow_name: Optional[str] = typer.Option(
+        None, help="Optional workflow override when showing a scenario blueprint asset"
+    ),
+    workflow_variant: Optional[str] = typer.Option(
+        None, help="Optional workflow variant override"
+    ),
+    indent: int = typer.Option(2, help="Pretty indent"),
+) -> None:
+    """Render a blueprint authoring asset as JSON."""
+
+    if bool(family) == bool(scenario):
+        raise typer.BadParameter("Provide exactly one of --family or --scenario")
+    if family:
+        asset = build_blueprint_asset_for_family(family, variant_name=workflow_variant)
+    else:
+        asset = build_blueprint_asset_for_scenario(
+            scenario or "",
+            workflow_name=workflow_name,
+            workflow_variant=workflow_variant,
+        )
+    typer.echo(json.dumps(asset.model_dump(mode="json"), indent=indent))
+
+
+@app.command("compile")
+def compile_blueprint_command(
+    family: Optional[str] = typer.Option(
+        None, help="Benchmark family name to compile as a blueprint"
+    ),
+    scenario: Optional[str] = typer.Option(
+        None, help="Scenario name to compile as a blueprint"
+    ),
+    workflow_name: Optional[str] = typer.Option(
+        None, help="Optional workflow override for scenario assets"
+    ),
+    workflow_variant: Optional[str] = typer.Option(
+        None, help="Optional workflow variant override"
+    ),
+    indent: int = typer.Option(2, help="Pretty indent"),
+) -> None:
+    """Compile a blueprint asset into a runnable compiled blueprint."""
+
+    if bool(family) == bool(scenario):
+        raise typer.BadParameter("Provide exactly one of --family or --scenario")
+    if family:
+        asset = build_blueprint_asset_for_family(family, variant_name=workflow_variant)
+    else:
+        asset = build_blueprint_asset_for_scenario(
+            scenario or "",
+            workflow_name=workflow_name,
+            workflow_variant=workflow_variant,
+        )
+    compiled = compile_blueprint(asset)
+    typer.echo(json.dumps(compiled.model_dump(mode="json"), indent=indent))
 
 
 @app.command("facades")

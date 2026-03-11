@@ -10,6 +10,8 @@ from .scenario import (
     Document,
     Ticket,
     Participant,
+    SpreadsheetSheet,
+    SpreadsheetWorkbook,
     IdentityApplicationSeed,
     IdentityGroupSeed,
     IdentityUserSeed,
@@ -849,11 +851,50 @@ def scenario_checkout_spike_mitigation() -> Scenario:
         documents={
             "RUN-CHK-1": Document(
                 doc_id="RUN-CHK-1",
-                title="Checkout Incident Checklist",
+                title="Checkout Incident Comms And Checklist",
                 body=(
-                    "If rollback is needed, first disable risky rollout and verify no duplicate charge writes."
+                    "If rollback is needed, first disable risky rollout and verify no duplicate charge writes.\n\n"
+                    "Customer-facing guidance must stay accurate while mitigation is active."
                 ),
                 tags=["incident", "commerce"],
+            )
+        },
+        spreadsheets={
+            "WB-CHK-1": SpreadsheetWorkbook(
+                workbook_id="WB-CHK-1",
+                title="Checkout Revenue Flight Deck",
+                owner="commerce-ops@example.com",
+                shared_with=["sales-ops@example.com", "support-lead@example.com"],
+                permissions={
+                    "commerce-ops@example.com": "owner",
+                    "sales-ops@example.com": "editor",
+                    "support-lead@example.com": "viewer",
+                },
+                sheets=[
+                    SpreadsheetSheet(
+                        sheet_id="sheet-impact",
+                        title="Impact",
+                        columns=["metric", "value", "notes"],
+                        rows=[
+                            {
+                                "metric": "baseline_conversion_pct",
+                                "value": 2.8,
+                                "notes": "Pre-incident trailing 4h average",
+                            }
+                        ],
+                        cells={"A1": "Metric", "B1": "Value", "C1": "Notes"},
+                        formulas={},
+                        tables=[
+                            {
+                                "table_id": "tbl-impact",
+                                "name": "ImpactSummary",
+                                "columns": ["metric", "value", "notes"],
+                            }
+                        ],
+                        filters=[],
+                        sorts=[],
+                    )
+                ],
             )
         },
         datadog={
@@ -915,12 +956,54 @@ def scenario_checkout_spike_mitigation() -> Scenario:
                 },
             }
         },
+        crm={
+            "companies": [
+                {
+                    "id": "CO-812",
+                    "name": "Evergreen Retail",
+                    "domain": "evergreen.example.com",
+                    "created_ms": 1700000000000,
+                }
+            ],
+            "contacts": [
+                {
+                    "id": "C-812",
+                    "email": "ops-buyer@evergreen.example.com",
+                    "first_name": "Kira",
+                    "last_name": "Tennant",
+                    "do_not_contact": False,
+                    "company_id": "CO-812",
+                    "created_ms": 1700000000000,
+                }
+            ],
+            "deals": [
+                {
+                    "id": "D-812",
+                    "name": "Evergreen Checkout Expansion",
+                    "amount": 420000,
+                    "stage": "Negotiation",
+                    "contact_id": "C-812",
+                    "company_id": "CO-812",
+                    "owner": "commerce-revops@example.com",
+                    "created_ms": 1700000000000,
+                    "updated_ms": 1700000000000,
+                }
+            ],
+            "activities": [],
+        },
         metadata={
             "benchmark_family": "revenue_incident_mitigation",
             "scenario_type": "acceptance",
             "difficulty": "hard",
-            "expected_steps": [8, 16],
-            "tags": ["incident", "checkout", "feature-flags", "reliability"],
+            "expected_steps": [12, 24],
+            "tags": [
+                "incident",
+                "checkout",
+                "feature-flags",
+                "reliability",
+                "spreadsheet",
+                "crm",
+            ],
         },
     )
 

@@ -4,13 +4,27 @@ from dataclasses import dataclass
 from typing import Any, Dict, Iterable, Optional, Protocol
 
 from vei.blueprint.api import (
+    build_blueprint_asset_for_family as _build_blueprint_asset_for_family,
+    build_blueprint_asset_for_scenario as _build_blueprint_asset_for_scenario,
     build_blueprint_for_family as _build_blueprint_for_family,
     build_blueprint_for_scenario as _build_blueprint_for_scenario,
+    compile_blueprint as _compile_blueprint,
     get_facade_manifest as _get_facade_manifest,
     list_blueprint_specs as _list_blueprint_specs,
     list_facade_manifest as _list_facade_manifest,
 )
-from vei.blueprint.models import BlueprintSpec, FacadeManifest
+from vei.blueprint.models import (
+    BlueprintAsset,
+    BlueprintSpec,
+    CompiledBlueprint,
+    FacadeManifest,
+)
+from vei.blueprint.plugins import (
+    FacadePlugin,
+    get_facade_plugin as _get_facade_plugin,
+    list_facade_plugins as _list_facade_plugins,
+    register_facade_plugin as _register_facade_plugin,
+)
 from vei.corpus.api import CorpusBundle, GeneratedWorkflowSpec, generate_corpus
 from vei.benchmark.api import (
     BenchmarkFamilyManifest,
@@ -236,6 +250,39 @@ def list_facade_manifest_entries() -> list[FacadeManifest]:
     return _list_facade_manifest()
 
 
+def get_facade_plugin_entry(name: str) -> FacadePlugin:
+    return _get_facade_plugin(name)
+
+
+def list_facade_plugin_entries() -> list[FacadePlugin]:
+    return _list_facade_plugins()
+
+
+def register_facade_plugin_entry(plugin: FacadePlugin) -> FacadePlugin:
+    return _register_facade_plugin(plugin)
+
+
+def build_blueprint_asset_for_family_entry(
+    family_name: str, *, variant_name: str | None = None
+) -> BlueprintAsset:
+    return _build_blueprint_asset_for_family(family_name, variant_name=variant_name)
+
+
+def build_blueprint_asset_for_scenario_entry(
+    scenario_name: str,
+    *,
+    family_name: str | None = None,
+    workflow_name: str | None = None,
+    workflow_variant: str | None = None,
+) -> BlueprintAsset:
+    return _build_blueprint_asset_for_scenario(
+        scenario_name,
+        family_name=family_name,
+        workflow_name=workflow_name,
+        workflow_variant=workflow_variant,
+    )
+
+
 def build_blueprint_for_family_entry(
     family_name: str, *, variant_name: str | None = None
 ) -> BlueprintSpec:
@@ -259,6 +306,10 @@ def build_blueprint_for_scenario_entry(
 
 def list_blueprint_entries() -> list[BlueprintSpec]:
     return _list_blueprint_specs()
+
+
+def compile_blueprint_entry(asset: BlueprintAsset) -> CompiledBlueprint:
+    return _compile_blueprint(asset)
 
 
 def get_benchmark_family_workflow_spec(name: str) -> WorkflowScenarioSpec:

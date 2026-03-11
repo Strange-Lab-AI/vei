@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from vei.benchmark.families import (
     get_benchmark_family_manifest,
@@ -8,6 +8,7 @@ from vei.benchmark.families import (
 )
 from vei.benchmark.workflows import (
     get_benchmark_family_workflow_spec,
+    get_benchmark_family_workflow_variant,
     resolve_benchmark_workflow_name,
 )
 from vei.contract.api import build_contract_from_workflow
@@ -15,271 +16,54 @@ from vei.scenario_engine.api import compile_workflow
 from vei.world.manifest import get_scenario_manifest
 
 from .models import (
+    BlueprintAsset,
+    BlueprintContractDefaults,
     BlueprintContractSummary,
+    BlueprintRunDefaults,
     BlueprintScenarioSummary,
     BlueprintSpec,
+    BlueprintWorkflowDefaults,
+    CompiledBlueprint,
     FacadeManifest,
+)
+from .plugins import (
+    get_facade_plugin,
+    list_facade_plugins,
+    resolve_facade_plugins_for_tool_families,
 )
 
 
-_FACADE_CATALOG: Dict[str, FacadeManifest] = {
-    "slack": FacadeManifest(
-        name="slack",
-        title="Slack",
-        domain="comm_graph",
-        router_module="vei.router.core",
-        description="Chat and thread surface for agent collaboration and approvals.",
-        surfaces=["mcp", "chat"],
-        primary_tools=["slack.send_message", "slack.read_channel"],
-        state_roots=["components.slack"],
-        tags=["communication", "chat"],
-    ),
-    "mail": FacadeManifest(
-        name="mail",
-        title="Mail",
-        domain="comm_graph",
-        router_module="vei.router.core",
-        description="Email inbox and compose surface for threaded external communication.",
-        surfaces=["mcp", "email"],
-        primary_tools=["mail.compose", "mail.read_inbox"],
-        state_roots=["components.mail"],
-        tags=["communication", "email"],
-    ),
-    "browser": FacadeManifest(
-        name="browser",
-        title="Browser",
-        domain="doc_graph",
-        router_module="vei.router.core",
-        description="Read-only admin and knowledge UI facade for browsing synthetic pages.",
-        surfaces=["mcp", "ui"],
-        primary_tools=["browser.read", "browser.click"],
-        state_roots=["components.browser"],
-        tags=["knowledge", "ui"],
-    ),
-    "docs": FacadeManifest(
-        name="docs",
-        title="Docs",
-        domain="doc_graph",
-        router_module="vei.router.docs",
-        description="Document and ACL surface for shared knowledge artifacts.",
-        surfaces=["mcp", "ui"],
-        primary_tools=["docs.read", "docs.write"],
-        state_roots=["components.docs"],
-        tags=["knowledge", "documents"],
-    ),
-    "calendar": FacadeManifest(
-        name="calendar",
-        title="Calendar",
-        domain="comm_graph",
-        router_module="vei.router.calendar",
-        description="Calendar and meeting scheduling surface.",
-        surfaces=["mcp", "ui"],
-        primary_tools=["calendar.list_events", "calendar.create_event"],
-        state_roots=["components.calendar"],
-        tags=["communication", "calendar"],
-    ),
-    "tickets": FacadeManifest(
-        name="tickets",
-        title="Tickets",
-        domain="work_graph",
-        router_module="vei.router.tickets",
-        description="Generic work-queue and ticket handling surface.",
-        surfaces=["mcp", "ui"],
-        primary_tools=["tickets.list", "tickets.update"],
-        state_roots=["components.tickets"],
-        tags=["work", "support"],
-    ),
-    "servicedesk": FacadeManifest(
-        name="servicedesk",
-        title="ServiceDesk",
-        domain="work_graph",
-        router_module="vei.router.servicedesk",
-        description="Incident and request workflows with approvals and comments.",
-        surfaces=["mcp", "ui"],
-        primary_tools=["servicedesk.list_incidents", "servicedesk.update_request"],
-        state_roots=["components.servicedesk"],
-        tags=["work", "service-management"],
-    ),
-    "jira": FacadeManifest(
-        name="jira",
-        title="Jira",
-        domain="work_graph",
-        router_module="vei.router.jira",
-        description="Jira-style issue tracking facade for project and support work.",
-        surfaces=["mcp", "ui"],
-        primary_tools=["jira.list_issues", "jira.update_issue"],
-        state_roots=["components.jira"],
-        tags=["work", "issues"],
-    ),
-    "identity": FacadeManifest(
-        name="identity",
-        title="Identity",
-        domain="identity_graph",
-        router_module="vei.router.identity",
-        description="Okta-style identity graph for users, groups, apps, and assignments.",
-        surfaces=["mcp", "ui"],
-        primary_tools=["okta.get_user", "okta.assign_app"],
-        state_roots=["components.identity"],
-        tags=["identity", "access"],
-    ),
-    "google_admin": FacadeManifest(
-        name="google_admin",
-        title="Google Admin",
-        domain="identity_graph",
-        router_module="vei.router.google_admin",
-        description="Google Workspace admin facade for OAuth apps, Drive sharing, and users.",
-        surfaces=["mcp", "ui"],
-        primary_tools=[
-            "google_admin.get_oauth_app",
-            "google_admin.preserve_oauth_evidence",
-            "google_admin.restrict_drive_share",
-        ],
-        state_roots=["components.google_admin"],
-        tags=["identity", "admin"],
-    ),
-    "hris": FacadeManifest(
-        name="hris",
-        title="HRIS",
-        domain="identity_graph",
-        router_module="vei.router.hris",
-        description="HR and employee lifecycle facade for onboarding and status changes.",
-        surfaces=["mcp", "ui"],
-        primary_tools=["hris.get_employee", "hris.complete_onboarding"],
-        state_roots=["components.hris"],
-        tags=["identity", "people-ops"],
-    ),
-    "crm": FacadeManifest(
-        name="crm",
-        title="CRM",
-        domain="revenue_graph",
-        router_module="vei.router.crm",
-        description="Revenue ownership and opportunity management facade.",
-        surfaces=["mcp", "ui"],
-        primary_tools=["crm.get_opportunity", "crm.transfer_opportunity"],
-        state_roots=["components.crm"],
-        tags=["revenue", "sales"],
-    ),
-    "erp": FacadeManifest(
-        name="erp",
-        title="ERP",
-        domain="ops_graph",
-        router_module="vei.router.erp",
-        description="Back-office operations and procurement facade.",
-        surfaces=["mcp", "ui"],
-        primary_tools=["erp.get_order", "erp.update_order"],
-        state_roots=["components.erp"],
-        tags=["operations", "finance"],
-    ),
-    "database": FacadeManifest(
-        name="database",
-        title="Database",
-        domain="data_graph",
-        router_module="vei.router.database",
-        description="Deterministic tabular data facade for audit and query workflows.",
-        surfaces=["mcp", "api"],
-        primary_tools=["db.query", "db.insert"],
-        state_roots=["components.db"],
-        tags=["data", "audit"],
-    ),
-    "siem": FacadeManifest(
-        name="siem",
-        title="SIEM",
-        domain="obs_graph",
-        router_module="vei.router.siem",
-        description="Security operations facade for alerts, evidence, and case state.",
-        surfaces=["mcp", "ui"],
-        primary_tools=["siem.preserve_evidence", "siem.update_case"],
-        state_roots=["components.siem"],
-        tags=["observability", "security"],
-    ),
-    "datadog": FacadeManifest(
-        name="datadog",
-        title="Datadog",
-        domain="obs_graph",
-        router_module="vei.router.datadog",
-        description="Monitoring and service-health facade for production signals.",
-        surfaces=["mcp", "ui"],
-        primary_tools=["datadog.get_service", "datadog.update_service"],
-        state_roots=["components.datadog"],
-        tags=["observability", "reliability"],
-    ),
-    "pagerduty": FacadeManifest(
-        name="pagerduty",
-        title="PagerDuty",
-        domain="obs_graph",
-        router_module="vei.router.pagerduty",
-        description="Incident paging and acknowledgement facade.",
-        surfaces=["mcp", "ui"],
-        primary_tools=["pagerduty.get_incident", "pagerduty.resolve_incident"],
-        state_roots=["components.pagerduty"],
-        tags=["observability", "incident-response"],
-    ),
-    "feature_flags": FacadeManifest(
-        name="feature_flags",
-        title="Feature Flags",
-        domain="ops_graph",
-        router_module="vei.router.feature_flags",
-        description="Rollout and kill-switch control plane facade.",
-        surfaces=["mcp", "ui"],
-        primary_tools=["feature_flags.get_flag", "feature_flags.set_rollout"],
-        state_roots=["components.feature_flags"],
-        tags=["operations", "rollout"],
-    ),
-}
-
-_TOOL_FAMILY_TO_FACADE = {
-    "slack": "slack",
-    "mail": "mail",
-    "browser": "browser",
-    "docs": "docs",
-    "calendar": "calendar",
-    "tickets": "tickets",
-    "servicedesk": "servicedesk",
-    "jira": "jira",
-    "okta": "identity",
-    "identity": "identity",
-    "google_admin": "google_admin",
-    "hris": "hris",
-    "crm": "crm",
-    "erp": "erp",
-    "db": "database",
-    "database": "database",
-    "siem": "siem",
-    "datadog": "datadog",
-    "pagerduty": "pagerduty",
-    "feature_flags": "feature_flags",
-}
-
-
 def get_facade_manifest(name: str) -> FacadeManifest:
-    key = name.strip().lower()
-    if key not in _FACADE_CATALOG:
-        raise KeyError(f"unknown facade: {name}")
-    return _FACADE_CATALOG[key]
+    return get_facade_plugin(name).manifest
 
 
 def list_facade_manifest() -> List[FacadeManifest]:
-    return sorted(_FACADE_CATALOG.values(), key=lambda item: item.name)
+    return [plugin.manifest for plugin in list_facade_plugins()]
 
 
-def build_blueprint_for_family(
+def build_blueprint_asset_for_family(
     family_name: str,
     *,
     variant_name: Optional[str] = None,
-) -> BlueprintSpec:
+) -> BlueprintAsset:
     family = get_benchmark_family_manifest(family_name)
     workflow_name = family.workflow_name
     if workflow_name is None:
         raise ValueError(f"benchmark family {family_name} has no workflow")
     workflow_variant = variant_name or family.primary_workflow_variant
     scenario_name = family.scenario_names[0]
-    return build_blueprint_for_scenario(
-        scenario_name,
+    if workflow_variant is not None:
+        scenario_name = get_benchmark_family_workflow_variant(
+            workflow_name, workflow_variant
+        ).scenario_name
+    return BlueprintAsset(
+        name=f"{family.name}.blueprint",
+        title=family.title,
+        description=family.description,
+        scenario_name=scenario_name,
         family_name=family.name,
         workflow_name=workflow_name,
         workflow_variant=workflow_variant,
-        title=family.title,
-        description=family.description,
         metadata={
             "primary_dimensions": list(family.primary_dimensions),
             "family_tags": list(family.tags),
@@ -287,7 +71,7 @@ def build_blueprint_for_family(
     )
 
 
-def build_blueprint_for_scenario(
+def build_blueprint_asset_for_scenario(
     scenario_name: str,
     *,
     family_name: Optional[str] = None,
@@ -295,13 +79,33 @@ def build_blueprint_for_scenario(
     workflow_variant: Optional[str] = None,
     title: Optional[str] = None,
     description: Optional[str] = None,
+    requested_facades: Optional[List[str]] = None,
     metadata: Optional[dict] = None,
-) -> BlueprintSpec:
+) -> BlueprintAsset:
     scenario = get_scenario_manifest(scenario_name)
     resolved_family_name = family_name or scenario.benchmark_family
-    resolved_workflow_name = workflow_name or resolve_benchmark_workflow_name(
-        scenario_name=scenario.name
+    return BlueprintAsset(
+        name=f"{scenario.name}.blueprint",
+        title=title or scenario.name.replace("_", " ").title(),
+        description=description or f"Compiled blueprint for scenario {scenario.name}.",
+        scenario_name=scenario.name,
+        family_name=resolved_family_name,
+        workflow_name=workflow_name,
+        workflow_variant=workflow_variant,
+        requested_facades=list(requested_facades or []),
+        metadata=dict(metadata or {}),
     )
+
+
+def compile_blueprint(asset: BlueprintAsset) -> CompiledBlueprint:
+    scenario = get_scenario_manifest(asset.scenario_name)
+    resolved_family_name = asset.family_name or scenario.benchmark_family
+    resolved_workflow_name = asset.workflow_name or resolve_benchmark_workflow_name(
+        family_name=resolved_family_name,
+        scenario_name=scenario.name,
+    )
+    workflow_variant = asset.workflow_variant
+
     scenario_summary = BlueprintScenarioSummary(
         name=scenario.name,
         difficulty=scenario.difficulty,
@@ -312,7 +116,14 @@ def build_blueprint_for_scenario(
         tags=list(scenario.tags),
     )
 
-    contract_summary = None
+    contract_summary: Optional[BlueprintContractSummary] = None
+    workflow_defaults = BlueprintWorkflowDefaults(
+        workflow_name=resolved_workflow_name,
+        workflow_variant=workflow_variant,
+        expected_steps_min=scenario.expected_steps_min,
+        expected_steps_max=scenario.expected_steps_max,
+    )
+    contract_defaults = BlueprintContractDefaults()
     workflow_tool_families: List[str] = []
     if resolved_workflow_name:
         workflow_spec = get_benchmark_family_workflow_spec(
@@ -330,39 +141,94 @@ def build_blueprint_for_scenario(
             observation_focus_hints=list(contract.observation_boundary.focus_hints),
             hidden_state_fields=list(contract.observation_boundary.hidden_state_fields),
         )
+        workflow_defaults.allowed_tools = list(
+            contract.observation_boundary.allowed_tools
+        )
+        workflow_defaults.focus_hints = [
+            item
+            for item in contract.observation_boundary.focus_hints
+            if item and item != "summary"
+        ]
         workflow_tool_families = sorted(
             {step.tool.split(".", 1)[0].strip().lower() for step in compiled.steps}
         )
+        contract_defaults = BlueprintContractDefaults(
+            contract_name=contract.name,
+            success_predicate_count=len(contract.success_predicates),
+            forbidden_predicate_count=len(contract.forbidden_predicates),
+            policy_invariant_count=len(contract.policy_invariants),
+            intervention_rule_count=len(contract.intervention_rules),
+            hidden_state_fields=list(contract.observation_boundary.hidden_state_fields),
+            observation_focus_hints=list(contract.observation_boundary.focus_hints),
+        )
 
     facade_names = _resolve_facade_names(
-        scenario_summary.tool_families + workflow_tool_families
+        requested_facades=asset.requested_facades,
+        tool_families=scenario_summary.tool_families + workflow_tool_families,
     )
-    facades = [get_facade_manifest(name) for name in facade_names]
-    capability_domains = sorted({facade.domain for facade in facades})
-    state_roots = sorted(
-        {state_root for facade in facades for state_root in facade.state_roots}
-    )
-    surfaces = sorted({surface for facade in facades for surface in facade.surfaces})
-    blueprint_name = resolved_family_name or scenario.name
-    blueprint_title = title or _titleize(blueprint_name)
-    blueprint_description = description or (
-        f"Blueprint for the {resolved_family_name} benchmark family."
-        if resolved_family_name
-        else f"Blueprint for the {scenario.name} scenario."
-    )
-    merged_metadata = dict(metadata or {})
-    merged_metadata.update(
+    facade_plugins = [get_facade_plugin(name) for name in facade_names]
+    facades = [plugin.manifest for plugin in facade_plugins]
+
+    metadata: Dict[str, Any] = dict(asset.metadata)
+    metadata.update(
         {
-            "scenario_type": (
-                "benchmark_family" if resolved_family_name else "catalog_scenario"
+            "resolved_tool_families": sorted(
+                set(scenario_summary.tool_families + workflow_tool_families)
             ),
-            "scenario_tags": list(scenario.tags),
+            "compiled_from_asset": asset.name,
         }
     )
-    return BlueprintSpec(
-        name=f"{blueprint_name}.blueprint",
-        title=blueprint_title,
-        description=blueprint_description,
+    state_roots = sorted(
+        {
+            root
+            for plugin in facade_plugins
+            for root in plugin.manifest.state_roots
+            if root
+        }
+    )
+    surfaces = sorted(
+        {
+            surface
+            for plugin in facade_plugins
+            for surface in plugin.manifest.surfaces
+            if surface
+        }
+    )
+    capability_domains = sorted(
+        {plugin.manifest.domain for plugin in facade_plugins if plugin.manifest.domain}
+    )
+    scenario_seed_fields = sorted(
+        {
+            field_name
+            for plugin in facade_plugins
+            for field_name in plugin.scenario_seed_fields
+            if field_name
+        }
+    )
+    focus_hints = workflow_defaults.focus_hints or [
+        plugin.manifest.name for plugin in facade_plugins
+    ]
+    inspection_focuses = sorted(
+        {focus for plugin in facade_plugins for focus in plugin.focuses if focus}
+    )
+    if not inspection_focuses:
+        inspection_focuses = ["browser"]
+    run_defaults = BlueprintRunDefaults(
+        scenario_name=scenario.name,
+        benchmark_family=resolved_family_name,
+        inspection_focus=(
+            focus_hints[0]
+            if focus_hints
+            else (inspection_focuses[0] if inspection_focuses else "browser")
+        ),
+        inspection_focuses=sorted(set(focus_hints + inspection_focuses)),
+        suggested_branch_prefix=resolved_family_name or scenario.name,
+    )
+
+    return CompiledBlueprint(
+        name=asset.name,
+        title=asset.title,
+        description=asset.description,
         family_name=resolved_family_name,
         workflow_name=resolved_workflow_name,
         workflow_variant=workflow_variant,
@@ -372,28 +238,90 @@ def build_blueprint_for_scenario(
         facades=facades,
         state_roots=state_roots,
         surfaces=surfaces,
-        metadata=merged_metadata,
+        metadata=metadata,
+        asset=asset,
+        scenario_seed_fields=scenario_seed_fields,
+        workflow_defaults=workflow_defaults,
+        contract_defaults=contract_defaults,
+        run_defaults=run_defaults,
     )
+
+
+def build_blueprint_for_family(
+    family_name: str,
+    *,
+    variant_name: Optional[str] = None,
+) -> CompiledBlueprint:
+    asset = build_blueprint_asset_for_family(family_name, variant_name=variant_name)
+    return compile_blueprint(asset)
+
+
+def build_blueprint_for_scenario(
+    scenario_name: str,
+    *,
+    family_name: Optional[str] = None,
+    workflow_name: Optional[str] = None,
+    workflow_variant: Optional[str] = None,
+    title: Optional[str] = None,
+    description: Optional[str] = None,
+    requested_facades: Optional[List[str]] = None,
+    metadata: Optional[dict] = None,
+) -> CompiledBlueprint:
+    asset = build_blueprint_asset_for_scenario(
+        scenario_name,
+        family_name=family_name,
+        workflow_name=workflow_name,
+        workflow_variant=workflow_variant,
+        title=title,
+        description=description,
+        requested_facades=requested_facades,
+        metadata=metadata,
+    )
+    return compile_blueprint(asset)
 
 
 def list_blueprint_specs() -> List[BlueprintSpec]:
     return [
         build_blueprint_for_family(item.name)
         for item in list_benchmark_family_manifest()
+        if item.workflow_name is not None
     ]
 
 
-def _resolve_facade_names(tool_families: List[str]) -> List[str]:
+def _resolve_facade_names(
+    *,
+    requested_facades: List[str],
+    tool_families: List[str],
+) -> List[str]:
     resolved: List[str] = []
     seen: set[str] = set()
-    for item in tool_families:
-        facade_name = _TOOL_FAMILY_TO_FACADE.get(item.strip().lower())
-        if facade_name is None or facade_name in seen:
-            continue
-        seen.add(facade_name)
-        resolved.append(facade_name)
-    return resolved
+    for plugin in resolve_facade_plugins_for_tool_families(tool_families):
+        if plugin.manifest.name not in seen:
+            resolved.append(plugin.manifest.name)
+            seen.add(plugin.manifest.name)
+    for requested in requested_facades:
+        key = requested.strip().lower()
+        try:
+            plugin = get_facade_plugin(key)
+        except KeyError as exc:
+            raise ValueError(f"unknown requested facade: {requested}") from exc
+        if plugin.manifest.name not in seen:
+            resolved.append(plugin.manifest.name)
+            seen.add(plugin.manifest.name)
+    if not resolved:
+        raise ValueError("compiled blueprint resolved no facades")
+    return sorted(resolved)
 
 
-def _titleize(value: str) -> str:
-    return value.replace("_", " ").title()
+__all__ = [
+    "BlueprintAsset",
+    "CompiledBlueprint",
+    "build_blueprint_asset_for_family",
+    "build_blueprint_asset_for_scenario",
+    "build_blueprint_for_family",
+    "build_blueprint_for_scenario",
+    "compile_blueprint",
+    "get_facade_manifest",
+    "list_blueprint_specs",
+    "list_facade_manifest",
+]

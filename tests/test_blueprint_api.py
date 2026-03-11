@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from vei.blueprint.api import (
+    build_blueprint_asset_for_family,
+    compile_blueprint,
     build_blueprint_for_family,
     build_blueprint_for_scenario,
     get_facade_manifest,
@@ -36,6 +38,35 @@ def test_build_blueprint_for_family_wraps_scenario_facades_and_contract() -> Non
     assert "identity_graph" in blueprint.capability_domains
     assert "obs_graph" in blueprint.capability_domains
     assert "components.google_admin" in blueprint.state_roots
+
+
+def test_compile_blueprint_promotes_asset_to_compiled_root() -> None:
+    asset = build_blueprint_asset_for_family(
+        "revenue_incident_mitigation", variant_name="revenue_ops_flightdeck"
+    )
+    compiled = compile_blueprint(asset)
+
+    facade_names = {item.name for item in compiled.facades}
+    assert compiled.asset.name == "revenue_incident_mitigation.blueprint"
+    assert compiled.workflow_variant == "revenue_ops_flightdeck"
+    assert compiled.run_defaults.scenario_name == "checkout_spike_mitigation"
+    assert "spreadsheet" in facade_names
+    assert "crm" in facade_names
+    assert "components.spreadsheet" in compiled.state_roots
+    assert "spreadsheets" in compiled.scenario_seed_fields
+    assert compiled.contract_defaults.success_predicate_count >= 10
+
+
+def test_compile_blueprint_rejects_unknown_requested_facade() -> None:
+    try:
+        build_blueprint_for_scenario(
+            "checkout_spike_mitigation",
+            requested_facades=["not_real"],
+        )
+    except ValueError as exc:
+        assert "unknown requested facade" in str(exc)
+    else:  # pragma: no cover - defensive
+        raise AssertionError("expected unknown requested facade to raise ValueError")
 
 
 def test_build_blueprint_for_nonfamily_scenario_still_wraps_facades() -> None:

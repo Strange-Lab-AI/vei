@@ -4,6 +4,8 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
+from vei.blueprint.plugins import infer_tool_families_for_scenario
+
 from .scenario import Scenario
 from .scenarios import get_scenario, list_scenarios
 
@@ -36,44 +38,7 @@ def _expected_steps_range(raw: Any) -> tuple[int | None, int | None]:
 
 
 def _infer_tool_families(scenario: Scenario) -> list[str]:
-    families: set[str] = set()
-    if scenario.slack_initial_message:
-        families.add("slack")
-    if scenario.vendor_reply_variants:
-        families.add("mail")
-    if scenario.browser_nodes:
-        families.add("browser")
-    if scenario.documents:
-        families.add("docs")
-    if scenario.calendar_events:
-        families.add("calendar")
-    if scenario.tickets:
-        families.add("tickets")
-    if scenario.database_tables:
-        families.add("db")
-    if scenario.crm:
-        families.add("crm")
-    if (
-        scenario.identity_users
-        or scenario.identity_groups
-        or scenario.identity_applications
-    ):
-        families.add("okta")
-    if scenario.service_incidents or scenario.service_requests:
-        families.add("servicedesk")
-    if scenario.google_admin:
-        families.add("google_admin")
-    if scenario.siem:
-        families.add("siem")
-    if scenario.datadog:
-        families.add("datadog")
-    if scenario.pagerduty:
-        families.add("pagerduty")
-    if scenario.feature_flags:
-        families.add("feature_flags")
-    if scenario.hris:
-        families.add("hris")
-    return sorted(families)
+    return infer_tool_families_for_scenario(scenario)
 
 
 def build_scenario_manifest(name: str, scenario: Scenario) -> ScenarioManifest:

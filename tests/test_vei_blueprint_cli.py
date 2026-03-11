@@ -23,6 +23,40 @@ def test_vei_blueprint_list_and_show_family() -> None:
     assert payload["contract"]["name"] == "security_containment.contract"
 
 
+def test_vei_blueprint_asset_and_compile_commands() -> None:
+    runner = typer.testing.CliRunner()
+
+    asset_result = runner.invoke(
+        app,
+        [
+            "asset",
+            "--family",
+            "revenue_incident_mitigation",
+            "--workflow-variant",
+            "revenue_ops_flightdeck",
+        ],
+    )
+    compile_result = runner.invoke(
+        app,
+        [
+            "compile",
+            "--family",
+            "revenue_incident_mitigation",
+            "--workflow-variant",
+            "revenue_ops_flightdeck",
+        ],
+    )
+
+    assert asset_result.exit_code == 0, asset_result.output
+    assert compile_result.exit_code == 0, compile_result.output
+    asset_payload = json.loads(asset_result.output)
+    compile_payload = json.loads(compile_result.output)
+    assert asset_payload["workflow_variant"] == "revenue_ops_flightdeck"
+    assert compile_payload["workflow_variant"] == "revenue_ops_flightdeck"
+    assert compile_payload["asset"]["scenario_name"] == "checkout_spike_mitigation"
+    assert any(item["name"] == "spreadsheet" for item in compile_payload["facades"])
+
+
 def test_vei_blueprint_facades_filters_by_domain() -> None:
     runner = typer.testing.CliRunner()
     result = runner.invoke(app, ["facades", "--domain", "obs_graph"])

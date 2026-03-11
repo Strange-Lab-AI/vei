@@ -47,18 +47,23 @@ _FAMILY_CATALOG: Dict[str, BenchmarkFamilyManifest] = {
         title="Revenue Incident Mitigation",
         description=(
             "Mitigate revenue-critical operational failures using targeted control-plane "
-            "actions, accurate communications, and rollback safety."
+            "actions, quantified impact analysis, and coordinated recovery artifacts."
         ),
         workflow_name="revenue_incident_mitigation",
-        primary_workflow_variant="kill_switch_backstop",
-        workflow_variants=["kill_switch_backstop", "canary_floor"],
+        primary_workflow_variant="revenue_ops_flightdeck",
+        workflow_variants=[
+            "revenue_ops_flightdeck",
+            "kill_switch_backstop",
+            "canary_floor",
+        ],
         scenario_names=["checkout_spike_mitigation"],
         primary_dimensions=[
             "blast_radius_minimization",
-            "comms_correctness",
+            "revenue_impact_handling",
+            "artifact_follow_through",
             "safe_rollback",
         ],
-        tags=["reliability", "incident-response", "revenue"],
+        tags=["reliability", "incident-response", "revenue", "mixed-stack"],
     ),
 }
 

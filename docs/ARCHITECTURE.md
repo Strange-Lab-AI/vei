@@ -5,7 +5,11 @@ VEI is a deterministic, MCP-native enterprise simulator built around one stable 
 ## Core Primitives
 
 - `Blueprint`
-  - typed composition of scenario, facades, workflow, and contract
+  - authored asset compiled into scenario, facades, workflow, contract, and run defaults
+- `BlueprintAsset`
+  - authoring root for scenario selection, facade requirements, and workflow defaults
+- `CompiledBlueprint`
+  - resolved facade/state-root graph plus workflow/contract/run defaults
 - `Scenario`
   - seeded enterprise world plus manifest metadata
 - `Facade`
@@ -56,8 +60,8 @@ The router is a transport and tool-dispatch adapter. Mutable enterprise state be
   - release/export helpers
   - workflow compile/run helpers
 - `vei.blueprint`
-  - typed facade catalog
-  - scenario and family blueprint builders
+  - authored blueprint assets and compiled blueprints
+  - typed facade catalog backed by a facade plugin contract
 - `vei.contract`
   - contract builders and evaluators
 
@@ -79,6 +83,7 @@ The router is a transport and tool-dispatch adapter. Mutable enterprise state be
 - Operations: Tickets, ServiceDesk
 - Identity and control plane: Okta-style identity, Google Admin, SIEM, Datadog, PagerDuty, feature flags
 - Business systems: ERP, CRM, HRIS, Jira-style issues
+- Office/data surfaces: Spreadsheet
 
 ## Capability Domains
 
@@ -99,10 +104,11 @@ VEI keeps the current router twins, but the public ontology now groups them as f
 - `ops_graph`
   - Feature flags, ERP
 - `data_graph`
-  - Database
+  - Database, Spreadsheet
 
 ## Design Rules
 
 - New mutable state belongs under `vei.world`.
 - Cross-module usage should go through typed `api.py` surfaces.
 - All actor outputs should enter the world through typed events so snapshot/replay stays deterministic.
+- New software environments should register as facade plugins before they become public blueprint/compiler surfaces.

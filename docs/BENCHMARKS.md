@@ -17,6 +17,8 @@ These are the strategic north-star buckets for enterprise agent evaluation. They
 - least privilege
 - oversharing avoidance
 - deadline compliance
+- revenue impact handling
+- artifact follow-through
 - comms correctness
 - safe rollback / no data corruption
 
@@ -54,7 +56,7 @@ vei-eval benchmark \
 
 The `workflow` runner executes the typed family playbook and its reusable assertions directly. Each family can expose multiple named variants backed by typed parameter presets. Those workflows can now express negative assertions, count checks, and virtual-time deadlines in the same DSL. The other runners still use the same family selection and scoring pipeline, but they act freely inside the scenario instead of following the deterministic workflow baseline.
 
-For benchmark-family scenarios, scripted, BC, and LLM runners now also emit `workflow_validation` artifacts derived from the same family workflow spec, plus first-class `blueprint.json` and `contract.json` artifacts. `blueprint.json` wraps the scenario, facade catalog, workflow metadata, and contract summary into one typed surface; `contract.json` makes the success predicates, forbidden predicates, observation boundary, policy invariants, reward terms, and intervention rules explicit. Contract evaluation now treats oracle state and agent-visible observation as separate inputs, so hidden state can be graded without leaking it into the visible surface. Freeform runs are compared against that deterministic contract instead of only against raw score output.
+For benchmark-family scenarios, scripted, BC, and LLM runners now also emit `workflow_validation` artifacts derived from the same family workflow spec, plus first-class `blueprint_asset.json`, `blueprint.json`, and `contract.json` artifacts. `blueprint_asset.json` is the authored blueprint root; `blueprint.json` is the compiled blueprint with resolved facades, state roots, workflow defaults, contract defaults, and run defaults; `contract.json` makes the success predicates, forbidden predicates, observation boundary, policy invariants, reward terms, and intervention rules explicit. Contract evaluation now treats oracle state and agent-visible observation as separate inputs, so hidden state can be graded without leaking it into the visible surface. Freeform runs are compared against that deterministic contract instead of only against raw score output.
 
 Run the supported benchmark-family demo flow:
 
@@ -66,6 +68,25 @@ vei-eval demo \
 ```
 
 That command runs the family's canonical workflow baseline plus one comparison runner, writes `leaderboard.md` / `leaderboard.csv` / `leaderboard.json`, stores inspectable world state under `state/`, and emits `demo_result.json` with ready-to-run `vei-world` inspection commands plus direct paths to the baseline and comparison `contract.json` artifacts.
+
+The flagship mixed-stack demo is the revenue/ops primary variant:
+
+```bash
+vei-blueprint asset \
+  --family revenue_incident_mitigation \
+  --workflow-variant revenue_ops_flightdeck
+
+vei-blueprint compile \
+  --family revenue_incident_mitigation \
+  --workflow-variant revenue_ops_flightdeck
+
+vei-eval demo \
+  --family revenue_incident_mitigation \
+  --artifacts-root _vei_out/demo \
+  --run-id revenue_ops_demo
+```
+
+That demo exercises Spreadsheet, Docs, CRM, feature flags, Datadog, PagerDuty, Tickets, and Slack in one contract-graded run.
 
 Run the canonical multi-family workflow suite for CI or nightly jobs:
 
@@ -125,6 +146,7 @@ Current benchmark runs write:
 - `aggregate_results.json`
 - `benchmark_summary.json`
 - per-scenario `benchmark_result.json`
+- benchmark runs additionally write `blueprint_asset.json`
 - benchmark runs additionally write `blueprint.json`
 - benchmark-family runs additionally write `contract.json`
 - demo runs additionally write `leaderboard.md`, `leaderboard.csv`, `leaderboard.json`, and `demo_result.json`

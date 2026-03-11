@@ -51,6 +51,33 @@ class Ticket:
 
 
 @dataclass
+class SpreadsheetSheet:
+    """Tabular worksheet stored in the spreadsheet facade."""
+
+    sheet_id: str
+    title: str
+    columns: Optional[List[str]] = None
+    rows: Optional[List[Dict[str, Any]]] = None
+    cells: Optional[Dict[str, Any]] = None
+    formulas: Optional[Dict[str, str]] = None
+    tables: Optional[List[Dict[str, Any]]] = None
+    filters: Optional[List[Dict[str, Any]]] = None
+    sorts: Optional[List[Dict[str, Any]]] = None
+
+
+@dataclass
+class SpreadsheetWorkbook:
+    """Workbook stored in the spreadsheet facade."""
+
+    workbook_id: str
+    title: str
+    owner: Optional[str] = None
+    shared_with: Optional[List[str]] = None
+    permissions: Optional[Dict[str, str]] = None
+    sheets: Optional[List[SpreadsheetSheet]] = None
+
+
+@dataclass
 class ServiceDeskIncident:
     """Incident tracked by the ServiceDesk twin."""
 
@@ -135,6 +162,7 @@ class Scenario:
     # Additional synthetic world assets
     participants: Optional[List[Participant]] = None
     documents: Optional[Dict[str, Document]] = None
+    spreadsheets: Optional[Dict[str, SpreadsheetWorkbook]] = None
     calendar_events: Optional[List[CalendarEvent]] = None
     tickets: Optional[Dict[str, Ticket]] = None
     database_tables: Optional[Dict[str, List[Dict[str, Any]]]] = None
