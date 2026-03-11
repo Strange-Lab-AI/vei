@@ -65,6 +65,9 @@ The router is a transport and tool-dispatch adapter. Mutable enterprise state be
   - authored blueprint assets and compiled blueprints
   - environment-builder examples and blueprint-to-world session creation
   - typed facade catalog backed by a facade plugin contract
+- `vei.capability_graph`
+  - runtime shared-domain graph views derived from live world state and builder metadata
+  - read-oriented identity/doc/work/comm/revenue graph surfaces for agents and inspection
 - `vei.grounding`
   - typed grounding bundles for imported organization, policy, and incident input
   - compilers that turn grounding bundles into `BlueprintAsset` authoring roots
@@ -78,7 +81,7 @@ The router is a transport and tool-dispatch adapter. Mutable enterprise state be
 - `python -m vei.router.sse`
   - SSE MCP transport
 - `vei-world`
-  - snapshot/receipt inspection
+  - snapshot/receipt inspection plus runtime capability-graph rendering
 - `vei-llm-test`, `vei-eval`, `vei-eval-frontier`, `vei-report`
   - evaluation and benchmarking
 

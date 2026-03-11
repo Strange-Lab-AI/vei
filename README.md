@@ -90,6 +90,7 @@ vei-llm-test \
 - Typed blueprint and facade catalog over the existing enterprise twins
 - Blueprint compiler with explicit facade plugins and authored `GroundingBundle -> BlueprintAsset -> CompiledBlueprint` flow
 - Environment-builder path that can compile typed capability graphs, policies, and workflow seeds into a runnable world session
+- Runtime capability-graph layer that lets world sessions and snapshots expose shared domain graphs such as identity, docs, work, comms, and revenue
 - Enterprise twins for Slack, Mail, Browser, Docs, Spreadsheet, Tickets, DB, ERP/CRM, Okta-style identity, ServiceDesk, Google Admin, SIEM, Datadog, PagerDuty, feature flags, HRIS, and Jira-style issue flows
 - Scenario compilation, dataset rollout, BC training, benchmark execution, and release packaging
 - Reusable benchmark families for security containment, enterprise onboarding/migration, and revenue incident response
@@ -174,6 +175,8 @@ VEI_LLM_LIVE_BYPASS=1 make llm-live
 - Policy/eval: `vei-rollout`, `vei-train`, `vei-eval`, `vei-eval-frontier`, `vei-score`
 - Showcase: `vei-eval showcase`
 - Visualization: `vei-visualize replay|flow|dashboard|export`
+
+`vei-world graphs` now renders runtime capability graphs from stored snapshots, which is the cleanest way to inspect identity, doc, work, comm, and revenue state without dropping down into app-shaped component dumps.
 
 ## Benchmarking
 

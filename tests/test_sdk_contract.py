@@ -239,8 +239,11 @@ def test_sdk_blueprint_builder_helpers_compile_and_open_world() -> None:
     assert compiled.environment_summary.hris_employee_count == 2
     assert compiled.graph_summaries
     slack = session.observe("slack")
+    graphs = session.capability_graphs()
     assert slack["focus"] == "slack"
     assert "#sales-cutover" in slack["summary"]
+    assert graphs.identity_graph is not None
+    assert graphs.identity_graph.policies[0].title.startswith("Wave 2")
 
 
 def test_sdk_grounding_bundle_helpers_round_trip_to_blueprint() -> None:

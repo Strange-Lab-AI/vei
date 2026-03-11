@@ -7,6 +7,8 @@ from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, TYPE_CHECKING
 
 from vei.blueprint.plugins import list_runtime_facade_plugins
+from vei.capability_graph.api import build_runtime_capability_graphs
+from vei.capability_graph.models import RuntimeCapabilityGraphs
 from vei.connectors.models import ConnectorReceipt
 from vei.identity.api import IdentityApplication, IdentityGroup, IdentityUser
 from vei.monitors.models import MonitorFinding
@@ -641,6 +643,10 @@ class WorldSession:
 
     def pending(self) -> Dict[str, int]:
         return self.router.pending()
+
+    def capability_graphs(self) -> RuntimeCapabilityGraphs:
+        state = serialize_router_state(self.router)
+        return build_runtime_capability_graphs(state)
 
     def current_state(self) -> WorldState:
         return serialize_router_state(self.router)

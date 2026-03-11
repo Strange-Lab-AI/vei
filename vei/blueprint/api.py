@@ -426,6 +426,10 @@ def materialize_scenario_from_blueprint(asset: BlueprintAsset) -> Scenario:
         metadata["builder_scenario_brief"] = environment.scenario_brief
     if environment.metadata:
         metadata["builder_environment"] = dict(environment.metadata)
+    if asset.capability_graphs is not None:
+        metadata["builder_capability_graphs"] = asset.capability_graphs.model_dump(
+            mode="json"
+        )
     existing_tags = metadata.get("tags", [])
     if isinstance(existing_tags, list):
         metadata["tags"] = sorted(

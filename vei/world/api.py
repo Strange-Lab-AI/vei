@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any, Dict, Optional, Protocol
 
 from vei.router.api import create_router
+from vei.capability_graph.models import RuntimeCapabilityGraphs
 from vei.world.manifest import (
     ScenarioManifest,
     get_scenario_manifest,
@@ -39,6 +40,8 @@ class WorldSessionAPI(Protocol):
     ) -> Dict[str, Any]: ...
 
     def pending(self) -> Dict[str, int]: ...
+
+    def capability_graphs(self) -> RuntimeCapabilityGraphs: ...
 
     def snapshot(self, label: Optional[str] = None) -> WorldSnapshot: ...
 
@@ -87,6 +90,10 @@ def call_tool(
     session: WorldSessionAPI, tool: str, args: Optional[Dict[str, Any]] = None
 ) -> Dict[str, Any]:
     return session.call_tool(tool, args=args)
+
+
+def capability_graphs(session: WorldSessionAPI) -> RuntimeCapabilityGraphs:
+    return session.capability_graphs()
 
 
 def snapshot(session: WorldSessionAPI, label: Optional[str] = None) -> WorldSnapshot:
@@ -141,11 +148,13 @@ __all__ = [
     "ActorState",
     "InjectedEvent",
     "ScheduledEvent",
+    "RuntimeCapabilityGraphs",
     "WorldSession",
     "WorldSessionAPI",
     "WorldSnapshot",
     "WorldState",
     "branch",
+    "capability_graphs",
     "call_tool",
     "cancel_event",
     "create_world_session",

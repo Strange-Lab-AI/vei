@@ -7,7 +7,9 @@ from typing import Dict, List, Optional
 
 import typer
 
+from vei.capability_graph.api import build_runtime_capability_graphs
 from vei.world.state import StateStore
+from vei.world.models import WorldState
 
 
 app = typer.Typer(
@@ -39,6 +41,21 @@ def _branch_path(root: Path, branch: str) -> Path:
 
 def _load_snapshot(path: Path) -> Dict[str, object]:
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _resolve_snapshot_payload(
+    root: Path, branch: str, snapshot: Optional[int]
+) -> Dict[str, object]:
+    store = StateStore(base_dir=root, branch=branch)
+    paths = _snapshot_paths(store)
+    if not paths:
+        raise typer.BadParameter("No snapshots captured yet")
+    if snapshot is None:
+        return _load_snapshot(paths[-1])
+    matching = [p for p in paths if p.stem == f"{snapshot:09d}"]
+    if not matching:
+        raise typer.BadParameter(f"Snapshot {snapshot} not found")
+    return _load_snapshot(matching[0])
 
 
 def _flatten(prefix: str, value: object, out: Dict[str, object]) -> None:
@@ -132,19 +149,12 @@ def show_snapshot(
     """Show a snapshot summary (latest by default)."""
 
     root = _resolve_root(state_dir)
-    store = StateStore(base_dir=root, branch=branch)
-    paths = _snapshot_paths(store)
-    if not paths:
-        raise typer.BadParameter("No snapshots captured yet")
-    selected_path: Path
-    if snapshot is None:
-        selected_path = paths[-1]
-    else:
-        matching = [p for p in paths if p.stem == f"{snapshot:09d}"]
-        if not matching:
-            raise typer.BadParameter(f"Snapshot {snapshot} not found")
-        selected_path = matching[0]
-    snap = _load_snapshot(selected_path)
+    snap = _resolve_snapshot_payload(root, branch, snapshot)
+    selected_path = (
+        _branch_path(root, branch)
+        / "snapshots"
+        / f"{int(snap.get('index', 0)):09d}.json"
+    )
     output = {
         "branch": branch,
         "path": str(selected_path),
@@ -157,6 +167,49 @@ def show_snapshot(
         receipts = _load_receipts(_branch_path(root, branch))
         output["receipts"] = receipts[-receipts_tail:]
     typer.echo(json.dumps(output, indent=2))
+
+
+@app.command("graphs")
+def show_capability_graphs(
+    state_dir: Optional[Path] = typer.Option(None, help="Root VEI state directory"),
+    branch: str = typer.Option("main", help="Branch name"),
+    snapshot: Optional[int] = typer.Option(
+        None, help="Snapshot index (default: latest)"
+    ),
+    domain: Optional[str] = typer.Option(
+        None,
+        help=(
+            "Optional capability domain filter such as identity_graph, "
+            "doc_graph, work_graph, comm_graph, or revenue_graph"
+        ),
+    ),
+    indent: int = typer.Option(2, help="Pretty indent"),
+) -> None:
+    """Render runtime capability graphs from a stored snapshot."""
+
+    root = _resolve_root(state_dir)
+    snap = _resolve_snapshot_payload(root, branch, snapshot)
+    state = WorldState.model_validate(snap.get("data", {}))
+    graphs = build_runtime_capability_graphs(state).model_dump(mode="json")
+    if domain:
+        normalized = domain.strip().lower()
+        if normalized not in {
+            "comm_graph",
+            "doc_graph",
+            "work_graph",
+            "identity_graph",
+            "revenue_graph",
+        }:
+            raise typer.BadParameter(f"Unknown capability graph domain: {domain}")
+        payload = {
+            "branch": graphs["branch"],
+            "clock_ms": graphs["clock_ms"],
+            "domain": normalized,
+            "graph": graphs.get(normalized),
+        }
+    else:
+        payload = graphs
+    typer.echo(json.dumps(payload, indent=indent))
 
 
 @app.command("diff")

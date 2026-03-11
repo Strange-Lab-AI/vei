@@ -5,6 +5,10 @@ from pathlib import Path
 
 import typer.testing
 
+from vei.blueprint.api import (
+    build_blueprint_asset_for_example,
+    create_world_session_from_blueprint,
+)
 from vei.cli.vei_world import app as world_app
 from vei.world.state import Event, StateStore
 
@@ -72,3 +76,29 @@ def test_vei_world_cli_diff(tmp_path: Path) -> None:
     diff_payload = json.loads(result.stdout)
     assert diff_payload["diff"]["changed"]["count"]["from"] == 1
     assert diff_payload["diff"]["changed"]["count"]["to"] == 2
+
+
+def test_vei_world_cli_graphs(tmp_path: Path, monkeypatch) -> None:
+    runner = typer.testing.CliRunner()
+    state_root = tmp_path / "state"
+    monkeypatch.setenv("VEI_STATE_DIR", str(state_root))
+
+    asset = build_blueprint_asset_for_example("acquired_user_cutover")
+    session = create_world_session_from_blueprint(asset, seed=9)
+    session.snapshot(label="identity-cutover")
+
+    result = runner.invoke(
+        world_app,
+        [
+            "graphs",
+            "--state-dir",
+            str(state_root),
+            "--domain",
+            "identity_graph",
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    payload = json.loads(result.stdout)
+    assert payload["domain"] == "identity_graph"
+    assert payload["graph"]["policies"][0]["policy_id"] == "POL-WAVE2"
+    assert len(payload["graph"]["users"]) == 2
