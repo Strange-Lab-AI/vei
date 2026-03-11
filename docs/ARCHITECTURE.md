@@ -7,9 +7,11 @@ VEI is a deterministic, MCP-native enterprise simulator built around one stable 
 - `Blueprint`
   - authored asset compiled into scenario, facades, workflow, contract, and run defaults
 - `BlueprintAsset`
-  - authoring root for scenario templates, typed environment seed data, facade requirements, and workflow defaults
+  - authoring root for scenario templates, capability-graph or environment seed data, facade requirements, and workflow defaults
 - `CompiledBlueprint`
   - resolved facade/state-root graph plus workflow/contract/run defaults
+- `GroundingBundle`
+  - typed imported org/policy/incident bundle that compiles into a `BlueprintAsset`
 - `Scenario`
   - seeded enterprise world plus manifest metadata
 - `Facade`
@@ -63,6 +65,9 @@ The router is a transport and tool-dispatch adapter. Mutable enterprise state be
   - authored blueprint assets and compiled blueprints
   - environment-builder examples and blueprint-to-world session creation
   - typed facade catalog backed by a facade plugin contract
+- `vei.grounding`
+  - typed grounding bundles for imported organization, policy, and incident input
+  - compilers that turn grounding bundles into `BlueprintAsset` authoring roots
 - `vei.contract`
   - contract builders and evaluators
 
@@ -113,4 +118,5 @@ VEI keeps the current router twins, but the public ontology now groups them as f
 - Cross-module usage should go through typed `api.py` surfaces.
 - All actor outputs should enter the world through typed events so snapshot/replay stays deterministic.
 - New software environments should register as facade plugins before they become public blueprint/compiler surfaces.
+- Prefer `GroundingBundle -> BlueprintAsset -> CompiledBlueprint -> WorldSession` as the environment-builder path.
 - Prefer semantic environment building first. VM-backed or OS-level facades are future plugin substrates, not the core runtime model.

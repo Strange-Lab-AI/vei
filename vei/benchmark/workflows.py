@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel
 
@@ -1320,7 +1320,9 @@ def _resolve_variant_name(family_name: str, variant_name: Optional[str]) -> str:
 
 
 def get_benchmark_family_workflow_spec(
-    name: str, variant_name: Optional[str] = None
+    name: str,
+    variant_name: Optional[str] = None,
+    parameter_overrides: Optional[Dict[str, Any]] = None,
 ) -> WorkflowScenarioSpec:
     key = name.strip().lower()
     if key not in _VARIANT_CATALOG:
@@ -1328,9 +1330,10 @@ def get_benchmark_family_workflow_spec(
     resolved_variant = _resolve_variant_name(key, variant_name)
     definition = _VARIANT_CATALOG[key][resolved_variant]
     builder = _WORKFLOW_BUILDERS[key]
-    return builder(
-        definition.parameters.model_copy(deep=True), variant_name=resolved_variant
-    )
+    params = definition.parameters.model_copy(deep=True)
+    if parameter_overrides:
+        params = params.model_copy(update=dict(parameter_overrides))
+    return builder(params, variant_name=resolved_variant)
 
 
 def list_benchmark_family_workflow_specs() -> List[WorkflowScenarioSpec]:

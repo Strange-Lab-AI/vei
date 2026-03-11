@@ -219,6 +219,69 @@ class BlueprintEnvironmentSummary(BaseModel):
     scenario_template_name: Optional[str] = None
 
 
+class BlueprintIdentityPolicyAsset(BaseModel):
+    policy_id: str
+    title: str
+    allowed_application_ids: List[str] = Field(default_factory=list)
+    forbidden_share_domains: List[str] = Field(default_factory=list)
+    required_approval_stages: List[str] = Field(default_factory=list)
+    deadline_max_ms: Optional[int] = None
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+
+
+class BlueprintCommGraphAsset(BaseModel):
+    slack_initial_message: Optional[str] = None
+    slack_channels: List[BlueprintSlackChannelAsset] = Field(default_factory=list)
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+
+
+class BlueprintDocGraphAsset(BaseModel):
+    documents: List[BlueprintDocumentAsset] = Field(default_factory=list)
+    drive_shares: List[BlueprintGoogleDriveShareAsset] = Field(default_factory=list)
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+
+
+class BlueprintWorkGraphAsset(BaseModel):
+    tickets: List[BlueprintTicketAsset] = Field(default_factory=list)
+    service_requests: List[BlueprintServiceRequestAsset] = Field(default_factory=list)
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+
+
+class BlueprintIdentityGraphAsset(BaseModel):
+    users: List[BlueprintIdentityUserAsset] = Field(default_factory=list)
+    groups: List[BlueprintIdentityGroupAsset] = Field(default_factory=list)
+    applications: List[BlueprintIdentityApplicationAsset] = Field(default_factory=list)
+    hris_employees: List[BlueprintHrisEmployeeAsset] = Field(default_factory=list)
+    policies: List[BlueprintIdentityPolicyAsset] = Field(default_factory=list)
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+
+
+class BlueprintRevenueGraphAsset(BaseModel):
+    companies: List[BlueprintCrmCompanyAsset] = Field(default_factory=list)
+    contacts: List[BlueprintCrmContactAsset] = Field(default_factory=list)
+    deals: List[BlueprintCrmDealAsset] = Field(default_factory=list)
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+
+
+class BlueprintCapabilityGraphsAsset(BaseModel):
+    organization_name: str
+    organization_domain: str
+    timezone: str = "UTC"
+    scenario_brief: Optional[str] = None
+    comm_graph: Optional[BlueprintCommGraphAsset] = None
+    doc_graph: Optional[BlueprintDocGraphAsset] = None
+    work_graph: Optional[BlueprintWorkGraphAsset] = None
+    identity_graph: Optional[BlueprintIdentityGraphAsset] = None
+    revenue_graph: Optional[BlueprintRevenueGraphAsset] = None
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+
+
+class CapabilityGraphSummary(BaseModel):
+    domain: CapabilityDomain
+    entity_count: int = 0
+    facet_counts: Dict[str, int] = Field(default_factory=dict)
+
+
 class BlueprintSpec(BaseModel):
     name: str
     title: str
@@ -243,7 +306,9 @@ class BlueprintAsset(BaseModel):
     family_name: Optional[str] = None
     workflow_name: Optional[str] = None
     workflow_variant: Optional[str] = None
+    workflow_parameters: Dict[str, Any] = Field(default_factory=dict)
     requested_facades: List[str] = Field(default_factory=list)
+    capability_graphs: Optional[BlueprintCapabilityGraphsAsset] = None
     environment: Optional[BlueprintEnvironmentAsset] = None
     metadata: Dict[str, Any] = Field(default_factory=dict)
 
@@ -280,6 +345,7 @@ class BlueprintRunDefaults(BaseModel):
 class CompiledBlueprint(BlueprintSpec):
     asset: BlueprintAsset
     environment_summary: Optional[BlueprintEnvironmentSummary] = None
+    graph_summaries: List[CapabilityGraphSummary] = Field(default_factory=list)
     scenario_seed_fields: List[str] = Field(default_factory=list)
     workflow_defaults: BlueprintWorkflowDefaults = Field(
         default_factory=BlueprintWorkflowDefaults

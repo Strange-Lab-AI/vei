@@ -95,14 +95,19 @@ def test_builder_example_compiles_environment_backed_blueprint() -> None:
     asset = build_blueprint_asset_for_example("acquired_user_cutover")
     compiled = compile_blueprint(asset)
 
-    assert asset.environment is not None
+    assert asset.capability_graphs is not None
+    assert asset.environment is None
+    assert asset.workflow_parameters["employee_id"] == "EMP-2201"
     assert compiled.scenario.name == "acquired_user_cutover"
     assert compiled.environment_summary is not None
     assert compiled.environment_summary.organization_name == "MacroCompute"
     assert compiled.environment_summary.identity_user_count == 2
     assert compiled.run_defaults.scenario_name == "acquired_user_cutover"
-    assert compiled.metadata["scenario_materialization"] == "environment_asset"
+    assert compiled.metadata["scenario_materialization"] == "capability_graphs"
     assert compiled.metadata["scenario_template_name"] == "acquired_sales_onboarding"
+    graph_summaries = {item.domain: item for item in compiled.graph_summaries}
+    assert graph_summaries["identity_graph"].facet_counts["policies"] == 1
+    assert graph_summaries["doc_graph"].facet_counts["drive_shares"] == 1
     assert "identity" in {item.name for item in compiled.facades}
     assert "google_admin" in {item.name for item in compiled.facades}
 

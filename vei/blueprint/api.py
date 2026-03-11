@@ -28,6 +28,7 @@ from vei.world.scenarios import get_scenario
 
 from .models import (
     BlueprintAsset,
+    BlueprintCapabilityGraphsAsset,
     BlueprintContractDefaults,
     BlueprintContractSummary,
     BlueprintDocumentAsset,
@@ -42,6 +43,7 @@ from .models import (
     BlueprintSpec,
     BlueprintTicketAsset,
     BlueprintWorkflowDefaults,
+    CapabilityGraphSummary,
     CompiledBlueprint,
     FacadeManifest,
 )
@@ -53,14 +55,19 @@ from .plugins import (
 
 
 def list_blueprint_builder_examples() -> List[str]:
-    return sorted(_BUILDER_EXAMPLE_FACTORIES)
+    from vei.grounding.api import list_grounding_bundle_examples
+
+    return sorted(item.name for item in list_grounding_bundle_examples())
 
 
 def build_blueprint_asset_for_example(name: str) -> BlueprintAsset:
-    key = name.strip().lower()
-    if key not in _BUILDER_EXAMPLE_FACTORIES:
-        raise KeyError(f"unknown blueprint builder example: {name}")
-    return _BUILDER_EXAMPLE_FACTORIES[key]()
+    from vei.grounding.api import (
+        build_grounding_bundle_example,
+        compile_identity_governance_bundle,
+    )
+
+    bundle = build_grounding_bundle_example(name)
+    return compile_identity_governance_bundle(bundle)
 
 
 def get_facade_manifest(name: str) -> FacadeManifest:
@@ -94,6 +101,7 @@ def build_blueprint_asset_for_family(
         family_name=family.name,
         workflow_name=workflow_name,
         workflow_variant=workflow_variant,
+        workflow_parameters={},
         metadata={
             "primary_dimensions": list(family.primary_dimensions),
             "family_tags": list(family.tags),
@@ -122,6 +130,7 @@ def build_blueprint_asset_for_scenario(
         family_name=resolved_family_name,
         workflow_name=workflow_name,
         workflow_variant=workflow_variant,
+        workflow_parameters={},
         requested_facades=list(requested_facades or []),
         metadata=dict(metadata or {}),
     )
@@ -160,7 +169,9 @@ def compile_blueprint(asset: BlueprintAsset) -> CompiledBlueprint:
     workflow_tool_families: List[str] = []
     if resolved_workflow_name:
         workflow_spec = get_benchmark_family_workflow_spec(
-            resolved_workflow_name, variant_name=workflow_variant
+            resolved_workflow_name,
+            variant_name=workflow_variant,
+            parameter_overrides=asset.workflow_parameters,
         )
         compiled = compile_workflow(workflow_spec)
         contract = build_contract_from_workflow(compiled)
@@ -210,9 +221,7 @@ def compile_blueprint(asset: BlueprintAsset) -> CompiledBlueprint:
             ),
             "compiled_from_asset": asset.name,
             "scenario_template_name": asset.scenario_name,
-            "scenario_materialization": (
-                "environment_asset" if asset.environment is not None else "catalog"
-            ),
+            "scenario_materialization": _scenario_materialization_mode(asset),
         }
     )
     state_roots = sorted(
@@ -278,6 +287,7 @@ def compile_blueprint(asset: BlueprintAsset) -> CompiledBlueprint:
         metadata=metadata,
         asset=asset,
         environment_summary=_build_environment_summary(asset),
+        graph_summaries=_build_graph_summaries(asset),
         scenario_seed_fields=scenario_seed_fields,
         workflow_defaults=workflow_defaults,
         contract_defaults=contract_defaults,
@@ -328,7 +338,7 @@ def list_blueprint_specs() -> List[BlueprintSpec]:
 
 def materialize_scenario_from_blueprint(asset: BlueprintAsset) -> Scenario:
     scenario = deepcopy(get_scenario(asset.scenario_name))
-    environment = asset.environment
+    environment = _resolve_environment_asset(asset)
     if environment is None:
         return scenario
 
@@ -405,7 +415,7 @@ def materialize_scenario_from_blueprint(asset: BlueprintAsset) -> Scenario:
     metadata: Dict[str, Any] = dict(scenario.metadata or {})
     metadata.update(
         {
-            "builder_mode": "environment_asset",
+            "builder_mode": _scenario_materialization_mode(asset),
             "builder_organization_name": environment.organization_name,
             "builder_organization_domain": environment.organization_domain,
             "builder_timezone": environment.timezone,
@@ -472,7 +482,7 @@ def _resolve_facade_names(
 
 
 def _runtime_scenario_name(asset: BlueprintAsset) -> str:
-    if asset.environment is None:
+    if asset.environment is None and asset.capability_graphs is None:
         return asset.scenario_name
     if asset.name.endswith(".blueprint"):
         return asset.name[: -len(".blueprint")]
@@ -482,7 +492,7 @@ def _runtime_scenario_name(asset: BlueprintAsset) -> str:
 def _build_environment_summary(
     asset: BlueprintAsset,
 ) -> Optional[BlueprintEnvironmentSummary]:
-    environment = asset.environment
+    environment = _resolve_environment_asset(asset)
     if environment is None:
         return None
     return BlueprintEnvironmentSummary(
@@ -501,6 +511,148 @@ def _build_environment_summary(
         slack_channel_count=len(environment.slack_channels),
         scenario_template_name=asset.scenario_name,
     )
+
+
+def _build_graph_summaries(asset: BlueprintAsset) -> List[CapabilityGraphSummary]:
+    graphs = asset.capability_graphs
+    if graphs is None:
+        return []
+    summaries: List[CapabilityGraphSummary] = []
+    if graphs.comm_graph is not None:
+        summaries.append(
+            CapabilityGraphSummary(
+                domain="comm_graph",
+                entity_count=len(graphs.comm_graph.slack_channels),
+                facet_counts={
+                    "channels": len(graphs.comm_graph.slack_channels),
+                    "messages": sum(
+                        len(channel.messages)
+                        for channel in graphs.comm_graph.slack_channels
+                    ),
+                },
+            )
+        )
+    if graphs.doc_graph is not None:
+        summaries.append(
+            CapabilityGraphSummary(
+                domain="doc_graph",
+                entity_count=len(graphs.doc_graph.documents)
+                + len(graphs.doc_graph.drive_shares),
+                facet_counts={
+                    "documents": len(graphs.doc_graph.documents),
+                    "drive_shares": len(graphs.doc_graph.drive_shares),
+                },
+            )
+        )
+    if graphs.work_graph is not None:
+        summaries.append(
+            CapabilityGraphSummary(
+                domain="work_graph",
+                entity_count=len(graphs.work_graph.tickets)
+                + len(graphs.work_graph.service_requests),
+                facet_counts={
+                    "tickets": len(graphs.work_graph.tickets),
+                    "service_requests": len(graphs.work_graph.service_requests),
+                },
+            )
+        )
+    if graphs.identity_graph is not None:
+        summaries.append(
+            CapabilityGraphSummary(
+                domain="identity_graph",
+                entity_count=len(graphs.identity_graph.users)
+                + len(graphs.identity_graph.groups)
+                + len(graphs.identity_graph.applications)
+                + len(graphs.identity_graph.hris_employees)
+                + len(graphs.identity_graph.policies),
+                facet_counts={
+                    "users": len(graphs.identity_graph.users),
+                    "groups": len(graphs.identity_graph.groups),
+                    "applications": len(graphs.identity_graph.applications),
+                    "hris_employees": len(graphs.identity_graph.hris_employees),
+                    "policies": len(graphs.identity_graph.policies),
+                },
+            )
+        )
+    if graphs.revenue_graph is not None:
+        summaries.append(
+            CapabilityGraphSummary(
+                domain="revenue_graph",
+                entity_count=len(graphs.revenue_graph.companies)
+                + len(graphs.revenue_graph.contacts)
+                + len(graphs.revenue_graph.deals),
+                facet_counts={
+                    "companies": len(graphs.revenue_graph.companies),
+                    "contacts": len(graphs.revenue_graph.contacts),
+                    "deals": len(graphs.revenue_graph.deals),
+                },
+            )
+        )
+    return summaries
+
+
+def _resolve_environment_asset(
+    asset: BlueprintAsset,
+) -> Optional[BlueprintEnvironmentAsset]:
+    if asset.capability_graphs is not None:
+        return _environment_from_capability_graphs(asset.capability_graphs)
+    return asset.environment
+
+
+def _environment_from_capability_graphs(
+    graphs: BlueprintCapabilityGraphsAsset,
+) -> BlueprintEnvironmentAsset:
+    comm_graph = graphs.comm_graph
+    doc_graph = graphs.doc_graph
+    work_graph = graphs.work_graph
+    identity_graph = graphs.identity_graph
+    revenue_graph = graphs.revenue_graph
+    return BlueprintEnvironmentAsset(
+        organization_name=graphs.organization_name,
+        organization_domain=graphs.organization_domain,
+        timezone=graphs.timezone,
+        scenario_brief=graphs.scenario_brief,
+        slack_initial_message=(
+            comm_graph.slack_initial_message if comm_graph is not None else None
+        ),
+        slack_channels=(
+            list(comm_graph.slack_channels) if comm_graph is not None else []
+        ),
+        documents=list(doc_graph.documents) if doc_graph is not None else [],
+        tickets=list(work_graph.tickets) if work_graph is not None else [],
+        identity_users=list(identity_graph.users) if identity_graph is not None else [],
+        identity_groups=(
+            list(identity_graph.groups) if identity_graph is not None else []
+        ),
+        identity_applications=(
+            list(identity_graph.applications) if identity_graph is not None else []
+        ),
+        service_requests=(
+            list(work_graph.service_requests) if work_graph is not None else []
+        ),
+        google_drive_shares=(
+            list(doc_graph.drive_shares) if doc_graph is not None else []
+        ),
+        hris_employees=(
+            list(identity_graph.hris_employees) if identity_graph is not None else []
+        ),
+        crm_companies=(
+            list(revenue_graph.companies) if revenue_graph is not None else []
+        ),
+        crm_contacts=(
+            list(revenue_graph.contacts) if revenue_graph is not None else []
+        ),
+        crm_deals=list(revenue_graph.deals) if revenue_graph is not None else [],
+        metadata=dict(graphs.metadata),
+    )
+
+
+def _scenario_materialization_mode(asset: BlueprintAsset) -> str:
+    if asset.capability_graphs is not None:
+        return "capability_graphs"
+    if asset.environment is not None:
+        return "environment_asset"
+    return "catalog"
 
 
 def _build_document_seed(document: BlueprintDocumentAsset) -> Document:
@@ -579,229 +731,9 @@ def _build_service_request_seed(
     )
 
 
-def _build_acquired_user_cutover_asset() -> BlueprintAsset:
-    return BlueprintAsset(
-        name="acquired_user_cutover.blueprint",
-        title="Acquired User Cutover",
-        description=(
-            "Compile a wave cutover environment with HRIS conflicts, Okta access, "
-            "Drive oversharing cleanup, Jira tracking, and Slack handoff."
-        ),
-        scenario_name="acquired_sales_onboarding",
-        family_name="enterprise_onboarding_migration",
-        workflow_name="enterprise_onboarding_migration",
-        workflow_variant="manager_cutover",
-        requested_facades=["hris", "identity", "google_admin", "jira", "docs", "slack"],
-        environment=BlueprintEnvironmentAsset(
-            organization_name="MacroCompute",
-            organization_domain="macrocompute.example",
-            timezone="America/Los_Angeles",
-            scenario_brief=(
-                "Wave 2 acquired-sales cutover with one identity conflict, one "
-                "overshared Drive artifact, and one inherited opportunity."
-            ),
-            slack_initial_message=(
-                "Wave 2 seller cutover starts now. Resolve the HRIS conflict, "
-                "preserve least privilege, remove oversharing, and hand off safely "
-                "before tomorrow morning."
-            ),
-            slack_channels=[
-                {
-                    "channel": "#sales-cutover",
-                    "messages": [
-                        {
-                            "ts": "1",
-                            "user": "it-integration",
-                            "text": (
-                                "Wave 2 acquired-sales cutover is live. Resolve the "
-                                "identity conflict, restrict Drive visibility, and "
-                                "post a clean handoff summary."
-                            ),
-                        }
-                    ],
-                }
-            ],
-            documents=[
-                {
-                    "doc_id": "POL-ACCESS-9",
-                    "title": "Acquisition Access Policy",
-                    "body": (
-                        "Grant least privilege first. Sales users receive Slack and CRM. "
-                        "No external Drive sharing before manager review is complete."
-                    ),
-                    "tags": ["policy", "identity", "migration"],
-                },
-                {
-                    "doc_id": "CUTOVER-2201",
-                    "title": "Wave 2 Seller Cutover Checklist",
-                    "body": (
-                        "Wave 2 handoff checklist.\n\n"
-                        "- resolve HRIS identity conflict\n"
-                        "- activate corporate Okta identity\n"
-                        "- grant CRM access only\n"
-                        "- remove external sharing before transfer\n"
-                        "- update Jira and Slack once safe"
-                    ),
-                    "tags": ["cutover", "sales", "wave-2"],
-                },
-            ],
-            tickets=[
-                {
-                    "ticket_id": "JRA-204",
-                    "title": "Wave 2 onboarding tracker",
-                    "status": "open",
-                    "assignee": "it-integration",
-                    "description": "Track the acquired-user cutover and least-privilege review.",
-                }
-            ],
-            identity_users=[
-                {
-                    "user_id": "USR-ACQ-1",
-                    "email": "jordan.sellers@oldco.example.com",
-                    "login": "jordan.sellers",
-                    "first_name": "Jordan",
-                    "last_name": "Sellers",
-                    "title": "Account Executive",
-                    "department": "Sales",
-                    "status": "PROVISIONED",
-                    "groups": ["GRP-acquired-sales"],
-                    "applications": ["APP-slack"],
-                },
-                {
-                    "user_id": "USR-ACQ-2",
-                    "email": "maya.rex@example.com",
-                    "login": "maya.rex",
-                    "first_name": "Maya",
-                    "last_name": "Rex",
-                    "title": "Sales Manager",
-                    "department": "Sales",
-                    "status": "ACTIVE",
-                    "groups": ["GRP-sales-managers"],
-                    "applications": ["APP-slack", "APP-crm"],
-                },
-            ],
-            identity_groups=[
-                {
-                    "group_id": "GRP-acquired-sales",
-                    "name": "Acquired Sales",
-                    "members": ["USR-ACQ-1"],
-                },
-                {
-                    "group_id": "GRP-sales-managers",
-                    "name": "Sales Managers",
-                    "members": ["USR-ACQ-2"],
-                },
-            ],
-            identity_applications=[
-                {
-                    "app_id": "APP-crm",
-                    "label": "Salesforce",
-                    "assignments": ["USR-ACQ-2"],
-                },
-                {
-                    "app_id": "APP-slack",
-                    "label": "Slack",
-                    "assignments": ["USR-ACQ-1", "USR-ACQ-2"],
-                },
-            ],
-            service_requests=[
-                {
-                    "request_id": "REQ-2201",
-                    "title": "Wave 2 seller activation",
-                    "status": "PENDING_APPROVAL",
-                    "requester": "maya.rex@example.com",
-                    "description": "Approve seller activation after least-privilege review.",
-                    "approvals": [
-                        {"stage": "manager", "status": "APPROVED"},
-                        {"stage": "identity", "status": "PENDING"},
-                    ],
-                }
-            ],
-            google_drive_shares=[
-                {
-                    "doc_id": "GDRIVE-2201",
-                    "title": "Enterprise Accounts Playbook",
-                    "owner": "departed.manager@oldco.example.com",
-                    "visibility": "external_link",
-                    "classification": "internal",
-                    "shared_with": [
-                        "channel-partner@example.net",
-                        "maya.rex@example.com",
-                    ],
-                }
-            ],
-            hris_employees=[
-                {
-                    "employee_id": "EMP-2201",
-                    "email": "jordan.sellers@oldco.example.com",
-                    "display_name": "Jordan Sellers",
-                    "department": "Sales",
-                    "manager": "maya.rex@example.com",
-                    "status": "pre_start",
-                    "cohort": "acquired-sales-wave-2",
-                    "identity_conflict": True,
-                    "onboarded": False,
-                    "notes": ["Needs alias merge before activation."],
-                },
-                {
-                    "employee_id": "EMP-2202",
-                    "email": "erin.falcon@oldco.example.com",
-                    "display_name": "Erin Falcon",
-                    "department": "Sales",
-                    "manager": "maya.rex@example.com",
-                    "status": "pre_start",
-                    "cohort": "acquired-sales-wave-2",
-                    "identity_conflict": False,
-                    "onboarded": False,
-                },
-            ],
-            crm_companies=[
-                {
-                    "id": "CO-100",
-                    "name": "Northwind Retail",
-                    "domain": "northwind.example.com",
-                }
-            ],
-            crm_contacts=[
-                {
-                    "id": "C-100",
-                    "email": "buyer@northwind.example.com",
-                    "first_name": "Nina",
-                    "last_name": "Buyer",
-                    "company_id": "CO-100",
-                }
-            ],
-            crm_deals=[
-                {
-                    "id": "D-100",
-                    "name": "Northwind Expansion",
-                    "amount": 240000,
-                    "stage": "Negotiation",
-                    "owner": "departed.manager@oldco.example.com",
-                    "contact_id": "C-100",
-                    "company_id": "CO-100",
-                }
-            ],
-            metadata={
-                "builder_example": "acquired_user_cutover",
-                "wedge": "identity_access_governance",
-                "deadline": "9 AM virtual time tomorrow",
-            },
-        ),
-        metadata={
-            "builder_example": "acquired_user_cutover",
-            "wedge": "identity_access_governance",
-        },
-    )
-
-
-_BUILDER_EXAMPLE_FACTORIES = {
-    "acquired_user_cutover": _build_acquired_user_cutover_asset,
-}
-
-
 __all__ = [
     "BlueprintAsset",
+    "CapabilityGraphSummary",
     "CompiledBlueprint",
     "build_blueprint_asset_for_example",
     "build_blueprint_asset_for_family",

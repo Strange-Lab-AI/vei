@@ -100,5 +100,29 @@ def test_vei_blueprint_examples_and_observe_commands() -> None:
     assert observe_payload["observation"]["focus"] == "slack"
     assert "#sales-cutover" in observe_payload["observation"]["summary"]
     assert observe_payload["blueprint"]["metadata"]["scenario_materialization"] == (
-        "environment_asset"
+        "capability_graphs"
+    )
+
+
+def test_vei_blueprint_bundle_commands() -> None:
+    runner = typer.testing.CliRunner()
+
+    list_result = runner.invoke(app, ["bundles"])
+    bundle_result = runner.invoke(
+        app,
+        ["bundle", "--example", "acquired_user_cutover"],
+    )
+
+    assert list_result.exit_code == 0, list_result.output
+    assert bundle_result.exit_code == 0, bundle_result.output
+
+    list_payload = json.loads(list_result.output)
+    bundle_payload = json.loads(bundle_result.output)
+    assert any(item["name"] == "acquired_user_cutover" for item in list_payload)
+    assert bundle_payload["workflow_seed"]["employee_id"] == "EMP-2201"
+    assert (
+        bundle_payload["capability_graphs"]["identity_graph"]["policies"][0][
+            "policy_id"
+        ]
+        == "POL-WAVE2"
     )

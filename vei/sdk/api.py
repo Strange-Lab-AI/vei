@@ -62,6 +62,12 @@ from vei.scenario_engine.compiler import CompiledWorkflow
 from vei.scenario_engine.models import WorkflowScenarioSpec
 from vei.scenario_runner.api import run_workflow, validate_workflow
 from vei.scenario_runner.models import ScenarioRunResult, ValidationReport
+from vei.grounding.api import (
+    build_grounding_bundle_example as _build_grounding_bundle_example,
+    compile_identity_governance_bundle as _compile_identity_governance_bundle,
+    list_grounding_bundle_examples as _list_grounding_bundle_examples,
+)
+from vei.grounding.models import GroundingBundleManifest, IdentityGovernanceBundle
 from vei.world.api import (
     WorldSessionAPI,
     create_world_session,
@@ -330,6 +336,20 @@ def list_blueprint_entries() -> list[BlueprintSpec]:
 
 def list_blueprint_builder_examples_entries() -> list[str]:
     return _list_blueprint_builder_examples()
+
+
+def build_grounding_bundle_example_entry(name: str) -> IdentityGovernanceBundle:
+    return _build_grounding_bundle_example(name)
+
+
+def list_grounding_bundle_example_entries() -> list[GroundingBundleManifest]:
+    return _list_grounding_bundle_examples()
+
+
+def compile_identity_governance_bundle_entry(
+    bundle: IdentityGovernanceBundle,
+) -> BlueprintAsset:
+    return _compile_identity_governance_bundle(bundle)
 
 
 def compile_blueprint_entry(asset: BlueprintAsset) -> CompiledBlueprint:

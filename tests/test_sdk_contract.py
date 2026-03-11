@@ -8,7 +8,9 @@ from vei.sdk import (
     SessionHook,
     build_blueprint_asset_for_example_entry,
     build_blueprint_asset_for_family_entry,
+    build_grounding_bundle_example_entry,
     compile_blueprint_entry,
+    compile_identity_governance_bundle_entry,
     create_world_session_from_blueprint_entry,
     create_session,
     filter_enterprise_corpus,
@@ -20,6 +22,7 @@ from vei.sdk import (
     list_scenario_manifest,
     list_benchmark_family_workflow_variants,
     list_blueprint_builder_examples_entries,
+    list_grounding_bundle_example_entries,
     list_showcase_example_entries,
     run_benchmark_family_workflow,
     run_workflow_spec,
@@ -234,9 +237,22 @@ def test_sdk_blueprint_builder_helpers_compile_and_open_world() -> None:
     assert "acquired_user_cutover" in list_blueprint_builder_examples_entries()
     assert compiled.environment_summary is not None
     assert compiled.environment_summary.hris_employee_count == 2
+    assert compiled.graph_summaries
     slack = session.observe("slack")
     assert slack["focus"] == "slack"
     assert "#sales-cutover" in slack["summary"]
+
+
+def test_sdk_grounding_bundle_helpers_round_trip_to_blueprint() -> None:
+    bundle = build_grounding_bundle_example_entry("acquired_user_cutover")
+    manifests = list_grounding_bundle_example_entries()
+    asset = compile_identity_governance_bundle_entry(bundle)
+    compiled = compile_blueprint_entry(asset)
+
+    assert any(item.name == "acquired_user_cutover" for item in manifests)
+    assert bundle.workflow_seed.employee_id == "EMP-2201"
+    assert asset.capability_graphs is not None
+    assert compiled.metadata["scenario_materialization"] == "capability_graphs"
 
 
 def test_sdk_showcase_helpers_list_complex_examples() -> None:

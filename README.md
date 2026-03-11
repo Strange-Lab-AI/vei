@@ -28,8 +28,9 @@ Plainly: VEI can simulate an enterprise environment where an agent has to discov
 VEI now exposes one coherent product shape:
 
 - `Blueprint`: typed composition of scenario, facades, workflow, and contract
-- `BlueprintAsset`: authored blueprint root that declares a scenario template, typed environment seed, requested facades, workflow, and metadata
+- `BlueprintAsset`: authored blueprint root that declares a scenario template, capability-graph or environment seed, requested facades, workflow, and metadata
 - `CompiledBlueprint`: compiled blueprint with resolved facades, state roots, workflow defaults, contract defaults, and run defaults
+- `GroundingBundle`: typed imported org/policy/incident input that compiles into a `BlueprintAsset`
 - `Scenario`: seeded enterprise world and difficulty/tool manifest
 - `Facade`: typed enterprise surface grouped by capability domain
 - `Contract`: success predicates, forbidden predicates, observation boundary, policy invariants, reward terms, and intervention rules
@@ -87,8 +88,8 @@ vei-llm-test \
 - Deterministic simulator with replayable traces
 - Stable world-kernel API with snapshot, branch, restore, replay, inject, and event inspection
 - Typed blueprint and facade catalog over the existing enterprise twins
-- Blueprint compiler with explicit facade plugins and authored `BlueprintAsset -> CompiledBlueprint` flow
-- Environment-builder path that can compile typed organization seed data into a runnable world session
+- Blueprint compiler with explicit facade plugins and authored `GroundingBundle -> BlueprintAsset -> CompiledBlueprint` flow
+- Environment-builder path that can compile typed capability graphs, policies, and workflow seeds into a runnable world session
 - Enterprise twins for Slack, Mail, Browser, Docs, Spreadsheet, Tickets, DB, ERP/CRM, Okta-style identity, ServiceDesk, Google Admin, SIEM, Datadog, PagerDuty, feature flags, HRIS, and Jira-style issue flows
 - Scenario compilation, dataset rollout, BC training, benchmark execution, and release packaging
 - Reusable benchmark families for security containment, enterprise onboarding/migration, and revenue incident response
@@ -166,7 +167,7 @@ VEI_LLM_LIVE_BYPASS=1 make llm-live
 ## Supported CLI Surface
 
 - Runtime: `vei-llm-test`, `vei-smoke`, `vei-demo`, `vei-world`
-- Ontology: `vei-blueprint asset|compile|show|observe|examples|facades`
+- Ontology: `vei-blueprint bundle|bundles|asset|compile|show|observe|examples|facades`
 - Release/Ops: `vei-release dataset|benchmark|nightly`
 - Scenarios: `vei-scenarios list|manifest|dump`
 - DSL/corpus: `vei-det sample-workflow|compile-workflow|run-workflow|generate-corpus|filter-corpus`
@@ -281,6 +282,9 @@ Flagship environment-builder example for the identity/access-governance wedge:
 ```bash
 vei-blueprint examples
 
+vei-blueprint bundle \
+  --example acquired_user_cutover
+
 vei-blueprint asset \
   --example acquired_user_cutover
 
@@ -292,7 +296,7 @@ vei-blueprint observe \
   --focus slack
 ```
 
-That flow compiles a typed acquired-user cutover environment with HRIS, Okta-style identity, Google Drive sharing state, Jira tracking, docs, Slack, and CRM handoff, then opens a live world observation directly from the blueprint.
+That flow shows the full builder ladder: raw grounding bundle, authored blueprint asset, compiled blueprint, and then a live world observation. The current built-in identity wedge compiles capability graphs for HRIS, Okta-style identity, Google Drive sharing state, Jira tracking, docs, Slack, and CRM handoff.
 
 Canonical multi-family workflow suite:
 

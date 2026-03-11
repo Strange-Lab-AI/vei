@@ -17,6 +17,10 @@ from vei.blueprint.api import (
     list_blueprint_specs,
     list_facade_manifest,
 )
+from vei.grounding.api import (
+    build_grounding_bundle_example,
+    list_grounding_bundle_examples,
+)
 
 
 app = typer.Typer(add_completion=False, help="Inspect VEI blueprints and facades.")
@@ -36,6 +40,27 @@ def list_examples() -> None:
 
     for name in list_blueprint_builder_examples():
         typer.echo(name)
+
+
+@app.command("bundles")
+def list_bundles(indent: int = typer.Option(2, help="Pretty indent")) -> None:
+    """Render built-in grounding bundle manifests as JSON."""
+
+    payload = [
+        item.model_dump(mode="json") for item in list_grounding_bundle_examples()
+    ]
+    typer.echo(json.dumps(payload, indent=indent))
+
+
+@app.command("bundle")
+def show_bundle(
+    example: str = typer.Option(..., help="Grounding bundle example name"),
+    indent: int = typer.Option(2, help="Pretty indent"),
+) -> None:
+    """Render one grounding bundle authoring input as JSON."""
+
+    bundle = build_grounding_bundle_example(example)
+    typer.echo(json.dumps(bundle.model_dump(mode="json"), indent=indent))
 
 
 @app.command("show")
