@@ -21,7 +21,7 @@ Plainly: VEI can simulate an enterprise environment where an agent has to discov
 - Policies and outcomes
   - Success predicates, forbidden states, policy invariants, observation boundaries, deadlines, and contract-graded outcomes
 - Agent discoverability
-  - Capability graphs, orientation summaries, policy hints, key objects, and suggested next inspection focuses
+  - Capability graphs, orientation summaries, policy hints, key objects, suggested next inspection focuses, and graph-native plan/action surfaces
 - Humans and interventions
   - Multiple actors, approvals, injected events, branch-and-recover flows, and replayable operator intervention
 
@@ -96,6 +96,7 @@ vei-llm-test \
 - Blueprint compiler with explicit facade plugins and authored `GroundingBundle -> BlueprintAsset -> CompiledBlueprint` flow
 - Environment-builder path that can compile typed capability graphs, policies, and workflow seeds into a runnable world session
 - Runtime capability-graph layer that lets world sessions and snapshots expose shared domain graphs such as identity, docs, work, comms, and revenue
+- Graph-native planning and mutation layer that lets agents ask for suggested next actions and apply graph actions without dropping down to raw app tools first
 - Agent-orientation layer that lets sessions and snapshots expose agent-facing summaries of visible surfaces, active policies, key objects, and suggested next questions
 - Enterprise twins for Slack, Mail, Browser, Docs, Spreadsheet, Tickets, DB, ERP/CRM, Okta-style identity, ServiceDesk, Google Admin, SIEM, Datadog, PagerDuty, feature flags, HRIS, and Jira-style issue flows
 - Scenario compilation, dataset rollout, BC training, benchmark execution, and release packaging
@@ -182,9 +183,22 @@ VEI_LLM_LIVE_BYPASS=1 make llm-live
 - Showcase: `vei-eval showcase`
 - Visualization: `vei-visualize replay|flow|dashboard|export`
 
-`vei-world graphs` now renders runtime capability graphs from stored snapshots, which is the cleanest way to inspect identity, doc, work, comm, and revenue state without dropping down into app-shaped component dumps. `vei-world orient` and `vei-blueprint orient` add the agent-facing layer on top: visible surfaces, active policy hints, key objects, and suggested next questions.
+`vei-world graphs` now renders runtime capability graphs from stored snapshots, which is the cleanest way to inspect identity, doc, work, comm, revenue, spreadsheet, observability, and rollout state without dropping down into app-shaped component dumps. `vei-world orient` and `vei-blueprint orient` add the agent-facing layer on top: visible surfaces, active policy hints, key objects, and suggested next questions.
 
-Inside live MCP sessions, agents can now call the same discoverability surfaces directly with `vei.orientation` and `vei.capability_graphs`.
+Inside live MCP sessions, agents can now call the same discoverability surfaces directly with `vei.orientation`, `vei.capability_graphs`, `vei.graph_plan`, and `vei.graph_action`.
+
+Graph-native agent ladder:
+
+```text
+vei.orientation
+  -> what kind of world is this?
+vei.capability_graphs
+  -> what shared domain state exists?
+vei.graph_plan
+  -> what graph-native actions make sense next?
+vei.graph_action
+  -> apply one of those actions through the real twins
+```
 
 ## Benchmarking
 

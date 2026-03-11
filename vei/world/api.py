@@ -3,7 +3,12 @@ from __future__ import annotations
 from typing import Any, Dict, Optional, Protocol
 
 from vei.router.api import create_router
-from vei.capability_graph.models import RuntimeCapabilityGraphs
+from vei.capability_graph.models import (
+    CapabilityGraphActionInput,
+    CapabilityGraphActionResult,
+    CapabilityGraphPlan,
+    RuntimeCapabilityGraphs,
+)
 from vei.orientation.models import WorldOrientation
 from vei.world.manifest import (
     ScenarioManifest,
@@ -43,6 +48,14 @@ class WorldSessionAPI(Protocol):
     def pending(self) -> Dict[str, int]: ...
 
     def capability_graphs(self) -> RuntimeCapabilityGraphs: ...
+
+    def graph_plan(
+        self, *, domain: Optional[str] = None, limit: int = 12
+    ) -> CapabilityGraphPlan: ...
+
+    def graph_action(
+        self, action: CapabilityGraphActionInput | Dict[str, Any]
+    ) -> CapabilityGraphActionResult: ...
 
     def orientation(self) -> WorldOrientation: ...
 
@@ -99,6 +112,18 @@ def capability_graphs(session: WorldSessionAPI) -> RuntimeCapabilityGraphs:
     return session.capability_graphs()
 
 
+def graph_plan(
+    session: WorldSessionAPI, *, domain: Optional[str] = None, limit: int = 12
+) -> CapabilityGraphPlan:
+    return session.graph_plan(domain=domain, limit=limit)
+
+
+def graph_action(
+    session: WorldSessionAPI, action: CapabilityGraphActionInput | Dict[str, Any]
+) -> CapabilityGraphActionResult:
+    return session.graph_action(action)
+
+
 def orientation(session: WorldSessionAPI) -> WorldOrientation:
     return session.orientation()
 
@@ -153,6 +178,9 @@ def list_catalog_scenario_manifest() -> list[ScenarioManifest]:
 
 __all__ = [
     "ActorState",
+    "CapabilityGraphActionInput",
+    "CapabilityGraphActionResult",
+    "CapabilityGraphPlan",
     "InjectedEvent",
     "WorldOrientation",
     "ScheduledEvent",
@@ -166,6 +194,8 @@ __all__ = [
     "call_tool",
     "cancel_event",
     "create_world_session",
+    "graph_action",
+    "graph_plan",
     "get_catalog_scenario",
     "get_catalog_scenario_manifest",
     "inject",

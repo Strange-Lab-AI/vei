@@ -3,7 +3,12 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Dict, Iterable, Optional, Protocol
 
-from vei.capability_graph.models import RuntimeCapabilityGraphs
+from vei.capability_graph.models import (
+    CapabilityGraphActionInput,
+    CapabilityGraphActionResult,
+    CapabilityGraphPlan,
+    RuntimeCapabilityGraphs,
+)
 from vei.orientation.models import WorldOrientation
 from vei.blueprint.api import (
     build_blueprint_asset_for_example as _build_blueprint_asset_for_example,
@@ -147,6 +152,27 @@ class EnterpriseSession:
 
     def capability_graphs(self) -> RuntimeCapabilityGraphs:
         return self._world.capability_graphs()
+
+    def graph_plan(
+        self, *, domain: str | None = None, limit: int = 12
+    ) -> CapabilityGraphPlan:
+        return self._world.graph_plan(domain=domain, limit=limit)
+
+    def graph_action(
+        self, action: CapabilityGraphActionInput | Dict[str, Any]
+    ) -> CapabilityGraphActionResult:
+        payload = (
+            action
+            if isinstance(action, CapabilityGraphActionInput)
+            else CapabilityGraphActionInput.model_validate(action)
+        )
+        hook_payload = payload.model_dump(mode="json")
+        self._run_before_hooks("vei.graph_action", hook_payload)
+        result = self._world.graph_action(payload)
+        self._run_after_hooks(
+            "vei.graph_action", hook_payload, result.model_dump(mode="json")
+        )
+        return result
 
     def orientation(self) -> WorldOrientation:
         return self._world.orientation()

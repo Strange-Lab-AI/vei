@@ -51,6 +51,8 @@ The router is a transport and tool-dispatch adapter. Mutable enterprise state be
   - `orientation`
   - `call_tool`
   - `capability_graphs`
+  - `graph_plan`
+  - `graph_action`
   - `snapshot`
   - `restore`
   - `branch`
@@ -69,7 +71,8 @@ The router is a transport and tool-dispatch adapter. Mutable enterprise state be
   - typed facade catalog backed by a facade plugin contract
 - `vei.capability_graph`
   - runtime shared-domain graph views derived from live world state and builder metadata
-  - read-oriented identity/doc/work/comm/revenue graph surfaces for agents and inspection
+  - central graph-native planning and mutation surface for agents
+  - shared identity/doc/work/comm/revenue/data/obs/ops graph surfaces for inspection and action
 - `vei.orientation`
   - agent-facing summaries derived from live world state, capability graphs, and builder hints
   - visible surfaces, policy hints, key objects, suggested focuses, and next questions
@@ -83,7 +86,7 @@ The router is a transport and tool-dispatch adapter. Mutable enterprise state be
 
 - `python -m vei.router`
   - stdio MCP transport
-  - agent-facing discoverability tools now include `vei.orientation` and `vei.capability_graphs`
+  - agent-facing discoverability tools now include `vei.orientation`, `vei.capability_graphs`, `vei.graph_plan`, and `vei.graph_action`
 - `python -m vei.router.sse`
   - SSE MCP transport
 - `vei-world`
@@ -128,5 +131,6 @@ VEI keeps the current router twins, but the public ontology now groups them as f
 - All actor outputs should enter the world through typed events so snapshot/replay stays deterministic.
 - New software environments should register as facade plugins before they become public blueprint/compiler surfaces.
 - Prefer `GroundingBundle -> BlueprintAsset -> CompiledBlueprint -> WorldSession` as the environment-builder path.
-- Prefer `WorldSession -> capability_graphs() -> orientation()` as the agent-facing inspection ladder inside a live world.
+- Prefer `WorldSession -> capability_graphs() -> graph_plan() -> graph_action()` as the main agent-facing planning/mutation ladder inside a live world.
+- Use `orientation()` to help agents discover the world before they begin mutating it.
 - Prefer semantic environment building first. VM-backed or OS-level facades are future plugin substrates, not the core runtime model.
