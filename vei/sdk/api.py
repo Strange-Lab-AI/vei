@@ -32,6 +32,11 @@ from vei.benchmark.api import (
     get_benchmark_family_manifest,
     list_benchmark_family_manifest,
 )
+from vei.benchmark.showcase import (
+    BenchmarkShowcaseExample,
+    get_showcase_example as _get_showcase_example,
+    list_showcase_examples as _list_showcase_examples,
+)
 from vei.benchmark.workflows import (
     get_benchmark_family_workflow_spec as _get_benchmark_family_workflow_spec,
     get_benchmark_family_workflow_variant as _get_benchmark_family_workflow_variant,
@@ -240,6 +245,14 @@ def get_benchmark_family_manifest_entry(name: str) -> BenchmarkFamilyManifest:
 
 def list_benchmark_family_manifest_entries() -> list[BenchmarkFamilyManifest]:
     return list_benchmark_family_manifest()
+
+
+def get_showcase_example_entry(name: str) -> BenchmarkShowcaseExample:
+    return _get_showcase_example(name)
+
+
+def list_showcase_example_entries() -> list[BenchmarkShowcaseExample]:
+    return _list_showcase_examples()
 
 
 def get_facade_manifest_entry(name: str) -> FacadeManifest:

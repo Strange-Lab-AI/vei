@@ -496,6 +496,22 @@ def scenario_oauth_app_containment() -> Scenario:
             "Security incident: suspected malicious OAuth app observed in Google "
             "Workspace. Contain quickly, preserve evidence, and avoid broad disruption."
         ),
+        slack_channels={
+            "#security-incident": {
+                "messages": [
+                    {
+                        "ts": "1",
+                        "user": "secops-bot",
+                        "text": (
+                            "Contain the suspicious OAuth app without tenant-wide revocation. "
+                            "Preserve evidence and update the incident record."
+                        ),
+                        "thread_ts": None,
+                    }
+                ],
+                "unread": 0,
+            }
+        },
         browser_nodes={
             "home": {
                 "url": "https://admin.vweb.local/google/oauth",
@@ -672,6 +688,22 @@ def scenario_acquired_sales_onboarding() -> Scenario:
             "By 9 AM virtual time tomorrow, onboard 147 acquired sales users while "
             "fixing identity conflicts, preserving least privilege, and preventing oversharing."
         ),
+        slack_channels={
+            "#sales-cutover": {
+                "messages": [
+                    {
+                        "ts": "1",
+                        "user": "it-integration",
+                        "text": (
+                            "Wave 1 acquired-sales cutover starts now. Resolve identity conflicts, "
+                            "remove oversharing, and hand off ownership before tomorrow morning."
+                        ),
+                        "thread_ts": None,
+                    }
+                ],
+                "unread": 0,
+            }
+        },
         documents={
             "POL-ACCESS-9": Document(
                 doc_id="POL-ACCESS-9",
@@ -681,7 +713,20 @@ def scenario_acquired_sales_onboarding() -> Scenario:
                     "No external Drive sharing until manager review is complete."
                 ),
                 tags=["policy", "identity", "acquisition"],
-            )
+            ),
+            "CUTOVER-2201": Document(
+                doc_id="CUTOVER-2201",
+                title="Wave 1 Sales Cutover Checklist",
+                body=(
+                    "Cutover owner: it-integration.\n\n"
+                    "Required before handoff:\n"
+                    "- resolve identity conflicts\n"
+                    "- remove external document sharing\n"
+                    "- transfer open opportunities\n"
+                    "- notify manager once least-privilege access is confirmed"
+                ),
+                tags=["cutover", "sales", "acquisition"],
+            ),
         },
         tickets={
             "JRA-204": Ticket(
@@ -838,6 +883,22 @@ def scenario_checkout_spike_mitigation() -> Scenario:
             "Checkout conversion is dropping. Mitigate the spike, keep customer comms accurate, "
             "and avoid data corruption while revenue risk is high."
         ),
+        slack_channels={
+            "#commerce-war-room": {
+                "messages": [
+                    {
+                        "ts": "1",
+                        "user": "commerce-oncall",
+                        "text": (
+                            "Checkout conversion is dropping fast. Quantify revenue impact, "
+                            "shrink rollout safely, and keep support guidance accurate."
+                        ),
+                        "thread_ts": None,
+                    }
+                ],
+                "unread": 0,
+            }
+        },
         tickets={
             "INC-812": Ticket(
                 ticket_id="INC-812",

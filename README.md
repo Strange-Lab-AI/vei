@@ -6,6 +6,23 @@
 
 VEI is a deterministic, MCP-native enterprise simulator for training, evaluating, and replaying agent behavior against synthetic business systems. The stable boundary is the world kernel: a `WorldSession` owns world state, event queues, snapshots, branches, replay, injection, actor state, and receipts.
 
+## What VEI Can Simulate
+
+Plainly: VEI can simulate an enterprise environment where an agent has to discover what systems exist, inspect state, take actions, coordinate across tools, and satisfy business constraints over time.
+
+- Time and state
+  - Virtual time, scheduled events, pending work, snapshots, branches, replay, and restore
+- Software surfaces
+  - Slack, Mail, Browser, Docs, Spreadsheet, Tickets, CRM, ERP, Okta-style identity, ServiceDesk, Google Admin, SIEM, Datadog, PagerDuty, feature flags, HRIS, and Jira-style issues
+- Enterprise artifacts
+  - Documents, workbooks, tickets, incidents, alerts, flags, identity records, deals, comments, and audit-like receipts
+- Long-horizon work
+  - Multi-step tasks that cross systems, have hidden state, require follow-through, and can fail midway
+- Policies and outcomes
+  - Success predicates, forbidden states, policy invariants, observation boundaries, deadlines, and contract-graded outcomes
+- Humans and interventions
+  - Multiple actors, approvals, injected events, branch-and-recover flows, and replayable operator intervention
+
 ## Core Primitives
 
 VEI now exposes one coherent product shape:
@@ -72,6 +89,7 @@ vei-llm-test \
 - Enterprise twins for Slack, Mail, Browser, Docs, Spreadsheet, Tickets, DB, ERP/CRM, Okta-style identity, ServiceDesk, Google Admin, SIEM, Datadog, PagerDuty, feature flags, HRIS, and Jira-style issue flows
 - Scenario compilation, dataset rollout, BC training, benchmark execution, and release packaging
 - Reusable benchmark families for security containment, enterprise onboarding/migration, and revenue incident response
+- Curated complex-example showcase bundles for security incidents, acquired-user cutovers, and revenue-critical mixed-stack mitigations
 
 ## Architecture
 
@@ -149,6 +167,7 @@ VEI_LLM_LIVE_BYPASS=1 make llm-live
 - Scenarios: `vei-scenarios list|manifest|dump`
 - DSL/corpus: `vei-det sample-workflow|compile-workflow|run-workflow|generate-corpus|filter-corpus`
 - Policy/eval: `vei-rollout`, `vei-train`, `vei-eval`, `vei-eval-frontier`, `vei-score`
+- Showcase: `vei-eval showcase`
 - Visualization: `vei-visualize replay|flow|dashboard|export`
 
 ## Benchmarking
@@ -217,6 +236,22 @@ vei-eval demo \
 ```
 
 That command runs the deterministic family workflow baseline plus a comparison runner, writes `leaderboard.md` / `leaderboard.csv` / `leaderboard.json`, stores inspectable world state under `_vei_out/demo/security_demo/state` for follow-up `vei-world` inspection, and records explicit `contract.json` artifacts for both the baseline and comparison paths. Contract evaluation now separates oracle state from agent-visible observation so hidden state can be graded without making the demo omniscient.
+
+Complex-example showcase bundle:
+
+```bash
+vei-eval showcase \
+  --artifacts-root _vei_out/showcase \
+  --run-id flagship_examples
+```
+
+That command runs three curated complex examples and writes one top-level `showcase_overview.md` bundle plus per-example demo artifacts:
+
+- `oauth_incident_chain`: Google Admin + SIEM + Jira + Docs + Slack
+- `acquired_seller_cutover`: HRIS + Okta + Google Admin + Salesforce + Jira + Docs + Slack
+- `checkout_revenue_flightdeck`: Datadog + PagerDuty + feature flags + Spreadsheet + Docs + CRM + Tickets + Slack
+
+It is the cleanest supported way to show that VEI can execute long-horizon, cross-surface enterprise tasks rather than only single-family demos.
 
 Flagship blueprint-driven revenue/ops demo:
 

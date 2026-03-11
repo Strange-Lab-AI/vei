@@ -16,10 +16,22 @@ class SecurityContainmentWorkflowParams(BaseModel):
     app_id: str = "OAUTH-9001"
     alert_id: str = "ALT-9001"
     case_id: str = "CASE-0001"
+    ticket_id: str = "SEC-417"
+    brief_doc_id: str = "IR-RUNBOOK-1"
     notification_required: bool = True
     evidence_note: str = "Preserve app state before containment."
     suspension_reason: str = "Contain suspicious broad-scope app."
     case_note: str = "Targeted impact confirmed; customer notification required."
+    ticket_note: str = (
+        "Evidence preserved, app suspended, and notification decision recorded."
+    )
+    brief_update_note: str = (
+        "Security comms should prepare a customer notification draft while the app remains suspended."
+    )
+    slack_channel: str = "#security-incident"
+    slack_summary: str = (
+        "OAuth app suspended after evidence preservation; incident record and notification decision updated."
+    )
 
 
 class EnterpriseOnboardingMigrationWorkflowParams(BaseModel):
@@ -28,6 +40,8 @@ class EnterpriseOnboardingMigrationWorkflowParams(BaseModel):
     corporate_email: str = "jordan.sellers@example.com"
     crm_app_id: str = "APP-crm"
     doc_id: str = "GDRIVE-2201"
+    tracking_ticket_id: str = "JRA-204"
+    cutover_doc_id: str = "CUTOVER-2201"
     manager_email: str = "maya.rex@example.com"
     opportunity_id: str = "D-100"
     allowed_share_count: int = 1
@@ -35,6 +49,16 @@ class EnterpriseOnboardingMigrationWorkflowParams(BaseModel):
     deadline_max_ms: int = 86_400_000
     transfer_note: str = "Manager assumes ownership after acquisition cutover."
     onboarding_note: str = "Wave 1 migration completed successfully."
+    ticket_update_note: str = (
+        "Identity conflict resolved, playbook ownership transferred, and least-privilege access confirmed."
+    )
+    cutover_doc_note: str = (
+        "Wave 1 cutover complete for Jordan Sellers; manager handoff approved and oversharing removed."
+    )
+    slack_channel: str = "#sales-cutover"
+    slack_summary: str = (
+        "Wave 1 seller cutover complete: identity resolved, CRM access granted, and playbook ownership transferred."
+    )
 
 
 class RevenueIncidentMitigationWorkflowParams(BaseModel):
@@ -56,7 +80,7 @@ class RevenueIncidentMitigationWorkflowParams(BaseModel):
     revenue_loss_usd: int = 128000
     comms_doc_id: str = "RUN-CHK-1"
     deal_id: str = "D-812"
-    slack_channel: str = "#procurement"
+    slack_channel: str = "#commerce-war-room"
     spreadsheet_note: str = "Impact updated while canary rollback is active."
     doc_update_note: str = (
         "Customer support should acknowledge intermittent checkout failures "
@@ -97,10 +121,16 @@ _PARAMETER_DESCRIPTIONS: Dict[str, Dict[str, str]] = {
         "app_id": "Suspicious OAuth app under containment.",
         "alert_id": "SIEM alert linked to the containment case.",
         "case_id": "Investigation case updated during containment.",
+        "ticket_id": "Tracking ticket that records containment follow-through.",
+        "brief_doc_id": "Incident runbook or comms brief updated during containment.",
         "notification_required": "Whether the workflow records customer notification as required.",
         "evidence_note": "Forensics note attached when preserving Google evidence.",
         "suspension_reason": "Reason recorded for the targeted OAuth app suspension.",
         "case_note": "Containment note written back to the SIEM case.",
+        "ticket_note": "Tracking ticket comment written after containment.",
+        "brief_update_note": "Updated runbook/comms note describing the notification posture.",
+        "slack_channel": "Slack channel used for security incident coordination.",
+        "slack_summary": "Security summary posted after the containment decision is recorded.",
     },
     "enterprise_onboarding_migration": {
         "employee_id": "Employee record resolved and marked onboarded.",
@@ -108,6 +138,8 @@ _PARAMETER_DESCRIPTIONS: Dict[str, Dict[str, str]] = {
         "corporate_email": "Resolved corporate email for the acquired seller.",
         "crm_app_id": "CRM application assignment granted after activation.",
         "doc_id": "Inherited shared document that must be restricted.",
+        "tracking_ticket_id": "Jira-style ticket tracking the acquired-user cutover.",
+        "cutover_doc_id": "Cutover checklist or manager handoff document updated during migration.",
         "manager_email": "Manager receiving ownership and final access review.",
         "opportunity_id": "Open opportunity transferred during the cutover.",
         "allowed_share_count": "Expected post-migration sharing count for the inherited document.",
@@ -115,6 +147,10 @@ _PARAMETER_DESCRIPTIONS: Dict[str, Dict[str, str]] = {
         "deadline_max_ms": "Virtual-time deadline for the onboarding workflow to complete.",
         "transfer_note": "Note attached to the document ownership transfer.",
         "onboarding_note": "Final HRIS note recording onboarding completion.",
+        "ticket_update_note": "Cutover status note written to the Jira tracker.",
+        "cutover_doc_note": "Cutover checklist update recorded in the docs surface.",
+        "slack_channel": "Slack channel used for migration coordinator updates.",
+        "slack_summary": "Summary posted once the user cutover is safe to hand off.",
     },
     "revenue_incident_mitigation": {
         "incident_id": "PagerDuty incident mitigated by the workflow.",
@@ -278,6 +314,7 @@ def _build_security_containment_spec(
                     "oauth app suspended",
                     "evidence preserved",
                     "notification decision recorded",
+                    "incident artifacts updated",
                 ],
             },
             "world": {"catalog": "oauth_app_containment"},
@@ -388,6 +425,52 @@ def _build_security_containment_spec(
                         },
                     ],
                 },
+                {
+                    "step_id": "update_incident_brief",
+                    "description": "Refresh the containment brief with the notification posture.",
+                    "tool": "docs.update",
+                    "args": {
+                        "doc_id": params.brief_doc_id,
+                        "body": (
+                            "OAuth app containment summary.\n\n"
+                            f"{params.case_note}\n\n"
+                            f"{params.brief_update_note}"
+                        ),
+                    },
+                    "expect": [
+                        {
+                            "kind": "result_equals",
+                            "field": "doc_id",
+                            "equals": params.brief_doc_id,
+                        }
+                    ],
+                },
+                {
+                    "step_id": "comment_tracking_ticket",
+                    "description": "Annotate the security tracking ticket with the containment outcome.",
+                    "tool": "jira.add_comment",
+                    "args": {
+                        "issue_id": params.ticket_id,
+                        "body": params.ticket_note,
+                        "author": "sec-lead",
+                    },
+                    "expect": [
+                        {
+                            "kind": "result_equals",
+                            "field": "issue_id",
+                            "equals": params.ticket_id,
+                        }
+                    ],
+                },
+                {
+                    "step_id": "post_security_summary",
+                    "description": "Send a channel update after the containment decision is recorded.",
+                    "tool": "slack.send_message",
+                    "args": {
+                        "channel": params.slack_channel,
+                        "text": params.slack_summary,
+                    },
+                },
             ],
             "success_assertions": [
                 {
@@ -417,6 +500,21 @@ def _build_security_containment_spec(
                         "customer_notification_required"
                     ),
                     "equals": params.notification_required,
+                },
+                {
+                    "kind": "state_contains",
+                    "field": f"components.docs.docs.{params.brief_doc_id}.body",
+                    "contains": "notification",
+                },
+                {
+                    "kind": "state_contains",
+                    "field": f"components.tickets.metadata.{params.ticket_id}.comments",
+                    "contains": "Evidence preserved",
+                },
+                {
+                    "kind": "state_contains",
+                    "field": f"components.slack.channels.{params.slack_channel}.messages",
+                    "contains": "notification decision",
                 },
             ],
             "failure_paths": [
@@ -457,6 +555,7 @@ def _build_enterprise_onboarding_spec(
                     "document sharing restricted",
                     "deal ownership transferred",
                     "employee onboarded",
+                    "cutover artifacts updated",
                 ],
             },
             "world": {"catalog": "acquired_sales_onboarding"},
@@ -607,6 +706,52 @@ def _build_enterprise_onboarding_spec(
                         }
                     ],
                 },
+                {
+                    "step_id": "update_cutover_doc",
+                    "description": "Record the final cutover state in the checklist document.",
+                    "tool": "docs.update",
+                    "args": {
+                        "doc_id": params.cutover_doc_id,
+                        "body": (
+                            "Wave 1 acquired-sales cutover.\n\n"
+                            f"{params.cutover_doc_note}\n\n"
+                            "Access is limited to Slack and CRM pending manager review."
+                        ),
+                    },
+                    "expect": [
+                        {
+                            "kind": "result_equals",
+                            "field": "doc_id",
+                            "equals": params.cutover_doc_id,
+                        }
+                    ],
+                },
+                {
+                    "step_id": "comment_cutover_ticket",
+                    "description": "Annotate the Jira cutover tracker with the migration outcome.",
+                    "tool": "jira.add_comment",
+                    "args": {
+                        "issue_id": params.tracking_ticket_id,
+                        "body": params.ticket_update_note,
+                        "author": "it-integration",
+                    },
+                    "expect": [
+                        {
+                            "kind": "result_equals",
+                            "field": "issue_id",
+                            "equals": params.tracking_ticket_id,
+                        }
+                    ],
+                },
+                {
+                    "step_id": "post_cutover_summary",
+                    "description": "Notify the migration channel once the user handoff is safe.",
+                    "tool": "slack.send_message",
+                    "args": {
+                        "channel": params.slack_channel,
+                        "text": params.slack_summary,
+                    },
+                },
             ],
             "success_assertions": [
                 {
@@ -661,6 +806,23 @@ def _build_enterprise_onboarding_spec(
                     "kind": "state_equals",
                     "field": f"components.crm.deals.{params.opportunity_id}.owner",
                     "equals": params.manager_email,
+                },
+                {
+                    "kind": "state_contains",
+                    "field": f"components.docs.docs.{params.cutover_doc_id}.body",
+                    "contains": "Slack and CRM",
+                },
+                {
+                    "kind": "state_contains",
+                    "field": (
+                        f"components.tickets.metadata.{params.tracking_ticket_id}.comments"
+                    ),
+                    "contains": "least-privilege",
+                },
+                {
+                    "kind": "state_contains",
+                    "field": f"components.slack.channels.{params.slack_channel}.messages",
+                    "contains": "CRM access granted",
                 },
                 {
                     "kind": "time_max_ms",
@@ -1068,7 +1230,7 @@ def _build_revenue_incident_spec(
                 },
                 {
                     "kind": "state_contains",
-                    "field": "components.slack.channels.#procurement.messages",
+                    "field": f"components.slack.channels.{params.slack_channel}.messages",
                     "contains": "impact workbook updated",
                 },
                 {

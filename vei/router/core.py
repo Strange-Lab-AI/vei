@@ -380,20 +380,43 @@ class SlackSim:
             if scenario and scenario.slack_initial_message is not None
             else "Reminder: citations required for any request over $2k."
         )
-
-        self.channels = {
-            "#procurement": {
-                "messages": [
-                    {
-                        "ts": "1",
-                        "user": "itops",
-                        "text": initial_text,
-                        "thread_ts": None,
-                    }
-                ],
-                "unread": 0,
+        seeded_channels = (
+            dict(scenario.slack_channels)
+            if scenario and scenario.slack_channels
+            else {}
+        )
+        self.channels = {}
+        if seeded_channels:
+            for channel, payload in seeded_channels.items():
+                base = dict(payload or {})
+                messages = list(base.get("messages", []))
+                if not messages:
+                    messages = [
+                        {
+                            "ts": "1",
+                            "user": "itops",
+                            "text": initial_text,
+                            "thread_ts": None,
+                        }
+                    ]
+                self.channels[str(channel)] = {
+                    "messages": messages,
+                    "unread": int(base.get("unread", 0)),
+                }
+        else:
+            self.channels = {
+                "#procurement": {
+                    "messages": [
+                        {
+                            "ts": "1",
+                            "user": "itops",
+                            "text": initial_text,
+                            "thread_ts": None,
+                        }
+                    ],
+                    "unread": 0,
+                }
             }
-        }
 
     # MCP tools
     def list_channels(self) -> List[str]:
@@ -2177,9 +2200,13 @@ class Router:
             r = self.browser.read()
             return f"Browser: {r['title']} — {r['excerpt']}"
         if focus == "slack":
-            ch = self.slack.open_channel("#procurement")
+            channels = self.slack.list_channels()
+            if not channels:
+                return "Slack: no channels"
+            channel = channels[0]
+            ch = self.slack.open_channel(channel)
             latest = ch["messages"][-1]["text"] if ch["messages"] else ""
-            return f"Slack #procurement latest: {latest}"
+            return f"Slack {channel} latest: {latest}"
         if focus == "mail":
             lst = self.mail.list()
             if lst:

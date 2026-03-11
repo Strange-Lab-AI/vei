@@ -288,7 +288,7 @@ def test_run_benchmark_case_for_family_scenario_includes_family_dimensions(
         "security_containment.contract"
     )
     assert result.score["workflow_validation"]["validation_mode"] == "state"
-    assert result.score["workflow_validation"]["success_assertion_count"] == 5
+    assert result.score["workflow_validation"]["success_assertion_count"] == 8
     assert result.diagnostics.workflow_name == "security_containment"
     assert result.diagnostics.workflow_variant == "customer_notify"
     assert (artifacts / "workflow_validation.json").exists()
@@ -314,7 +314,7 @@ def test_run_benchmark_case_workflow_runner(tmp_path: Path) -> None:
     assert result.diagnostics.workflow_name == "security_containment"
     assert result.diagnostics.workflow_variant == "customer_notify"
     assert result.diagnostics.workflow_valid is True
-    assert result.diagnostics.workflow_step_count == 5
+    assert result.diagnostics.workflow_step_count == 8
     assert result.diagnostics.initial_snapshot_id is not None
     assert result.diagnostics.final_snapshot_id is not None
     assert result.diagnostics.latest_snapshot_label == "workflow.final"
@@ -322,7 +322,7 @@ def test_run_benchmark_case_workflow_runner(tmp_path: Path) -> None:
     assert result.score["workflow_validation"]["contract_name"] == (
         "security_containment.contract"
     )
-    assert result.score["workflow_validation"]["success_assertion_count"] == 5
+    assert result.score["workflow_validation"]["success_assertion_count"] == 8
     assert result.score["workflow_validation"]["success_assertions_failed"] == 0
     assert (artifacts / "workflow_result.json").exists()
     assert (artifacts / "workflow_score.json").exists()
@@ -357,7 +357,7 @@ def test_run_benchmark_case_bc_family_includes_workflow_validation(
         "security_containment.contract"
     )
     assert result.score["workflow_validation"]["validation_mode"] == "state"
-    assert result.score["workflow_validation"]["success_assertion_count"] == 5
+    assert result.score["workflow_validation"]["success_assertion_count"] == 8
     assert "success_assertions_failed" in result.score["workflow_validation"]
     assert (tmp_path / "bc_family_case" / "blueprint.json").exists()
 
@@ -403,6 +403,35 @@ def test_run_benchmark_case_llm_family_includes_workflow_validation(
                 "case_id": "CASE-0001",
                 "customer_notification_required": True,
                 "note": "Will notify impacted customers.",
+            },
+        )
+        session.call_tool(
+            "docs.update",
+            {
+                "doc_id": "IR-RUNBOOK-1",
+                "body": (
+                    "OAuth app containment summary.\n\n"
+                    "Will notify impacted customers.\n\n"
+                    "Customer notification is required while the app remains suspended."
+                ),
+            },
+        )
+        session.call_tool(
+            "jira.add_comment",
+            {
+                "issue_id": "SEC-417",
+                "body": "Evidence preserved, app suspended, and notification decision recorded.",
+                "author": "sec-lead",
+            },
+        )
+        session.call_tool(
+            "slack.send_message",
+            {
+                "channel": "#security-incident",
+                "text": (
+                    "OAuth app suspended after evidence preservation; incident record "
+                    "and notification decision updated."
+                ),
             },
         )
         snapshot = session.snapshot("llm.final")
@@ -602,8 +631,8 @@ def test_report_attaches_workflow_baseline_deltas(tmp_path: Path) -> None:
     assert baseline_row["baseline"]["workflow_variant"] == "customer_notify"
     assert baseline_row["baseline"]["workflow_valid"] is True
     assert baseline_row["baseline"]["workflow_issue_count"] == 0
-    assert baseline_row["baseline"]["workflow_success_assertion_count"] == 5
-    assert baseline_row["baseline"]["workflow_success_assertions_passed"] == 5
+    assert baseline_row["baseline"]["workflow_success_assertion_count"] == 8
+    assert baseline_row["baseline"]["workflow_success_assertions_passed"] == 8
     assert baseline_row["baseline"]["workflow_success_assertions_failed"] == 0
     assert baseline_row["baseline_delta"]["composite_score_delta"] == pytest.approx(0.0)
     assert baseline_row["baseline_delta"]["workflow_valid_delta"] == 0
@@ -672,7 +701,7 @@ def test_csv_report_includes_workflow_baseline_delta_columns(tmp_path: Path) -> 
     assert variant_row["baseline_available"] == "True"
     assert variant_row["baseline_workflow_variant"] == "customer_notify"
     assert variant_row["baseline_workflow_valid"] == "True"
-    assert variant_row["baseline_workflow_success_assertions_passed"] == "5"
+    assert variant_row["baseline_workflow_success_assertions_passed"] == "8"
     assert variant_row["workflow_issue_count_delta"] == "0"
     assert variant_row["workflow_success_assertions_passed_delta"] == "0"
     assert float(variant_row["composite_score_delta"]) == pytest.approx(

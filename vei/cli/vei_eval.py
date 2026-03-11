@@ -23,8 +23,15 @@ from vei.benchmark.models import (
     BenchmarkCaseSpec,
     BenchmarkDemoResult,
     BenchmarkDemoSpec,
+    BenchmarkShowcaseExampleResult,
+    BenchmarkShowcaseResult,
+    BenchmarkShowcaseSpec,
     BenchmarkSuiteResult,
     BenchmarkSuiteSpec,
+)
+from vei.benchmark.showcase import (
+    render_showcase_overview,
+    resolve_showcase_examples,
 )
 from vei.benchmark.workflows import get_benchmark_family_workflow_spec
 from vei.benchmark.workflows import get_benchmark_family_workflow_variant
@@ -135,6 +142,8 @@ def _run_benchmark_demo(spec: BenchmarkDemoSpec) -> BenchmarkDemoResult:
     comparison_result = next(
         result for result in batch.results if result.spec.runner == spec.compare_runner
     )
+    baseline_validation = _workflow_validation_summary(baseline_result.score)
+    comparison_validation = _workflow_validation_summary(comparison_result.score)
     baseline_branch = baseline_result.diagnostics.branch or baseline_result.spec.branch
     comparison_branch = (
         comparison_result.diagnostics.branch or comparison_result.spec.branch
@@ -193,10 +202,80 @@ def _run_benchmark_demo(spec: BenchmarkDemoSpec) -> BenchmarkDemoResult:
         comparison_contract_path=comparison_artifacts_dir / "contract.json",
         baseline_branch=baseline_branch,
         comparison_branch=comparison_branch,
+        baseline_success=baseline_result.success,
+        comparison_success=comparison_result.success,
+        baseline_score=float(baseline_result.score.get("composite_score", 0.0)),
+        comparison_score=float(comparison_result.score.get("composite_score", 0.0)),
+        baseline_assertions_passed=baseline_validation["passed"],
+        baseline_assertions_total=baseline_validation["total"],
+        comparison_assertions_passed=comparison_validation["passed"],
+        comparison_assertions_total=comparison_validation["total"],
         summary=batch.summary,
         inspection_commands=inspection_commands,
     )
     (demo_dir / "demo_result.json").write_text(
+        json.dumps(result.model_dump(mode="json"), indent=2),
+        encoding="utf-8",
+    )
+    return result
+
+
+def _workflow_validation_summary(score: dict[str, object]) -> dict[str, int]:
+    validation = score.get("workflow_validation")
+    if not isinstance(validation, dict):
+        return {"passed": 0, "total": 0}
+    passed = int(validation.get("success_assertions_passed", 0) or 0)
+    total = int(validation.get("success_assertion_count", 0) or 0)
+    return {"passed": passed, "total": total}
+
+
+def _run_benchmark_showcase(spec: BenchmarkShowcaseSpec) -> BenchmarkShowcaseResult:
+    showcase_dir = spec.artifacts_root / spec.run_id
+    showcase_dir.mkdir(parents=True, exist_ok=True)
+    examples_dir = showcase_dir / "examples"
+    examples = resolve_showcase_examples(spec.example_names)
+    example_results: list[BenchmarkShowcaseExampleResult] = []
+
+    for example in examples:
+        demo = _run_benchmark_demo(
+            BenchmarkDemoSpec(
+                family_name=example.family_name,
+                compare_runner=spec.compare_runner,
+                workflow_variant=example.workflow_variant,
+                seed=spec.seed,
+                artifacts_root=examples_dir,
+                run_id=example.name,
+                score_mode=spec.score_mode,
+                max_steps=spec.max_steps,
+                compare_model=spec.compare_model,
+                compare_provider=spec.compare_provider,
+                compare_bc_model_path=spec.compare_bc_model_path,
+                compare_task=spec.compare_task,
+            )
+        )
+        example_results.append(
+            BenchmarkShowcaseExampleResult(example=example, demo=demo)
+        )
+
+    result = BenchmarkShowcaseResult(
+        run_id=spec.run_id,
+        showcase_dir=showcase_dir,
+        overview_markdown_path=showcase_dir / "showcase_overview.md",
+        overview_json_path=showcase_dir / "showcase_result.json",
+        example_count=len(example_results),
+        baseline_success_count=sum(
+            1 for item in example_results if item.demo.baseline_success
+        ),
+        comparison_success_count=sum(
+            1 for item in example_results if item.demo.comparison_success
+        ),
+        examples=example_results,
+    )
+    result.overview_markdown_path.write_text(
+        render_showcase_overview(result),
+        encoding="utf-8",
+    )
+    result.overview_json_path.write_text(
         json.dumps(result.model_dump(mode="json"), indent=2),
         encoding="utf-8",
     )
@@ -603,6 +682,78 @@ def suite(
             artifacts_root=artifacts_root,
             run_id=suite_run_id,
             score_mode=score_success_mode.lower().strip(),
+        )
+    )
+    typer.echo(json.dumps(result.model_dump(mode="json"), indent=2))
+
+
+@app.command()
+def showcase(
+    example: list[str] = typer.Option(
+        [],
+        "--example",
+        "-e",
+        help="Optional subset of named complex examples to run",
+    ),
+    compare_runner: str = typer.Option(
+        "scripted", help="Comparison runner for all showcase examples: scripted|bc|llm"
+    ),
+    artifacts_root: Path = typer.Option(
+        Path("_vei_out/showcase"), help="Root directory for showcase artifacts"
+    ),
+    run_id: str | None = typer.Option(None, help="Optional showcase run id"),
+    seed: int = typer.Option(42042, help="Seed for reproducibility"),
+    score_success_mode: str = typer.Option(
+        "full", help="Score success criteria: email|full."
+    ),
+    max_steps: int = typer.Option(40, help="Maximum steps for comparison runner"),
+    compare_model: str | None = typer.Option(
+        None, help="Model name when compare-runner=llm"
+    ),
+    compare_provider: str = typer.Option(
+        "auto", help="LLM provider when compare-runner=llm"
+    ),
+    compare_bc_model: Path | None = typer.Option(
+        None,
+        exists=True,
+        readable=True,
+        help="BC policy file when compare-runner=bc",
+    ),
+    compare_task: str | None = typer.Option(
+        None, help="Optional task prompt when compare-runner=llm"
+    ),
+) -> None:
+    normalized_runner = compare_runner.strip().lower()
+    if normalized_runner not in {"scripted", "bc", "llm"}:
+        raise typer.BadParameter("compare-runner must be one of scripted|bc|llm")
+    if normalized_runner == "llm" and not compare_model:
+        raise typer.BadParameter("llm showcase requires --compare-model")
+    if normalized_runner == "bc" and compare_bc_model is None:
+        raise typer.BadParameter("bc showcase requires --compare-bc-model")
+    for example_name in example:
+        try:
+            resolve_showcase_examples([example_name])
+        except KeyError as exc:
+            raise typer.BadParameter(str(exc)) from exc
+
+    showcase_run_id = run_id or f"showcase_{int(time.time())}"
+    typer.echo(
+        "Starting complex-example showcase for "
+        + ", ".join(example or [item.name for item in resolve_showcase_examples()])
+    )
+    result = _run_benchmark_showcase(
+        BenchmarkShowcaseSpec(
+            example_names=example,
+            compare_runner=normalized_runner,  # type: ignore[arg-type]
+            seed=seed,
+            artifacts_root=artifacts_root,
+            run_id=showcase_run_id,
+            score_mode=score_success_mode.lower().strip(),
+            max_steps=max_steps,
+            compare_model=compare_model,
+            compare_provider=compare_provider,
+            compare_bc_model_path=compare_bc_model,
+            compare_task=compare_task,
         )
     )
     typer.echo(json.dumps(result.model_dump(mode="json"), indent=2))

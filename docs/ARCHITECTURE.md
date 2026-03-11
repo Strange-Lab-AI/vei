@@ -17,7 +17,7 @@ VEI is a deterministic, MCP-native enterprise simulator built around one stable 
 - `Contract`
   - explicit success predicates, forbidden predicates, observation boundary, policy invariants, reward terms, and intervention rules
 - `Run`
-  - workflow, benchmark, demo, and suite executions
+  - workflow, benchmark, demo, showcase, and suite executions
 - `Snapshot`
   - branchable world-state checkpoint over the kernel
 

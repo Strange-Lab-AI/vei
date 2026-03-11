@@ -32,7 +32,7 @@ def test_build_blueprint_for_family_wraps_scenario_facades_and_contract() -> Non
     assert blueprint.workflow_variant == "customer_notify"
     assert blueprint.contract is not None
     assert blueprint.contract.name == "security_containment.contract"
-    assert blueprint.contract.success_predicate_count == 5
+    assert blueprint.contract.success_predicate_count == 8
     assert "google_admin" in facade_names
     assert "siem" in facade_names
     assert "identity_graph" in blueprint.capability_domains

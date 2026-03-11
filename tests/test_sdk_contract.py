@@ -13,9 +13,11 @@ from vei.sdk import (
     generate_enterprise_corpus,
     get_benchmark_family_workflow_spec,
     get_benchmark_family_workflow_variant,
+    get_showcase_example_entry,
     get_scenario_manifest,
     list_scenario_manifest,
     list_benchmark_family_workflow_variants,
+    list_showcase_example_entries,
     run_benchmark_family_workflow,
     run_workflow_spec,
     validate_benchmark_family_workflow,
@@ -219,3 +221,16 @@ def test_sdk_blueprint_helpers_compile_assets() -> None:
     assert asset.workflow_variant == "revenue_ops_flightdeck"
     assert compiled.asset.name == asset.name
     assert "spreadsheet" in {item.name for item in compiled.facades}
+
+
+def test_sdk_showcase_helpers_list_complex_examples() -> None:
+    example = get_showcase_example_entry("checkout_revenue_flightdeck")
+    assert example.family_name == "revenue_incident_mitigation"
+    assert "spreadsheet" in example.key_surfaces
+
+    names = {item.name for item in list_showcase_example_entries()}
+    assert {
+        "oauth_incident_chain",
+        "acquired_seller_cutover",
+        "checkout_revenue_flightdeck",
+    } <= names

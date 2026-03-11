@@ -28,7 +28,11 @@ def test_oauth_containment_tools_are_registered_and_mutable() -> None:
     assert "siem.update_case" in siem_tools
 
     app = router.call_and_step("google_admin.get_oauth_app", {"app_id": "OAUTH-9001"})
+    security_channel = router.call_and_step(
+        "slack.open_channel", {"channel": "#security-incident"}
+    )
     assert app["risk_level"] == "critical"
+    assert security_channel["messages"][0]["text"].startswith("Contain the suspicious")
 
     preserved = router.call_and_step(
         "google_admin.preserve_oauth_evidence",
@@ -134,11 +138,15 @@ def test_checkout_mixed_stack_includes_spreadsheet_docs_and_crm() -> None:
             "note": "Estimated revenue loss quantified for incident follow-through.",
         },
     )
+    war_room = router.call_and_step(
+        "slack.open_channel", {"channel": "#commerce-war-room"}
+    )
 
     assert workbooks["total"] == 1
     assert updated_row["row_count"] >= 2
     assert doc["doc_id"] == "RUN-CHK-1"
     assert activity["ok"] is True
+    assert war_room["messages"][0]["text"].startswith("Checkout conversion is dropping")
 
 
 def test_onboarding_surfaces_cover_hris_jira_and_salesforce_aliases() -> None:
@@ -160,17 +168,23 @@ def test_onboarding_surfaces_cover_hris_jira_and_salesforce_aliases() -> None:
         },
     )
     issues = router.call_and_step("jira.list_issues", {"limit": 5})
+    docs = router.call_and_step("docs.list", {"query": "Cutover", "include_body": True})
     transfer = router.call_and_step(
         "salesforce.opportunity.transfer_owner",
         {"id": "D-100", "owner": "maya.rex@example.com"},
     )
     deals = router.call_and_step("salesforce.opportunity.list", {})
+    cutover_channel = router.call_and_step(
+        "slack.open_channel", {"channel": "#sales-cutover"}
+    )
 
     assert employees["total"] == 2
     assert resolved["identity_conflict"] is False
     assert issues["issues"][0]["issue_id"] == "JRA-204"
+    assert docs["documents"][0]["doc_id"] == "CUTOVER-2201"
     assert transfer["owner"] == "maya.rex@example.com"
     assert deals and deals[0]["owner"] == "maya.rex@example.com"
+    assert cutover_channel["messages"][0]["text"].startswith("Wave 1 acquired-sales")
 
 
 def test_world_session_snapshot_restores_control_plane_state(

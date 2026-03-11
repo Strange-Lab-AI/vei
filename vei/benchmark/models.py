@@ -171,6 +171,14 @@ class BenchmarkDemoResult(BaseModel):
     comparison_contract_path: Path
     baseline_branch: Optional[str] = None
     comparison_branch: Optional[str] = None
+    baseline_success: bool = False
+    comparison_success: bool = False
+    baseline_score: float = 0.0
+    comparison_score: float = 0.0
+    baseline_assertions_passed: int = 0
+    baseline_assertions_total: int = 0
+    comparison_assertions_passed: int = 0
+    comparison_assertions_total: int = 0
     summary: BenchmarkBatchSummary
     inspection_commands: List[str] = Field(default_factory=list)
 
@@ -199,3 +207,44 @@ class BenchmarkSuiteResult(BaseModel):
     blueprint_paths: Dict[str, Path] = Field(default_factory=dict)
     contract_paths: Dict[str, Path] = Field(default_factory=dict)
     summary: BenchmarkBatchSummary
+
+
+class BenchmarkShowcaseExample(BaseModel):
+    name: str
+    title: str
+    description: str
+    family_name: str
+    workflow_variant: Optional[str] = None
+    compare_runner: Literal["scripted", "bc", "llm"] = "scripted"
+    key_surfaces: List[str] = Field(default_factory=list)
+    proves: List[str] = Field(default_factory=list)
+
+
+class BenchmarkShowcaseSpec(BaseModel):
+    example_names: List[str] = Field(default_factory=list)
+    compare_runner: Literal["scripted", "bc", "llm"] = "scripted"
+    seed: int = 42042
+    artifacts_root: Path
+    run_id: str
+    score_mode: Literal["email", "full"] = "full"
+    max_steps: int = 40
+    compare_model: Optional[str] = None
+    compare_provider: Optional[str] = None
+    compare_bc_model_path: Optional[Path] = None
+    compare_task: Optional[str] = None
+
+
+class BenchmarkShowcaseExampleResult(BaseModel):
+    example: BenchmarkShowcaseExample
+    demo: BenchmarkDemoResult
+
+
+class BenchmarkShowcaseResult(BaseModel):
+    run_id: str
+    showcase_dir: Path
+    overview_markdown_path: Path
+    overview_json_path: Path
+    example_count: int = 0
+    baseline_success_count: int = 0
+    comparison_success_count: int = 0
+    examples: List[BenchmarkShowcaseExampleResult] = Field(default_factory=list)

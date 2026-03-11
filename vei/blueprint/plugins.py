@@ -164,7 +164,7 @@ def _bootstrap_default_plugins() -> None:
             ),
             tool_families=("slack",),
             tool_prefixes=("slack.",),
-            scenario_seed_fields=("slack_initial_message",),
+            scenario_seed_fields=("slack_initial_message", "slack_channels"),
             component_attr="slack",
             focuses=("slack",),
             event_targets=("slack",),

@@ -129,3 +129,36 @@ def test_vei_eval_suite_cli_creates_canonical_suite_artifacts(tmp_path: Path) ->
     assert set(suite_result["blueprint_asset_paths"]) == expected_families
     assert set(suite_result["blueprint_paths"]) == expected_families
     assert set(suite_result["contract_paths"]) == expected_families
+
+
+def test_vei_eval_showcase_cli_creates_multi_example_bundle(tmp_path: Path) -> None:
+    runner = typer.testing.CliRunner()
+    result = runner.invoke(
+        eval_app,
+        [
+            "showcase",
+            "--example",
+            "oauth_incident_chain",
+            "--example",
+            "checkout_revenue_flightdeck",
+            "--artifacts-root",
+            str(tmp_path),
+            "--run-id",
+            "complex_showcase",
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    showcase_dir = tmp_path / "complex_showcase"
+    assert (showcase_dir / "showcase_result.json").exists()
+    assert (showcase_dir / "showcase_overview.md").exists()
+    payload = json.loads(
+        (showcase_dir / "showcase_result.json").read_text(encoding="utf-8")
+    )
+    assert payload["example_count"] == 2
+    assert payload["baseline_success_count"] == 2
+    assert len(payload["examples"]) == 2
+    assert payload["examples"][0]["demo"]["baseline_score"] >= 0.9
+    assert payload["examples"][0]["demo"]["report_markdown_path"].endswith(
+        "leaderboard.md"
+    )

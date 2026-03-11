@@ -69,6 +69,25 @@ vei-eval demo \
 
 That command runs the family's canonical workflow baseline plus one comparison runner, writes `leaderboard.md` / `leaderboard.csv` / `leaderboard.json`, stores inspectable world state under `state/`, and emits `demo_result.json` with ready-to-run `vei-world` inspection commands plus direct paths to the baseline and comparison `contract.json` artifacts.
 
+Run the curated complex-example showcase:
+
+```bash
+vei-eval showcase \
+  --artifacts-root _vei_out/showcase \
+  --run-id flagship_examples
+```
+
+That command executes three stronger enterprise examples on the same kernel-backed demo path:
+
+- `oauth_incident_chain`
+  - containment with Google Admin, SIEM, Jira, Docs, and Slack
+- `acquired_seller_cutover`
+  - identity migration with HRIS, Okta, Google Admin, Salesforce, Jira, Docs, and Slack
+- `checkout_revenue_flightdeck`
+  - mixed-stack revenue mitigation with Datadog, PagerDuty, feature flags, Spreadsheet, Docs, CRM, Tickets, and Slack
+
+The showcase writes one `showcase_overview.md` plus per-example demo bundles, which makes it the best single command for proving that VEI can coordinate long-horizon, partially observable enterprise tasks across multiple surfaces.
+
 The flagship mixed-stack demo is the revenue/ops primary variant:
 
 ```bash
@@ -150,6 +169,7 @@ Current benchmark runs write:
 - benchmark runs additionally write `blueprint.json`
 - benchmark-family runs additionally write `contract.json`
 - demo runs additionally write `leaderboard.md`, `leaderboard.csv`, `leaderboard.json`, and `demo_result.json`
+- showcase runs additionally write `showcase_overview.md` and `showcase_result.json`
 - suite runs additionally write `leaderboard.md`, `leaderboard.csv`, `leaderboard.json`, and `suite_result.json`
 
 Historical eval outputs should stay under `_vei_out/`, not in Git.

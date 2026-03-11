@@ -149,6 +149,7 @@ class Scenario:
     budget_cap_usd: Optional[int] = None
     derail_prob: Optional[float] = None
     slack_initial_message: Optional[str] = None
+    slack_channels: Optional[Dict[str, Dict[str, Any]]] = None
 
     # Mail configuration
     vendor_reply_variants: Optional[List[str]] = None
