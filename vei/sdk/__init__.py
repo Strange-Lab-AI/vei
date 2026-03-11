@@ -2,11 +2,13 @@ from __future__ import annotations
 
 from .api import (
     EnterpriseSession,
+    build_blueprint_asset_for_example_entry,
     build_blueprint_asset_for_family_entry,
     build_blueprint_asset_for_scenario_entry,
     build_blueprint_for_family_entry,
     build_blueprint_for_scenario_entry,
     compile_blueprint_entry,
+    create_world_session_from_blueprint_entry,
     get_benchmark_family_manifest_entry,
     get_benchmark_family_workflow_spec,
     get_benchmark_family_workflow_variant,
@@ -23,6 +25,7 @@ from .api import (
     filter_enterprise_corpus,
     generate_enterprise_corpus,
     list_blueprint_entries,
+    list_blueprint_builder_examples_entries,
     list_benchmark_family_manifest_entries,
     list_benchmark_family_workflow_specs,
     list_benchmark_family_workflow_variants,
@@ -41,11 +44,13 @@ from .api import (
 
 __all__ = [
     "EnterpriseSession",
+    "build_blueprint_asset_for_example_entry",
     "build_blueprint_asset_for_family_entry",
     "build_blueprint_asset_for_scenario_entry",
     "build_blueprint_for_family_entry",
     "build_blueprint_for_scenario_entry",
     "compile_blueprint_entry",
+    "create_world_session_from_blueprint_entry",
     "get_benchmark_family_manifest_entry",
     "get_benchmark_family_workflow_spec",
     "get_benchmark_family_workflow_variant",
@@ -62,6 +67,7 @@ __all__ = [
     "filter_enterprise_corpus",
     "generate_enterprise_corpus",
     "list_blueprint_entries",
+    "list_blueprint_builder_examples_entries",
     "list_benchmark_family_manifest_entries",
     "list_benchmark_family_workflow_specs",
     "list_benchmark_family_workflow_variants",

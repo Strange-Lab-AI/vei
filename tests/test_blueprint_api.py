@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 from vei.blueprint.api import (
+    build_blueprint_asset_for_example,
     build_blueprint_asset_for_family,
     compile_blueprint,
     build_blueprint_for_family,
     build_blueprint_for_scenario,
+    create_world_session_from_blueprint,
     get_facade_manifest,
+    list_blueprint_builder_examples,
     list_blueprint_specs,
     list_facade_manifest,
 )
@@ -86,3 +89,37 @@ def test_list_blueprint_specs_returns_family_blueprints() -> None:
     assert "security_containment.blueprint" in names
     assert "enterprise_onboarding_migration.blueprint" in names
     assert "revenue_incident_mitigation.blueprint" in names
+
+
+def test_builder_example_compiles_environment_backed_blueprint() -> None:
+    asset = build_blueprint_asset_for_example("acquired_user_cutover")
+    compiled = compile_blueprint(asset)
+
+    assert asset.environment is not None
+    assert compiled.scenario.name == "acquired_user_cutover"
+    assert compiled.environment_summary is not None
+    assert compiled.environment_summary.organization_name == "MacroCompute"
+    assert compiled.environment_summary.identity_user_count == 2
+    assert compiled.run_defaults.scenario_name == "acquired_user_cutover"
+    assert compiled.metadata["scenario_materialization"] == "environment_asset"
+    assert compiled.metadata["scenario_template_name"] == "acquired_sales_onboarding"
+    assert "identity" in {item.name for item in compiled.facades}
+    assert "google_admin" in {item.name for item in compiled.facades}
+
+
+def test_builder_example_creates_live_world_session() -> None:
+    asset = build_blueprint_asset_for_example("acquired_user_cutover")
+    session = create_world_session_from_blueprint(asset, seed=7)
+
+    observation = session.observe("slack")
+    assert observation["focus"] == "slack"
+    assert "#sales-cutover" in observation["summary"]
+    assert "Wave 2 acquired-sales cutover" in observation["summary"]
+
+    docs = session.call_tool("docs.read", {"doc_id": "CUTOVER-2201"})
+    assert docs["doc_id"] == "CUTOVER-2201"
+    assert "Wave 2 handoff checklist" in docs["body"]
+
+
+def test_list_blueprint_builder_examples_contains_identity_wedge() -> None:
+    assert "acquired_user_cutover" in list_blueprint_builder_examples()

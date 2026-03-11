@@ -107,6 +107,24 @@ vei-eval demo \
 
 That demo exercises Spreadsheet, Docs, CRM, feature flags, Datadog, PagerDuty, Tickets, and Slack in one contract-graded run.
 
+The cleanest environment-builder example is the identity/access-governance wedge:
+
+```bash
+vei-blueprint examples
+
+vei-blueprint asset \
+  --example acquired_user_cutover
+
+vei-blueprint compile \
+  --example acquired_user_cutover
+
+vei-blueprint observe \
+  --example acquired_user_cutover \
+  --focus slack
+```
+
+That flow keeps the benchmark stack intact while proving that VEI can compile a typed organization bundle into a runnable world. The current built-in example includes HRIS employee state, Okta-style identity records, Google Drive sharing posture, Jira tracking, docs, Slack coordination, and CRM handoff.
+
 Run the canonical multi-family workflow suite for CI or nightly jobs:
 
 ```bash

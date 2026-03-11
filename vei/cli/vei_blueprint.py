@@ -6,11 +6,14 @@ from typing import Optional
 import typer
 
 from vei.blueprint.api import (
+    build_blueprint_asset_for_example,
     build_blueprint_asset_for_family,
     build_blueprint_asset_for_scenario,
     build_blueprint_for_family,
     build_blueprint_for_scenario,
     compile_blueprint,
+    create_world_session_from_blueprint,
+    list_blueprint_builder_examples,
     list_blueprint_specs,
     list_facade_manifest,
 )
@@ -27,6 +30,14 @@ def list_blueprints() -> None:
         typer.echo(blueprint.name)
 
 
+@app.command("examples")
+def list_examples() -> None:
+    """List built-in blueprint builder examples."""
+
+    for name in list_blueprint_builder_examples():
+        typer.echo(name)
+
+
 @app.command("show")
 def show_blueprint(
     family: Optional[str] = typer.Option(
@@ -34,6 +45,9 @@ def show_blueprint(
     ),
     scenario: Optional[str] = typer.Option(
         None, help="Scenario name to render as a blueprint"
+    ),
+    example: Optional[str] = typer.Option(
+        None, help="Builder example name to render as a blueprint"
     ),
     workflow_name: Optional[str] = typer.Option(
         None, help="Optional workflow override when showing a scenario blueprint"
@@ -45,10 +59,15 @@ def show_blueprint(
 ) -> None:
     """Render one blueprint as JSON."""
 
-    if bool(family) == bool(scenario):
-        raise typer.BadParameter("Provide exactly one of --family or --scenario")
+    selected = sum(bool(value) for value in (family, scenario, example))
+    if selected != 1:
+        raise typer.BadParameter(
+            "Provide exactly one of --family, --scenario, or --example"
+        )
     if family:
         blueprint = build_blueprint_for_family(family, variant_name=workflow_variant)
+    elif example:
+        blueprint = compile_blueprint(build_blueprint_asset_for_example(example))
     else:
         blueprint = build_blueprint_for_scenario(
             scenario or "",
@@ -66,6 +85,9 @@ def show_blueprint_asset(
     scenario: Optional[str] = typer.Option(
         None, help="Scenario name to render as a blueprint asset"
     ),
+    example: Optional[str] = typer.Option(
+        None, help="Builder example name to render as a blueprint asset"
+    ),
     workflow_name: Optional[str] = typer.Option(
         None, help="Optional workflow override when showing a scenario blueprint asset"
     ),
@@ -76,10 +98,15 @@ def show_blueprint_asset(
 ) -> None:
     """Render a blueprint authoring asset as JSON."""
 
-    if bool(family) == bool(scenario):
-        raise typer.BadParameter("Provide exactly one of --family or --scenario")
+    selected = sum(bool(value) for value in (family, scenario, example))
+    if selected != 1:
+        raise typer.BadParameter(
+            "Provide exactly one of --family, --scenario, or --example"
+        )
     if family:
         asset = build_blueprint_asset_for_family(family, variant_name=workflow_variant)
+    elif example:
+        asset = build_blueprint_asset_for_example(example)
     else:
         asset = build_blueprint_asset_for_scenario(
             scenario or "",
@@ -97,6 +124,9 @@ def compile_blueprint_command(
     scenario: Optional[str] = typer.Option(
         None, help="Scenario name to compile as a blueprint"
     ),
+    example: Optional[str] = typer.Option(
+        None, help="Builder example name to compile as a blueprint"
+    ),
     workflow_name: Optional[str] = typer.Option(
         None, help="Optional workflow override for scenario assets"
     ),
@@ -107,10 +137,15 @@ def compile_blueprint_command(
 ) -> None:
     """Compile a blueprint asset into a runnable compiled blueprint."""
 
-    if bool(family) == bool(scenario):
-        raise typer.BadParameter("Provide exactly one of --family or --scenario")
+    selected = sum(bool(value) for value in (family, scenario, example))
+    if selected != 1:
+        raise typer.BadParameter(
+            "Provide exactly one of --family, --scenario, or --example"
+        )
     if family:
         asset = build_blueprint_asset_for_family(family, variant_name=workflow_variant)
+    elif example:
+        asset = build_blueprint_asset_for_example(example)
     else:
         asset = build_blueprint_asset_for_scenario(
             scenario or "",
@@ -119,6 +154,57 @@ def compile_blueprint_command(
         )
     compiled = compile_blueprint(asset)
     typer.echo(json.dumps(compiled.model_dump(mode="json"), indent=indent))
+
+
+@app.command("observe")
+def observe_blueprint(
+    family: Optional[str] = typer.Option(
+        None, help="Benchmark family name to observe as a live blueprint-backed world"
+    ),
+    scenario: Optional[str] = typer.Option(
+        None, help="Scenario name to observe as a live blueprint-backed world"
+    ),
+    example: Optional[str] = typer.Option(
+        None, help="Builder example name to observe as a live blueprint-backed world"
+    ),
+    workflow_name: Optional[str] = typer.Option(
+        None, help="Optional workflow override for scenario assets"
+    ),
+    workflow_variant: Optional[str] = typer.Option(
+        None, help="Optional workflow variant override"
+    ),
+    focus: Optional[str] = typer.Option(
+        None, help="Optional observation focus hint such as slack, docs, or summary"
+    ),
+    seed: int = typer.Option(42042, help="Deterministic seed"),
+    indent: int = typer.Option(2, help="Pretty indent"),
+) -> None:
+    """Compile a blueprint and open a live world observation from it."""
+
+    selected = sum(bool(value) for value in (family, scenario, example))
+    if selected != 1:
+        raise typer.BadParameter(
+            "Provide exactly one of --family, --scenario, or --example"
+        )
+    if family:
+        asset = build_blueprint_asset_for_family(family, variant_name=workflow_variant)
+    elif example:
+        asset = build_blueprint_asset_for_example(example)
+    else:
+        asset = build_blueprint_asset_for_scenario(
+            scenario or "",
+            workflow_name=workflow_name,
+            workflow_variant=workflow_variant,
+        )
+
+    compiled = compile_blueprint(asset)
+    session = create_world_session_from_blueprint(asset, seed=seed)
+    payload = {
+        "blueprint": compiled.model_dump(mode="json"),
+        "observation": session.observe(focus_hint=focus),
+        "pending": session.pending(),
+    }
+    typer.echo(json.dumps(payload, indent=indent))
 
 
 @app.command("facades")

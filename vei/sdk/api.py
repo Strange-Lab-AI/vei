@@ -4,12 +4,15 @@ from dataclasses import dataclass
 from typing import Any, Dict, Iterable, Optional, Protocol
 
 from vei.blueprint.api import (
+    build_blueprint_asset_for_example as _build_blueprint_asset_for_example,
     build_blueprint_asset_for_family as _build_blueprint_asset_for_family,
     build_blueprint_asset_for_scenario as _build_blueprint_asset_for_scenario,
     build_blueprint_for_family as _build_blueprint_for_family,
     build_blueprint_for_scenario as _build_blueprint_for_scenario,
     compile_blueprint as _compile_blueprint,
+    create_world_session_from_blueprint as _create_world_session_from_blueprint,
     get_facade_manifest as _get_facade_manifest,
+    list_blueprint_builder_examples as _list_blueprint_builder_examples,
     list_blueprint_specs as _list_blueprint_specs,
     list_facade_manifest as _list_facade_manifest,
 )
@@ -281,6 +284,10 @@ def build_blueprint_asset_for_family_entry(
     return _build_blueprint_asset_for_family(family_name, variant_name=variant_name)
 
 
+def build_blueprint_asset_for_example_entry(name: str) -> BlueprintAsset:
+    return _build_blueprint_asset_for_example(name)
+
+
 def build_blueprint_asset_for_scenario_entry(
     scenario_name: str,
     *,
@@ -321,8 +328,29 @@ def list_blueprint_entries() -> list[BlueprintSpec]:
     return _list_blueprint_specs()
 
 
+def list_blueprint_builder_examples_entries() -> list[str]:
+    return _list_blueprint_builder_examples()
+
+
 def compile_blueprint_entry(asset: BlueprintAsset) -> CompiledBlueprint:
     return _compile_blueprint(asset)
+
+
+def create_world_session_from_blueprint_entry(
+    asset: BlueprintAsset,
+    *,
+    seed: int = 42042,
+    artifacts_dir: str | None = None,
+    connector_mode: str | None = None,
+    branch: str = "main",
+) -> WorldSessionAPI:
+    return _create_world_session_from_blueprint(
+        asset,
+        seed=seed,
+        artifacts_dir=artifacts_dir,
+        connector_mode=connector_mode,
+        branch=branch,
+    )
 
 
 def get_benchmark_family_workflow_spec(name: str) -> WorkflowScenarioSpec:

@@ -65,3 +65,40 @@ def test_vei_blueprint_facades_filters_by_domain() -> None:
     payload = json.loads(result.output)
     names = {item["name"] for item in payload}
     assert {"siem", "datadog", "pagerduty"} <= names
+
+
+def test_vei_blueprint_examples_and_observe_commands() -> None:
+    runner = typer.testing.CliRunner()
+
+    list_result = runner.invoke(app, ["examples"])
+    compile_result = runner.invoke(
+        app,
+        ["compile", "--example", "acquired_user_cutover"],
+    )
+    observe_result = runner.invoke(
+        app,
+        [
+            "observe",
+            "--example",
+            "acquired_user_cutover",
+            "--focus",
+            "slack",
+            "--seed",
+            "7",
+        ],
+    )
+
+    assert list_result.exit_code == 0, list_result.output
+    assert "acquired_user_cutover" in list_result.output
+    assert compile_result.exit_code == 0, compile_result.output
+    assert observe_result.exit_code == 0, observe_result.output
+
+    compile_payload = json.loads(compile_result.output)
+    observe_payload = json.loads(observe_result.output)
+    assert compile_payload["environment_summary"]["organization_name"] == "MacroCompute"
+    assert compile_payload["scenario"]["name"] == "acquired_user_cutover"
+    assert observe_payload["observation"]["focus"] == "slack"
+    assert "#sales-cutover" in observe_payload["observation"]["summary"]
+    assert observe_payload["blueprint"]["metadata"]["scenario_materialization"] == (
+        "environment_asset"
+    )

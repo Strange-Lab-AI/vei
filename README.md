@@ -28,7 +28,7 @@ Plainly: VEI can simulate an enterprise environment where an agent has to discov
 VEI now exposes one coherent product shape:
 
 - `Blueprint`: typed composition of scenario, facades, workflow, and contract
-- `BlueprintAsset`: authored blueprint root that declares scenario, requested facades, workflow, and metadata
+- `BlueprintAsset`: authored blueprint root that declares a scenario template, typed environment seed, requested facades, workflow, and metadata
 - `CompiledBlueprint`: compiled blueprint with resolved facades, state roots, workflow defaults, contract defaults, and run defaults
 - `Scenario`: seeded enterprise world and difficulty/tool manifest
 - `Facade`: typed enterprise surface grouped by capability domain
@@ -37,6 +37,8 @@ VEI now exposes one coherent product shape:
 - `Snapshot`: branchable world-state checkpoint with replay and receipts
 
 The older per-app router twins are still used, but they are now wrapped as a typed facade catalog rather than presented as the product ontology by themselves.
+
+VEI is semantic-first today. VM-backed desktop or OS-level facades can come later as plugins, but the current engine is intentionally focused on compiling organization state and policies into a deterministic world before adding heavier substrates.
 
 ## License
 
@@ -86,6 +88,7 @@ vei-llm-test \
 - Stable world-kernel API with snapshot, branch, restore, replay, inject, and event inspection
 - Typed blueprint and facade catalog over the existing enterprise twins
 - Blueprint compiler with explicit facade plugins and authored `BlueprintAsset -> CompiledBlueprint` flow
+- Environment-builder path that can compile typed organization seed data into a runnable world session
 - Enterprise twins for Slack, Mail, Browser, Docs, Spreadsheet, Tickets, DB, ERP/CRM, Okta-style identity, ServiceDesk, Google Admin, SIEM, Datadog, PagerDuty, feature flags, HRIS, and Jira-style issue flows
 - Scenario compilation, dataset rollout, BC training, benchmark execution, and release packaging
 - Reusable benchmark families for security containment, enterprise onboarding/migration, and revenue incident response
@@ -139,6 +142,7 @@ Useful helpers:
 - Scenario manifests: `list_scenario_manifest()`, `get_scenario_manifest(name)`
 - Facade catalog: `list_facade_manifest_entries()`, `get_facade_manifest_entry(name)`
 - Blueprint catalog: `list_blueprint_entries()`, `build_blueprint_asset_for_family_entry(name)`, `build_blueprint_for_family_entry(name)`, `compile_blueprint_entry(asset)`
+- Environment builder: `list_blueprint_builder_examples_entries()`, `build_blueprint_asset_for_example_entry(name)`, `create_world_session_from_blueprint_entry(asset)`
 - Benchmark families: `list_benchmark_family_manifest_entries()`, `get_benchmark_family_manifest_entry(name)`
 - Release packaging: `build_release_version()`, `export_release_dataset(...)`, `export_release_benchmark(...)`, `run_release_nightly(...)`
 
@@ -162,7 +166,7 @@ VEI_LLM_LIVE_BYPASS=1 make llm-live
 ## Supported CLI Surface
 
 - Runtime: `vei-llm-test`, `vei-smoke`, `vei-demo`, `vei-world`
-- Ontology: `vei-blueprint asset|compile|show|facades`
+- Ontology: `vei-blueprint asset|compile|show|observe|examples|facades`
 - Release/Ops: `vei-release dataset|benchmark|nightly`
 - Scenarios: `vei-scenarios list|manifest|dump`
 - DSL/corpus: `vei-det sample-workflow|compile-workflow|run-workflow|generate-corpus|filter-corpus`
@@ -271,6 +275,24 @@ vei-eval demo \
 ```
 
 That flow shows the full engine shape: authored `BlueprintAsset`, compiled blueprint, the deterministic workflow baseline, a freer comparison run, `contract.json`, and inspectable state/snapshot artifacts. The flagship revenue workflow now spans Spreadsheet, Docs, CRM, feature flags, Datadog, PagerDuty, Tickets, and Slack in one mixed-stack run.
+
+Flagship environment-builder example for the identity/access-governance wedge:
+
+```bash
+vei-blueprint examples
+
+vei-blueprint asset \
+  --example acquired_user_cutover
+
+vei-blueprint compile \
+  --example acquired_user_cutover
+
+vei-blueprint observe \
+  --example acquired_user_cutover \
+  --focus slack
+```
+
+That flow compiles a typed acquired-user cutover environment with HRIS, Okta-style identity, Google Drive sharing state, Jira tracking, docs, Slack, and CRM handoff, then opens a live world observation directly from the blueprint.
 
 Canonical multi-family workflow suite:
 

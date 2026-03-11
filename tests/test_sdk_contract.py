@@ -6,8 +6,10 @@ from vei.router.tool_providers import PrefixToolProvider
 from vei.router.tool_registry import ToolSpec
 from vei.sdk import (
     SessionHook,
+    build_blueprint_asset_for_example_entry,
     build_blueprint_asset_for_family_entry,
     compile_blueprint_entry,
+    create_world_session_from_blueprint_entry,
     create_session,
     filter_enterprise_corpus,
     generate_enterprise_corpus,
@@ -17,6 +19,7 @@ from vei.sdk import (
     get_scenario_manifest,
     list_scenario_manifest,
     list_benchmark_family_workflow_variants,
+    list_blueprint_builder_examples_entries,
     list_showcase_example_entries,
     run_benchmark_family_workflow,
     run_workflow_spec,
@@ -221,6 +224,19 @@ def test_sdk_blueprint_helpers_compile_assets() -> None:
     assert asset.workflow_variant == "revenue_ops_flightdeck"
     assert compiled.asset.name == asset.name
     assert "spreadsheet" in {item.name for item in compiled.facades}
+
+
+def test_sdk_blueprint_builder_helpers_compile_and_open_world() -> None:
+    asset = build_blueprint_asset_for_example_entry("acquired_user_cutover")
+    compiled = compile_blueprint_entry(asset)
+    session = create_world_session_from_blueprint_entry(asset, seed=5)
+
+    assert "acquired_user_cutover" in list_blueprint_builder_examples_entries()
+    assert compiled.environment_summary is not None
+    assert compiled.environment_summary.hris_employee_count == 2
+    slack = session.observe("slack")
+    assert slack["focus"] == "slack"
+    assert "#sales-cutover" in slack["summary"]
 
 
 def test_sdk_showcase_helpers_list_complex_examples() -> None:
