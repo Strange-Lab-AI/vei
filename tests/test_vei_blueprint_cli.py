@@ -126,3 +126,18 @@ def test_vei_blueprint_bundle_commands() -> None:
         ]
         == "POL-WAVE2"
     )
+
+
+def test_vei_blueprint_orient_command() -> None:
+    runner = typer.testing.CliRunner()
+
+    result = runner.invoke(
+        app,
+        ["orient", "--example", "acquired_user_cutover", "--seed", "7"],
+    )
+
+    assert result.exit_code == 0, result.output
+    payload = json.loads(result.output)
+    assert payload["orientation"]["organization_name"] == "MacroCompute"
+    assert payload["orientation"]["active_policies"][0]["policy_id"] == "POL-WAVE2"
+    assert "identity_graph" in payload["capability_graphs"]["available_domains"]

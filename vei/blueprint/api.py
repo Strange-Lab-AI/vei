@@ -419,6 +419,7 @@ def materialize_scenario_from_blueprint(asset: BlueprintAsset) -> Scenario:
             "builder_organization_name": environment.organization_name,
             "builder_organization_domain": environment.organization_domain,
             "builder_timezone": environment.timezone,
+            "builder_runtime_scenario_name": _runtime_scenario_name(asset),
             "scenario_template_name": asset.scenario_name,
         }
     )
@@ -451,6 +452,21 @@ def create_world_session_from_blueprint(
     from vei.world.api import create_world_session
 
     scenario = materialize_scenario_from_blueprint(asset)
+    compiled = compile_blueprint(asset)
+    metadata = dict(scenario.metadata or {})
+    metadata["builder_blueprint_orientation"] = {
+        "runtime_scenario_name": compiled.run_defaults.scenario_name,
+        "family_name": compiled.family_name,
+        "workflow_name": compiled.workflow_name,
+        "workflow_variant": compiled.workflow_variant,
+        "focus_hints": list(compiled.workflow_defaults.focus_hints),
+        "inspection_focus": compiled.run_defaults.inspection_focus,
+        "inspection_focuses": list(compiled.run_defaults.inspection_focuses),
+        "allowed_tools": list(compiled.workflow_defaults.allowed_tools),
+        "facades": [item.name for item in compiled.facades],
+        "capability_domains": list(compiled.capability_domains),
+    }
+    scenario.metadata = metadata
     return create_world_session(
         seed=seed,
         artifacts_dir=artifacts_dir,

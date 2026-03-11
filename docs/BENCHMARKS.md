@@ -124,17 +124,21 @@ vei-blueprint compile \
 vei-blueprint observe \
   --example acquired_user_cutover \
   --focus slack
+
+vei-blueprint orient \
+  --example acquired_user_cutover
 ```
 
-That flow keeps the benchmark stack intact while proving that VEI can compile a typed organization bundle into a runnable world. The current built-in example exposes the full builder ladder: grounding bundle, authored blueprint asset, compiled blueprint, and live world observation. The built-in identity wedge includes HRIS employee state, Okta-style identity records, policy constraints, Google Drive sharing posture, Jira tracking, docs, Slack coordination, and CRM handoff.
+That flow keeps the benchmark stack intact while proving that VEI can compile a typed organization bundle into a runnable world. The current built-in example exposes the full builder ladder: grounding bundle, authored blueprint asset, compiled blueprint, live world observation, and an agent-facing orientation summary. The built-in identity wedge includes HRIS employee state, Okta-style identity records, policy constraints, Google Drive sharing posture, Jira tracking, docs, Slack coordination, and CRM handoff.
 
 The runtime side now has a matching read surface too:
 
 ```bash
 vei-world graphs --state-dir ./state --domain identity_graph
+vei-world orient --state-dir ./state
 ```
 
-That command renders the shared capability graph from a stored world snapshot, which is useful when you want to inspect the world in domain terms rather than app-by-app component terms.
+Those commands render the shared capability graph and the agent-facing orientation summary from a stored world snapshot, which is useful when you want to inspect the world in domain terms rather than app-by-app component terms.
 
 Run the canonical multi-family workflow suite for CI or nightly jobs:
 

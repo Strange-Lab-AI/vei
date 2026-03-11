@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import Any, Dict, Iterable, Optional, Protocol
 
 from vei.capability_graph.models import RuntimeCapabilityGraphs
+from vei.orientation.models import WorldOrientation
 from vei.blueprint.api import (
     build_blueprint_asset_for_example as _build_blueprint_asset_for_example,
     build_blueprint_asset_for_family as _build_blueprint_asset_for_family,
@@ -146,6 +147,9 @@ class EnterpriseSession:
 
     def capability_graphs(self) -> RuntimeCapabilityGraphs:
         return self._world.capability_graphs()
+
+    def orientation(self) -> WorldOrientation:
+        return self._world.orientation()
 
     def register_tool_provider(self, provider: RouterToolProvider) -> None:
         self.router.register_tool_provider(provider)

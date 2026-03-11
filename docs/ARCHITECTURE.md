@@ -68,6 +68,9 @@ The router is a transport and tool-dispatch adapter. Mutable enterprise state be
 - `vei.capability_graph`
   - runtime shared-domain graph views derived from live world state and builder metadata
   - read-oriented identity/doc/work/comm/revenue graph surfaces for agents and inspection
+- `vei.orientation`
+  - agent-facing summaries derived from live world state, capability graphs, and builder hints
+  - visible surfaces, policy hints, key objects, suggested focuses, and next questions
 - `vei.grounding`
   - typed grounding bundles for imported organization, policy, and incident input
   - compilers that turn grounding bundles into `BlueprintAsset` authoring roots
@@ -81,7 +84,7 @@ The router is a transport and tool-dispatch adapter. Mutable enterprise state be
 - `python -m vei.router.sse`
   - SSE MCP transport
 - `vei-world`
-  - snapshot/receipt inspection plus runtime capability-graph rendering
+  - snapshot/receipt inspection plus runtime capability-graph and orientation rendering
 - `vei-llm-test`, `vei-eval`, `vei-eval-frontier`, `vei-report`
   - evaluation and benchmarking
 
@@ -122,4 +125,5 @@ VEI keeps the current router twins, but the public ontology now groups them as f
 - All actor outputs should enter the world through typed events so snapshot/replay stays deterministic.
 - New software environments should register as facade plugins before they become public blueprint/compiler surfaces.
 - Prefer `GroundingBundle -> BlueprintAsset -> CompiledBlueprint -> WorldSession` as the environment-builder path.
+- Prefer `WorldSession -> capability_graphs() -> orientation()` as the agent-facing inspection ladder inside a live world.
 - Prefer semantic environment building first. VM-backed or OS-level facades are future plugin substrates, not the core runtime model.

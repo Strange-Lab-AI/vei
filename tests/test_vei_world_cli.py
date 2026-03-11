@@ -102,3 +102,23 @@ def test_vei_world_cli_graphs(tmp_path: Path, monkeypatch) -> None:
     assert payload["domain"] == "identity_graph"
     assert payload["graph"]["policies"][0]["policy_id"] == "POL-WAVE2"
     assert len(payload["graph"]["users"]) == 2
+
+
+def test_vei_world_cli_orient(tmp_path: Path, monkeypatch) -> None:
+    runner = typer.testing.CliRunner()
+    state_root = tmp_path / "state"
+    monkeypatch.setenv("VEI_STATE_DIR", str(state_root))
+
+    asset = build_blueprint_asset_for_example("acquired_user_cutover")
+    session = create_world_session_from_blueprint(asset, seed=10)
+    session.snapshot(label="orientation-demo")
+
+    result = runner.invoke(
+        world_app,
+        ["orient", "--state-dir", str(state_root)],
+    )
+    assert result.exit_code == 0, result.output
+    payload = json.loads(result.stdout)
+    assert payload["organization_name"] == "MacroCompute"
+    assert payload["active_policies"][0]["policy_id"] == "POL-WAVE2"
+    assert "identity_graph" in payload["suggested_focuses"]

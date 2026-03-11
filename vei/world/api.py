@@ -4,6 +4,7 @@ from typing import Any, Dict, Optional, Protocol
 
 from vei.router.api import create_router
 from vei.capability_graph.models import RuntimeCapabilityGraphs
+from vei.orientation.models import WorldOrientation
 from vei.world.manifest import (
     ScenarioManifest,
     get_scenario_manifest,
@@ -42,6 +43,8 @@ class WorldSessionAPI(Protocol):
     def pending(self) -> Dict[str, int]: ...
 
     def capability_graphs(self) -> RuntimeCapabilityGraphs: ...
+
+    def orientation(self) -> WorldOrientation: ...
 
     def snapshot(self, label: Optional[str] = None) -> WorldSnapshot: ...
 
@@ -96,6 +99,10 @@ def capability_graphs(session: WorldSessionAPI) -> RuntimeCapabilityGraphs:
     return session.capability_graphs()
 
 
+def orientation(session: WorldSessionAPI) -> WorldOrientation:
+    return session.orientation()
+
+
 def snapshot(session: WorldSessionAPI, label: Optional[str] = None) -> WorldSnapshot:
     return session.snapshot(label=label)
 
@@ -147,6 +154,7 @@ def list_catalog_scenario_manifest() -> list[ScenarioManifest]:
 __all__ = [
     "ActorState",
     "InjectedEvent",
+    "WorldOrientation",
     "ScheduledEvent",
     "RuntimeCapabilityGraphs",
     "WorldSession",
@@ -164,6 +172,7 @@ __all__ = [
     "list_catalog_scenario_manifest",
     "list_events",
     "observe",
+    "orientation",
     "replay",
     "restore",
     "snapshot",

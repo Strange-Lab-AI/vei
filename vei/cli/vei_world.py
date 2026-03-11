@@ -8,6 +8,7 @@ from typing import Dict, List, Optional
 import typer
 
 from vei.capability_graph.api import build_runtime_capability_graphs
+from vei.orientation.api import build_world_orientation
 from vei.world.state import StateStore
 from vei.world.models import WorldState
 
@@ -209,6 +210,24 @@ def show_capability_graphs(
         }
     else:
         payload = graphs
+    typer.echo(json.dumps(payload, indent=indent))
+
+
+@app.command("orient")
+def show_orientation(
+    state_dir: Optional[Path] = typer.Option(None, help="Root VEI state directory"),
+    branch: str = typer.Option("main", help="Branch name"),
+    snapshot: Optional[int] = typer.Option(
+        None, help="Snapshot index (default: latest)"
+    ),
+    indent: int = typer.Option(2, help="Pretty indent"),
+) -> None:
+    """Render an agent-facing orientation summary from a stored snapshot."""
+
+    root = _resolve_root(state_dir)
+    snap = _resolve_snapshot_payload(root, branch, snapshot)
+    state = WorldState.model_validate(snap.get("data", {}))
+    payload = build_world_orientation(state).model_dump(mode="json")
     typer.echo(json.dumps(payload, indent=indent))
 
 

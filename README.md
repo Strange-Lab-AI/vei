@@ -20,6 +20,8 @@ Plainly: VEI can simulate an enterprise environment where an agent has to discov
   - Multi-step tasks that cross systems, have hidden state, require follow-through, and can fail midway
 - Policies and outcomes
   - Success predicates, forbidden states, policy invariants, observation boundaries, deadlines, and contract-graded outcomes
+- Agent discoverability
+  - Capability graphs, orientation summaries, policy hints, key objects, and suggested next inspection focuses
 - Humans and interventions
   - Multiple actors, approvals, injected events, branch-and-recover flows, and replayable operator intervention
 
@@ -91,6 +93,7 @@ vei-llm-test \
 - Blueprint compiler with explicit facade plugins and authored `GroundingBundle -> BlueprintAsset -> CompiledBlueprint` flow
 - Environment-builder path that can compile typed capability graphs, policies, and workflow seeds into a runnable world session
 - Runtime capability-graph layer that lets world sessions and snapshots expose shared domain graphs such as identity, docs, work, comms, and revenue
+- Agent-orientation layer that lets sessions and snapshots expose agent-facing summaries of visible surfaces, active policies, key objects, and suggested next questions
 - Enterprise twins for Slack, Mail, Browser, Docs, Spreadsheet, Tickets, DB, ERP/CRM, Okta-style identity, ServiceDesk, Google Admin, SIEM, Datadog, PagerDuty, feature flags, HRIS, and Jira-style issue flows
 - Scenario compilation, dataset rollout, BC training, benchmark execution, and release packaging
 - Reusable benchmark families for security containment, enterprise onboarding/migration, and revenue incident response
@@ -168,7 +171,7 @@ VEI_LLM_LIVE_BYPASS=1 make llm-live
 ## Supported CLI Surface
 
 - Runtime: `vei-llm-test`, `vei-smoke`, `vei-demo`, `vei-world`
-- Ontology: `vei-blueprint bundle|bundles|asset|compile|show|observe|examples|facades`
+- Ontology: `vei-blueprint bundle|bundles|asset|compile|show|observe|orient|examples|facades`
 - Release/Ops: `vei-release dataset|benchmark|nightly`
 - Scenarios: `vei-scenarios list|manifest|dump`
 - DSL/corpus: `vei-det sample-workflow|compile-workflow|run-workflow|generate-corpus|filter-corpus`
@@ -176,7 +179,7 @@ VEI_LLM_LIVE_BYPASS=1 make llm-live
 - Showcase: `vei-eval showcase`
 - Visualization: `vei-visualize replay|flow|dashboard|export`
 
-`vei-world graphs` now renders runtime capability graphs from stored snapshots, which is the cleanest way to inspect identity, doc, work, comm, and revenue state without dropping down into app-shaped component dumps.
+`vei-world graphs` now renders runtime capability graphs from stored snapshots, which is the cleanest way to inspect identity, doc, work, comm, and revenue state without dropping down into app-shaped component dumps. `vei-world orient` and `vei-blueprint orient` add the agent-facing layer on top: visible surfaces, active policy hints, key objects, and suggested next questions.
 
 ## Benchmarking
 
@@ -300,6 +303,15 @@ vei-blueprint observe \
 ```
 
 That flow shows the full builder ladder: raw grounding bundle, authored blueprint asset, compiled blueprint, and then a live world observation. The current built-in identity wedge compiles capability graphs for HRIS, Okta-style identity, Google Drive sharing state, Jira tracking, docs, Slack, and CRM handoff.
+
+Agent-facing builder orientation:
+
+```bash
+vei-blueprint orient \
+  --example acquired_user_cutover
+```
+
+That command renders the compiled blueprint, runtime capability graphs, and a concise orientation payload for the live world. It is the cleanest single command for showing what an LLM can discover about the environment before acting.
 
 Canonical multi-family workflow suite:
 

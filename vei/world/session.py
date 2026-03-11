@@ -12,6 +12,8 @@ from vei.capability_graph.models import RuntimeCapabilityGraphs
 from vei.connectors.models import ConnectorReceipt
 from vei.identity.api import IdentityApplication, IdentityGroup, IdentityUser
 from vei.monitors.models import MonitorFinding
+from vei.orientation.api import build_world_orientation
+from vei.orientation.models import WorldOrientation
 from vei.world.scenario import CalendarEvent, Document, Ticket
 from vei.world.models import (
     ActorState,
@@ -647,6 +649,10 @@ class WorldSession:
     def capability_graphs(self) -> RuntimeCapabilityGraphs:
         state = serialize_router_state(self.router)
         return build_runtime_capability_graphs(state)
+
+    def orientation(self) -> WorldOrientation:
+        state = serialize_router_state(self.router)
+        return build_world_orientation(state)
 
     def current_state(self) -> WorldState:
         return serialize_router_state(self.router)

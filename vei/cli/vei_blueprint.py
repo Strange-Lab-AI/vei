@@ -232,6 +232,54 @@ def observe_blueprint(
     typer.echo(json.dumps(payload, indent=indent))
 
 
+@app.command("orient")
+def orient_blueprint(
+    family: Optional[str] = typer.Option(
+        None, help="Benchmark family name to orient as a live blueprint-backed world"
+    ),
+    scenario: Optional[str] = typer.Option(
+        None, help="Scenario name to orient as a live blueprint-backed world"
+    ),
+    example: Optional[str] = typer.Option(
+        None, help="Builder example name to orient as a live blueprint-backed world"
+    ),
+    workflow_name: Optional[str] = typer.Option(
+        None, help="Optional workflow override for scenario assets"
+    ),
+    workflow_variant: Optional[str] = typer.Option(
+        None, help="Optional workflow variant override"
+    ),
+    seed: int = typer.Option(42042, help="Deterministic seed"),
+    indent: int = typer.Option(2, help="Pretty indent"),
+) -> None:
+    """Compile a blueprint and render an agent-facing orientation summary."""
+
+    selected = sum(bool(value) for value in (family, scenario, example))
+    if selected != 1:
+        raise typer.BadParameter(
+            "Provide exactly one of --family, --scenario, or --example"
+        )
+    if family:
+        asset = build_blueprint_asset_for_family(family, variant_name=workflow_variant)
+    elif example:
+        asset = build_blueprint_asset_for_example(example)
+    else:
+        asset = build_blueprint_asset_for_scenario(
+            scenario or "",
+            workflow_name=workflow_name,
+            workflow_variant=workflow_variant,
+        )
+
+    compiled = compile_blueprint(asset)
+    session = create_world_session_from_blueprint(asset, seed=seed)
+    payload = {
+        "blueprint": compiled.model_dump(mode="json"),
+        "orientation": session.orientation().model_dump(mode="json"),
+        "capability_graphs": session.capability_graphs().model_dump(mode="json"),
+    }
+    typer.echo(json.dumps(payload, indent=indent))
+
+
 @app.command("facades")
 def facades(
     domain: Optional[str] = typer.Option(
