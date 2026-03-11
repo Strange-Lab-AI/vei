@@ -1,12 +1,20 @@
 from __future__ import annotations
 
-from typing import Any, Dict, Optional
+from dataclasses import dataclass
+from typing import Any, Dict, Iterable, Optional
 
+from vei.blueprint.models import CapabilityDomain
 from vei.world.models import WorldState
 
 from .models import (
+    CapabilityGraphActionInput,
+    CapabilityGraphActionSchema,
+    CapabilityGraphPlan,
+    CapabilityGraphPlanStep,
     CommGraphChannelView,
     CommGraphView,
+    DataGraphView,
+    DataWorkbookView,
     DocGraphView,
     DocumentView,
     DriveShareView,
@@ -16,6 +24,12 @@ from .models import (
     IdentityGroupView,
     IdentityPolicyView,
     IdentityUserView,
+    ObsGraphView,
+    ObsIncidentView,
+    ObsMonitorView,
+    ObsServiceView,
+    OpsFlagView,
+    OpsGraphView,
     RevenueCompanyView,
     RevenueContactView,
     RevenueDealView,
@@ -27,15 +41,47 @@ from .models import (
 )
 
 
+@dataclass(frozen=True)
+class _ResolvedGraphAction:
+    domain: CapabilityDomain
+    action: str
+    tool: str
+    args: Dict[str, Any]
+    title: str
+    step_id: Optional[str] = None
+
+
 def build_runtime_capability_graphs(state: WorldState) -> RuntimeCapabilityGraphs:
     graph_seed = _builder_capability_graphs(state)
+    allowed_domains = _allowed_domains(state)
     comm_graph = _build_comm_graph(state.components)
     doc_graph = _build_doc_graph(state.components)
     work_graph = _build_work_graph(state.components)
     identity_graph = _build_identity_graph(state.components, graph_seed)
     revenue_graph = _build_revenue_graph(state.components)
+    data_graph = _build_data_graph(state.components)
+    obs_graph = _build_obs_graph(state.components)
+    ops_graph = _build_ops_graph(state.components)
 
-    available_domains = [
+    if allowed_domains is not None:
+        if "comm_graph" not in allowed_domains:
+            comm_graph = None
+        if "doc_graph" not in allowed_domains:
+            doc_graph = None
+        if "work_graph" not in allowed_domains:
+            work_graph = None
+        if "identity_graph" not in allowed_domains:
+            identity_graph = None
+        if "revenue_graph" not in allowed_domains:
+            revenue_graph = None
+        if "data_graph" not in allowed_domains:
+            data_graph = None
+        if "obs_graph" not in allowed_domains:
+            obs_graph = None
+        if "ops_graph" not in allowed_domains:
+            ops_graph = None
+
+    available_domains_list = [
         domain
         for domain, graph in (
             ("comm_graph", comm_graph),
@@ -43,35 +89,38 @@ def build_runtime_capability_graphs(state: WorldState) -> RuntimeCapabilityGraph
             ("work_graph", work_graph),
             ("identity_graph", identity_graph),
             ("revenue_graph", revenue_graph),
+            ("data_graph", data_graph),
+            ("obs_graph", obs_graph),
+            ("ops_graph", ops_graph),
         )
         if graph is not None
     ]
     return RuntimeCapabilityGraphs(
         branch=state.branch,
         clock_ms=state.clock_ms,
-        available_domains=available_domains,
+        available_domains=available_domains_list,
         comm_graph=comm_graph,
         doc_graph=doc_graph,
         work_graph=work_graph,
         identity_graph=identity_graph,
         revenue_graph=revenue_graph,
+        data_graph=data_graph,
+        obs_graph=obs_graph,
+        ops_graph=ops_graph,
         metadata={
             "scenario_name": state.scenario.get("name"),
             "builder_mode": _scenario_metadata(state).get("builder_mode"),
             "scenario_template_name": _scenario_metadata(state).get(
                 "scenario_template_name"
             ),
+            "organization_domain": _optional_str(graph_seed.get("organization_domain")),
         },
     )
 
 
-def get_runtime_capability_graph(
-    state: WorldState, domain: str
-) -> Optional[
-    CommGraphView | DocGraphView | WorkGraphView | IdentityGraphView | RevenueGraphView
-]:
+def get_runtime_capability_graph(state: WorldState, domain: str) -> Optional[Any]:
     graphs = build_runtime_capability_graphs(state)
-    normalized = domain.strip().lower()
+    normalized = _normalize_domain(domain)
     if normalized == "comm_graph":
         return graphs.comm_graph
     if normalized == "doc_graph":
@@ -82,7 +131,105 @@ def get_runtime_capability_graph(
         return graphs.identity_graph
     if normalized == "revenue_graph":
         return graphs.revenue_graph
+    if normalized == "data_graph":
+        return graphs.data_graph
+    if normalized == "obs_graph":
+        return graphs.obs_graph
+    if normalized == "ops_graph":
+        return graphs.ops_graph
     raise KeyError(f"unknown capability graph domain: {domain}")
+
+
+def build_graph_action_plan(
+    state: WorldState,
+    *,
+    domain: Optional[str] = None,
+    limit: int = 12,
+) -> CapabilityGraphPlan:
+    graphs = build_runtime_capability_graphs(state)
+    selected_domain = _normalize_domain(domain) if domain else None
+    if selected_domain and selected_domain not in graphs.available_domains:
+        raise KeyError(f"unknown capability graph domain: {domain}")
+    allowed_domains = set(graphs.available_domains)
+    available_actions = [
+        schema
+        for schema in _ACTION_SCHEMAS
+        if schema.domain in allowed_domains
+        and (selected_domain is None or schema.domain == selected_domain)
+    ]
+    steps = _suggest_graph_steps(state, graphs)
+    if selected_domain is not None:
+        steps = [step for step in steps if step.domain == selected_domain]
+    max_steps = max(1, int(limit))
+    trimmed_steps = steps[:max_steps]
+    next_focuses = _unique(
+        _focus_for_domain(step.domain)
+        for step in trimmed_steps
+        if _focus_for_domain(step.domain)
+    )
+    return CapabilityGraphPlan(
+        branch=state.branch,
+        clock_ms=state.clock_ms,
+        scenario_name=_scenario_name(state),
+        available_domains=list(graphs.available_domains),
+        available_actions=available_actions,
+        suggested_steps=trimmed_steps,
+        next_focuses=next_focuses,
+        metadata={
+            "organization_domain": graphs.metadata.get("organization_domain"),
+            "builder_mode": graphs.metadata.get("builder_mode"),
+        },
+    )
+
+
+def resolve_graph_action(
+    state: WorldState,
+    request: CapabilityGraphActionInput,
+) -> _ResolvedGraphAction:
+    if request.step_id:
+        plan = build_graph_action_plan(state, limit=32)
+        for step in plan.suggested_steps:
+            if step.step_id != request.step_id:
+                continue
+            merged_args = dict(step.args)
+            merged_args.update(request.args or {})
+            if request.domain and request.domain != step.domain:
+                raise ValueError(
+                    f"step_id {request.step_id} resolves to {step.domain}, "
+                    f"not {request.domain}"
+                )
+            if request.action and request.action != step.action:
+                raise ValueError(
+                    f"step_id {request.step_id} resolves to {step.action}, "
+                    f"not {request.action}"
+                )
+            return _ResolvedGraphAction(
+                domain=step.domain,
+                action=step.action,
+                tool=step.tool,
+                args=merged_args,
+                title=step.title,
+                step_id=step.step_id,
+            )
+        raise ValueError(f"unknown graph plan step: {request.step_id}")
+
+    if request.domain is None or request.action is None:
+        raise ValueError("graph action requires either step_id or domain + action")
+    schema = _ACTION_SCHEMA_INDEX.get((request.domain, request.action))
+    if schema is None:
+        raise ValueError(f"unsupported graph action: {request.domain}.{request.action}")
+    for field in schema.required_args:
+        if field not in request.args or request.args.get(field) in {None, ""}:
+            raise ValueError(
+                f"{request.domain}.{request.action} requires argument: {field}"
+            )
+    return _ResolvedGraphAction(
+        domain=request.domain,
+        action=request.action,
+        tool=schema.tool,
+        args=dict(request.args),
+        title=schema.title,
+    )
 
 
 def _build_comm_graph(components: Dict[str, Dict[str, Any]]) -> Optional[CommGraphView]:
@@ -297,16 +444,636 @@ def _build_revenue_graph(
     return RevenueGraphView(companies=companies, contacts=contacts, deals=deals)
 
 
+def _build_data_graph(components: Dict[str, Dict[str, Any]]) -> Optional[DataGraphView]:
+    spreadsheet = components.get("spreadsheet", {})
+    workbooks = [
+        DataWorkbookView(
+            workbook_id=str(workbook_id),
+            title=str(payload.get("title", workbook_id)),
+            owner=_optional_str(payload.get("owner")),
+            sheet_count=len(payload.get("sheets", {})),
+            shared_with=[str(item) for item in (payload.get("shared_with") or [])],
+        )
+        for workbook_id, payload in sorted((spreadsheet.get("workbooks") or {}).items())
+    ]
+    if not workbooks:
+        return None
+    return DataGraphView(workbooks=workbooks)
+
+
+def _build_obs_graph(components: Dict[str, Dict[str, Any]]) -> Optional[ObsGraphView]:
+    datadog = components.get("datadog", {})
+    pagerduty = components.get("pagerduty", {})
+    services = [
+        ObsServiceView(
+            service_id=str(service_id),
+            name=str(payload.get("name", service_id)),
+            status=str(payload.get("status", "unknown")),
+            error_rate_pct=(
+                float(payload.get("error_rate_pct"))
+                if payload.get("error_rate_pct") is not None
+                else None
+            ),
+            latency_p95_ms=(
+                int(payload.get("latency_p95_ms"))
+                if payload.get("latency_p95_ms") is not None
+                else None
+            ),
+            revenue_tier=_optional_str(payload.get("revenue_tier")),
+        )
+        for service_id, payload in sorted((datadog.get("services") or {}).items())
+    ]
+    monitors = [
+        ObsMonitorView(
+            monitor_id=str(monitor_id),
+            title=str(payload.get("title", monitor_id)),
+            service_id=_optional_str(payload.get("service_id")),
+            status=str(payload.get("status", "unknown")),
+            severity=_optional_str(payload.get("severity")),
+            muted=bool(payload.get("muted", False)),
+        )
+        for monitor_id, payload in sorted((datadog.get("monitors") or {}).items())
+    ]
+    incidents = [
+        ObsIncidentView(
+            incident_id=str(incident_id),
+            title=str(payload.get("title", incident_id)),
+            status=str(payload.get("status", "unknown")),
+            urgency=_optional_str(payload.get("urgency")),
+            service_id=_optional_str(payload.get("service_id")),
+            assignee=_optional_str(payload.get("assignee")),
+        )
+        for incident_id, payload in sorted((pagerduty.get("incidents") or {}).items())
+    ]
+    if not services and not monitors and not incidents:
+        return None
+    return ObsGraphView(services=services, monitors=monitors, incidents=incidents)
+
+
+def _build_ops_graph(components: Dict[str, Dict[str, Any]]) -> Optional[OpsGraphView]:
+    feature_flags = components.get("feature_flags", {})
+    flags = [
+        OpsFlagView(
+            flag_key=str(flag_key),
+            service=_optional_str(payload.get("service")),
+            env=_optional_str(payload.get("env")),
+            enabled=bool(payload.get("enabled", False)),
+            rollout_pct=int(payload.get("rollout_pct", 0) or 0),
+        )
+        for flag_key, payload in sorted((feature_flags.get("flags") or {}).items())
+    ]
+    if not flags:
+        return None
+    return OpsGraphView(flags=flags)
+
+
+def _suggest_graph_steps(
+    state: WorldState, graphs: RuntimeCapabilityGraphs
+) -> list[CapabilityGraphPlanStep]:
+    graph_seed = _builder_capability_graphs(state)
+    organization_domain = _optional_str(graph_seed.get("organization_domain"))
+    steps: list[CapabilityGraphPlanStep] = []
+    steps.extend(_identity_steps(state, graphs.identity_graph))
+    steps.extend(
+        _doc_steps(state, graphs.doc_graph, graphs.identity_graph, organization_domain)
+    )
+    steps.extend(_obs_steps(state, graphs.obs_graph))
+    steps.extend(_ops_steps(state, graphs.ops_graph))
+    steps.extend(_data_steps(state, graphs.data_graph))
+    steps.extend(_work_steps(state, graphs.work_graph))
+    steps.extend(_revenue_steps(state, graphs.revenue_graph, graphs.identity_graph))
+    steps.extend(_comm_steps(graphs.comm_graph))
+    return sorted(steps, key=_plan_sort_key)
+
+
+def _identity_steps(
+    state: WorldState, graph: Optional[IdentityGraphView]
+) -> list[CapabilityGraphPlanStep]:
+    if graph is None:
+        return []
+    active_employee_emails = {
+        employee.email
+        for employee in graph.hris_employees
+        if employee.status.upper() in {"ACTIVE", "PENDING"}
+    }
+    allowed_apps = _unique(
+        app_id
+        for policy in graph.policies
+        for app_id in policy.allowed_application_ids
+        if app_id
+    )
+    steps: list[CapabilityGraphPlanStep] = []
+    for user in graph.users:
+        if user.status.upper() in {"SUSPENDED", "DEPROVISIONED"}:
+            continue
+        if user.email not in active_employee_emails and active_employee_emails:
+            steps.append(
+                _plan_step(
+                    domain="identity_graph",
+                    action="suspend_user",
+                    title=f"Suspend stale user {user.email}",
+                    rationale="This user is not present in the active employee set.",
+                    priority="high",
+                    tool="okta.suspend_user",
+                    args={
+                        "user_id": user.user_id,
+                        "reason": "Capability graph plan: stale identity not present in active HRIS records.",
+                    },
+                    target_id=user.user_id,
+                    target_kind="user",
+                    tags=["identity", "least_privilege"],
+                )
+            )
+        missing_apps = [
+            app_id for app_id in allowed_apps if app_id not in set(user.applications)
+        ]
+        if missing_apps and _user_has_identity_conflict(user, graph):
+            steps.append(
+                _plan_step(
+                    domain="identity_graph",
+                    action="assign_application",
+                    title=f"Grant {missing_apps[0]} to {user.email}",
+                    rationale="The active identity policy allows this application, and the user is still missing it.",
+                    priority="high",
+                    tool="okta.assign_application",
+                    args={"user_id": user.user_id, "app_id": missing_apps[0]},
+                    target_id=user.user_id,
+                    target_kind="application_assignment",
+                    tags=["identity", "least_privilege", "onboarding"],
+                )
+            )
+    return steps
+
+
+def _doc_steps(
+    state: WorldState,
+    graph: Optional[DocGraphView],
+    identity_graph: Optional[IdentityGraphView],
+    organization_domain: Optional[str],
+) -> list[CapabilityGraphPlanStep]:
+    if graph is None:
+        return []
+    forbidden_domains = {
+        domain
+        for policy in (identity_graph.policies if identity_graph else [])
+        for domain in policy.forbidden_share_domains
+        if domain
+    }
+    owner_candidate = _preferred_owner_email(identity_graph)
+    steps: list[CapabilityGraphPlanStep] = []
+    for share in graph.drive_shares:
+        external_principals = [
+            principal
+            for principal in share.shared_with
+            if _is_external_principal(principal, organization_domain, forbidden_domains)
+        ]
+        if share.visibility == "external_link" or external_principals:
+            steps.append(
+                _plan_step(
+                    domain="doc_graph",
+                    action="restrict_drive_share",
+                    title=f"Restrict external sharing on {share.title}",
+                    rationale="The drive share is externally exposed or includes forbidden external principals.",
+                    priority="high",
+                    tool="google_admin.restrict_drive_share",
+                    args={
+                        "doc_id": share.doc_id,
+                        "visibility": "internal",
+                        "note": "Capability graph plan: remove external sharing and return the doc to internal visibility.",
+                    },
+                    target_id=share.doc_id,
+                    target_kind="drive_share",
+                    tags=["docs", "oversharing", "policy"],
+                )
+            )
+        if owner_candidate and _looks_departed_owner(share.owner):
+            steps.append(
+                _plan_step(
+                    domain="doc_graph",
+                    action="transfer_drive_ownership",
+                    title=f"Transfer {share.title} to {owner_candidate}",
+                    rationale="The current drive owner looks stale for this organization state.",
+                    priority="high",
+                    tool="google_admin.transfer_drive_ownership",
+                    args={
+                        "doc_id": share.doc_id,
+                        "owner": owner_candidate,
+                        "note": "Capability graph plan: move ownership to an active internal owner.",
+                    },
+                    target_id=share.doc_id,
+                    target_kind="drive_share",
+                    tags=["docs", "ownership"],
+                )
+            )
+    documents = state.components.get("docs", {}).get("docs", {})
+    for document in graph.documents:
+        metadata = (
+            state.components.get("docs", {})
+            .get("metadata", {})
+            .get(document.doc_id, {})
+        )
+        if "checklist" in document.title.lower() or "comms" in document.title.lower():
+            steps.append(
+                _plan_step(
+                    domain="doc_graph",
+                    action="update_document",
+                    title=f"Update {document.title} with a fresh status note",
+                    rationale="This document looks like an active runbook or comms artifact and should reflect current state.",
+                    priority="medium",
+                    tool="docs.update",
+                    args={
+                        "doc_id": document.doc_id,
+                        "body": str(documents.get(document.doc_id, {}).get("body", ""))
+                        + "\n\nUpdated from capability graph plan.",
+                        "status": metadata.get("status", "ACTIVE"),
+                    },
+                    target_id=document.doc_id,
+                    target_kind="document",
+                    tags=["docs", "artifact_follow_through"],
+                )
+            )
+            break
+    return steps
+
+
+def _obs_steps(
+    state: WorldState, graph: Optional[ObsGraphView]
+) -> list[CapabilityGraphPlanStep]:
+    if graph is None:
+        return []
+    steps: list[CapabilityGraphPlanStep] = []
+    for incident in graph.incidents:
+        if incident.status.lower() == "triggered":
+            steps.append(
+                _plan_step(
+                    domain="obs_graph",
+                    action="ack_incident",
+                    title=f"Acknowledge incident {incident.incident_id}",
+                    rationale="Triggered incidents should be acknowledged early to establish ownership.",
+                    priority="high",
+                    tool="pagerduty.ack_incident",
+                    args={
+                        "incident_id": incident.incident_id,
+                        "assignee": incident.assignee,
+                    },
+                    target_id=incident.incident_id,
+                    target_kind="incident",
+                    tags=["incident_response", "ownership"],
+                )
+            )
+    for service in graph.services:
+        if service.status.lower() in {"degraded", "alert", "investigating"}:
+            steps.append(
+                _plan_step(
+                    domain="obs_graph",
+                    action="annotate_service",
+                    title=f"Annotate {service.name} with investigation status",
+                    rationale="Degraded services should carry a visible operator note while mitigation is underway.",
+                    priority="medium",
+                    tool="datadog.update_service",
+                    args={
+                        "service_id": service.service_id,
+                        "status": service.status,
+                        "note": "Capability graph plan: investigating and mitigating.",
+                    },
+                    target_id=service.service_id,
+                    target_kind="service",
+                    tags=["observability", "annotation"],
+                )
+            )
+            break
+    return steps
+
+
+def _ops_steps(
+    state: WorldState, graph: Optional[OpsGraphView]
+) -> list[CapabilityGraphPlanStep]:
+    if graph is None:
+        return []
+    steps: list[CapabilityGraphPlanStep] = []
+    for flag in graph.flags:
+        if flag.enabled and flag.rollout_pct > 50 and "kill" not in flag.flag_key:
+            target_rollout = (
+                0 if flag.rollout_pct >= 50 else max(0, flag.rollout_pct // 2)
+            )
+            steps.append(
+                _plan_step(
+                    domain="ops_graph",
+                    action="update_rollout",
+                    title=f"Reduce rollout for {flag.flag_key}",
+                    rationale="This flag is broadly enabled and should be reduced while the system is unhealthy.",
+                    priority="high",
+                    tool="feature_flags.update_rollout",
+                    args={
+                        "flag_key": flag.flag_key,
+                        "rollout_pct": target_rollout,
+                        "env": flag.env,
+                        "reason": "Capability graph plan: reduce blast radius during mitigation.",
+                    },
+                    target_id=flag.flag_key,
+                    target_kind="feature_flag",
+                    tags=["rollout", "blast_radius"],
+                )
+            )
+    return steps
+
+
+def _data_steps(
+    state: WorldState, graph: Optional[DataGraphView]
+) -> list[CapabilityGraphPlanStep]:
+    if graph is None:
+        return []
+    spreadsheet = state.components.get("spreadsheet", {})
+    steps: list[CapabilityGraphPlanStep] = []
+    for workbook in graph.workbooks:
+        sheets = (
+            spreadsheet.get("workbooks", {})
+            .get(workbook.workbook_id, {})
+            .get("sheets", {})
+        )
+        if not sheets:
+            continue
+        first_sheet_id, first_sheet = next(iter(sheets.items()))
+        first_table = (first_sheet.get("tables") or [{}])[0]
+        title = workbook.title.lower()
+        if "revenue" in title or "flight deck" in title or "impact" in title:
+            steps.append(
+                _plan_step(
+                    domain="data_graph",
+                    action="upsert_row",
+                    title=f"Capture impact row in {workbook.title}",
+                    rationale="This workbook looks like the active operating workbook for the incident and should record impact explicitly.",
+                    priority="medium",
+                    tool="spreadsheet.upsert_row",
+                    args={
+                        "workbook_id": workbook.workbook_id,
+                        "sheet_id": str(first_sheet_id),
+                        "match_field": "metric",
+                        "match_value": "estimated_revenue_impact",
+                        "row": {
+                            "metric": "estimated_revenue_impact",
+                            "value": "pending_assessment",
+                            "notes": "Added from capability graph plan.",
+                        },
+                        "table_id": first_table.get("table_id"),
+                    },
+                    target_id=workbook.workbook_id,
+                    target_kind="workbook",
+                    tags=["spreadsheet", "impact_assessment"],
+                )
+            )
+            break
+    return steps
+
+
+def _work_steps(
+    state: WorldState, graph: Optional[WorkGraphView]
+) -> list[CapabilityGraphPlanStep]:
+    if graph is None:
+        return []
+    steps: list[CapabilityGraphPlanStep] = []
+    for ticket in graph.tickets:
+        if ticket.item_id.startswith("JRA-") and ticket.status.lower() == "open":
+            steps.append(
+                _plan_step(
+                    domain="work_graph",
+                    action="transition_issue",
+                    title=f"Move issue {ticket.item_id} into progress",
+                    rationale="Open tracker issues should move into active execution once work begins.",
+                    priority="medium",
+                    tool="jira.transition_issue",
+                    args={"issue_id": ticket.item_id, "status": "in_progress"},
+                    target_id=ticket.item_id,
+                    target_kind="issue",
+                    tags=["tracker", "execution"],
+                )
+            )
+        elif ticket.status.lower() == "open":
+            steps.append(
+                _plan_step(
+                    domain="work_graph",
+                    action="transition_ticket",
+                    title=f"Move ticket {ticket.item_id} into progress",
+                    rationale="Open tickets should reflect that work is underway.",
+                    priority="medium",
+                    tool="tickets.transition",
+                    args={"ticket_id": ticket.item_id, "status": "in_progress"},
+                    target_id=ticket.item_id,
+                    target_kind="ticket",
+                    tags=["ticketing", "execution"],
+                )
+            )
+    service_request_state = state.components.get("servicedesk", {}).get("requests", {})
+    for request in graph.service_requests:
+        raw = service_request_state.get(request.request_id, {})
+        pending_stage = next(
+            (
+                item.get("stage")
+                for item in (raw.get("approvals") or [])
+                if str(item.get("status", "")).upper() == "PENDING"
+            ),
+            None,
+        )
+        if pending_stage:
+            steps.append(
+                _plan_step(
+                    domain="work_graph",
+                    action="update_request_approval",
+                    title=f"Advance approval on {request.request_id}",
+                    rationale="This service request is blocked on an explicit approval stage.",
+                    priority="high",
+                    tool="servicedesk.update_request",
+                    args={
+                        "request_id": request.request_id,
+                        "approval_stage": str(pending_stage),
+                        "approval_status": "APPROVED",
+                        "comment": "Capability graph plan: approval advanced.",
+                    },
+                    target_id=request.request_id,
+                    target_kind="service_request",
+                    tags=["approval", "workflow"],
+                )
+            )
+    for incident in graph.incidents:
+        if incident.status.lower() in {"new", "in_progress"}:
+            steps.append(
+                _plan_step(
+                    domain="work_graph",
+                    action="update_incident",
+                    title=f"Add operator note to incident {incident.item_id}",
+                    rationale="The incident record should reflect current mitigation work.",
+                    priority="medium",
+                    tool="servicedesk.update_incident",
+                    args={
+                        "incident_id": incident.item_id,
+                        "status": incident.status,
+                        "comment": "Capability graph plan: mitigation in progress.",
+                    },
+                    target_id=incident.item_id,
+                    target_kind="incident",
+                    tags=["incident_record", "artifact_follow_through"],
+                )
+            )
+            break
+    return steps
+
+
+def _revenue_steps(
+    state: WorldState,
+    graph: Optional[RevenueGraphView],
+    identity_graph: Optional[IdentityGraphView],
+) -> list[CapabilityGraphPlanStep]:
+    if graph is None:
+        return []
+    preferred_owner = _preferred_owner_email(identity_graph)
+    steps: list[CapabilityGraphPlanStep] = []
+    for deal in graph.deals:
+        if preferred_owner and _looks_departed_owner(deal.owner):
+            steps.append(
+                _plan_step(
+                    domain="revenue_graph",
+                    action="reassign_deal_owner",
+                    title=f"Reassign deal {deal.deal_id} to {preferred_owner}",
+                    rationale="The current revenue owner looks stale for this organization state.",
+                    priority="high",
+                    tool="crm.reassign_deal_owner",
+                    args={"id": deal.deal_id, "owner": preferred_owner},
+                    target_id=deal.deal_id,
+                    target_kind="deal",
+                    tags=["revenue", "ownership"],
+                )
+            )
+        steps.append(
+            _plan_step(
+                domain="revenue_graph",
+                action="log_activity",
+                title=f"Log a revenue-impact note on {deal.deal_id}",
+                rationale="Important deals should carry an explicit activity trail during material incidents.",
+                priority="medium",
+                tool="crm.log_activity",
+                args={
+                    "kind": "note",
+                    "deal_id": deal.deal_id,
+                    "contact_id": deal.contact_id,
+                    "note": "Capability graph plan: incident mitigation may affect conversion and revenue timing.",
+                },
+                target_id=deal.deal_id,
+                target_kind="deal",
+                tags=["revenue", "artifact_follow_through"],
+            )
+        )
+        break
+    return steps
+
+
+def _comm_steps(graph: Optional[CommGraphView]) -> list[CapabilityGraphPlanStep]:
+    if graph is None or not graph.channels:
+        return []
+    channel = graph.channels[0]
+    return [
+        _plan_step(
+            domain="comm_graph",
+            action="post_message",
+            title=f"Post an update in {channel.channel}",
+            rationale="Visible coordination channels should carry a concise progress update.",
+            priority="low",
+            tool="slack.send_message",
+            args={
+                "channel": channel.channel,
+                "text": "Capability graph plan: investigating now and updating related systems.",
+            },
+            target_id=channel.channel,
+            target_kind="channel",
+            tags=["communication"],
+        )
+    ]
+
+
+def _plan_step(
+    *,
+    domain: CapabilityDomain,
+    action: str,
+    title: str,
+    rationale: str,
+    priority: str,
+    tool: str,
+    args: Dict[str, Any],
+    target_id: Optional[str],
+    target_kind: Optional[str],
+    tags: Iterable[str],
+) -> CapabilityGraphPlanStep:
+    identifier = target_id or title.lower().replace(" ", "-")
+    return CapabilityGraphPlanStep(
+        step_id=f"{domain}:{action}:{identifier}",
+        domain=domain,
+        action=action,
+        title=title,
+        rationale=rationale,
+        priority=priority,
+        tool=tool,
+        args=args,
+        target_id=target_id,
+        target_kind=target_kind,
+        tags=[str(tag) for tag in tags],
+    )
+
+
+def _plan_sort_key(step: CapabilityGraphPlanStep) -> tuple[int, str, str]:
+    priority_rank = {"high": 0, "medium": 1, "low": 2}
+    return (priority_rank.get(step.priority, 99), step.domain, step.step_id)
+
+
 def _scenario_metadata(state: WorldState) -> Dict[str, Any]:
     scenario = state.scenario or {}
     metadata = scenario.get("metadata")
     return metadata if isinstance(metadata, dict) else {}
 
 
+def _allowed_domains(state: WorldState) -> Optional[set[str]]:
+    metadata = _scenario_metadata(state)
+    hint_map = metadata.get("builder_blueprint_orientation")
+    if not isinstance(hint_map, dict):
+        return None
+    raw = hint_map.get("capability_domains")
+    if not isinstance(raw, list):
+        return None
+    normalized = {str(item).strip().lower() for item in raw if str(item).strip()}
+    return normalized or None
+
+
 def _builder_capability_graphs(state: WorldState) -> Dict[str, Any]:
     metadata = _scenario_metadata(state)
     raw = metadata.get("builder_capability_graphs")
     return raw if isinstance(raw, dict) else {}
+
+
+def _scenario_name(state: WorldState) -> Optional[str]:
+    scenario = state.scenario or {}
+    metadata = _scenario_metadata(state)
+    return (
+        _optional_str(scenario.get("name"))
+        or _optional_str(metadata.get("builder_runtime_scenario_name"))
+        or _optional_str(metadata.get("scenario_name"))
+        or _optional_str(metadata.get("scenario_template_name"))
+    )
+
+
+def _normalize_domain(domain: str) -> CapabilityDomain:
+    normalized = domain.strip().lower()
+    if normalized not in _DOMAIN_SET:
+        raise KeyError(f"unknown capability graph domain: {domain}")
+    return normalized  # type: ignore[return-value]
+
+
+def _unique(items: Iterable[Optional[str]]) -> list[str]:
+    seen: set[str] = set()
+    ordered: list[str] = []
+    for item in items:
+        if item is None or item in seen:
+            continue
+        seen.add(item)
+        ordered.append(item)
+    return ordered
 
 
 def _optional_str(value: Any) -> Optional[str]:
@@ -324,7 +1091,397 @@ def _full_name(payload: Dict[str, Any]) -> Optional[str]:
     return first or last
 
 
+def _email_domain(principal: str) -> Optional[str]:
+    if "@" not in principal:
+        return None
+    return principal.rsplit("@", 1)[1].lower()
+
+
+def _is_external_principal(
+    principal: str,
+    organization_domain: Optional[str],
+    forbidden_domains: set[str],
+) -> bool:
+    domain = _email_domain(principal)
+    if domain is None:
+        return True
+    if domain in forbidden_domains:
+        return True
+    if domain.endswith("example.com"):
+        return False
+    if organization_domain and domain == organization_domain.lower():
+        return False
+    return True
+
+
+def _preferred_owner_email(
+    identity_graph: Optional[IdentityGraphView],
+) -> Optional[str]:
+    if identity_graph is None:
+        return None
+    for employee in identity_graph.hris_employees:
+        if employee.status.upper() == "ACTIVE" and not employee.identity_conflict:
+            return employee.email
+    for user in identity_graph.users:
+        if user.status.upper() == "ACTIVE":
+            return user.email
+    return None
+
+
+def _looks_departed_owner(owner: Optional[str]) -> bool:
+    if owner is None:
+        return False
+    lowered = owner.lower()
+    return any(marker in lowered for marker in ("departed", "former", "oldco"))
+
+
+def _user_has_identity_conflict(
+    user: IdentityUserView, graph: IdentityGraphView
+) -> bool:
+    for employee in graph.hris_employees:
+        if employee.email == user.email and employee.identity_conflict:
+            return True
+    return False
+
+
+def _focus_for_domain(domain: CapabilityDomain) -> Optional[str]:
+    return _DOMAIN_FOCUS.get(domain)
+
+
+def _schema(
+    *,
+    domain: CapabilityDomain,
+    action: str,
+    title: str,
+    description: str,
+    tool: str,
+    required_args: Iterable[str],
+    optional_args: Iterable[str] = (),
+    tags: Iterable[str] = (),
+) -> CapabilityGraphActionSchema:
+    return CapabilityGraphActionSchema(
+        domain=domain,
+        action=action,
+        title=title,
+        description=description,
+        tool=tool,
+        required_args=[str(item) for item in required_args],
+        optional_args=[str(item) for item in optional_args],
+        tags=[str(item) for item in tags],
+    )
+
+
+_ACTION_SCHEMAS = [
+    _schema(
+        domain="comm_graph",
+        action="post_message",
+        title="Post message",
+        description="Post a coordination update into a visible communication channel.",
+        tool="slack.send_message",
+        required_args=("channel", "text"),
+        optional_args=("thread_ts",),
+        tags=("communication",),
+    ),
+    _schema(
+        domain="doc_graph",
+        action="update_document",
+        title="Update document",
+        description="Update a document artifact such as a runbook or comms note.",
+        tool="docs.update",
+        required_args=("doc_id",),
+        optional_args=("title", "body", "tags", "status"),
+        tags=("docs",),
+    ),
+    _schema(
+        domain="doc_graph",
+        action="restrict_drive_share",
+        title="Restrict drive share",
+        description="Reduce a drive share back to a safer visibility setting.",
+        tool="google_admin.restrict_drive_share",
+        required_args=("doc_id",),
+        optional_args=("visibility", "note"),
+        tags=("docs", "policy"),
+    ),
+    _schema(
+        domain="doc_graph",
+        action="transfer_drive_ownership",
+        title="Transfer drive ownership",
+        description="Move a drive document to a new active owner.",
+        tool="google_admin.transfer_drive_ownership",
+        required_args=("doc_id", "owner"),
+        optional_args=("note",),
+        tags=("docs", "ownership"),
+    ),
+    _schema(
+        domain="work_graph",
+        action="transition_ticket",
+        title="Transition ticket",
+        description="Move a ticket to a new workflow state.",
+        tool="tickets.transition",
+        required_args=("ticket_id", "status"),
+        tags=("ticketing",),
+    ),
+    _schema(
+        domain="work_graph",
+        action="add_ticket_comment",
+        title="Comment on ticket",
+        description="Add a comment to a ticket artifact.",
+        tool="tickets.add_comment",
+        required_args=("ticket_id", "body"),
+        optional_args=("author",),
+        tags=("ticketing", "artifact_follow_through"),
+    ),
+    _schema(
+        domain="work_graph",
+        action="transition_issue",
+        title="Transition issue",
+        description="Move a Jira-style issue to a new workflow state.",
+        tool="jira.transition_issue",
+        required_args=("issue_id", "status"),
+        tags=("tracker",),
+    ),
+    _schema(
+        domain="work_graph",
+        action="add_issue_comment",
+        title="Comment on issue",
+        description="Add a note to a Jira-style issue.",
+        tool="jira.add_comment",
+        required_args=("issue_id", "body"),
+        optional_args=("author",),
+        tags=("tracker", "artifact_follow_through"),
+    ),
+    _schema(
+        domain="work_graph",
+        action="update_request_approval",
+        title="Update request approval",
+        description="Advance or revise a service request approval stage.",
+        tool="servicedesk.update_request",
+        required_args=("request_id",),
+        optional_args=("status", "approval_stage", "approval_status", "comment"),
+        tags=("approval",),
+    ),
+    _schema(
+        domain="work_graph",
+        action="update_incident",
+        title="Update incident",
+        description="Update the status or note trail on a service incident.",
+        tool="servicedesk.update_incident",
+        required_args=("incident_id",),
+        optional_args=("status", "assignee", "comment"),
+        tags=("incident_record",),
+    ),
+    _schema(
+        domain="identity_graph",
+        action="assign_group",
+        title="Assign group",
+        description="Add a user to an identity group.",
+        tool="okta.assign_group",
+        required_args=("user_id", "group_id"),
+        tags=("identity",),
+    ),
+    _schema(
+        domain="identity_graph",
+        action="remove_group",
+        title="Remove group",
+        description="Remove a user from an identity group.",
+        tool="okta.unassign_group",
+        required_args=("user_id", "group_id"),
+        tags=("identity", "least_privilege"),
+    ),
+    _schema(
+        domain="identity_graph",
+        action="assign_application",
+        title="Assign application",
+        description="Grant an application assignment to a user.",
+        tool="okta.assign_application",
+        required_args=("user_id", "app_id"),
+        tags=("identity", "access"),
+    ),
+    _schema(
+        domain="identity_graph",
+        action="remove_application",
+        title="Remove application",
+        description="Remove an application assignment from a user.",
+        tool="okta.unassign_application",
+        required_args=("user_id", "app_id"),
+        tags=("identity", "least_privilege"),
+    ),
+    _schema(
+        domain="identity_graph",
+        action="suspend_user",
+        title="Suspend user",
+        description="Suspend a user account during containment or offboarding.",
+        tool="okta.suspend_user",
+        required_args=("user_id",),
+        optional_args=("reason",),
+        tags=("identity", "containment"),
+    ),
+    _schema(
+        domain="identity_graph",
+        action="unsuspend_user",
+        title="Unsuspend user",
+        description="Restore access to a suspended user account.",
+        tool="okta.unsuspend_user",
+        required_args=("user_id",),
+        tags=("identity", "recovery"),
+    ),
+    _schema(
+        domain="revenue_graph",
+        action="update_deal_stage",
+        title="Update deal stage",
+        description="Move a revenue deal to a different stage.",
+        tool="crm.update_deal_stage",
+        required_args=("id", "stage"),
+        tags=("revenue",),
+    ),
+    _schema(
+        domain="revenue_graph",
+        action="reassign_deal_owner",
+        title="Reassign deal owner",
+        description="Move revenue ownership to a new seller or manager.",
+        tool="crm.reassign_deal_owner",
+        required_args=("id", "owner"),
+        tags=("revenue", "ownership"),
+    ),
+    _schema(
+        domain="revenue_graph",
+        action="log_activity",
+        title="Log CRM activity",
+        description="Attach a note or outreach artifact to a deal or contact.",
+        tool="crm.log_activity",
+        required_args=("kind",),
+        optional_args=("deal_id", "contact_id", "note"),
+        tags=("revenue", "artifact_follow_through"),
+    ),
+    _schema(
+        domain="data_graph",
+        action="update_cell",
+        title="Update cell",
+        description="Edit a single spreadsheet cell.",
+        tool="spreadsheet.update_cell",
+        required_args=("workbook_id", "sheet_id", "cell", "value"),
+        optional_args=("note",),
+        tags=("spreadsheet",),
+    ),
+    _schema(
+        domain="data_graph",
+        action="upsert_row",
+        title="Upsert row",
+        description="Insert or update a spreadsheet row in a table-like sheet.",
+        tool="spreadsheet.upsert_row",
+        required_args=("workbook_id", "sheet_id", "match_field", "match_value", "row"),
+        optional_args=("table_id",),
+        tags=("spreadsheet", "analysis"),
+    ),
+    _schema(
+        domain="data_graph",
+        action="set_formula",
+        title="Set formula",
+        description="Write a spreadsheet formula into a cell.",
+        tool="spreadsheet.set_formula",
+        required_args=("workbook_id", "sheet_id", "cell", "formula"),
+        tags=("spreadsheet", "analysis"),
+    ),
+    _schema(
+        domain="data_graph",
+        action="share_workbook",
+        title="Share workbook",
+        description="Adjust workbook sharing to another principal.",
+        tool="spreadsheet.share_workbook",
+        required_args=("workbook_id", "principal", "role"),
+        tags=("spreadsheet", "sharing"),
+    ),
+    _schema(
+        domain="obs_graph",
+        action="ack_incident",
+        title="Acknowledge incident",
+        description="Take ownership of a live incident.",
+        tool="pagerduty.ack_incident",
+        required_args=("incident_id",),
+        optional_args=("assignee",),
+        tags=("incident_response",),
+    ),
+    _schema(
+        domain="obs_graph",
+        action="resolve_incident",
+        title="Resolve incident",
+        description="Mark a PagerDuty incident as resolved.",
+        tool="pagerduty.resolve_incident",
+        required_args=("incident_id",),
+        optional_args=("note",),
+        tags=("incident_response", "closure"),
+    ),
+    _schema(
+        domain="obs_graph",
+        action="escalate_incident",
+        title="Escalate incident",
+        description="Reassign a live incident to another responder.",
+        tool="pagerduty.escalate_incident",
+        required_args=("incident_id", "assignee"),
+        tags=("incident_response", "escalation"),
+    ),
+    _schema(
+        domain="obs_graph",
+        action="annotate_service",
+        title="Annotate service",
+        description="Write a status/note update onto a monitored service.",
+        tool="datadog.update_service",
+        required_args=("service_id",),
+        optional_args=("status", "note"),
+        tags=("observability",),
+    ),
+    _schema(
+        domain="ops_graph",
+        action="set_flag",
+        title="Set feature flag",
+        description="Enable or disable a feature flag.",
+        tool="feature_flags.set_flag",
+        required_args=("flag_key", "enabled"),
+        optional_args=("env", "reason"),
+        tags=("rollout",),
+    ),
+    _schema(
+        domain="ops_graph",
+        action="update_rollout",
+        title="Update rollout",
+        description="Change the rollout percentage for a feature flag.",
+        tool="feature_flags.update_rollout",
+        required_args=("flag_key", "rollout_pct"),
+        optional_args=("env", "reason"),
+        tags=("rollout", "blast_radius"),
+    ),
+]
+
+_ACTION_SCHEMA_INDEX = {
+    (schema.domain, schema.action): schema for schema in _ACTION_SCHEMAS
+}
+
+_DOMAIN_SET = {
+    "comm_graph",
+    "doc_graph",
+    "work_graph",
+    "identity_graph",
+    "revenue_graph",
+    "data_graph",
+    "obs_graph",
+    "ops_graph",
+}
+
+_DOMAIN_FOCUS = {
+    "comm_graph": "slack",
+    "doc_graph": "docs",
+    "work_graph": "tickets",
+    "identity_graph": "identity",
+    "revenue_graph": "crm",
+    "data_graph": "spreadsheet",
+    "obs_graph": "pagerduty",
+    "ops_graph": "feature_flags",
+}
+
+
 __all__ = [
+    "build_graph_action_plan",
     "build_runtime_capability_graphs",
     "get_runtime_capability_graph",
+    "resolve_graph_action",
 ]

@@ -211,6 +211,53 @@ def _key_objects(graphs: Any) -> List[OrientationObject]:
                     status=deal.stage,
                 )
             )
+    if graphs.data_graph is not None:
+        for workbook in graphs.data_graph.workbooks[:1]:
+            objects.append(
+                OrientationObject(
+                    domain="data_graph",
+                    kind="workbook",
+                    object_id=workbook.workbook_id,
+                    title=workbook.title,
+                    status=f"{workbook.sheet_count} sheets",
+                    reason="analysis surface available",
+                )
+            )
+    if graphs.obs_graph is not None:
+        for incident in graphs.obs_graph.incidents[:1]:
+            objects.append(
+                OrientationObject(
+                    domain="obs_graph",
+                    kind="incident",
+                    object_id=incident.incident_id,
+                    title=incident.title,
+                    status=incident.status,
+                    reason="live operational signal",
+                )
+            )
+        for service in graphs.obs_graph.services[:1]:
+            objects.append(
+                OrientationObject(
+                    domain="obs_graph",
+                    kind="service",
+                    object_id=service.service_id,
+                    title=service.name,
+                    status=service.status,
+                    reason="service health requires review",
+                )
+            )
+    if graphs.ops_graph is not None:
+        for flag in graphs.ops_graph.flags[:1]:
+            objects.append(
+                OrientationObject(
+                    domain="ops_graph",
+                    kind="feature_flag",
+                    object_id=flag.flag_key,
+                    title=flag.flag_key,
+                    status=f"{flag.rollout_pct}% rollout",
+                    reason="control plane is available",
+                )
+            )
     if graphs.comm_graph is not None:
         for channel in graphs.comm_graph.channels[:2]:
             objects.append(
@@ -273,12 +320,16 @@ def _next_questions(
         )
     if "revenue_graph" in domains:
         questions.append("Which revenue object or owner changes depend on the task?")
+    if "data_graph" in domains:
+        questions.append("Which workbook or analysis sheet needs to be updated?")
     if any(item.domain == "identity_graph" for item in key_objects):
         questions.append("Which identity records or approvals are currently unsafe?")
     if any(item.domain == "doc_graph" for item in key_objects):
         questions.append("Is any document or drive share still overshared?")
     if any(item.domain == "work_graph" for item in key_objects):
         questions.append("Which tracking ticket or request should be updated next?")
+    if any(item.domain == "ops_graph" for item in key_objects):
+        questions.append("Which rollout control can safely reduce blast radius?")
     if not questions:
         questions.append("Which domain should the agent inspect first?")
     return questions[:5]

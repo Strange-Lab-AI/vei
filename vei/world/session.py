@@ -7,8 +7,18 @@ from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, TYPE_CHECKING
 
 from vei.blueprint.plugins import list_runtime_facade_plugins
-from vei.capability_graph.api import build_runtime_capability_graphs
-from vei.capability_graph.models import RuntimeCapabilityGraphs
+from vei.capability_graph.api import (
+    build_graph_action_plan,
+    build_runtime_capability_graphs,
+    get_runtime_capability_graph,
+    resolve_graph_action,
+)
+from vei.capability_graph.models import (
+    CapabilityGraphActionInput,
+    CapabilityGraphActionResult,
+    CapabilityGraphPlan,
+    RuntimeCapabilityGraphs,
+)
 from vei.connectors.models import ConnectorReceipt
 from vei.identity.api import IdentityApplication, IdentityGroup, IdentityUser
 from vei.monitors.models import MonitorFinding
@@ -649,6 +659,67 @@ class WorldSession:
     def capability_graphs(self) -> RuntimeCapabilityGraphs:
         state = serialize_router_state(self.router)
         return build_runtime_capability_graphs(state)
+
+    def graph_plan(
+        self, *, domain: Optional[str] = None, limit: int = 12
+    ) -> CapabilityGraphPlan:
+        state = serialize_router_state(self.router)
+        return build_graph_action_plan(state, domain=domain, limit=limit)
+
+    def graph_action(
+        self, action: CapabilityGraphActionInput | Dict[str, Any]
+    ) -> CapabilityGraphActionResult:
+        payload = (
+            action
+            if isinstance(action, CapabilityGraphActionInput)
+            else CapabilityGraphActionInput.model_validate(action)
+        )
+        state = serialize_router_state(self.router)
+        resolved = resolve_graph_action(state, payload)
+        result = self.router.call_and_step(resolved.tool, dict(resolved.args))
+        post_state = serialize_router_state(self.router)
+        post_graph = get_runtime_capability_graph(post_state, resolved.domain)
+        next_plan = build_graph_action_plan(post_state, limit=8)
+        executed_focus_map = {
+            "comm_graph": "slack",
+            "doc_graph": "docs",
+            "work_graph": "tickets",
+            "identity_graph": "identity",
+            "revenue_graph": "crm",
+            "data_graph": "spreadsheet",
+            "obs_graph": "pagerduty",
+            "ops_graph": "feature_flags",
+        }
+        next_focuses = list(next_plan.next_focuses)
+        executed_focus = executed_focus_map.get(resolved.domain)
+        if executed_focus and executed_focus not in next_focuses:
+            next_focuses.insert(0, executed_focus)
+        return CapabilityGraphActionResult(
+            ok="error" not in result,
+            branch=post_state.branch,
+            clock_ms=post_state.clock_ms,
+            domain=resolved.domain,
+            action=resolved.action,
+            tool=resolved.tool,
+            tool_args=dict(resolved.args),
+            step_id=resolved.step_id,
+            result=result,
+            graph=(
+                post_graph.model_dump(mode="json")
+                if hasattr(post_graph, "model_dump")
+                else {}
+            ),
+            next_focuses=next_focuses,
+            metadata={
+                "scenario_name": (
+                    str((post_state.scenario or {}).get("name"))
+                    if (post_state.scenario or {}).get("name") is not None
+                    else None
+                ),
+                "step_title": resolved.title,
+                "remaining_suggested_steps": len(next_plan.suggested_steps),
+            },
+        )
 
     def orientation(self) -> WorldOrientation:
         state = serialize_router_state(self.router)

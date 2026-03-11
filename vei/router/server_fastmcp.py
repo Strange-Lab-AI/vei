@@ -1151,6 +1151,44 @@ def create_mcp_server(
             "graph": graphs.get(normalized),
         }
 
+    @srv.tool(
+        name="vei.graph_plan",
+        description="Get suggested next graph-native mutations across identity, docs, work, revenue, spreadsheet, observability, and rollout state",
+    )
+    def vei_graph_plan(domain: str = None, limit: int = 12) -> dict[str, Any]:
+        return W().graph_plan(domain=domain, limit=limit).model_dump(mode="json")
+
+    @srv.tool(
+        name="vei.graph_action",
+        description="Apply a graph-native mutation step, either by explicit domain/action or by a suggested step_id from vei.graph_plan",
+    )
+    def vei_graph_action(
+        domain: str = None,
+        action: str = None,
+        args: dict[str, Any] = Field(default_factory=dict),
+        step_id: str = None,
+    ) -> dict[str, Any]:
+        try:
+            return (
+                W()
+                .graph_action(
+                    {
+                        "domain": domain,
+                        "action": action,
+                        "args": dict(args or {}),
+                        "step_id": step_id,
+                    }
+                )
+                .model_dump(mode="json")
+            )
+        except (KeyError, ValueError, TypeError) as exc:
+            return {
+                "error": {
+                    "code": "invalid_graph_action",
+                    "message": str(exc),
+                }
+            }
+
     @srv.tool(name="vei.ping", description="Health check and current logical time")
     def vei_ping() -> dict[str, Any]:
         return {"ok": True, "time_ms": R().bus.clock_ms}
@@ -1239,6 +1277,15 @@ def create_mcp_server(
             [
                 {"tool": "vei.orientation", "args": {}},
                 {"tool": "vei.capability_graphs", "args": {"domain": "identity_graph"}},
+                {"tool": "vei.graph_plan", "args": {"domain": "identity_graph"}},
+                {
+                    "tool": "vei.graph_action",
+                    "args": {
+                        "domain": "identity_graph",
+                        "action": "assign_application",
+                        "args": {"user_id": "USR-ACQ-1", "app_id": "APP-crm"},
+                    },
+                },
             ]
         )
         return payload

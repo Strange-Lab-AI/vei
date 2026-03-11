@@ -61,6 +61,8 @@ BASELINE_VISIBLE_TOOLS: List[str] = [
     "vei.observe",
     "vei.orientation",
     "vei.capability_graphs",
+    "vei.graph_plan",
+    "vei.graph_action",
     "vei.tick",
     "vei.act_and_observe",
     "vei.tools.search",
@@ -736,6 +738,12 @@ async def run_episode(
                     "vei.tick": {"dt_ms": 20000},
                     "vei.orientation": {},
                     "vei.capability_graphs": {"domain": "identity_graph"},
+                    "vei.graph_plan": {"domain": "identity_graph"},
+                    "vei.graph_action": {
+                        "domain": "identity_graph",
+                        "action": "assign_application",
+                        "args": {"user_id": "USR-ACQ-1", "app_id": "APP-crm"},
+                    },
                     "vei.tools.search": {"query": "keywords", "top_k": tool_top_k or 8},
                     "slack.send_message": {
                         "channel": "#procurement",

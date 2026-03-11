@@ -240,11 +240,13 @@ def test_sdk_blueprint_builder_helpers_compile_and_open_world() -> None:
     assert compiled.graph_summaries
     slack = session.observe("slack")
     graphs = session.capability_graphs()
+    plan = session.graph_plan(limit=6)
     orientation = session.orientation()
     assert slack["focus"] == "slack"
     assert "#sales-cutover" in slack["summary"]
     assert graphs.identity_graph is not None
     assert graphs.identity_graph.policies[0].title.startswith("Wave 2")
+    assert any(step.action == "assign_application" for step in plan.suggested_steps)
     assert orientation.organization_name == "MacroCompute"
     assert orientation.active_policies[0].policy_id == "POL-WAVE2"
 

@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Literal, Optional
 
 from pydantic import BaseModel, Field
+from vei.blueprint.models import CapabilityDomain
 
 
 class CommGraphChannelView(BaseModel):
@@ -138,6 +139,124 @@ class RevenueGraphView(BaseModel):
     deals: List[RevenueDealView] = Field(default_factory=list)
 
 
+class DataWorkbookView(BaseModel):
+    workbook_id: str
+    title: str
+    owner: Optional[str] = None
+    sheet_count: int = 0
+    shared_with: List[str] = Field(default_factory=list)
+
+
+class DataGraphView(BaseModel):
+    workbooks: List[DataWorkbookView] = Field(default_factory=list)
+
+
+class ObsServiceView(BaseModel):
+    service_id: str
+    name: str
+    status: str
+    error_rate_pct: Optional[float] = None
+    latency_p95_ms: Optional[int] = None
+    revenue_tier: Optional[str] = None
+
+
+class ObsMonitorView(BaseModel):
+    monitor_id: str
+    title: str
+    service_id: Optional[str] = None
+    status: str
+    severity: Optional[str] = None
+    muted: bool = False
+
+
+class ObsIncidentView(BaseModel):
+    incident_id: str
+    title: str
+    status: str
+    urgency: Optional[str] = None
+    service_id: Optional[str] = None
+    assignee: Optional[str] = None
+
+
+class ObsGraphView(BaseModel):
+    services: List[ObsServiceView] = Field(default_factory=list)
+    monitors: List[ObsMonitorView] = Field(default_factory=list)
+    incidents: List[ObsIncidentView] = Field(default_factory=list)
+
+
+class OpsFlagView(BaseModel):
+    flag_key: str
+    service: Optional[str] = None
+    env: Optional[str] = None
+    enabled: bool = False
+    rollout_pct: int = 0
+
+
+class OpsGraphView(BaseModel):
+    flags: List[OpsFlagView] = Field(default_factory=list)
+
+
+GraphActionPriority = Literal["high", "medium", "low"]
+
+
+class CapabilityGraphActionSchema(BaseModel):
+    domain: CapabilityDomain
+    action: str
+    title: str
+    description: str
+    tool: str
+    required_args: List[str] = Field(default_factory=list)
+    optional_args: List[str] = Field(default_factory=list)
+    tags: List[str] = Field(default_factory=list)
+
+
+class CapabilityGraphActionInput(BaseModel):
+    domain: Optional[CapabilityDomain] = None
+    action: Optional[str] = None
+    args: Dict[str, Any] = Field(default_factory=dict)
+    step_id: Optional[str] = None
+
+
+class CapabilityGraphPlanStep(BaseModel):
+    step_id: str
+    domain: CapabilityDomain
+    action: str
+    title: str
+    rationale: str
+    priority: GraphActionPriority = "medium"
+    tool: str
+    args: Dict[str, Any] = Field(default_factory=dict)
+    target_id: Optional[str] = None
+    target_kind: Optional[str] = None
+    tags: List[str] = Field(default_factory=list)
+
+
+class CapabilityGraphPlan(BaseModel):
+    branch: str
+    clock_ms: int
+    scenario_name: Optional[str] = None
+    available_domains: List[str] = Field(default_factory=list)
+    available_actions: List[CapabilityGraphActionSchema] = Field(default_factory=list)
+    suggested_steps: List[CapabilityGraphPlanStep] = Field(default_factory=list)
+    next_focuses: List[str] = Field(default_factory=list)
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+
+
+class CapabilityGraphActionResult(BaseModel):
+    ok: bool
+    branch: str
+    clock_ms: int
+    domain: CapabilityDomain
+    action: str
+    tool: str
+    tool_args: Dict[str, Any] = Field(default_factory=dict)
+    step_id: Optional[str] = None
+    result: Dict[str, Any] = Field(default_factory=dict)
+    graph: Dict[str, Any] = Field(default_factory=dict)
+    next_focuses: List[str] = Field(default_factory=list)
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+
+
 class RuntimeCapabilityGraphs(BaseModel):
     branch: str
     clock_ms: int
@@ -147,21 +266,38 @@ class RuntimeCapabilityGraphs(BaseModel):
     work_graph: Optional[WorkGraphView] = None
     identity_graph: Optional[IdentityGraphView] = None
     revenue_graph: Optional[RevenueGraphView] = None
+    data_graph: Optional[DataGraphView] = None
+    obs_graph: Optional[ObsGraphView] = None
+    ops_graph: Optional[OpsGraphView] = None
     metadata: Dict[str, Any] = Field(default_factory=dict)
 
 
 __all__ = [
     "CommGraphChannelView",
     "CommGraphView",
+    "CapabilityGraphActionInput",
+    "CapabilityGraphActionResult",
+    "CapabilityGraphActionSchema",
+    "CapabilityGraphPlan",
+    "CapabilityGraphPlanStep",
+    "DataGraphView",
+    "DataWorkbookView",
     "DocGraphView",
     "DocumentView",
     "DriveShareView",
+    "GraphActionPriority",
     "HrisEmployeeView",
     "IdentityApplicationView",
     "IdentityGraphView",
     "IdentityGroupView",
     "IdentityPolicyView",
     "IdentityUserView",
+    "ObsGraphView",
+    "ObsIncidentView",
+    "ObsMonitorView",
+    "ObsServiceView",
+    "OpsFlagView",
+    "OpsGraphView",
     "RevenueCompanyView",
     "RevenueContactView",
     "RevenueDealView",
