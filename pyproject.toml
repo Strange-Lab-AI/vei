@@ -17,6 +17,7 @@ dependencies = [
   "pydantic>=2.7.0",
   "typer>=0.12.3",
   "rich>=13.7.0",
+  "fastapi>=0.115.0",
 ]
 
 [project.optional-dependencies]
@@ -24,6 +25,9 @@ browser = [
   "playwright>=1.45.0"
 ]
 sse = [
+  "uvicorn>=0.30.0"
+]
+ui = [
   "uvicorn>=0.30.0"
 ]
 llm = [
@@ -46,6 +50,8 @@ test = [
 ]
 
 [project.scripts]
+vei = "vei.cli.vei:app"
+vei-ui = "vei.cli.vei_ui:main"
 vei-score = "vei.cli.vei_score:app"
 vei-llm-test = "vei.cli.vei_llm_test:app"
 vei-smoke = "vei.cli.vei_smoke:app"
@@ -67,3 +73,6 @@ vei-det = "vei.cli.vei_det_pipeline:app"
 where = ["."]
 include = ["vei*"]
 exclude = []
+
+[tool.setuptools.package-data]
+"vei.ui" = ["static/*.html", "static/*.css", "static/*.js", "static/*.svg"]

@@ -10,7 +10,12 @@ import argparse
 import json
 import random
 from pathlib import Path
+import sys
 from typing import Any, Callable
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
 
 from vei.rl.env import VEIEnv
 from vei.score_core import compute_score

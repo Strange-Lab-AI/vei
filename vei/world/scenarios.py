@@ -3,6 +3,7 @@ from __future__ import annotations
 from copy import deepcopy
 import json
 import os
+from pathlib import Path
 import random
 from typing import Any, Dict, List, Optional
 
@@ -2095,6 +2096,19 @@ def load_from_env(seed: Optional[int] = None) -> Scenario:
     VEI_SCENARIO_RANDOM=1 randomly chooses a catalog scenario when none
     of the above are provided.
     """
+
+    blueprint_asset_path = os.environ.get("VEI_BLUEPRINT_ASSET")
+    if blueprint_asset_path:
+        try:
+            from vei.blueprint.api import materialize_scenario_from_blueprint
+            from vei.blueprint.models import BlueprintAsset
+
+            asset = BlueprintAsset.model_validate(
+                json.loads(Path(blueprint_asset_path).read_text(encoding="utf-8"))
+            )
+            return materialize_scenario_from_blueprint(asset)
+        except Exception:
+            pass
 
     name = os.environ.get("VEI_SCENARIO")
     if name:

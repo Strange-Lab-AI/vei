@@ -27,6 +27,7 @@ def run_compiled_workflow(
     seed: int = 42042,
     artifacts_dir: Optional[str] = None,
     connector_mode: str = "sim",
+    branch: str = "main",
 ) -> ScenarioRunResult:
     artifacts = Path(artifacts_dir) if artifacts_dir else None
     if artifacts:
@@ -37,6 +38,7 @@ def run_compiled_workflow(
         artifacts_dir=str(artifacts) if artifacts else None,
         scenario=workflow.scenario,
         connector_mode=connector_mode,
+        branch=branch,
     )
     world = WorldSession.attach_router(router)
     initial_snapshot = world.snapshot("workflow.start")

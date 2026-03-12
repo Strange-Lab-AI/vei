@@ -15,6 +15,7 @@ class BenchmarkCaseSpec(BaseModel):
     scenario_name: str
     workflow_name: Optional[str] = None
     workflow_variant: Optional[str] = None
+    blueprint_asset_path: Optional[Path] = None
     seed: int = 42042
     artifacts_dir: Path
     branch: Optional[str] = None

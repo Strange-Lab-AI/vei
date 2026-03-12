@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>VEI UI</title>
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg" />
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <div class="backdrop">
+      <div class="orb orb-a"></div>
+      <div class="orb orb-b"></div>
+      <div class="orb orb-c"></div>
+    </div>
+
+    <div class="shell">
+      <header class="hero">
+        <div class="hero-copy">
+          <p class="eyebrow">VEI Local Playback UI</p>
+          <h1>Enterprise Environment Control Room</h1>
+          <p id="workspace-subtitle" class="hero-subtitle">Loading workspace...</p>
+          <div id="workspace-metrics" class="metrics-grid"></div>
+        </div>
+
+        <aside class="launch-panel">
+          <div class="panel-heading">
+            <p class="eyebrow">Run Launcher</p>
+            <h2>Start a new episode</h2>
+          </div>
+          <form id="run-form" class="run-form">
+            <label>
+              <span>Scenario</span>
+              <select id="scenario-select"></select>
+            </label>
+            <label>
+              <span>Runner</span>
+              <select id="runner-select">
+                <option value="workflow">workflow</option>
+                <option value="scripted">scripted</option>
+                <option value="llm">llm</option>
+              </select>
+            </label>
+            <label>
+              <span>Provider</span>
+              <input id="provider-input" placeholder="openai" />
+            </label>
+            <label>
+              <span>Model</span>
+              <input id="model-input" placeholder="gpt-5" />
+            </label>
+            <label class="span-2">
+              <span>Task override</span>
+              <textarea
+                id="task-input"
+                rows="3"
+                placeholder="Optional custom task for scripted or llm runs"
+              ></textarea>
+            </label>
+            <label>
+              <span>Max steps</span>
+              <input id="max-steps-input" type="number" min="1" value="12" />
+            </label>
+            <div class="run-form-actions span-2">
+              <button id="start-run-button" type="submit">Start Run</button>
+              <p id="run-form-status" class="form-status">
+                Workflow, scripted, and live LLM runs all land in the same run model.
+              </p>
+            </div>
+          </form>
+        </aside>
+      </header>
+
+      <main class="layout">
+        <section class="card stage-card">
+          <div class="section-header">
+            <div>
+              <p class="eyebrow">Playback</p>
+              <h2 id="active-run-title">No run selected</h2>
+            </div>
+            <div id="active-run-badges" class="badge-row"></div>
+          </div>
+
+          <div class="playback-toolbar">
+            <button id="playback-prev" type="button" class="ghost-button">Prev</button>
+            <button id="playback-toggle" type="button" class="primary-button">Play</button>
+            <button id="playback-next" type="button" class="ghost-button">Next</button>
+            <div class="playback-scrub">
+              <input id="timeline-slider" type="range" min="0" max="0" value="0" />
+              <div class="scrub-meta">
+                <span id="playback-counter">0 / 0</span>
+                <span id="playback-time">t=0ms</span>
+              </div>
+            </div>
+          </div>
+
+          <div id="playback-stage" class="playback-stage"></div>
+          <div id="timeline-feed" class="timeline-feed"></div>
+        </section>
+
+        <section class="card briefing-card">
+          <div class="section-header">
+            <div>
+              <p class="eyebrow">Scenario + Contract</p>
+              <h2>Mission briefing</h2>
+            </div>
+          </div>
+          <div id="scenario-briefing" class="briefing-grid"></div>
+          <div id="contract-scorecard" class="contract-scorecard"></div>
+        </section>
+
+        <section class="card run-card">
+          <div class="section-header">
+            <div>
+              <p class="eyebrow">Runs</p>
+              <h2>Workspace history</h2>
+            </div>
+          </div>
+          <div id="runs-panel" class="run-grid"></div>
+        </section>
+
+        <section class="card orientation-card">
+          <div class="section-header">
+            <div>
+              <p class="eyebrow">Orientation</p>
+              <h2>What matters right now</h2>
+            </div>
+          </div>
+          <div id="orientation-summary" class="stack"></div>
+          <div id="next-questions" class="question-list"></div>
+        </section>
+
+        <section class="card graphs-card">
+          <div class="section-header">
+            <div>
+              <p class="eyebrow">Capability Graphs</p>
+              <h2>Shared domain state</h2>
+            </div>
+          </div>
+          <div id="graphs-panel" class="graph-grid"></div>
+        </section>
+
+        <section class="card snapshots-card">
+          <div class="section-header">
+            <div>
+              <p class="eyebrow">Snapshots</p>
+              <h2>Branch + diff rail</h2>
+            </div>
+          </div>
+          <div id="snapshots-panel" class="snapshot-rail"></div>
+          <div class="diff-controls">
+            <label>
+              <span>From</span>
+              <select id="snapshot-from-select"></select>
+            </label>
+            <label>
+              <span>To</span>
+              <select id="snapshot-to-select"></select>
+            </label>
+          </div>
+          <div id="diff-summary" class="diff-summary"></div>
+          <pre id="diff-panel" class="code-panel"></pre>
+        </section>
+
+        <section class="card detail-card">
+          <div class="section-header">
+            <div>
+              <p class="eyebrow">Selection</p>
+              <h2>Tool / event detail</h2>
+            </div>
+          </div>
+          <div id="event-detail-summary" class="detail-summary"></div>
+          <pre id="event-panel" class="code-panel"></pre>
+        </section>
+
+        <section class="card raw-card">
+          <div class="section-header">
+            <div>
+              <p class="eyebrow">Developer Drawers</p>
+              <h2>Raw workspace data</h2>
+            </div>
+          </div>
+          <details open>
+            <summary>Workspace</summary>
+            <pre id="workspace-panel" class="code-panel"></pre>
+          </details>
+          <details>
+            <summary>Scenario Preview</summary>
+            <pre id="scenario-panel" class="code-panel"></pre>
+          </details>
+          <details>
+            <summary>Run Manifest</summary>
+            <pre id="run-panel" class="code-panel"></pre>
+          </details>
+          <details>
+            <summary>Run Contract Evaluation</summary>
+            <pre id="contract-panel" class="code-panel"></pre>
+          </details>
+          <details>
+            <summary>Orientation JSON</summary>
+            <pre id="orientation-panel" class="code-panel"></pre>
+          </details>
+          <details>
+            <summary>Capability Graph JSON</summary>
+            <pre id="graphs-raw-panel" class="code-panel"></pre>
+          </details>
+        </section>
+      </main>
+    </div>
+
+    <script src="/static/app.js"></script>
+  </body>
+</html>

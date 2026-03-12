@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from dataclasses import replace
 import os
 import subprocess
 import sys
@@ -35,7 +36,10 @@ from vei.benchmark.models import (
 from vei.blueprint.api import (
     build_blueprint_asset_for_scenario,
     build_blueprint_for_scenario,
+    compile_blueprint,
+    materialize_scenario_from_blueprint,
 )
+from vei.blueprint.models import BlueprintAsset
 from vei.contract.api import build_contract_from_workflow
 from vei.data.models import VEIDataset
 from vei.rl.policy_bc import BCPPolicy, run_policy
@@ -108,7 +112,7 @@ def resolve_scenarios(
 def run_benchmark_case(spec: BenchmarkCaseSpec) -> BenchmarkCaseResult:
     artifacts_dir = spec.artifacts_dir
     artifacts_dir.mkdir(parents=True, exist_ok=True)
-    scenario = get_scenario(spec.scenario_name)
+    scenario = _load_case_scenario(spec)
     _write_scenario_metadata(artifacts_dir, scenario)
     _write_blueprint_artifacts(
         artifacts_dir=artifacts_dir,
@@ -116,6 +120,7 @@ def run_benchmark_case(spec: BenchmarkCaseSpec) -> BenchmarkCaseResult:
         family_name=_infer_benchmark_family(spec.scenario_name),
         workflow_name=spec.workflow_name,
         workflow_variant=spec.workflow_variant,
+        blueprint_asset_path=spec.blueprint_asset_path,
     )
 
     started_at = time.monotonic()
@@ -171,7 +176,7 @@ def _run_local_case(spec: BenchmarkCaseSpec) -> BenchmarkCaseResult:
     session = create_world_session(
         seed=spec.seed,
         artifacts_dir=str(spec.artifacts_dir),
-        scenario=get_scenario(spec.scenario_name),
+        scenario=_load_case_scenario(spec),
         branch=spec.branch or spec.scenario_name,
     )
     router = session.router
@@ -256,6 +261,11 @@ def _run_workflow_case(spec: BenchmarkCaseSpec) -> BenchmarkCaseResult:
         )
     workflow_spec, workflow_variant = workflow_contract
     compiled = compile_workflow(workflow_spec, seed=spec.seed)
+    custom_scenario = _load_case_scenario(spec)
+    custom_metadata = dict(custom_scenario.metadata or {})
+    custom_metadata.update(dict(compiled.scenario.metadata or {}))
+    custom_scenario.metadata = custom_metadata
+    compiled = replace(compiled, scenario=custom_scenario)
     _write_blueprint_artifacts(
         artifacts_dir=spec.artifacts_dir,
         scenario_name=spec.scenario_name,
@@ -272,6 +282,7 @@ def _run_workflow_case(spec: BenchmarkCaseSpec) -> BenchmarkCaseResult:
         seed=spec.seed,
         artifacts_dir=str(spec.artifacts_dir),
         connector_mode="sim",
+        branch=spec.branch or "main",
     )
     _write_json(
         spec.artifacts_dir / "workflow_result.json",
@@ -354,6 +365,8 @@ def _run_llm_case(spec: BenchmarkCaseSpec) -> BenchmarkCaseResult:
     env = dict(os.environ)
     env["VEI_SCENARIO"] = spec.scenario_name
     env["VEI_SEED"] = str(spec.seed)
+    if spec.blueprint_asset_path is not None:
+        env["VEI_BLUEPRINT_ASSET"] = str(spec.blueprint_asset_path)
 
     cmd = [
         sys.executable,
@@ -726,19 +739,26 @@ def _write_blueprint_artifacts(
     family_name: str | None,
     workflow_name: str | None,
     workflow_variant: str | None,
+    blueprint_asset_path: Path | None = None,
 ) -> None:
-    asset = build_blueprint_asset_for_scenario(
-        scenario_name,
-        family_name=family_name,
-        workflow_name=workflow_name,
-        workflow_variant=workflow_variant,
-    )
-    compiled = build_blueprint_for_scenario(
-        scenario_name,
-        family_name=family_name,
-        workflow_name=workflow_name,
-        workflow_variant=workflow_variant,
-    )
+    if blueprint_asset_path is not None:
+        asset = BlueprintAsset.model_validate(
+            json.loads(blueprint_asset_path.read_text(encoding="utf-8"))
+        )
+        compiled = compile_blueprint(asset)
+    else:
+        asset = build_blueprint_asset_for_scenario(
+            scenario_name,
+            family_name=family_name,
+            workflow_name=workflow_name,
+            workflow_variant=workflow_variant,
+        )
+        compiled = build_blueprint_for_scenario(
+            scenario_name,
+            family_name=family_name,
+            workflow_name=workflow_name,
+            workflow_variant=workflow_variant,
+        )
     _write_json(
         artifacts_dir / "blueprint_asset.json",
         asset.model_dump(mode="json"),
@@ -961,6 +981,21 @@ def _load_transcript(artifacts_dir: Path) -> List[Dict[str, Any]]:
         return []
     payload = json.loads(transcript_path.read_text(encoding="utf-8"))
     return payload if isinstance(payload, list) else []
+
+
+def _load_case_blueprint_asset(spec: BenchmarkCaseSpec) -> BlueprintAsset | None:
+    if spec.blueprint_asset_path is None:
+        return None
+    return BlueprintAsset.model_validate(
+        json.loads(spec.blueprint_asset_path.read_text(encoding="utf-8"))
+    )
+
+
+def _load_case_scenario(spec: BenchmarkCaseSpec):
+    asset = _load_case_blueprint_asset(spec)
+    if asset is None:
+        return get_scenario(spec.scenario_name)
+    return materialize_scenario_from_blueprint(asset)
 
 
 def _load_llm_metrics(artifacts_dir: Path) -> Dict[str, Any]:
