@@ -39,9 +39,11 @@ from .models import (
     GeneratedScenarioCandidate,
     ImportPackage,
     ImportPackageArtifacts,
+    ImportReview,
     ImportSourceManifest,
     ImportSourceSummary,
     MappingIssue,
+    MappingOverrideSpec,
     NormalizationReport,
     ProvenanceRecord,
     RedactionReport,
@@ -76,6 +78,70 @@ def load_import_package(path: str | Path) -> ImportPackage:
     return ImportPackage.model_validate(payload)
 
 
+def review_import_package(path: str | Path) -> ImportReview:
+    artifacts = normalize_identity_import_package(path)
+    root = _package_root(path)
+    overrides = [
+        override
+        for source in artifacts.package.sources
+        if (override := _load_source_override(root, source)) is not None
+    ]
+    suggested_paths = {
+        source.source_id: str(_override_path(root, source).relative_to(root))
+        for source in artifacts.package.sources
+    }
+    return ImportReview(
+        package=artifacts.package,
+        normalization_report=artifacts.normalization_report,
+        redaction_reports=artifacts.redaction_reports,
+        generated_scenarios=artifacts.generated_scenarios,
+        source_overrides=overrides,
+        suggested_override_paths=suggested_paths,
+    )
+
+
+def scaffold_mapping_override(
+    path: str | Path,
+    *,
+    source_id: str,
+    output_path: str | Path | None = None,
+) -> tuple[Path, MappingOverrideSpec]:
+    root = _package_root(path)
+    package = load_import_package(root)
+    source = next(
+        (item for item in package.sources if item.source_id == source_id), None
+    )
+    if source is None:
+        raise KeyError(f"unknown source_id for import package: {source_id}")
+    profile = get_mapping_profile(source.mapping_profile)
+    rows = _load_source_rows(root, source)
+    observed_fields = sorted({field for row in rows[:25] for field in row})
+    payload = MappingOverrideSpec(
+        source_id=source.source_id,
+        mapping_profile=source.mapping_profile,
+        metadata={
+            "source_system": source.source_system,
+            "relative_path": source.relative_path,
+            "expected_fields": list(profile.expected_fields),
+            "observed_fields": observed_fields,
+            "unknown_fields": sorted(
+                set(observed_fields) - set(profile.expected_fields)
+            ),
+        },
+    )
+    destination = (
+        Path(output_path).expanduser().resolve()
+        if output_path is not None
+        else _override_path(root, source)
+    )
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    destination.write_text(
+        json.dumps(payload.model_dump(mode="json"), indent=2) + "\n",
+        encoding="utf-8",
+    )
+    return destination, payload
+
+
 def validate_import_package(path: str | Path) -> NormalizationReport:
     root = _package_root(path)
     package = load_import_package(root)
@@ -86,6 +152,7 @@ def validate_import_package(path: str | Path) -> NormalizationReport:
         source_path = root / source.relative_path
         unknown_fields: list[str] = []
         loaded_count = 0
+        override = _load_source_override(root, source)
         if not source_path.exists():
             issues.append(
                 MappingIssue(
@@ -113,8 +180,16 @@ def validate_import_package(path: str | Path) -> NormalizationReport:
                 profile_issue_count += 1
                 rows = []
             for row in rows[:5]:
+                adjusted = _apply_override_preview(row, override)
+                ignored = (
+                    set(override.ignored_fields) if override is not None else set()
+                )
                 unknown_fields.extend(
-                    sorted(set(row) - set(profile.expected_fields or row.keys()))
+                    sorted(
+                        set(adjusted)
+                        - set(profile.expected_fields or adjusted.keys())
+                        - ignored
+                    )
                 )
             if profile.file_type != source.file_type:
                 issues.append(
@@ -134,6 +209,12 @@ def validate_import_package(path: str | Path) -> NormalizationReport:
                 source_id=source.source_id,
                 source_system=source.source_system,
                 mapping_profile=source.mapping_profile,
+                override_path=(
+                    str(_override_path(root, source).relative_to(root))
+                    if override is not None
+                    else None
+                ),
+                override_applied=override is not None,
                 loaded_record_count=loaded_count,
                 issue_count=profile_issue_count,
                 unknown_fields=sorted(set(unknown_fields)),
@@ -171,6 +252,7 @@ def normalize_identity_import_package(path: str | Path) -> ImportPackageArtifact
         rows = _load_source_rows(root, source)
         source_rows[source.source_id] = rows
         profile = get_mapping_profile(source.mapping_profile)
+        override = _load_source_override(root, source)
         source_issues: list[MappingIssue] = []
         normalized_count = 0
         dropped_count = 0
@@ -188,10 +270,17 @@ def normalize_identity_import_package(path: str | Path) -> ImportPackageArtifact
         )
 
         for index, row in enumerate(rows, start=1):
+            adjusted, override_issues = _apply_source_override(
+                row,
+                source=source,
+                override=override,
+                row_number=index,
+            )
+            source_issues.extend(override_issues)
             missing = [
                 field
                 for field in profile.required_fields
-                if row.get(field) in (None, "", [])
+                if adjusted.get(field) in (None, "", [])
             ]
             if missing:
                 for field in missing:
@@ -203,12 +292,16 @@ def normalize_identity_import_package(path: str | Path) -> ImportPackageArtifact
                             row_number=index,
                             field=field,
                             message=f"Missing required field: {field}",
-                            record_key=_record_key(row),
+                            record_key=_record_key(adjusted),
                         )
                     )
                 dropped_count += 1
                 continue
-            extra = sorted(set(row) - set(profile.expected_fields))
+            extra = sorted(
+                set(adjusted)
+                - set(profile.expected_fields)
+                - (set(override.ignored_fields) if override is not None else set())
+            )
             unknown_fields.update(extra)
             for field in extra:
                 source_issues.append(
@@ -219,11 +312,16 @@ def normalize_identity_import_package(path: str | Path) -> ImportPackageArtifact
                         row_number=index,
                         field=field,
                         message=f"Unknown field ignored: {field}",
-                        record_key=_record_key(row),
+                        record_key=_record_key(adjusted),
                     )
                 )
 
-            normalized, coercion_issues = _normalize_row(row, source, profile, index)
+            normalized, coercion_issues = _normalize_row(
+                adjusted,
+                source,
+                profile,
+                index,
+            )
             source_issues.extend(coercion_issues)
             if source.mapping_profile == "okta_users_v1":
                 model = BlueprintIdentityUserAsset.model_validate(
@@ -467,6 +565,12 @@ def normalize_identity_import_package(path: str | Path) -> ImportPackageArtifact
                 source_id=source.source_id,
                 source_system=source.source_system,
                 mapping_profile=source.mapping_profile,
+                override_path=(
+                    str(_override_path(root, source).relative_to(root))
+                    if override is not None
+                    else None
+                ),
+                override_applied=override is not None,
                 loaded_record_count=len(rows),
                 normalized_record_count=normalized_count,
                 dropped_record_count=dropped_count,
@@ -840,6 +944,122 @@ def _package_root(path: str | Path) -> Path:
     if not manifest.exists():
         raise FileNotFoundError(f"import package manifest not found: {manifest}")
     return candidate
+
+
+def _override_path(root: Path, source: ImportSourceManifest) -> Path:
+    return root / "overrides" / f"{source.source_id}.json"
+
+
+def _load_source_override(
+    root: Path, source: ImportSourceManifest
+) -> MappingOverrideSpec | None:
+    path = _override_path(root, source)
+    if not path.exists():
+        return None
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    return MappingOverrideSpec.model_validate(payload)
+
+
+def _apply_override_preview(
+    row: dict[str, Any],
+    override: MappingOverrideSpec | None,
+) -> dict[str, Any]:
+    adjusted = dict(row)
+    if override is None:
+        return adjusted
+    for field in override.ignored_fields:
+        adjusted.pop(field, None)
+    for raw_field, canonical_field in override.field_aliases.items():
+        if raw_field in adjusted:
+            adjusted[canonical_field] = adjusted.pop(raw_field)
+    for field, value in override.default_values.items():
+        if adjusted.get(field) in (None, "", []):
+            adjusted[field] = deepcopy(value)
+    for field, aliases in override.value_aliases.items():
+        value = adjusted.get(field)
+        if value in aliases:
+            adjusted[field] = aliases[value]
+    return adjusted
+
+
+def _apply_source_override(
+    row: dict[str, Any],
+    *,
+    source: ImportSourceManifest,
+    override: MappingOverrideSpec | None,
+    row_number: int,
+) -> tuple[dict[str, Any], list[MappingIssue]]:
+    adjusted = dict(row)
+    issues: list[MappingIssue] = []
+    if override is None:
+        return adjusted, issues
+
+    for field in override.ignored_fields:
+        if field in adjusted:
+            adjusted.pop(field, None)
+            issues.append(
+                MappingIssue(
+                    code="field.ignored",
+                    severity="info",
+                    source_id=source.source_id,
+                    row_number=row_number,
+                    field=field,
+                    message=f"Ignored field via override: {field}",
+                    record_key=_record_key(row),
+                )
+            )
+
+    for raw_field, canonical_field in override.field_aliases.items():
+        if raw_field not in adjusted:
+            continue
+        if adjusted.get(canonical_field) in (None, "", []):
+            adjusted[canonical_field] = adjusted[raw_field]
+        adjusted.pop(raw_field, None)
+        issues.append(
+            MappingIssue(
+                code="field.alias_applied",
+                severity="info",
+                source_id=source.source_id,
+                row_number=row_number,
+                field=canonical_field,
+                message=f"Mapped {raw_field} to {canonical_field} via override",
+                record_key=_record_key(row),
+            )
+        )
+
+    for field, value in override.default_values.items():
+        if adjusted.get(field) in (None, "", []):
+            adjusted[field] = deepcopy(value)
+            issues.append(
+                MappingIssue(
+                    code="field.default_applied",
+                    severity="info",
+                    source_id=source.source_id,
+                    row_number=row_number,
+                    field=field,
+                    message=f"Applied default value for {field}",
+                    record_key=_record_key(row),
+                )
+            )
+
+    for field, aliases in override.value_aliases.items():
+        value = adjusted.get(field)
+        if value in aliases:
+            adjusted[field] = deepcopy(aliases[value])
+            issues.append(
+                MappingIssue(
+                    code="field.value_alias_applied",
+                    severity="info",
+                    source_id=source.source_id,
+                    row_number=row_number,
+                    field=field,
+                    message=f"Mapped value for {field} via override",
+                    record_key=_record_key(row),
+                    raw_value=value,
+                )
+            )
+
+    return adjusted, issues
 
 
 def _load_source_rows(root: Path, source: ImportSourceManifest) -> list[dict[str, Any]]:
@@ -1425,6 +1645,8 @@ __all__ = [
     "get_import_package_example_path",
     "list_import_package_examples",
     "load_import_package",
+    "review_import_package",
+    "scaffold_mapping_override",
     "normalize_identity_import_package",
     "validate_import_package",
     "generate_identity_scenario_candidates",

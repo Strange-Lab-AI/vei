@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import shutil
 import sys
 from pathlib import Path
 
@@ -134,7 +135,9 @@ def test_product_cli_import_flow_supports_generation_and_provenance(
 ) -> None:
     runner = typer.testing.CliRunner()
     root = tmp_path / "workspace"
-    package_path = get_import_package_example_path("macrocompute_identity_export")
+    source = get_import_package_example_path("macrocompute_identity_export")
+    package_path = tmp_path / "macrocompute_identity_export"
+    shutil.copytree(source, package_path)
 
     validate_result = runner.invoke(
         app,
@@ -143,6 +146,33 @@ def test_product_cli_import_flow_supports_generation_and_provenance(
     assert validate_result.exit_code == 0, validate_result.output
     validate_payload = json.loads(validate_result.output)
     assert validate_payload["ok"] is True
+
+    review_result = runner.invoke(
+        app,
+        ["project", "review-import", "--package", str(package_path)],
+    )
+    assert review_result.exit_code == 0, review_result.output
+    review_payload = json.loads(review_result.output)
+    assert review_payload["package"]["name"] == "macrocompute_identity_export"
+    assert review_payload["suggested_override_paths"]["okta_users"] == (
+        "overrides/okta_users.json"
+    )
+
+    scaffold_result = runner.invoke(
+        app,
+        [
+            "project",
+            "scaffold-overrides",
+            "--package",
+            str(package_path),
+            "--source-id",
+            "okta_users",
+        ],
+    )
+    assert scaffold_result.exit_code == 0, scaffold_result.output
+    scaffold_payload = json.loads(scaffold_result.output)
+    assert scaffold_payload["path"].endswith("overrides/okta_users.json")
+    assert scaffold_payload["override"]["source_id"] == "okta_users"
 
     normalize_result = runner.invoke(
         app,
@@ -175,6 +205,22 @@ def test_product_cli_import_flow_supports_generation_and_provenance(
     assert generate_result.exit_code == 0, generate_result.output
     generate_payload = json.loads(generate_result.output)
     assert any(item["name"] == "oversharing_remediation" for item in generate_payload)
+
+    activate_result = runner.invoke(
+        app,
+        [
+            "scenario",
+            "activate",
+            "--root",
+            str(root),
+            "--scenario-name",
+            "oversharing_remediation",
+            "--bootstrap-contract",
+        ],
+    )
+    assert activate_result.exit_code == 0, activate_result.output
+    activate_payload = json.loads(activate_result.output)
+    assert activate_payload["name"] == "oversharing_remediation"
 
     bootstrap_result = runner.invoke(
         app,

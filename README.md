@@ -117,17 +117,19 @@ vei inspect graphs --root _vei_out/workspaces/acquired_cutover --domain identity
 VEI can now ingest realistic offline enterprise export packs and turn them into a runnable workspace. The import path is:
 
 ```text
-raw CSV/JSON exports -> import package -> normalized grounding bundle -> compiled workspace
+raw CSV/JSON exports -> import package -> review/override -> normalized grounding bundle -> compiled workspace
 ```
 
 Canonical fixture demo:
 
 ```bash
 vei project validate-import --package vei/imports/fixtures/macrocompute_identity_export
+vei project review-import --package vei/imports/fixtures/macrocompute_identity_export
+vei project scaffold-overrides --package vei/imports/fixtures/macrocompute_identity_export --source-id okta_users
 vei project normalize --package vei/imports/fixtures/macrocompute_identity_export
 vei project import --root _vei_out/workspaces/macrocompute_import --package vei/imports/fixtures/macrocompute_identity_export
 vei scenario generate --root _vei_out/workspaces/macrocompute_import
-vei contract bootstrap --root _vei_out/workspaces/macrocompute_import --scenario-name oversharing_remediation --overwrite
+vei scenario activate --root _vei_out/workspaces/macrocompute_import --scenario-name oversharing_remediation --bootstrap-contract
 vei run start --root _vei_out/workspaces/macrocompute_import --runner workflow --scenario-name oversharing_remediation
 vei inspect provenance --root _vei_out/workspaces/macrocompute_import --object-ref drive_share:DOC-ACQ-1
 vei-ui serve --root _vei_out/workspaces/macrocompute_import
@@ -136,8 +138,10 @@ vei-ui serve --root _vei_out/workspaces/macrocompute_import
 The import UI now shows:
 - package/source summary
 - mapping diagnostics
+- suggested override locations and applied source overrides
 - generated scenario candidates
 - imported vs derived vs simulated counts
+- active generated-scenario promotion into the workspace run path
 - provenance drilldown from selected run events
 
 ## What You Get
@@ -209,7 +213,7 @@ Useful helpers:
 - Blueprint catalog: `list_blueprint_entries()`, `build_blueprint_asset_for_family_entry(name)`, `build_blueprint_for_family_entry(name)`, `compile_blueprint_entry(asset)`
 - Environment builder: `list_blueprint_builder_examples_entries()`, `build_blueprint_asset_for_example_entry(name)`, `create_world_session_from_blueprint_entry(asset)`
 - Workspace lifecycle: `create_workspace_from_template_entry(...)`, `import_workspace_entry(...)`, `compile_workspace_entry(...)`, `show_workspace_entry(...)`
-- Import helpers: `list_import_package_example_entries()`, `validate_import_package_entry(path)`, `normalize_import_package_entry(path)`, `load_workspace_provenance_entry(root, object_ref)`
+- Import helpers: `list_import_package_example_entries()`, `validate_import_package_entry(path)`, `review_import_package_entry(path)`, `scaffold_mapping_override_entry(path, source_id=...)`, `normalize_import_package_entry(path)`, `load_workspace_import_review_entry(root)`, `load_workspace_provenance_entry(root, object_ref)`
 - Run lifecycle: `launch_workspace_run_entry(...)`, `list_run_manifests_entry(...)`, `get_run_orientation_entry(...)`, `get_run_capability_graphs_entry(...)`
 - Benchmark families: `list_benchmark_family_manifest_entries()`, `get_benchmark_family_manifest_entry(name)`
 - Release packaging: `build_release_version()`, `export_release_dataset(...)`, `export_release_benchmark(...)`, `run_release_nightly(...)`

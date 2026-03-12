@@ -1,15 +1,19 @@
 from __future__ import annotations
 
+import json
+import shutil
 from pathlib import Path
 
 from vei.blueprint.api import build_blueprint_asset_for_example, compile_blueprint
-from vei.imports.api import get_import_package_example_path
+from vei.imports.api import get_import_package_example_path, scaffold_mapping_override
 from vei.workspace.api import (
+    activate_workspace_scenario,
     bootstrap_workspace_contract,
     create_workspace_from_template,
     generate_workspace_scenarios_from_import,
     import_workspace,
     load_workspace_generated_scenarios,
+    load_workspace_import_review,
     load_workspace_provenance,
     load_workspace_contract,
     preview_workspace_scenario,
@@ -119,3 +123,51 @@ def test_import_workspace_from_package_generates_import_artifacts(
     assert validate_workspace_contract(root, "oversharing_remediation")["ok"] is True
     assert provenance
     assert provenance[0].origin == "derived"
+
+
+def test_import_workspace_review_includes_copied_overrides(tmp_path: Path) -> None:
+    root = tmp_path / "workspace"
+    source = get_import_package_example_path("macrocompute_identity_export")
+    package_path = tmp_path / "macrocompute_identity_export"
+    shutil.copytree(source, package_path)
+    destination, _ = scaffold_mapping_override(
+        package_path,
+        source_id="okta_users",
+    )
+    payload = json.loads(destination.read_text(encoding="utf-8"))
+    payload["field_aliases"]["primary_email"] = "email"
+    destination.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+
+    import_workspace(root=root, package_path=package_path)
+    review = load_workspace_import_review(root)
+
+    assert review is not None
+    assert (
+        review.suggested_override_paths["okta_users"]
+        == "imports/overrides/okta_users.json"
+    )
+    assert any(item.source_id == "okta_users" for item in review.source_overrides)
+
+
+def test_activate_workspace_scenario_updates_active_scenario_and_contract(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "workspace"
+    import_workspace(
+        root=root,
+        package_path=get_import_package_example_path("macrocompute_identity_export"),
+    )
+    generate_workspace_scenarios_from_import(root)
+
+    scenario = activate_workspace_scenario(
+        root,
+        "oversharing_remediation",
+        bootstrap_contract=True,
+    )
+    summary = show_workspace(root)
+    preview = preview_workspace_scenario(root)
+
+    assert scenario.name == "oversharing_remediation"
+    assert summary.manifest.active_scenario == "oversharing_remediation"
+    assert preview["scenario"]["name"] == "oversharing_remediation"
+    assert preview["contract"]["metadata"]["contract_bootstrap"] == "import_policy_acl"

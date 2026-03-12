@@ -27,8 +27,10 @@ from vei.run.api import (
 )
 from vei import __version__ as vei_version
 from vei.workspace.api import (
+    activate_workspace_scenario,
     load_workspace_generated_scenarios,
     load_workspace_import_report,
+    load_workspace_import_review,
     load_workspace_provenance,
     list_workspace_scenarios,
     load_workspace_contract,
@@ -47,6 +49,11 @@ class RunLaunchRequest(BaseModel):
     provider: str | None = None
     task: str | None = None
     max_steps: int = 12
+
+
+class ScenarioActivateRequest(BaseModel):
+    scenario_name: str
+    bootstrap_contract: bool = False
 
 
 def create_ui_app(workspace_root: str | Path) -> FastAPI:
@@ -80,6 +87,11 @@ def create_ui_app(workspace_root: str | Path) -> FastAPI:
         report = load_workspace_import_report(root)
         return JSONResponse(report.model_dump(mode="json") if report else {})
 
+    @app.get("/api/imports/review")
+    def api_import_review() -> JSONResponse:
+        review = load_workspace_import_review(root)
+        return JSONResponse(review.model_dump(mode="json") if review else {})
+
     @app.get("/api/imports/scenarios")
     def api_import_scenarios() -> JSONResponse:
         return JSONResponse(
@@ -103,6 +115,15 @@ def create_ui_app(workspace_root: str | Path) -> FastAPI:
         return JSONResponse(
             [item.model_dump(mode="json") for item in list_workspace_scenarios(root)]
         )
+
+    @app.post("/api/scenarios/activate")
+    def api_activate_scenario(request: ScenarioActivateRequest) -> JSONResponse:
+        scenario = activate_workspace_scenario(
+            root,
+            request.scenario_name,
+            bootstrap_contract=request.bootstrap_contract,
+        )
+        return JSONResponse(scenario.model_dump(mode="json"))
 
     @app.get("/api/scenarios/{scenario_name}/preview")
     def api_scenario_preview(scenario_name: str) -> JSONResponse:

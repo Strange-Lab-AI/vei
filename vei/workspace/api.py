@@ -29,9 +29,13 @@ from vei.imports.api import (
 )
 from vei.imports.models import (
     GeneratedScenarioCandidate,
+    ImportReview,
+    ImportPackage,
     ImportPackageArtifacts,
     NormalizationReport,
+    MappingOverrideSpec,
     ProvenanceRecord,
+    RedactionReport,
 )
 from vei.world.manifest import build_scenario_manifest
 
@@ -425,6 +429,18 @@ def load_workspace_import_report(root: str | Path) -> NormalizationReport | None
     return _read_model(report_path, NormalizationReport)
 
 
+def load_workspace_redaction_reports(root: str | Path) -> list[RedactionReport]:
+    path = Path(root).expanduser().resolve()
+    manifest = load_workspace(path)
+    if not manifest.redaction_report_path:
+        return []
+    report_path = path / manifest.redaction_report_path
+    if not report_path.exists():
+        return []
+    payload = json.loads(report_path.read_text(encoding="utf-8"))
+    return [RedactionReport.model_validate(item) for item in payload]
+
+
 def load_workspace_provenance(
     root: str | Path, object_ref: Optional[str] = None
 ) -> list[ProvenanceRecord]:
@@ -440,6 +456,38 @@ def load_workspace_provenance(
     if object_ref:
         return [item for item in records if item.object_ref == object_ref]
     return records
+
+
+def load_workspace_import_review(root: str | Path) -> ImportReview | None:
+    path = Path(root).expanduser().resolve()
+    manifest = load_workspace(path)
+    if manifest.source_kind != "import_package" or not manifest.import_package_path:
+        return None
+    package_path = path / manifest.import_package_path
+    if not package_path.exists():
+        return None
+    report = load_workspace_import_report(path)
+    if report is None:
+        return None
+    package = _read_model(package_path, ImportPackage)
+    overrides_root = path / manifest.imports_dir / "overrides"
+    overrides = []
+    if overrides_root.exists():
+        for item in sorted(overrides_root.glob("*.json")):
+            overrides.append(_read_model(item, MappingOverrideSpec))
+    return ImportReview(
+        package=package,
+        normalization_report=report,
+        redaction_reports=load_workspace_redaction_reports(path),
+        generated_scenarios=load_workspace_generated_scenarios(path),
+        source_overrides=overrides,
+        suggested_override_paths={
+            source.source_id: str(
+                Path(manifest.imports_dir) / "overrides" / f"{source.source_id}.json"
+            )
+            for source in package.sources
+        },
+    )
 
 
 def load_workspace_generated_scenarios(
@@ -500,6 +548,23 @@ def generate_workspace_scenarios_from_import(
         )
     compile_workspace(path)
     return generated_specs
+
+
+def activate_workspace_scenario(
+    root: str | Path,
+    scenario_name: str,
+    *,
+    bootstrap_contract: bool = False,
+) -> WorkspaceScenarioSpec:
+    path = Path(root).expanduser().resolve()
+    manifest = load_workspace(path)
+    scenario = resolve_workspace_scenario(path, manifest, scenario_name)
+    manifest.active_scenario = scenario.name
+    write_workspace(path, manifest)
+    if bootstrap_contract:
+        bootstrap_workspace_contract(path, scenario_name=scenario.name, overwrite=True)
+    compile_workspace(path)
+    return resolve_workspace_scenario(path, scenario_name=scenario.name)
 
 
 def bootstrap_workspace_contract(
@@ -895,6 +960,14 @@ def _copy_import_sources(
         target_path = raw_root / source.relative_path
         target_path.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(source_path, target_path)
+    overrides_root = package_root / "overrides"
+    if overrides_root.exists():
+        target_root = workspace_root / manifest.imports_dir / "overrides"
+        for source in overrides_root.rglob("*.json"):
+            relative = source.relative_to(overrides_root)
+            destination = target_root / relative
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(source, destination)
 
 
 def _load_workspace_import_summary(

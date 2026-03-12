@@ -83,12 +83,16 @@ from vei.imports.api import (
     list_import_package_examples as _list_import_package_examples,
     load_import_package as _load_import_package,
     normalize_identity_import_package as _normalize_identity_import_package,
+    review_import_package as _review_import_package,
+    scaffold_mapping_override as _scaffold_mapping_override,
     validate_import_package as _validate_import_package,
 )
 from vei.imports.models import (
     GeneratedScenarioCandidate,
     ImportPackage,
     ImportPackageArtifacts,
+    ImportReview,
+    MappingOverrideSpec,
     NormalizationReport,
     ProvenanceRecord,
 )
@@ -104,6 +108,7 @@ from vei.run.api import (
 )
 from vei.run.models import RunManifest, RunSnapshotRef, RunTimelineEvent
 from vei.workspace.api import (
+    activate_workspace_scenario as _activate_workspace_scenario,
     bootstrap_workspace_contract as _bootstrap_workspace_contract,
     compile_workspace as _compile_workspace,
     create_workspace_from_template as _create_workspace_from_template,
@@ -117,6 +122,7 @@ from vei.workspace.api import (
     load_workspace_contract as _load_workspace_contract,
     load_workspace_generated_scenarios as _load_workspace_generated_scenarios,
     load_workspace_import_report as _load_workspace_import_report,
+    load_workspace_import_review as _load_workspace_import_review,
     load_workspace_provenance as _load_workspace_provenance,
     preview_workspace_scenario as _preview_workspace_scenario,
     show_workspace as _show_workspace,
@@ -453,6 +459,24 @@ def normalize_import_package_entry(path: str) -> ImportPackageArtifacts:
     return _normalize_identity_import_package(path)
 
 
+def review_import_package_entry(path: str) -> ImportReview:
+    return _review_import_package(path)
+
+
+def scaffold_mapping_override_entry(
+    path: str,
+    *,
+    source_id: str,
+    output_path: str | None = None,
+) -> tuple[str, MappingOverrideSpec]:
+    destination, payload = _scaffold_mapping_override(
+        path,
+        source_id=source_id,
+        output_path=output_path,
+    )
+    return str(destination), payload
+
+
 def generate_identity_scenario_candidates_entry(
     bundle: IdentityGovernanceBundle,
 ) -> list[GeneratedScenarioCandidate]:
@@ -612,6 +636,10 @@ def load_workspace_import_report_entry(root: str) -> NormalizationReport | None:
     return _load_workspace_import_report(root)
 
 
+def load_workspace_import_review_entry(root: str) -> ImportReview | None:
+    return _load_workspace_import_review(root)
+
+
 def load_workspace_provenance_entry(
     root: str, object_ref: str | None = None
 ) -> list[ProvenanceRecord]:
@@ -629,6 +657,19 @@ def generate_workspace_scenarios_from_import_entry(
 ) -> list[WorkspaceScenarioSpec]:
     return _generate_workspace_scenarios_from_import(
         root, replace_generated=replace_generated
+    )
+
+
+def activate_workspace_scenario_entry(
+    root: str,
+    *,
+    scenario_name: str,
+    bootstrap_contract: bool = False,
+) -> WorkspaceScenarioSpec:
+    return _activate_workspace_scenario(
+        root,
+        scenario_name,
+        bootstrap_contract=bootstrap_contract,
     )
 
 

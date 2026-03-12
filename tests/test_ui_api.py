@@ -127,11 +127,22 @@ def test_ui_api_serves_import_diagnostics_and_provenance(tmp_path: Path) -> None
     assert normalization_response.status_code == 200
     assert normalization_response.json()["normalized_counts"]["identity_users"] == 2
 
+    review_response = client.get("/api/imports/review")
+    assert review_response.status_code == 200
+    assert review_response.json()["package"]["name"] == "macrocompute_identity_export"
+
     scenarios_response = client.get("/api/imports/scenarios")
     assert scenarios_response.status_code == 200
     assert any(
         item["name"] == "oversharing_remediation" for item in scenarios_response.json()
     )
+
+    activate_response = client.post(
+        "/api/scenarios/activate",
+        json={"scenario_name": "oversharing_remediation", "bootstrap_contract": True},
+    )
+    assert activate_response.status_code == 200
+    assert activate_response.json()["name"] == "oversharing_remediation"
 
     provenance_response = client.get(
         "/api/imports/provenance", params={"object_ref": "drive_share:GDRIVE-2201"}

@@ -74,11 +74,13 @@ The intended loop is:
 Imported identity workspaces now add an earlier preparation ladder:
 
 1. validate an `ImportPackage`
-2. normalize it into a `GroundingBundle`
-3. compile into workspace artifacts
-4. generate scenario candidates and bootstrap contracts
-5. launch runs against the generated scenarios
-6. inspect diagnostics and provenance in the same workspace/UI flow
+2. review mapping diagnostics and scaffold source overrides where needed
+3. normalize it into a `GroundingBundle`
+4. compile into workspace artifacts
+5. generate scenario candidates and activate the right workspace scenario
+6. bootstrap contracts
+7. launch runs against the generated scenarios
+8. inspect diagnostics and provenance in the same workspace/UI flow
 
 ## Stable Python Surfaces
 
@@ -120,12 +122,12 @@ Imported identity workspaces now add an earlier preparation ladder:
   - compilers that turn grounding bundles into `BlueprintAsset` authoring roots
 - `vei.imports`
   - canonical raw import package format for offline CSV/JSON enterprise exports
-  - mapping profiles, validation reports, provenance, redaction reports, and scenario generation over normalized identity environments
+  - mapping profiles, override specs, validation/review reports, provenance, redaction reports, and scenario generation over normalized identity environments
 - `vei.contract`
   - contract builders and evaluators
 - `vei.workspace`
   - create/import/show/compile workspaces
-  - scenario/contract authoring helpers, import diagnostics, provenance access, and run registry
+  - scenario/contract authoring helpers, generated-scenario activation, import diagnostics/review, provenance access, and run registry
 - `vei.run`
   - launch runs from a workspace
   - canonical per-run manifest, timeline, and snapshot APIs
@@ -188,6 +190,7 @@ VEI keeps the current router twins, but the public ontology now groups them as f
 - New software environments should register as facade plugins before they become public blueprint/compiler surfaces.
 - Prefer `GroundingBundle -> BlueprintAsset -> CompiledBlueprint -> WorldSession` as the environment-builder path.
 - Prefer `ImportPackage -> GroundingBundle -> BlueprintAsset -> CompiledBlueprint -> WorldSession` when working from real or sanitized enterprise exports.
+- Prefer reviewable file-based intake: raw sources -> validation/review -> optional mapping overrides -> normalized bundle -> generated scenarios -> activated workspace scenario.
 - Prefer `WorldSession -> capability_graphs() -> graph_plan() -> graph_action()` as the main agent-facing planning/mutation ladder inside a live world.
 - Use `orientation()` to help agents discover the world before they begin mutating it.
 - Prefer graph-native workflow steps for long-horizon playbooks when the intent is domain-level mutation rather than a specific vendor surface.

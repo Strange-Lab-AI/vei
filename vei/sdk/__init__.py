@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from .api import (
+    activate_workspace_scenario_entry,
     EnterpriseSession,
     bootstrap_contract_from_import_bundle_entry,
     bootstrap_workspace_contract_entry,
@@ -62,10 +63,13 @@ from .api import (
     load_workspace_entry,
     load_workspace_generated_scenarios_entry,
     load_workspace_import_report_entry,
+    load_workspace_import_review_entry,
     load_workspace_provenance_entry,
     normalize_import_package_entry,
     preview_workspace_scenario_entry,
     register_facade_plugin_entry,
+    review_import_package_entry,
+    scaffold_mapping_override_entry,
     show_workspace_entry,
     launch_workspace_run_entry,
     run_benchmark_family_workflow,
@@ -79,6 +83,7 @@ from .api import (
 
 __all__ = [
     "EnterpriseSession",
+    "activate_workspace_scenario_entry",
     "bootstrap_contract_from_import_bundle_entry",
     "bootstrap_workspace_contract_entry",
     "build_blueprint_asset_for_example_entry",
@@ -139,10 +144,13 @@ __all__ = [
     "load_workspace_entry",
     "load_workspace_generated_scenarios_entry",
     "load_workspace_import_report_entry",
+    "load_workspace_import_review_entry",
     "load_workspace_provenance_entry",
     "normalize_import_package_entry",
     "preview_workspace_scenario_entry",
     "register_facade_plugin_entry",
+    "review_import_package_entry",
+    "scaffold_mapping_override_entry",
     "show_workspace_entry",
     "launch_workspace_run_entry",
     "run_benchmark_family_workflow",

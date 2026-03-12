@@ -7,6 +7,7 @@ from typing import Optional
 import typer
 
 from vei.workspace.api import (
+    activate_workspace_scenario,
     create_workspace_scenario,
     generate_workspace_scenarios_from_import,
     list_workspace_scenarios,
@@ -93,3 +94,22 @@ def generate_scenarios(
         root, replace_generated=replace_generated
     )
     _emit([item.model_dump(mode="json") for item in payload], indent)
+
+
+@app.command("activate")
+def activate_scenario(
+    root: Path = typer.Option(Path("."), help="Workspace root directory"),
+    scenario_name: str = typer.Option(..., help="Workspace scenario name"),
+    bootstrap_contract: bool = typer.Option(
+        False, help="Re-bootstrap the scenario contract after activation"
+    ),
+    indent: int = typer.Option(2, help="Pretty indent"),
+) -> None:
+    """Make one workspace scenario active for subsequent runs and previews."""
+
+    payload = activate_workspace_scenario(
+        root,
+        scenario_name,
+        bootstrap_contract=bootstrap_contract,
+    )
+    _emit(payload.model_dump(mode="json"), indent)

@@ -1,14 +1,27 @@
 from __future__ import annotations
 
+import json
+import shutil
 from pathlib import Path
+
+import pytest
 
 from vei.imports.api import (
     bootstrap_contract_from_import_bundle,
     get_import_package_example_path,
     list_import_package_examples,
     normalize_identity_import_package,
+    review_import_package,
+    scaffold_mapping_override,
     validate_import_package,
 )
+
+
+def _copy_fixture_package(tmp_path: Path) -> Path:
+    source = get_import_package_example_path("macrocompute_identity_export")
+    target = tmp_path / "macrocompute_identity_export"
+    shutil.copytree(source, target)
+    return target
 
 
 def test_import_package_fixture_normalizes_into_identity_bundle() -> None:
@@ -70,16 +83,7 @@ def test_bootstrap_contract_from_import_bundle_adds_policy_constraints() -> None
 def test_import_package_validation_flags_missing_required_fields(
     tmp_path: Path,
 ) -> None:
-    source = get_import_package_example_path("macrocompute_identity_export")
-    broken = tmp_path / "broken_import"
-    broken.mkdir()
-    for item in source.rglob("*"):
-        target = broken / item.relative_to(source)
-        if item.is_dir():
-            target.mkdir(parents=True, exist_ok=True)
-        else:
-            target.parent.mkdir(parents=True, exist_ok=True)
-            target.write_bytes(item.read_bytes())
+    broken = _copy_fixture_package(tmp_path)
 
     users_path = broken / "raw" / "okta_users.csv"
     payload = users_path.read_text(encoding="utf-8")
@@ -92,4 +96,57 @@ def test_import_package_validation_flags_missing_required_fields(
     assert any(
         item.code == "field.required" and item.field == "user_id"
         for item in report.issues
+    )
+
+
+def test_import_review_surfaces_override_paths_and_generated_scenarios() -> None:
+    package_path = get_import_package_example_path("macrocompute_identity_export")
+
+    review = review_import_package(package_path)
+
+    assert review.package.name == "macrocompute_identity_export"
+    assert "okta_users" in review.suggested_override_paths
+    assert review.suggested_override_paths["okta_users"] == "overrides/okta_users.json"
+    assert len(review.generated_scenarios) >= 6
+    assert review.source_overrides == []
+
+
+def test_mapping_override_can_recover_renamed_required_field(tmp_path: Path) -> None:
+    package_path = _copy_fixture_package(tmp_path)
+    users_path = package_path / "raw" / "okta_users.csv"
+    payload = users_path.read_text(encoding="utf-8")
+    users_path.write_text(
+        payload.replace("email", "primary_email", 1),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="does not contain enough identity objects",
+    ):
+        normalize_identity_import_package(package_path)
+
+    destination, override = scaffold_mapping_override(
+        package_path,
+        source_id="okta_users",
+    )
+    payload = json.loads(destination.read_text(encoding="utf-8"))
+    payload["field_aliases"]["primary_email"] = "email"
+    destination.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+
+    after = normalize_identity_import_package(package_path)
+
+    assert override.source_id == "okta_users"
+    assert destination.name == "okta_users.json"
+    assert after.normalization_report.ok is True
+    okta_summary = next(
+        item
+        for item in after.normalization_report.source_summaries
+        if item.source_id == "okta_users"
+    )
+    assert okta_summary.override_applied is True
+    assert okta_summary.override_path == "overrides/okta_users.json"
+    assert any(
+        item.code == "field.alias_applied" and item.field == "email"
+        for item in after.normalization_report.issues
     )

@@ -10,9 +10,15 @@ from vei.workspace.api import (
     compile_workspace,
     create_workspace_from_template,
     import_workspace,
+    load_workspace_import_review,
     show_workspace,
 )
-from vei.imports.api import normalize_identity_import_package, validate_import_package
+from vei.imports.api import (
+    normalize_identity_import_package,
+    review_import_package,
+    scaffold_mapping_override,
+    validate_import_package,
+)
 
 
 app = typer.Typer(add_completion=False, help="Create and compile VEI workspaces.")
@@ -145,6 +151,56 @@ def normalize_import_command(
         "provenance_count": len(artifacts.provenance),
     }
     _emit(payload, indent)
+
+
+@app.command("review-import")
+def review_import_command(
+    root: Optional[Path] = typer.Option(
+        None, help="Workspace root directory for imported workspaces"
+    ),
+    package: Optional[Path] = typer.Option(
+        None, help="Import package directory or manifest"
+    ),
+    indent: int = typer.Option(2, help="Pretty indent"),
+) -> None:
+    """Review import diagnostics, overrides, and generated scenarios."""
+
+    if bool(root) == bool(package):
+        raise typer.BadParameter("Provide exactly one of --root or --package")
+    payload = (
+        load_workspace_import_review(root)
+        if root is not None
+        else review_import_package(package)
+    )
+    if payload is None:
+        _emit({}, indent)
+        return
+    _emit(payload.model_dump(mode="json"), indent)
+
+
+@app.command("scaffold-overrides")
+def scaffold_override_command(
+    package: Path = typer.Option(..., help="Import package directory or manifest"),
+    source_id: str = typer.Option(..., help="Import source id to scaffold"),
+    output: Optional[Path] = typer.Option(
+        None, help="Optional override file output path"
+    ),
+    indent: int = typer.Option(2, help="Pretty indent"),
+) -> None:
+    """Write a starter mapping-override file for one import source."""
+
+    destination, payload = scaffold_mapping_override(
+        package,
+        source_id=source_id,
+        output_path=output,
+    )
+    _emit(
+        {
+            "path": str(destination),
+            "override": payload.model_dump(mode="json"),
+        },
+        indent,
+    )
 
 
 @app.command("show")

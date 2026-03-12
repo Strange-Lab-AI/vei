@@ -50,6 +50,16 @@ class MappingProfileSpec(BaseModel):
     root_list_key: Optional[str] = None
 
 
+class MappingOverrideSpec(BaseModel):
+    source_id: str
+    mapping_profile: str
+    field_aliases: Dict[str, str] = Field(default_factory=dict)
+    default_values: Dict[str, Any] = Field(default_factory=dict)
+    ignored_fields: List[str] = Field(default_factory=list)
+    value_aliases: Dict[str, Dict[str, Any]] = Field(default_factory=dict)
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+
+
 class MappingIssue(BaseModel):
     code: str
     message: str
@@ -65,6 +75,8 @@ class ImportSourceSummary(BaseModel):
     source_id: str
     source_system: str
     mapping_profile: str
+    override_path: Optional[str] = None
+    override_applied: bool = False
     loaded_record_count: int = 0
     normalized_record_count: int = 0
     dropped_record_count: int = 0
@@ -132,8 +144,18 @@ class ImportPackageArtifacts(BaseModel):
     generated_scenarios: List[GeneratedScenarioCandidate] = Field(default_factory=list)
 
 
+class ImportReview(BaseModel):
+    package: ImportPackage
+    normalization_report: NormalizationReport
+    redaction_reports: List[RedactionReport] = Field(default_factory=list)
+    generated_scenarios: List[GeneratedScenarioCandidate] = Field(default_factory=list)
+    source_overrides: List[MappingOverrideSpec] = Field(default_factory=list)
+    suggested_override_paths: Dict[str, str] = Field(default_factory=dict)
+
+
 __all__ = [
     "GeneratedScenarioCandidate",
+    "ImportReview",
     "ImportFileType",
     "ImportOrigin",
     "ImportPackage",
@@ -142,6 +164,7 @@ __all__ = [
     "ImportSourceSummary",
     "ImportWedge",
     "MappingIssue",
+    "MappingOverrideSpec",
     "MappingProfileSpec",
     "NormalizationReport",
     "ProvenanceRecord",

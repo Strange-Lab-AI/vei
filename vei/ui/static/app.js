@@ -18,6 +18,7 @@ const state = {
   scenarioContract: null,
   importSummary: null,
   importNormalization: null,
+  importReview: null,
   generatedImportScenarios: [],
   provenanceIndex: [],
   selectedObjectRef: null,
@@ -186,8 +187,10 @@ function renderWorkspaceHero() {
 function renderImportSummary() {
   const summary = state.importSummary;
   const normalization = state.importNormalization;
+  const review = state.importReview;
   const panel = document.getElementById("imports-summary");
   const generatedPanel = document.getElementById("generated-scenarios");
+  const reviewPanel = document.getElementById("import-review-grid");
   const provenancePanel = document.getElementById("provenance-detail");
   const hasImportPackage =
     summary &&
@@ -198,6 +201,7 @@ function renderImportSummary() {
   if (!hasImportPackage) {
     panel.innerHTML = `<div class="metric-tile"><span class="metric-label">Import</span><span class="metric-value">No import package</span></div>`;
     generatedPanel.innerHTML = "";
+    reviewPanel.innerHTML = "";
     provenancePanel.innerHTML = "";
     renderJson("imports-panel", {});
     renderJson("provenance-panel", []);
@@ -208,6 +212,7 @@ function renderImportSummary() {
     metricTile("Package", summary.package_name || "import", `${summary.source_count || 0} sources`),
     metricTile("Issues", String(summary.issue_count || 0), `${summary.warning_count || 0} warnings · ${summary.error_count || 0} errors`),
     metricTile("Provenance", String(summary.provenance_count || 0), `generated scenarios: ${summary.generated_scenario_count || 0}`),
+    metricTile("Overrides", String((review?.source_overrides || []).length), `${(review?.normalization_report?.source_summaries || []).filter((item) => item.override_applied).length} sources adapted`),
     metricTile(
       "Origins",
       `${summary.origin_counts?.imported || 0}/${summary.origin_counts?.derived || 0}/${summary.origin_counts?.simulated || 0}`,
@@ -226,10 +231,50 @@ function renderImportSummary() {
           <h3>${escapeHtml(scenario.title)}</h3>
           <p class="metric-detail">${escapeHtml(scenario.description)}</p>
           <div class="chip-row">${(scenario.tags || []).slice(0, 4).map((item) => chip(item)).join("")}</div>
+          <button type="button" class="ghost-button activate-scenario" data-scenario-name="${escapeHtml(scenario.name)}">Make active</button>
         </div>
       `
     )
     .join("");
+  generatedPanel.querySelectorAll(".activate-scenario").forEach((node) => {
+    node.addEventListener("click", () => {
+      void activateScenario(node.dataset.scenarioName);
+    });
+  });
+
+  const sourceCards = (review?.normalization_report?.source_summaries || []).map(
+    (item) => `
+      <div class="stack-card">
+        <h3>${escapeHtml(item.source_id)}</h3>
+        <div class="chip-row">
+          ${chip(item.source_system)}
+          ${chip(item.mapping_profile)}
+          ${item.override_applied ? chip("override applied", "ok") : ""}
+        </div>
+        <div class="detail-grid">
+          ${detailTile("Loaded", compactNumber(item.loaded_record_count || 0))}
+          ${detailTile("Normalized", compactNumber(item.normalized_record_count || 0))}
+          ${detailTile("Dropped", compactNumber(item.dropped_record_count || 0))}
+          ${detailTile("Issues", compactNumber(item.issue_count || 0))}
+        </div>
+        ${item.unknown_fields?.length ? `<p class="metric-detail">Unknown fields: ${escapeHtml(item.unknown_fields.join(", "))}</p>` : `<p class="metric-detail">All observed fields mapped cleanly.</p>`}
+      </div>
+    `
+  );
+  const issueCards = (review?.normalization_report?.issues || []).slice(0, 6).map(
+    (item) => `
+      <div class="stack-card">
+        <h3>${escapeHtml(item.code)}</h3>
+        <p class="metric-detail">${escapeHtml(item.message)}</p>
+        <div class="chip-row">
+          ${chip(item.severity || "warning", statusClass(item.severity))}
+          ${item.source_id ? chip(item.source_id) : ""}
+          ${item.field ? chip(item.field) : ""}
+        </div>
+      </div>
+    `
+  );
+  reviewPanel.innerHTML = [...sourceCards, ...issueCards].join("");
 
   const selectedRefs = state.timeline[state.selectedEventIndex]?.object_refs || [];
   const selectedRecord = state.provenanceIndex.find((item) => item.object_ref === state.selectedObjectRef) || state.provenanceIndex.find((item) => selectedRefs.includes(item.object_ref));
@@ -718,11 +763,12 @@ function togglePlayback() {
 }
 
 async function loadWorkspace() {
-  const [workspace, scenarios, importSummary, importNormalization, generatedImportScenarios, provenanceIndex] = await Promise.all([
+  const [workspace, scenarios, importSummary, importNormalization, importReview, generatedImportScenarios, provenanceIndex] = await Promise.all([
     getJson("/api/workspace"),
     getJson("/api/scenarios"),
     getJson("/api/imports/summary").catch(() => ({})),
     getJson("/api/imports/normalization").catch(() => ({})),
+    getJson("/api/imports/review").catch(() => ({})),
     getJson("/api/imports/scenarios").catch(() => []),
     getJson("/api/imports/provenance").catch(() => []),
   ]);
@@ -730,13 +776,16 @@ async function loadWorkspace() {
   state.scenarios = scenarios;
   state.importSummary = importSummary;
   state.importNormalization = importNormalization;
+  state.importReview = importReview;
   state.generatedImportScenarios = generatedImportScenarios;
   state.provenanceIndex = provenanceIndex;
   renderWorkspaceHero();
   renderImportSummary();
   renderScenarioSelector();
   if (scenarios.length > 0) {
-    await loadScenario(scenarios[0].name);
+    const activeName = workspace?.manifest?.active_scenario || scenarios[0].name;
+    document.getElementById("scenario-select").value = activeName;
+    await loadScenario(activeName);
   }
 }
 
@@ -842,6 +891,22 @@ async function startRun(event) {
     }
   } catch (error) {
     status.textContent = `Run launch failed: ${error}`;
+  }
+}
+
+async function activateScenario(name) {
+  const status = document.getElementById("run-form-status");
+  status.textContent = `Activating scenario ${name}...`;
+  try {
+    await getJson("/api/scenarios/activate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ scenario_name: name, bootstrap_contract: true }),
+    });
+    await loadWorkspace();
+    status.textContent = `Scenario ${name} is now active.`;
+  } catch (error) {
+    status.textContent = `Scenario activation failed: ${error}`;
   }
 }
 

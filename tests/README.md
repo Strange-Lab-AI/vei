@@ -36,6 +36,9 @@ python -m pytest -q tests/test_workspace_api.py tests/test_run_api.py tests/test
 # Focus on grounded import pipeline coverage
 python -m pytest -q tests/test_imports_api.py tests/test_workspace_api.py tests/test_run_api.py tests/test_ui_api.py tests/test_vei_product_cli.py
 
+# Focus on import review, mapping overrides, and generated-scenario activation
+python -m pytest -q tests/test_imports_api.py tests/test_workspace_api.py tests/test_ui_api.py tests/test_vei_product_cli.py
+
 # Keep `make check` green before opening a PR
 make check
 ```
