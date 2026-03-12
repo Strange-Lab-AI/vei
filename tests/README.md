@@ -33,6 +33,9 @@ python -m pytest -q tests/test_workflow_runner.py tests/test_sdk_contract.py
 # Focus on the workspace/run/UI product workflow
 python -m pytest -q tests/test_workspace_api.py tests/test_run_api.py tests/test_vei_product_cli.py tests/test_ui_api.py
 
+# Focus on grounded import pipeline coverage
+python -m pytest -q tests/test_imports_api.py tests/test_workspace_api.py tests/test_run_api.py tests/test_ui_api.py tests/test_vei_product_cli.py
+
 # Keep `make check` green before opening a PR
 make check
 ```

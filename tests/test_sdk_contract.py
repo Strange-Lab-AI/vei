@@ -1,31 +1,42 @@
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any, Dict, Sequence
 
 from vei.router.tool_providers import PrefixToolProvider
 from vei.router.tool_registry import ToolSpec
 from vei.sdk import (
     SessionHook,
+    bootstrap_workspace_contract_entry,
     build_blueprint_asset_for_example_entry,
     build_blueprint_asset_for_family_entry,
     build_grounding_bundle_example_entry,
     compile_blueprint_entry,
     compile_identity_governance_bundle_entry,
     create_world_session_from_blueprint_entry,
+    generate_workspace_scenarios_from_import_entry,
     create_session,
     filter_enterprise_corpus,
     generate_enterprise_corpus,
     get_benchmark_family_workflow_spec,
     get_benchmark_family_workflow_variant,
+    get_import_package_example_path_entry,
     get_showcase_example_entry,
     get_scenario_manifest,
+    import_workspace_entry,
     list_scenario_manifest,
     list_benchmark_family_workflow_variants,
     list_blueprint_builder_examples_entries,
     list_grounding_bundle_example_entries,
+    list_import_package_example_entries,
     list_showcase_example_entries,
+    load_workspace_generated_scenarios_entry,
+    load_workspace_import_report_entry,
+    load_workspace_provenance_entry,
+    normalize_import_package_entry,
     run_benchmark_family_workflow,
     run_workflow_spec,
+    validate_import_package_entry,
     validate_benchmark_family_workflow,
     validate_workflow_spec,
 )
@@ -276,3 +287,33 @@ def test_sdk_showcase_helpers_list_complex_examples() -> None:
         "acquired_seller_cutover",
         "checkout_revenue_flightdeck",
     } <= names
+
+
+def test_sdk_import_helpers_bootstrap_workspace_from_fixture(tmp_path: Path) -> None:
+    assert "macrocompute_identity_export" in list_import_package_example_entries()
+    package_path = get_import_package_example_path_entry("macrocompute_identity_export")
+
+    validation = validate_import_package_entry(package_path)
+    artifacts = normalize_import_package_entry(package_path)
+    manifest = import_workspace_entry(
+        root=str(tmp_path / "workspace"), package_path=package_path
+    )
+    generated = generate_workspace_scenarios_from_import_entry(
+        str(tmp_path / "workspace")
+    )
+    contract = bootstrap_workspace_contract_entry(
+        str(tmp_path / "workspace"),
+        scenario_name="oversharing_remediation",
+        overwrite=True,
+    )
+
+    assert validation.ok is True
+    assert artifacts.package.name == "macrocompute_identity_export"
+    assert manifest.source_kind == "import_package"
+    assert any(item.name == "oversharing_remediation" for item in generated)
+    assert contract.metadata["import_policy_id"] == "POL-WAVE2"
+    assert load_workspace_import_report_entry(str(tmp_path / "workspace")) is not None
+    assert load_workspace_generated_scenarios_entry(str(tmp_path / "workspace"))
+    assert load_workspace_provenance_entry(
+        str(tmp_path / "workspace"), "drive_share:GDRIVE-2201"
+    )

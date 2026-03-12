@@ -1,0 +1,20 @@
+{
+  "events": [
+    {
+      "event_id": "EV-2201",
+      "ts": "2026-03-10T08:40:00Z",
+      "event_type": "break_glass_access",
+      "user_email": "jordan.sellers@oldco.example.com",
+      "application_id": "APP-analytics",
+      "details": "Temporary analytics access granted during acquisition cutover."
+    },
+    {
+      "event_id": "EV-2202",
+      "ts": "2026-03-10T08:55:00Z",
+      "event_type": "share_policy_violation",
+      "user_email": "jordan.sellers@oldco.example.com",
+      "application_id": "APP-drive",
+      "details": "External link remained enabled on inherited playbook."
+    }
+  ]
+}

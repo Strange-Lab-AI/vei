@@ -12,6 +12,7 @@ from vei.workspace.api import (
     import_workspace,
     show_workspace,
 )
+from vei.imports.api import normalize_identity_import_package, validate_import_package
 
 
 app = typer.Typer(add_completion=False, help="Create and compile VEI workspaces.")
@@ -82,6 +83,9 @@ def init_workspace(
 @app.command("import")
 def import_workspace_command(
     root: Path = typer.Option(Path("."), help="Workspace root directory"),
+    package: Optional[Path] = typer.Option(
+        None, help="Import package directory or package.json manifest"
+    ),
     bundle: Optional[Path] = typer.Option(None, help="Grounding bundle JSON to import"),
     blueprint_asset: Optional[Path] = typer.Option(
         None, help="Blueprint asset JSON to import"
@@ -101,6 +105,7 @@ def import_workspace_command(
 
     import_workspace(
         root=root,
+        package_path=package,
         bundle_path=bundle,
         blueprint_asset_path=blueprint_asset,
         compiled_blueprint_path=compiled_blueprint,
@@ -110,6 +115,36 @@ def import_workspace_command(
         overwrite=overwrite,
     )
     _emit(show_workspace(root).model_dump(mode="json"), indent)
+
+
+@app.command("validate-import")
+def validate_import_command(
+    package: Path = typer.Option(..., help="Import package directory or manifest"),
+    indent: int = typer.Option(2, help="Pretty indent"),
+) -> None:
+    """Validate an import package before creating a workspace."""
+
+    _emit(validate_import_package(package).model_dump(mode="json"), indent)
+
+
+@app.command("normalize")
+def normalize_import_command(
+    package: Path = typer.Option(..., help="Import package directory or manifest"),
+    indent: int = typer.Option(2, help="Pretty indent"),
+) -> None:
+    """Normalize an import package into a VEI grounding bundle preview."""
+
+    artifacts = normalize_identity_import_package(package)
+    payload = {
+        "package": artifacts.package.model_dump(mode="json"),
+        "normalization_report": artifacts.normalization_report.model_dump(mode="json"),
+        "normalized_bundle": artifacts.normalized_bundle.model_dump(mode="json"),
+        "generated_scenarios": [
+            item.model_dump(mode="json") for item in artifacts.generated_scenarios
+        ],
+        "provenance_count": len(artifacts.provenance),
+    }
+    _emit(payload, indent)
 
 
 @app.command("show")

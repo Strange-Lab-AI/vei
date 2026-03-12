@@ -1,0 +1,12 @@
+{
+  "issues": [
+    {
+      "id": "JRA-204",
+      "title": "Wave 2 onboarding tracker",
+      "status": "open",
+      "assignee": "it-integration",
+      "description": "Track imported acquired-user cutover and least-privilege review.",
+      "comments": []
+    }
+  ]
+}

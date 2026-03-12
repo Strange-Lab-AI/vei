@@ -4,9 +4,14 @@ from pathlib import Path
 
 from fastapi.testclient import TestClient
 
+from vei.imports.api import get_import_package_example_path
 from vei.run.api import launch_workspace_run
 from vei.ui import api as ui_api
-from vei.workspace.api import create_workspace_from_template
+from vei.workspace.api import (
+    create_workspace_from_template,
+    generate_workspace_scenarios_from_import,
+    import_workspace,
+)
 
 
 class _ImmediateThread:
@@ -97,3 +102,46 @@ def test_ui_api_rejects_invalid_runner_before_worker_starts(tmp_path: Path) -> N
     assert response.json()["detail"] == "runner must be workflow, scripted, bc, or llm"
     runs_response = client.get("/api/runs")
     assert runs_response.json() == []
+
+
+def test_ui_api_serves_import_diagnostics_and_provenance(tmp_path: Path) -> None:
+    root = tmp_path / "workspace"
+    import_workspace(
+        root=root,
+        package_path=get_import_package_example_path("macrocompute_identity_export"),
+    )
+    generate_workspace_scenarios_from_import(root)
+    manifest = launch_workspace_run(
+        root,
+        runner="workflow",
+        scenario_name="oversharing_remediation",
+    )
+
+    client = TestClient(ui_api.create_ui_app(root))
+
+    summary_response = client.get("/api/imports/summary")
+    assert summary_response.status_code == 200
+    assert summary_response.json()["package_name"] == "macrocompute_identity_export"
+
+    normalization_response = client.get("/api/imports/normalization")
+    assert normalization_response.status_code == 200
+    assert normalization_response.json()["normalized_counts"]["identity_users"] == 2
+
+    scenarios_response = client.get("/api/imports/scenarios")
+    assert scenarios_response.status_code == 200
+    assert any(
+        item["name"] == "oversharing_remediation" for item in scenarios_response.json()
+    )
+
+    provenance_response = client.get(
+        "/api/imports/provenance", params={"object_ref": "drive_share:GDRIVE-2201"}
+    )
+    assert provenance_response.status_code == 200
+    assert provenance_response.json()[0]["origin"] == "imported"
+
+    timeline_response = client.get(f"/api/runs/{manifest.run_id}/timeline")
+    assert timeline_response.status_code == 200
+    assert any(
+        "drive_share:GDRIVE-2201" in item.get("object_refs", [])
+        for item in timeline_response.json()
+    )

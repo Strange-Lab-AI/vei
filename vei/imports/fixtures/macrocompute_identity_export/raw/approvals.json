@@ -1,0 +1,21 @@
+{
+  "requests": [
+    {
+      "request_id": "REQ-2201",
+      "title": "Wave 2 seller activation",
+      "status": "PENDING_APPROVAL",
+      "requester": "maya.rex@example.com",
+      "description": "Approve seller activation after imported least-privilege review.",
+      "approvals": [
+        {
+          "stage": "manager",
+          "status": "APPROVED"
+        },
+        {
+          "stage": "identity",
+          "status": "PENDING"
+        }
+      ]
+    }
+  ]
+}

@@ -42,6 +42,30 @@ _FAMILY_CATALOG: Dict[str, BenchmarkFamilyManifest] = {
         ],
         tags=["onboarding", "migration", "identity"],
     ),
+    "identity_access_governance": BenchmarkFamilyManifest(
+        name="identity_access_governance",
+        title="Identity Access Governance",
+        description=(
+            "Resolve identity-policy drift across imported org state while preserving "
+            "policy hygiene, completing the required artifact trail, and satisfying "
+            "scenario contracts."
+        ),
+        workflow_name="identity_access_governance",
+        primary_workflow_variant="oversharing_remediation",
+        workflow_variants=[
+            "oversharing_remediation",
+            "approval_bottleneck",
+            "stale_entitlement_cleanup",
+            "break_glass_follow_up",
+        ],
+        scenario_names=["acquired_sales_onboarding"],
+        primary_dimensions=[
+            "contract_alignment",
+            "policy_hygiene",
+            "artifact_follow_through",
+        ],
+        tags=["identity", "governance", "imports", "least-privilege"],
+    ),
     "revenue_incident_mitigation": BenchmarkFamilyManifest(
         name="revenue_incident_mitigation",
         title="Revenue Incident Mitigation",

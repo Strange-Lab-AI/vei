@@ -117,7 +117,7 @@ def run_benchmark_case(spec: BenchmarkCaseSpec) -> BenchmarkCaseResult:
     _write_blueprint_artifacts(
         artifacts_dir=artifacts_dir,
         scenario_name=spec.scenario_name,
-        family_name=_infer_benchmark_family(spec.scenario_name),
+        family_name=_resolve_case_family_name(spec),
         workflow_name=spec.workflow_name,
         workflow_variant=spec.workflow_variant,
         blueprint_asset_path=spec.blueprint_asset_path,
@@ -211,6 +211,7 @@ def _run_local_case(spec: BenchmarkCaseSpec) -> BenchmarkCaseResult:
         scenario_name=spec.scenario_name,
         artifacts_dir=spec.artifacts_dir,
         state=final_snapshot.data,
+        family_name=_resolve_case_family_name(spec),
     )
     metrics = _collect_metrics(
         artifacts_dir=spec.artifacts_dir,
@@ -228,6 +229,7 @@ def _run_local_case(spec: BenchmarkCaseSpec) -> BenchmarkCaseResult:
             else None
         ),
     )
+    diagnostics.benchmark_family = _resolve_case_family_name(spec)
     available_tools = [tool.name for tool in router.registry.list()]
     workflow_validation = _validate_nonworkflow_case_against_contract(
         spec=spec,
@@ -269,7 +271,7 @@ def _run_workflow_case(spec: BenchmarkCaseSpec) -> BenchmarkCaseResult:
     _write_blueprint_artifacts(
         artifacts_dir=spec.artifacts_dir,
         scenario_name=spec.scenario_name,
-        family_name=_infer_benchmark_family(spec.scenario_name),
+        family_name=_resolve_case_family_name(spec),
         workflow_name=compiled.spec.name,
         workflow_variant=workflow_variant,
     )
@@ -316,6 +318,7 @@ def _run_workflow_case(spec: BenchmarkCaseSpec) -> BenchmarkCaseResult:
         scenario_name=spec.scenario_name,
         artifacts_dir=spec.artifacts_dir,
         state=final_state,
+        family_name=_resolve_case_family_name(spec),
     )
     workflow_validation = _workflow_validation_from_workflow_run(
         workflow=compiled,
@@ -339,6 +342,7 @@ def _run_workflow_case(spec: BenchmarkCaseSpec) -> BenchmarkCaseResult:
         artifacts_dir=spec.artifacts_dir,
         state=final_state,
     )
+    diagnostics.benchmark_family = _resolve_case_family_name(spec)
     diagnostics.branch = workflow_result.branch
     diagnostics.workflow_name = workflow_result.workflow_name
     diagnostics.workflow_variant = workflow_variant
@@ -415,6 +419,7 @@ def _run_llm_case(spec: BenchmarkCaseSpec) -> BenchmarkCaseResult:
         scenario_name=spec.scenario_name,
         artifacts_dir=spec.artifacts_dir,
         state=latest_snapshot.data if latest_snapshot is not None else None,
+        family_name=_resolve_case_family_name(spec),
     )
     transcript = _load_transcript(spec.artifacts_dir)
     metrics = _collect_metrics(
@@ -423,6 +428,7 @@ def _run_llm_case(spec: BenchmarkCaseSpec) -> BenchmarkCaseResult:
         transcript=transcript,
     )
     diagnostics = _collect_world_diagnostics(artifacts_dir=spec.artifacts_dir)
+    diagnostics.benchmark_family = _resolve_case_family_name(spec)
     workflow_validation = None
     if latest_snapshot is not None:
         workflow_validation = _validate_nonworkflow_case_against_contract(
@@ -485,6 +491,7 @@ def _normalize_score(
     scenario_name: str,
     artifacts_dir: Path,
     state: WorldState | None,
+    family_name: str | None = None,
 ) -> Dict[str, Any]:
     if frontier:
         return dict(raw_score)
@@ -494,6 +501,7 @@ def _normalize_score(
         artifacts_dir=artifacts_dir,
         raw_score=raw_score,
         state=state,
+        family_name=family_name,
     )
     if enterprise:
         return enterprise
@@ -548,8 +556,15 @@ def _resolve_workflow_contract(
     )
     if workflow_name is None:
         return None
+    blueprint_asset = _load_case_blueprint_asset(spec)
     workflow_spec = get_benchmark_family_workflow_spec(
-        workflow_name, variant_name=spec.workflow_variant
+        workflow_name,
+        variant_name=spec.workflow_variant,
+        parameter_overrides=(
+            dict(blueprint_asset.workflow_parameters)
+            if blueprint_asset is not None
+            else None
+        ),
     )
     workflow_variant = None
     if isinstance(workflow_spec.metadata, dict):
@@ -730,6 +745,12 @@ def _infer_benchmark_family(scenario_name: str) -> str | None:
         return get_scenario(scenario_name).metadata.get("benchmark_family")
     except Exception:  # noqa: BLE001
         return None
+
+
+def _resolve_case_family_name(spec: BenchmarkCaseSpec) -> str | None:
+    if spec.family_name:
+        return spec.family_name
+    return _infer_benchmark_family(spec.scenario_name)
 
 
 def _write_blueprint_artifacts(

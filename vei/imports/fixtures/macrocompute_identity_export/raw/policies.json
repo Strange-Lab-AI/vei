@@ -1,0 +1,25 @@
+{
+  "policies": [
+    {
+      "policy_id": "POL-WAVE2",
+      "title": "Wave 2 least-privilege cutover policy",
+      "allowed_application_ids": [
+        "APP-slack",
+        "APP-crm"
+      ],
+      "forbidden_share_domains": [
+        "example.net"
+      ],
+      "required_approval_stages": [
+        "manager",
+        "identity"
+      ],
+      "deadline_max_ms": 86400000,
+      "notes": [
+        "Remove external shares before manager handoff.",
+        "Legacy analytics access must be removed after review."
+      ],
+      "break_glass_requires_followup": true
+    }
+  ]
+}

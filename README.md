@@ -112,6 +112,34 @@ vei inspect events --root _vei_out/workspaces/acquired_cutover
 vei inspect graphs --root _vei_out/workspaces/acquired_cutover --domain identity_graph
 ```
 
+### Grounded import flow
+
+VEI can now ingest realistic offline enterprise export packs and turn them into a runnable workspace. The import path is:
+
+```text
+raw CSV/JSON exports -> import package -> normalized grounding bundle -> compiled workspace
+```
+
+Canonical fixture demo:
+
+```bash
+vei project validate-import --package vei/imports/fixtures/macrocompute_identity_export
+vei project normalize --package vei/imports/fixtures/macrocompute_identity_export
+vei project import --root _vei_out/workspaces/macrocompute_import --package vei/imports/fixtures/macrocompute_identity_export
+vei scenario generate --root _vei_out/workspaces/macrocompute_import
+vei contract bootstrap --root _vei_out/workspaces/macrocompute_import --scenario-name oversharing_remediation --overwrite
+vei run start --root _vei_out/workspaces/macrocompute_import --runner workflow --scenario-name oversharing_remediation
+vei inspect provenance --root _vei_out/workspaces/macrocompute_import --object-ref drive_share:DOC-ACQ-1
+vei-ui serve --root _vei_out/workspaces/macrocompute_import
+```
+
+The import UI now shows:
+- package/source summary
+- mapping diagnostics
+- generated scenario candidates
+- imported vs derived vs simulated counts
+- provenance drilldown from selected run events
+
 ## What You Get
 
 - Deterministic simulator with replayable traces
@@ -120,6 +148,7 @@ vei inspect graphs --root _vei_out/workspaces/acquired_cutover --domain identity
 - Typed blueprint and facade catalog over the existing enterprise twins
 - Blueprint compiler with explicit facade plugins and authored `GroundingBundle -> BlueprintAsset -> CompiledBlueprint` flow
 - Environment-builder path that can compile typed capability graphs, policies, and workflow seeds into a runnable world session
+- Grounded import pipeline that can validate file-based identity exports, normalize them into a `GroundingBundle`, generate scenario candidates, bootstrap contracts, and preserve provenance/redaction artifacts inside a workspace
 - Runtime capability-graph layer that lets world sessions and snapshots expose shared domain graphs such as identity, docs, work, comms, and revenue
 - Graph-native planning and mutation layer that lets agents ask for suggested next actions and apply graph actions without dropping down to raw app tools first
 - Graph-native workflow execution, so benchmark/playbook steps can compile to `vei.graph_action` instead of only raw app-shaped tool calls
@@ -180,6 +209,7 @@ Useful helpers:
 - Blueprint catalog: `list_blueprint_entries()`, `build_blueprint_asset_for_family_entry(name)`, `build_blueprint_for_family_entry(name)`, `compile_blueprint_entry(asset)`
 - Environment builder: `list_blueprint_builder_examples_entries()`, `build_blueprint_asset_for_example_entry(name)`, `create_world_session_from_blueprint_entry(asset)`
 - Workspace lifecycle: `create_workspace_from_template_entry(...)`, `import_workspace_entry(...)`, `compile_workspace_entry(...)`, `show_workspace_entry(...)`
+- Import helpers: `list_import_package_example_entries()`, `validate_import_package_entry(path)`, `normalize_import_package_entry(path)`, `load_workspace_provenance_entry(root, object_ref)`
 - Run lifecycle: `launch_workspace_run_entry(...)`, `list_run_manifests_entry(...)`, `get_run_orientation_entry(...)`, `get_run_capability_graphs_entry(...)`
 - Benchmark families: `list_benchmark_family_manifest_entries()`, `get_benchmark_family_manifest_entry(name)`
 - Release packaging: `build_release_version()`, `export_release_dataset(...)`, `export_release_benchmark(...)`, `run_release_nightly(...)`
@@ -247,6 +277,8 @@ The default product-shaped loop is now:
 The local UI stays intentionally lightweight and Python-first. It opens one workspace, shows compiled scenario and contract context, launches runs with scenario/runner/provider/model/task/max-step controls, and renders a playback control room with animated channel lanes, run scorecards, capability-graph summaries, orientation cards, snapshot diffs, and raw developer drawers over the same canonical run artifacts.
 
 ![VEI UI control room](docs/assets/vei_ui_control_room.png)
+
+Imported workspaces add a grounded-intake layer on top of that same UI: source-package health, normalization diagnostics, scenario candidates, imported/derived/simulated object counts, and provenance drilldown from timeline events to raw-source lineage.
 
 ## Benchmarking
 

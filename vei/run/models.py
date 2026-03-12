@@ -59,6 +59,7 @@ class RunTimelineEvent(BaseModel):
     tool: Optional[str] = None
     resolved_tool: Optional[str] = None
     graph_action_ref: Optional[str] = None
+    object_refs: List[str] = Field(default_factory=list)
     branch: Optional[str] = None
     snapshot_id: Optional[int] = None
     payload: Dict[str, Any] = Field(default_factory=dict)

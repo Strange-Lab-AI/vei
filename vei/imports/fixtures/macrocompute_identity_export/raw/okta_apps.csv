@@ -1,0 +1,4 @@
+app_id,label,status,description,sign_on_mode,assignments
+APP-crm,Salesforce,ACTIVE,Primary CRM,SAML_2_0,USR-ACQ-2
+APP-slack,Slack,ACTIVE,Primary communication surface,SAML_2_0,USR-ACQ-1;USR-ACQ-2
+APP-analytics,Legacy Analytics,ACTIVE,Legacy analytics workspace,SWA,USR-ACQ-1

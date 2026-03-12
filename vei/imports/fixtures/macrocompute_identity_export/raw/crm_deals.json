@@ -1,0 +1,13 @@
+{
+  "deals": [
+    {
+      "id": "D-100",
+      "name": "MacroCompute Expansion",
+      "amount": 420000,
+      "stage": "negotiation",
+      "owner": "departed.manager@oldco.example.com",
+      "contact_id": "C-100",
+      "company_id": "CO-100"
+    }
+  ]
+}

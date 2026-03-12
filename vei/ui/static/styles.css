@@ -227,6 +227,18 @@ body {
   background: rgba(255, 255, 255, 0.68);
 }
 
+.provenance-chip {
+  width: auto;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(26, 168, 141, 0.1);
+  border-color: rgba(26, 168, 141, 0.24);
+}
+
+.import-card .metric-tile {
+  min-height: 100%;
+}
+
 .form-status {
   margin: 0;
   font-size: 0.92rem;

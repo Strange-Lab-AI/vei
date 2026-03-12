@@ -16,20 +16,31 @@ def score_enterprise_dimensions(
     artifacts_dir: Path,
     raw_score: Dict[str, Any],
     state: WorldState | None,
+    family_name: str | None = None,
 ) -> Dict[str, Any]:
     scenario = get_scenario(scenario_name)
     metadata = getattr(scenario, "metadata", {}) or {}
-    benchmark_family = metadata.get("benchmark_family")
+    benchmark_family = family_name or metadata.get("benchmark_family")
     if not isinstance(benchmark_family, str) or not benchmark_family:
         return {}
 
-    manifest = get_benchmark_family_manifest(benchmark_family)
+    try:
+        manifest = get_benchmark_family_manifest(benchmark_family)
+    except KeyError:
+        return {}
     calls = _load_trace_calls(artifacts_dir)
     dimensions: Dict[str, float]
     if manifest.name == "security_containment":
         dimensions = _score_security_containment(calls, state)
     elif manifest.name == "enterprise_onboarding_migration":
         dimensions = _score_onboarding_migration(calls, state)
+    elif manifest.name == "identity_access_governance":
+        dimensions = _score_identity_access_governance(
+            calls,
+            state,
+            artifacts_dir,
+            raw_score,
+        )
     elif manifest.name == "revenue_incident_mitigation":
         dimensions = _score_revenue_incident(calls, state)
     else:
@@ -284,6 +295,88 @@ def _score_revenue_incident(
     }
 
 
+def _score_identity_access_governance(
+    calls: List[Dict[str, Any]],
+    state: WorldState | None,
+    artifacts_dir: Path,
+    raw_score: Dict[str, Any],
+) -> Dict[str, float]:
+    validation = _load_json(artifacts_dir / "workflow_validation.json")
+    drive_state = _component(state, "google_admin", "drive_shares")
+    docs = _component(state, "docs", "docs")
+    slack_channels = _component(state, "slack", "channels")
+    ticket_metadata = _component(state, "tickets", "metadata")
+    scenario = state.scenario if isinstance(state, WorldState) else {}
+    metadata = scenario.get("metadata", {}) if isinstance(scenario, dict) else {}
+    forbidden_domains = [
+        str(domain).lower() for domain in metadata.get("forbidden_share_domains", [])
+    ]
+
+    if validation:
+        total = max(
+            1,
+            int(validation.get("success_assertion_count", 0))
+            + int(validation.get("forbidden_predicate_count", 0)),
+        )
+        passed = int(validation.get("success_assertions_passed", 0)) + max(
+            0,
+            int(validation.get("forbidden_predicate_count", 0))
+            - int(validation.get("forbidden_predicates_failed", 0)),
+        )
+        contract_alignment = _clamp(passed / total)
+    else:
+        contract_alignment = 1.0 if raw_score.get("success") else 0.0
+
+    hygiene_checks: List[float] = []
+    for share in drive_state.values():
+        visibility = str(share.get("visibility", "")).lower()
+        shared_with = [str(value).lower() for value in share.get("shared_with", [])]
+        hygiene_checks.append(1.0 if visibility != "external_link" else 0.0)
+        if forbidden_domains:
+            hygiene_checks.append(
+                1.0
+                if not any(
+                    any(entry.endswith(domain) for domain in forbidden_domains)
+                    for entry in shared_with
+                )
+                else 0.0
+            )
+    policy_hygiene = mean(hygiene_checks) if hygiene_checks else contract_alignment
+
+    artifact_checks: List[float] = []
+    if docs:
+        artifact_checks.append(
+            _ratio(
+                list(docs.values()),
+                lambda doc: any(
+                    marker in str(doc.get("body", "")).lower()
+                    for marker in ("policy", "imported", "break-glass")
+                ),
+            )
+        )
+    if slack_channels:
+        artifact_checks.append(
+            _ratio(
+                list(slack_channels.values()),
+                lambda channel: len(channel.get("messages", [])) >= 2,
+            )
+        )
+    if ticket_metadata:
+        artifact_checks.append(
+            _ratio(
+                list(ticket_metadata.values()),
+                lambda ticket: len(ticket.get("comments", [])) > 0,
+            )
+        )
+    artifact_follow_through = mean(artifact_checks) if artifact_checks else 0.0
+
+    return {
+        "contract_alignment": _clamp(contract_alignment),
+        "policy_hygiene": _clamp(policy_hygiene),
+        "artifact_follow_through": _clamp(artifact_follow_through),
+    }
+
+
 def _load_trace_calls(artifacts_dir: Path) -> List[Dict[str, Any]]:
     trace_path = artifacts_dir / "trace.jsonl"
     calls: List[Dict[str, Any]] = []
@@ -296,6 +389,12 @@ def _load_trace_calls(artifacts_dir: Path) -> List[Dict[str, Any]]:
         if record.get("type") == "call" and isinstance(record.get("tool"), str):
             calls.append(record)
     return calls
+
+
+def _load_json(path: Path) -> Dict[str, Any]:
+    if not path.exists():
+        return {}
+    return json.loads(path.read_text(encoding="utf-8"))
 
 
 def _component(

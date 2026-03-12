@@ -12,6 +12,7 @@ WorkspaceSourceKind = Literal[
     "grounding_bundle",
     "blueprint_asset",
     "compiled_blueprint",
+    "import_package",
 ]
 
 WorkspaceRunStatus = Literal["queued", "running", "ok", "error"]
@@ -28,6 +29,9 @@ class WorkspaceScenarioSpec(BaseModel):
     contract_path: Optional[str] = None
     inspection_focus: Optional[str] = None
     tags: List[str] = Field(default_factory=list)
+    hidden_faults: Dict[str, Any] = Field(default_factory=dict)
+    actor_hints: List[str] = Field(default_factory=list)
+    contract_overrides: Dict[str, Any] = Field(default_factory=dict)
     metadata: Dict[str, Any] = Field(default_factory=dict)
 
 
@@ -54,6 +58,12 @@ class WorkspaceManifest(BaseModel):
     source_ref: Optional[str] = None
     blueprint_asset_path: str = "sources/blueprint_asset.json"
     grounding_bundle_path: Optional[str] = None
+    imports_dir: str = "imports"
+    import_package_path: Optional[str] = None
+    normalization_report_path: Optional[str] = None
+    provenance_path: Optional[str] = None
+    redaction_report_path: Optional[str] = None
+    generated_scenarios_path: Optional[str] = None
     compiled_root: str = "compiled"
     scenarios_dir: str = "scenarios"
     contracts_dir: str = "contracts"
@@ -62,6 +72,18 @@ class WorkspaceManifest(BaseModel):
     active_scenario: str = "default"
     scenarios: List[WorkspaceScenarioSpec] = Field(default_factory=list)
     metadata: Dict[str, Any] = Field(default_factory=dict)
+
+
+class WorkspaceImportSummary(BaseModel):
+    package_name: str
+    source_count: int = 0
+    issue_count: int = 0
+    warning_count: int = 0
+    error_count: int = 0
+    provenance_count: int = 0
+    generated_scenario_count: int = 0
+    normalized_counts: Dict[str, int] = Field(default_factory=dict)
+    origin_counts: Dict[str, int] = Field(default_factory=dict)
 
 
 class WorkspaceCompileRecord(BaseModel):
@@ -78,3 +100,4 @@ class WorkspaceSummary(BaseModel):
     compiled_scenarios: List[WorkspaceCompileRecord] = Field(default_factory=list)
     run_count: int = 0
     latest_run_id: Optional[str] = None
+    imports: Optional[WorkspaceImportSummary] = None

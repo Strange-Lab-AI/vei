@@ -16,6 +16,11 @@ const state = {
   scenarios: [],
   scenarioPreview: null,
   scenarioContract: null,
+  importSummary: null,
+  importNormalization: null,
+  generatedImportScenarios: [],
+  provenanceIndex: [],
+  selectedObjectRef: null,
   runs: [],
   activeRunId: null,
   activeRun: null,
@@ -176,6 +181,80 @@ function renderWorkspaceHero() {
     `${manifest.description || "Workspace ready."} ${workspace.run_count ? `This workspace has ${workspace.run_count} recorded run${workspace.run_count === 1 ? "" : "s"}.` : "Launch a run to start building a playback history."}`;
   renderWorkspaceMetrics();
   renderJson("workspace-panel", workspace);
+}
+
+function renderImportSummary() {
+  const summary = state.importSummary;
+  const normalization = state.importNormalization;
+  const panel = document.getElementById("imports-summary");
+  const generatedPanel = document.getElementById("generated-scenarios");
+  const provenancePanel = document.getElementById("provenance-detail");
+  const hasImportPackage =
+    summary &&
+    normalization &&
+    Object.keys(summary).length > 0 &&
+    Object.keys(normalization).length > 0 &&
+    (summary.package_name || normalization.package_name);
+  if (!hasImportPackage) {
+    panel.innerHTML = `<div class="metric-tile"><span class="metric-label">Import</span><span class="metric-value">No import package</span></div>`;
+    generatedPanel.innerHTML = "";
+    provenancePanel.innerHTML = "";
+    renderJson("imports-panel", {});
+    renderJson("provenance-panel", []);
+    return;
+  }
+
+  panel.innerHTML = [
+    metricTile("Package", summary.package_name || "import", `${summary.source_count || 0} sources`),
+    metricTile("Issues", String(summary.issue_count || 0), `${summary.warning_count || 0} warnings · ${summary.error_count || 0} errors`),
+    metricTile("Provenance", String(summary.provenance_count || 0), `generated scenarios: ${summary.generated_scenario_count || 0}`),
+    metricTile(
+      "Origins",
+      `${summary.origin_counts?.imported || 0}/${summary.origin_counts?.derived || 0}/${summary.origin_counts?.simulated || 0}`,
+      "imported / derived / simulated"
+    ),
+  ].join("");
+
+  generatedPanel.innerHTML = state.generatedImportScenarios
+    .map(
+      (scenario) => `
+        <div class="run-item">
+          <div class="chip-row">
+            ${chip(scenario.workflow_name)}
+            ${chip(scenario.workflow_variant || "default")}
+          </div>
+          <h3>${escapeHtml(scenario.title)}</h3>
+          <p class="metric-detail">${escapeHtml(scenario.description)}</p>
+          <div class="chip-row">${(scenario.tags || []).slice(0, 4).map((item) => chip(item)).join("")}</div>
+        </div>
+      `
+    )
+    .join("");
+
+  const selectedRefs = state.timeline[state.selectedEventIndex]?.object_refs || [];
+  const selectedRecord = state.provenanceIndex.find((item) => item.object_ref === state.selectedObjectRef) || state.provenanceIndex.find((item) => selectedRefs.includes(item.object_ref));
+  if (selectedRecord) {
+    provenancePanel.innerHTML = `
+      <div class="detail-grid">
+        ${detailTile("Object", selectedRecord.object_ref)}
+        ${detailTile("Origin", selectedRecord.origin)}
+        ${detailTile("Source", selectedRecord.source_system || selectedRecord.source_id || "derived")}
+        ${detailTile("Label", selectedRecord.label || "object")}
+      </div>
+      <div class="chip-row">${(selectedRecord.lineage || []).map((item) => chip(item)).join("")}</div>
+    `;
+    renderJson("provenance-panel", [selectedRecord]);
+  } else {
+    provenancePanel.innerHTML = `
+      <div class="stack-card">
+        <h3>Provenance drilldown</h3>
+        <p class="metric-detail">Select a run event with object references to inspect imported, derived, or simulated lineage.</p>
+      </div>
+    `;
+    renderJson("provenance-panel", state.provenanceIndex);
+  }
+
+  renderJson("imports-panel", normalization);
 }
 
 function renderScenarioSelector() {
@@ -438,8 +517,17 @@ function renderEventDetail() {
       ${detailTile("Tool", event.tool || "n/a")}
       ${detailTile("Resolved", event.resolved_tool || event.graph_action_ref || "n/a")}
     </div>
+    <div class="chip-row">
+      ${(event.object_refs || []).map((item) => `<button type="button" class="ghost-button provenance-chip" data-object-ref="${escapeHtml(item)}">${escapeHtml(item)}</button>`).join("")}
+    </div>
   `;
   renderJson("event-panel", event);
+  summary.querySelectorAll(".provenance-chip").forEach((node) => {
+    node.addEventListener("click", () => {
+      state.selectedObjectRef = node.dataset.objectRef;
+      renderImportSummary();
+    });
+  });
 }
 
 function renderOrientation() {
@@ -630,11 +718,22 @@ function togglePlayback() {
 }
 
 async function loadWorkspace() {
-  const workspace = await getJson("/api/workspace");
-  const scenarios = await getJson("/api/scenarios");
+  const [workspace, scenarios, importSummary, importNormalization, generatedImportScenarios, provenanceIndex] = await Promise.all([
+    getJson("/api/workspace"),
+    getJson("/api/scenarios"),
+    getJson("/api/imports/summary").catch(() => ({})),
+    getJson("/api/imports/normalization").catch(() => ({})),
+    getJson("/api/imports/scenarios").catch(() => []),
+    getJson("/api/imports/provenance").catch(() => []),
+  ]);
   state.workspace = workspace;
   state.scenarios = scenarios;
+  state.importSummary = importSummary;
+  state.importNormalization = importNormalization;
+  state.generatedImportScenarios = generatedImportScenarios;
+  state.provenanceIndex = provenanceIndex;
   renderWorkspaceHero();
+  renderImportSummary();
   renderScenarioSelector();
   if (scenarios.length > 0) {
     await loadScenario(scenarios[0].name);
@@ -687,6 +786,7 @@ async function refreshActiveRun(runId, { connectStream = false } = {}) {
   renderOrientation();
   renderGraphs();
   renderSnapshots();
+  renderImportSummary();
 
   if (connectStream) {
     connectRunStream(runId);

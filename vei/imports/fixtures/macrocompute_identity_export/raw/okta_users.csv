@@ -1,0 +1,3 @@
+user_id,email,login,first_name,last_name,status,department,title,manager,org_unit,group_ids,application_ids,last_login_ms
+USR-ACQ-1,jordan.sellers@oldco.example.com,jordan.sellers,Jordan,Sellers,PROVISIONED,Sales,Account Executive,maya.rex@example.com,Sales,GRP-acquired-sales,APP-slack;APP-analytics,0
+USR-ACQ-2,maya.rex@example.com,maya.rex,Maya,Rex,ACTIVE,Sales,Sales Manager,allison.voss@example.com,Sales,GRP-sales-managers,APP-slack;APP-crm,1700000000000

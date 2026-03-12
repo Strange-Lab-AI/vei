@@ -140,6 +140,18 @@
           <div id="graphs-panel" class="graph-grid"></div>
         </section>
 
+        <section class="card import-card">
+          <div class="section-header">
+            <div>
+              <p class="eyebrow">Grounded Import</p>
+              <h2>Imported vs derived vs simulated</h2>
+            </div>
+          </div>
+          <div id="imports-summary" class="briefing-grid"></div>
+          <div id="generated-scenarios" class="run-grid"></div>
+          <div id="provenance-detail" class="detail-summary"></div>
+        </section>
+
         <section class="card snapshots-card">
           <div class="section-header">
             <div>
@@ -203,6 +215,14 @@
           <details>
             <summary>Capability Graph JSON</summary>
             <pre id="graphs-raw-panel" class="code-panel"></pre>
+          </details>
+          <details>
+            <summary>Import Normalization</summary>
+            <pre id="imports-panel" class="code-panel"></pre>
+          </details>
+          <details>
+            <summary>Provenance JSON</summary>
+            <pre id="provenance-panel" class="code-panel"></pre>
           </details>
         </section>
       </main>

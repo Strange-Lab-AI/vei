@@ -27,6 +27,9 @@ from vei.run.api import (
 )
 from vei import __version__ as vei_version
 from vei.workspace.api import (
+    load_workspace_generated_scenarios,
+    load_workspace_import_report,
+    load_workspace_provenance,
     list_workspace_scenarios,
     load_workspace_contract,
     preview_workspace_scenario,
@@ -66,6 +69,34 @@ def create_ui_app(workspace_root: str | Path) -> FastAPI:
     @app.get("/api/workspace")
     def api_workspace() -> JSONResponse:
         return JSONResponse(show_workspace(root).model_dump(mode="json"))
+
+    @app.get("/api/imports/summary")
+    def api_import_summary() -> JSONResponse:
+        summary = show_workspace(root).imports
+        return JSONResponse(summary.model_dump(mode="json") if summary else {})
+
+    @app.get("/api/imports/normalization")
+    def api_import_normalization() -> JSONResponse:
+        report = load_workspace_import_report(root)
+        return JSONResponse(report.model_dump(mode="json") if report else {})
+
+    @app.get("/api/imports/scenarios")
+    def api_import_scenarios() -> JSONResponse:
+        return JSONResponse(
+            [
+                item.model_dump(mode="json")
+                for item in load_workspace_generated_scenarios(root)
+            ]
+        )
+
+    @app.get("/api/imports/provenance")
+    def api_import_provenance(object_ref: str | None = None) -> JSONResponse:
+        return JSONResponse(
+            [
+                item.model_dump(mode="json")
+                for item in load_workspace_provenance(root, object_ref)
+            ]
+        )
 
     @app.get("/api/scenarios")
     def api_scenarios() -> JSONResponse:

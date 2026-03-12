@@ -1,0 +1,3 @@
+employee_id,email,display_name,department,manager,status,cohort,identity_conflict,onboarded,org_unit,notes
+EMP-2201,jordan.sellers@oldco.example.com,Jordan Sellers,Sales,maya.rex@example.com,pre_start,acquired-sales-wave-2,true,false,Sales,Needs alias merge before activation.
+EMP-2202,erin.falcon@oldco.example.com,Erin Falcon,Sales,maya.rex@example.com,active,acquired-sales-wave-2,false,true,Sales,

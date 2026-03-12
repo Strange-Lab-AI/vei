@@ -45,6 +45,12 @@ def compile_identity_governance_bundle(
             "policy_notes": list(bundle.policy_notes),
             "incident_history": list(bundle.incident_history),
             "acceptance_focus": list(bundle.acceptance_focus),
+            "source_manifests": list(bundle.source_manifests),
+            "org_units": list(bundle.org_units),
+            "approval_policies": list(bundle.approval_policies),
+            "entitlement_policies": list(bundle.entitlement_policies),
+            "audit_events": list(bundle.audit_events),
+            "change_references": list(bundle.change_references),
         }
     )
     return BlueprintAsset(

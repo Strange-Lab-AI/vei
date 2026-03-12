@@ -8,6 +8,7 @@ import typer
 
 from vei.run.api import evaluate_run_workspace_contract, load_run_manifest
 from vei.workspace.api import (
+    bootstrap_workspace_contract,
     diff_workspace_contract,
     list_workspace_runs,
     load_workspace_contract,
@@ -102,3 +103,20 @@ def evaluate_contract(
         "contract_evaluation": result.model_dump(mode="json"),
     }
     _emit(payload, indent)
+
+
+@app.command("bootstrap")
+def bootstrap_contract(
+    root: Path = typer.Option(Path("."), help="Workspace root directory"),
+    scenario_name: Optional[str] = typer.Option(None, help="Workspace scenario name"),
+    overwrite: bool = typer.Option(
+        False, help="Overwrite an existing authored contract for the scenario"
+    ),
+    indent: int = typer.Option(2, help="Pretty indent"),
+) -> None:
+    """Bootstrap or refresh a workspace contract from imported policy and ACL state."""
+
+    payload = bootstrap_workspace_contract(
+        root, scenario_name=scenario_name, overwrite=overwrite
+    )
+    _emit(payload.model_dump(mode="json"), indent)

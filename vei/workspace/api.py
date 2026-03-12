@@ -23,10 +23,21 @@ from vei.contract.api import build_contract_from_workflow, evaluate_contract
 from vei.contract.models import ContractEvaluationResult, ContractSpec
 from vei.grounding.api import compile_identity_governance_bundle
 from vei.grounding.models import IdentityGovernanceBundle
+from vei.imports.api import (
+    bootstrap_contract_from_import_bundle,
+    normalize_identity_import_package,
+)
+from vei.imports.models import (
+    GeneratedScenarioCandidate,
+    ImportPackageArtifacts,
+    NormalizationReport,
+    ProvenanceRecord,
+)
 from vei.world.manifest import build_scenario_manifest
 
 from .models import (
     WorkspaceCompileRecord,
+    WorkspaceImportSummary,
     WorkspaceManifest,
     WorkspaceRunEntry,
     WorkspaceScenarioSpec,
@@ -79,6 +90,7 @@ def create_workspace_from_template(
 def import_workspace(
     *,
     root: str | Path,
+    package_path: str | Path | None = None,
     bundle_path: str | Path | None = None,
     blueprint_asset_path: str | Path | None = None,
     compiled_blueprint_path: str | Path | None = None,
@@ -89,17 +101,29 @@ def import_workspace(
 ) -> WorkspaceManifest:
     selected = sum(
         value is not None
-        for value in (bundle_path, blueprint_asset_path, compiled_blueprint_path)
+        for value in (
+            package_path,
+            bundle_path,
+            blueprint_asset_path,
+            compiled_blueprint_path,
+        )
     )
     if selected != 1:
         raise ValueError(
-            "import_workspace requires exactly one of bundle_path, blueprint_asset_path, or compiled_blueprint_path"
+            "import_workspace requires exactly one of package_path, bundle_path, blueprint_asset_path, or compiled_blueprint_path"
         )
     path = _ensure_workspace_root(root, overwrite=overwrite)
 
     grounding_bundle: IdentityGovernanceBundle | None = None
     precompiled_blueprint: CompiledBlueprint | None = None
-    if bundle_path is not None:
+    import_artifacts: ImportPackageArtifacts | None = None
+    if package_path is not None:
+        import_artifacts = normalize_identity_import_package(package_path)
+        grounding_bundle = import_artifacts.normalized_bundle
+        asset = compile_identity_governance_bundle(grounding_bundle)
+        source_kind = "import_package"
+        source_ref = str(package_path)
+    elif bundle_path is not None:
         grounding_bundle = _read_model(Path(bundle_path), IdentityGovernanceBundle)
         asset = compile_identity_governance_bundle(grounding_bundle)
         source_kind = "grounding_bundle"
@@ -120,6 +144,7 @@ def import_workspace(
         root=path,
         asset=asset,
         grounding_bundle=grounding_bundle,
+        import_artifacts=import_artifacts,
         precompiled_blueprint=precompiled_blueprint,
         source_kind=source_kind,
         source_ref=source_ref,
@@ -127,6 +152,8 @@ def import_workspace(
         title=title,
         description=description,
     )
+    if import_artifacts is not None and package_path is not None:
+        _copy_import_sources(Path(package_path), path, manifest, import_artifacts)
     compile_workspace(path)
     return manifest
 
@@ -172,6 +199,7 @@ def show_workspace(root: str | Path) -> WorkspaceSummary:
         compiled_scenarios=compiled_records,
         run_count=len(runs),
         latest_run_id=(runs[0].run_id if runs else None),
+        imports=_load_workspace_import_summary(path, manifest),
     )
 
 
@@ -236,6 +264,11 @@ def create_workspace_scenario(
     workflow_variant: Optional[str] = None,
     workflow_parameters: Optional[Dict[str, Any]] = None,
     inspection_focus: Optional[str] = None,
+    tags: Optional[list[str]] = None,
+    hidden_faults: Optional[Dict[str, Any]] = None,
+    actor_hints: Optional[list[str]] = None,
+    contract_overrides: Optional[Dict[str, Any]] = None,
+    metadata: Optional[Dict[str, Any]] = None,
 ) -> WorkspaceScenarioSpec:
     path = Path(root).expanduser().resolve()
     manifest = load_workspace(path)
@@ -252,6 +285,11 @@ def create_workspace_scenario(
         workflow_variant=workflow_variant or base_asset.workflow_variant,
         workflow_parameters=dict(workflow_parameters or {}),
         inspection_focus=inspection_focus,
+        tags=list(tags or []),
+        hidden_faults=dict(hidden_faults or {}),
+        actor_hints=list(actor_hints or []),
+        contract_overrides=dict(contract_overrides or {}),
+        metadata=dict(metadata or {}),
     )
     manifest.scenarios.append(entry)
     write_workspace(path, manifest)
@@ -376,6 +414,117 @@ def evaluate_workspace_contract_against_state(
     )
 
 
+def load_workspace_import_report(root: str | Path) -> NormalizationReport | None:
+    path = Path(root).expanduser().resolve()
+    manifest = load_workspace(path)
+    if not manifest.normalization_report_path:
+        return None
+    report_path = path / manifest.normalization_report_path
+    if not report_path.exists():
+        return None
+    return _read_model(report_path, NormalizationReport)
+
+
+def load_workspace_provenance(
+    root: str | Path, object_ref: Optional[str] = None
+) -> list[ProvenanceRecord]:
+    path = Path(root).expanduser().resolve()
+    manifest = load_workspace(path)
+    if not manifest.provenance_path:
+        return []
+    provenance_path = path / manifest.provenance_path
+    if not provenance_path.exists():
+        return []
+    payload = json.loads(provenance_path.read_text(encoding="utf-8"))
+    records = [ProvenanceRecord.model_validate(item) for item in payload]
+    if object_ref:
+        return [item for item in records if item.object_ref == object_ref]
+    return records
+
+
+def load_workspace_generated_scenarios(
+    root: str | Path,
+) -> list[GeneratedScenarioCandidate]:
+    path = Path(root).expanduser().resolve()
+    manifest = load_workspace(path)
+    if not manifest.generated_scenarios_path:
+        return []
+    scenarios_path = path / manifest.generated_scenarios_path
+    if not scenarios_path.exists():
+        return []
+    payload = json.loads(scenarios_path.read_text(encoding="utf-8"))
+    return [GeneratedScenarioCandidate.model_validate(item) for item in payload]
+
+
+def generate_workspace_scenarios_from_import(
+    root: str | Path,
+    *,
+    replace_generated: bool = False,
+) -> list[WorkspaceScenarioSpec]:
+    path = Path(root).expanduser().resolve()
+    manifest = load_workspace(path)
+    candidates = load_workspace_generated_scenarios(path)
+    if not candidates:
+        raise ValueError("workspace has no generated scenario candidates")
+    generated_specs = [
+        WorkspaceScenarioSpec(
+            name=item.name,
+            title=item.title,
+            description=item.description,
+            scenario_name=item.scenario_name,
+            workflow_name=item.workflow_name,
+            workflow_variant=item.workflow_variant,
+            workflow_parameters=dict(item.workflow_parameters),
+            inspection_focus=item.inspection_focus,
+            tags=list(item.tags),
+            hidden_faults=dict(item.hidden_faults),
+            actor_hints=list(item.actor_hints),
+            contract_overrides=dict(item.contract_overrides),
+            metadata={"generated_from_import": True, **dict(item.metadata)},
+        )
+        for item in candidates
+    ]
+    preserved = [manifest.scenarios[0]]
+    if not replace_generated:
+        preserved.extend(
+            item
+            for item in manifest.scenarios[1:]
+            if not item.metadata.get("generated_from_import")
+        )
+    manifest.scenarios = preserved + generated_specs
+    write_workspace(path, manifest)
+    for scenario in manifest.scenarios:
+        _write_json(
+            _scenario_entry_path(path, manifest, scenario),
+            scenario.model_dump(mode="json"),
+        )
+    compile_workspace(path)
+    return generated_specs
+
+
+def bootstrap_workspace_contract(
+    root: str | Path,
+    *,
+    scenario_name: Optional[str] = None,
+    overwrite: bool = False,
+) -> ContractSpec:
+    path = Path(root).expanduser().resolve()
+    manifest = load_workspace(path)
+    scenario = resolve_workspace_scenario(path, manifest, scenario_name)
+    contract_path = _resolve_contract_path(path, manifest, scenario)
+    if contract_path.exists() and not overwrite:
+        return _read_model(contract_path, ContractSpec)
+    if contract_path.exists():
+        contract_path.unlink()
+    compiled = _read_model(
+        path / manifest.compiled_root / scenario.name / "blueprint.json",
+        CompiledBlueprint,
+    )
+    contract, _ = load_or_bootstrap_contract(path, manifest, scenario, compiled)
+    compile_workspace(path)
+    return contract
+
+
 def list_workspace_runs(root: str | Path) -> list[WorkspaceRunEntry]:
     path = Path(root).expanduser().resolve()
     manifest = load_workspace(path)
@@ -439,6 +588,9 @@ def build_workspace_scenario_asset(
         "workspace_scenario": scenario.name,
         "workspace_scenario_title": scenario.title,
         "workspace_scenario_description": scenario.description,
+        "hidden_faults": dict(scenario.hidden_faults),
+        "actor_hints": list(scenario.actor_hints),
+        "contract_overrides": dict(scenario.contract_overrides),
         **dict(scenario.metadata),
     }
     return BlueprintAsset.model_validate(payload)
@@ -450,9 +602,8 @@ def load_or_bootstrap_contract(
     scenario: WorkspaceScenarioSpec,
     compiled: CompiledBlueprint,
 ) -> tuple[ContractSpec, bool]:
-    contract_path = _resolve_contract_path(
-        Path(root).expanduser().resolve(), manifest, scenario
-    )
+    resolved_root = Path(root).expanduser().resolve()
+    contract_path = _resolve_contract_path(resolved_root, manifest, scenario)
     if contract_path.exists():
         return _read_model(contract_path, ContractSpec), False
     if compiled.workflow_name is None:
@@ -466,8 +617,29 @@ def load_or_bootstrap_contract(
         workflow_spec = get_benchmark_family_workflow_spec(
             compiled.workflow_name,
             variant_name=compiled.workflow_variant,
+            parameter_overrides=scenario.workflow_parameters,
         )
         contract = build_contract_from_workflow(workflow_spec)
+    bundle = _load_workspace_grounding_bundle(resolved_root, manifest)
+    if bundle is not None and manifest.source_kind in {
+        "import_package",
+        "grounding_bundle",
+    }:
+        contract = ContractSpec.model_validate(
+            bootstrap_contract_from_import_bundle(
+                bundle=bundle,
+                contract_payload=contract.model_dump(mode="json"),
+                scenario_name=scenario.name,
+                workflow_parameters={
+                    **dict(compiled.asset.workflow_parameters),
+                    **dict(scenario.workflow_parameters),
+                },
+            )
+        )
+    if scenario.contract_overrides:
+        contract = ContractSpec.model_validate(
+            _deep_merge(contract.model_dump(mode="json"), scenario.contract_overrides)
+        )
     contract_path.parent.mkdir(parents=True, exist_ok=True)
     _write_json(contract_path, contract.model_dump(mode="json"))
     return contract, True
@@ -498,6 +670,7 @@ def _bootstrap_workspace(
     source_kind: str,
     source_ref: Optional[str],
     grounding_bundle: IdentityGovernanceBundle | None = None,
+    import_artifacts: ImportPackageArtifacts | None = None,
     precompiled_blueprint: CompiledBlueprint | None = None,
     name: Optional[str] = None,
     title: Optional[str] = None,
@@ -513,7 +686,30 @@ def _bootstrap_workspace(
         source_kind=source_kind,  # type: ignore[arg-type]
         source_ref=source_ref,
         grounding_bundle_path=(
-            "sources/grounding_bundle.json" if grounding_bundle is not None else None
+            "imports/normalized_bundle.json"
+            if import_artifacts is not None
+            else (
+                "sources/grounding_bundle.json"
+                if grounding_bundle is not None
+                else None
+            )
+        ),
+        import_package_path=(
+            "imports/package_manifest.json" if import_artifacts is not None else None
+        ),
+        normalization_report_path=(
+            "imports/normalization_report.json"
+            if import_artifacts is not None
+            else None
+        ),
+        provenance_path=(
+            "imports/provenance.json" if import_artifacts is not None else None
+        ),
+        redaction_report_path=(
+            "imports/redaction_reports.json" if import_artifacts is not None else None
+        ),
+        generated_scenarios_path=(
+            "imports/generated_scenarios.json" if import_artifacts is not None else None
         ),
         scenarios=[
             WorkspaceScenarioSpec(
@@ -546,6 +742,7 @@ def _bootstrap_workspace(
         ),
     )
     (root / "sources").mkdir(parents=True, exist_ok=True)
+    (root / manifest.imports_dir).mkdir(parents=True, exist_ok=True)
     (root / manifest.contracts_dir).mkdir(parents=True, exist_ok=True)
     (root / manifest.scenarios_dir).mkdir(parents=True, exist_ok=True)
     (root / manifest.compiled_root).mkdir(parents=True, exist_ok=True)
@@ -556,6 +753,33 @@ def _bootstrap_workspace(
         _write_json(
             root / manifest.grounding_bundle_path,
             grounding_bundle.model_dump(mode="json"),
+        )
+    if import_artifacts is not None:
+        _write_json(
+            root / manifest.import_package_path,
+            import_artifacts.package.model_dump(mode="json"),
+        )
+        _write_json(
+            root / manifest.normalization_report_path,
+            import_artifacts.normalization_report.model_dump(mode="json"),
+        )
+        _write_json(
+            root / manifest.provenance_path,
+            [item.model_dump(mode="json") for item in import_artifacts.provenance],
+        )
+        _write_json(
+            root / manifest.redaction_report_path,
+            [
+                item.model_dump(mode="json")
+                for item in import_artifacts.redaction_reports
+            ],
+        )
+        _write_json(
+            root / manifest.generated_scenarios_path,
+            [
+                item.model_dump(mode="json")
+                for item in import_artifacts.generated_scenarios
+            ],
         )
     if precompiled_blueprint is not None:
         _write_json(
@@ -644,6 +868,75 @@ def _read_model(path: Path, model: type[_MODEL_T]) -> _MODEL_T:
 def _write_json(path: Path, payload: Any) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+
+
+def _load_workspace_grounding_bundle(
+    root: Path, manifest: WorkspaceManifest
+) -> IdentityGovernanceBundle | None:
+    if not manifest.grounding_bundle_path:
+        return None
+    path = root / manifest.grounding_bundle_path
+    if not path.exists():
+        return None
+    return _read_model(path, IdentityGovernanceBundle)
+
+
+def _copy_import_sources(
+    package_path: Path,
+    workspace_root: Path,
+    manifest: WorkspaceManifest,
+    artifacts: ImportPackageArtifacts,
+) -> None:
+    package_root = package_path if package_path.is_dir() else package_path.parent
+    raw_root = workspace_root / manifest.imports_dir / "raw_sources"
+    raw_root.mkdir(parents=True, exist_ok=True)
+    for source in artifacts.package.sources:
+        source_path = package_root / source.relative_path
+        target_path = raw_root / source.relative_path
+        target_path.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source_path, target_path)
+
+
+def _load_workspace_import_summary(
+    root: Path, manifest: WorkspaceManifest
+) -> WorkspaceImportSummary | None:
+    report = load_workspace_import_report(root)
+    if report is None:
+        return None
+    package_name = "import"
+    source_count = 0
+    if manifest.import_package_path:
+        package_path = root / manifest.import_package_path
+        if package_path.exists():
+            payload = json.loads(package_path.read_text(encoding="utf-8"))
+            package_name = str(payload.get("name", package_name))
+            source_count = len(payload.get("sources", []))
+    provenance = load_workspace_provenance(root)
+    origin_counts: Dict[str, int] = {"imported": 0, "derived": 0, "simulated": 0}
+    for record in provenance:
+        origin_counts[str(record.origin)] = origin_counts.get(str(record.origin), 0) + 1
+    generated = load_workspace_generated_scenarios(root)
+    return WorkspaceImportSummary(
+        package_name=package_name,
+        source_count=source_count,
+        issue_count=report.issue_count,
+        warning_count=report.warning_count,
+        error_count=report.error_count,
+        provenance_count=len(provenance),
+        generated_scenario_count=len(generated),
+        normalized_counts=dict(report.normalized_counts),
+        origin_counts=origin_counts,
+    )
+
+
+def _deep_merge(left: Dict[str, Any], right: Dict[str, Any]) -> Dict[str, Any]:
+    merged = dict(left)
+    for key, value in right.items():
+        if key in merged and isinstance(merged[key], dict) and isinstance(value, dict):
+            merged[key] = _deep_merge(merged[key], value)
+        else:
+            merged[key] = value
+    return merged
 
 
 def _json_diff(left: Dict[str, Any], right: Dict[str, Any]) -> Dict[str, Any]:

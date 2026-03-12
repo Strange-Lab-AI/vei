@@ -76,6 +76,22 @@ from vei.grounding.api import (
     list_grounding_bundle_examples as _list_grounding_bundle_examples,
 )
 from vei.grounding.models import GroundingBundleManifest, IdentityGovernanceBundle
+from vei.imports.api import (
+    bootstrap_contract_from_import_bundle as _bootstrap_contract_from_import_bundle,
+    generate_identity_scenario_candidates as _generate_identity_scenario_candidates,
+    get_import_package_example_path as _get_import_package_example_path,
+    list_import_package_examples as _list_import_package_examples,
+    load_import_package as _load_import_package,
+    normalize_identity_import_package as _normalize_identity_import_package,
+    validate_import_package as _validate_import_package,
+)
+from vei.imports.models import (
+    GeneratedScenarioCandidate,
+    ImportPackage,
+    ImportPackageArtifacts,
+    NormalizationReport,
+    ProvenanceRecord,
+)
 from vei.run.api import (
     diff_run_snapshots as _diff_run_snapshots,
     get_run_capability_graphs as _get_run_capability_graphs,
@@ -88,15 +104,20 @@ from vei.run.api import (
 )
 from vei.run.models import RunManifest, RunSnapshotRef, RunTimelineEvent
 from vei.workspace.api import (
+    bootstrap_workspace_contract as _bootstrap_workspace_contract,
     compile_workspace as _compile_workspace,
     create_workspace_from_template as _create_workspace_from_template,
     create_workspace_scenario as _create_workspace_scenario,
     diff_workspace_contract as _diff_workspace_contract,
+    generate_workspace_scenarios_from_import as _generate_workspace_scenarios_from_import,
     import_workspace as _import_workspace,
     list_workspace_runs as _list_workspace_runs,
     list_workspace_scenarios as _list_workspace_scenarios,
     load_workspace as _load_workspace,
     load_workspace_contract as _load_workspace_contract,
+    load_workspace_generated_scenarios as _load_workspace_generated_scenarios,
+    load_workspace_import_report as _load_workspace_import_report,
+    load_workspace_provenance as _load_workspace_provenance,
     preview_workspace_scenario as _preview_workspace_scenario,
     show_workspace as _show_workspace,
     validate_workspace_contract as _validate_workspace_contract,
@@ -412,6 +433,47 @@ def list_grounding_bundle_example_entries() -> list[GroundingBundleManifest]:
     return _list_grounding_bundle_examples()
 
 
+def list_import_package_example_entries() -> list[str]:
+    return _list_import_package_examples()
+
+
+def get_import_package_example_path_entry(name: str) -> str:
+    return str(_get_import_package_example_path(name))
+
+
+def load_import_package_entry(path: str) -> ImportPackage:
+    return _load_import_package(path)
+
+
+def validate_import_package_entry(path: str) -> NormalizationReport:
+    return _validate_import_package(path)
+
+
+def normalize_import_package_entry(path: str) -> ImportPackageArtifacts:
+    return _normalize_identity_import_package(path)
+
+
+def generate_identity_scenario_candidates_entry(
+    bundle: IdentityGovernanceBundle,
+) -> list[GeneratedScenarioCandidate]:
+    return _generate_identity_scenario_candidates(bundle)
+
+
+def bootstrap_contract_from_import_bundle_entry(
+    *,
+    bundle: IdentityGovernanceBundle,
+    contract_payload: Dict[str, Any],
+    scenario_name: str,
+    workflow_parameters: Dict[str, Any],
+) -> Dict[str, Any]:
+    return _bootstrap_contract_from_import_bundle(
+        bundle=bundle,
+        contract_payload=contract_payload,
+        scenario_name=scenario_name,
+        workflow_parameters=workflow_parameters,
+    )
+
+
 def compile_identity_governance_bundle_entry(
     bundle: IdentityGovernanceBundle,
 ) -> BlueprintAsset:
@@ -467,6 +529,7 @@ def create_workspace_from_template_entry(
 def import_workspace_entry(
     *,
     root: str,
+    package_path: str | None = None,
     bundle_path: str | None = None,
     blueprint_asset_path: str | None = None,
     compiled_blueprint_path: str | None = None,
@@ -477,6 +540,7 @@ def import_workspace_entry(
 ) -> WorkspaceManifest:
     return _import_workspace(
         root=root,
+        package_path=package_path,
         bundle_path=bundle_path,
         blueprint_asset_path=blueprint_asset_path,
         compiled_blueprint_path=compiled_blueprint_path,
@@ -512,7 +576,13 @@ def create_workspace_scenario_entry(
     scenario_name: str | None = None,
     workflow_name: str | None = None,
     workflow_variant: str | None = None,
+    workflow_parameters: Dict[str, Any] | None = None,
     inspection_focus: str | None = None,
+    tags: list[str] | None = None,
+    hidden_faults: Dict[str, Any] | None = None,
+    actor_hints: list[str] | None = None,
+    contract_overrides: Dict[str, Any] | None = None,
+    metadata: Dict[str, Any] | None = None,
 ) -> WorkspaceScenarioSpec:
     return _create_workspace_scenario(
         root,
@@ -522,7 +592,13 @@ def create_workspace_scenario_entry(
         scenario_name=scenario_name,
         workflow_name=workflow_name,
         workflow_variant=workflow_variant,
+        workflow_parameters=workflow_parameters,
         inspection_focus=inspection_focus,
+        tags=tags,
+        hidden_faults=hidden_faults,
+        actor_hints=actor_hints,
+        contract_overrides=contract_overrides,
+        metadata=metadata,
     )
 
 
@@ -530,6 +606,30 @@ def preview_workspace_scenario_entry(
     root: str, scenario_name: str | None = None
 ) -> Dict[str, Any]:
     return _preview_workspace_scenario(root, scenario_name)
+
+
+def load_workspace_import_report_entry(root: str) -> NormalizationReport | None:
+    return _load_workspace_import_report(root)
+
+
+def load_workspace_provenance_entry(
+    root: str, object_ref: str | None = None
+) -> list[ProvenanceRecord]:
+    return _load_workspace_provenance(root, object_ref)
+
+
+def load_workspace_generated_scenarios_entry(
+    root: str,
+) -> list[GeneratedScenarioCandidate]:
+    return _load_workspace_generated_scenarios(root)
+
+
+def generate_workspace_scenarios_from_import_entry(
+    root: str, *, replace_generated: bool = False
+) -> list[WorkspaceScenarioSpec]:
+    return _generate_workspace_scenarios_from_import(
+        root, replace_generated=replace_generated
+    )
 
 
 def load_workspace_contract_entry(
@@ -554,6 +654,19 @@ def diff_workspace_contract_entry(
         root,
         scenario_name=scenario_name,
         other_path=other_path,
+    )
+
+
+def bootstrap_workspace_contract_entry(
+    root: str,
+    *,
+    scenario_name: str | None = None,
+    overwrite: bool = False,
+) -> ContractSpec:
+    return _bootstrap_workspace_contract(
+        root,
+        scenario_name=scenario_name,
+        overwrite=overwrite,
     )
 
 

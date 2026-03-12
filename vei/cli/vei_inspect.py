@@ -15,6 +15,7 @@ from vei.run.api import (
     load_run_timeline,
 )
 from vei.workspace.api import list_workspace_runs
+from vei.workspace.api import load_workspace_provenance
 
 
 app = typer.Typer(
@@ -162,3 +163,21 @@ def inspect_snapshot_diff(
         ),
         indent,
     )
+
+
+@app.command("provenance")
+def inspect_provenance(
+    root: Path = typer.Option(Path("."), help="Workspace root directory"),
+    object_ref: Optional[str] = typer.Option(
+        None, help="Optional object reference such as identity_user:USR-ACQ-1"
+    ),
+    indent: int = typer.Option(2, help="Pretty indent"),
+) -> None:
+    """Show imported, derived, and simulated provenance for workspace objects."""
+
+    resolved_root = root.expanduser().resolve()
+    records = [
+        item.model_dump(mode="json")
+        for item in load_workspace_provenance(resolved_root, object_ref)
+    ]
+    _emit({"object_ref": object_ref, "provenance": records}, indent)

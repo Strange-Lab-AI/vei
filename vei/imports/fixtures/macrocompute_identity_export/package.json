@@ -1,0 +1,118 @@
+{
+  "version": "1",
+  "name": "macrocompute_identity_export",
+  "title": "MacroCompute Identity Export",
+  "description": "Sanitized identity and ACL export pack for a sales cutover and access-governance review.",
+  "wedge": "identity_access_governance",
+  "organization_name": "MacroCompute",
+  "organization_domain": "macrocompute.example",
+  "timezone": "America/Los_Angeles",
+  "sources": [
+    {
+      "source_id": "okta_users",
+      "source_system": "okta",
+      "file_type": "csv",
+      "relative_path": "raw/okta_users.csv",
+      "collected_at": "2026-03-10T09:00:00Z",
+      "mapping_profile": "okta_users_v1",
+      "redaction_status": "sanitized_fixture",
+      "description": "User export with group and application assignments."
+    },
+    {
+      "source_id": "okta_groups",
+      "source_system": "okta",
+      "file_type": "csv",
+      "relative_path": "raw/okta_groups.csv",
+      "collected_at": "2026-03-10T09:00:00Z",
+      "mapping_profile": "okta_groups_v1",
+      "redaction_status": "sanitized_fixture",
+      "description": "Group export with membership lists."
+    },
+    {
+      "source_id": "okta_apps",
+      "source_system": "okta",
+      "file_type": "csv",
+      "relative_path": "raw/okta_apps.csv",
+      "collected_at": "2026-03-10T09:00:00Z",
+      "mapping_profile": "okta_apps_v1",
+      "redaction_status": "sanitized_fixture",
+      "description": "Application export with assignment lists."
+    },
+    {
+      "source_id": "drive_acl",
+      "source_system": "google_drive",
+      "file_type": "csv",
+      "relative_path": "raw/google_drive_shares.csv",
+      "collected_at": "2026-03-10T09:00:00Z",
+      "mapping_profile": "google_drive_shares_v1",
+      "redaction_status": "sanitized_fixture",
+      "description": "Drive sharing posture export."
+    },
+    {
+      "source_id": "hris_people",
+      "source_system": "hris",
+      "file_type": "csv",
+      "relative_path": "raw/hris_employees.csv",
+      "collected_at": "2026-03-10T09:00:00Z",
+      "mapping_profile": "hris_employees_v1",
+      "redaction_status": "sanitized_fixture",
+      "description": "HRIS employee and manager export."
+    },
+    {
+      "source_id": "jira_issues",
+      "source_system": "jira",
+      "file_type": "json",
+      "relative_path": "raw/tickets.json",
+      "collected_at": "2026-03-10T09:00:00Z",
+      "mapping_profile": "jira_issues_v1",
+      "redaction_status": "sanitized_fixture",
+      "description": "Cutover tracking issues."
+    },
+    {
+      "source_id": "service_requests",
+      "source_system": "servicedesk",
+      "file_type": "json",
+      "relative_path": "raw/approvals.json",
+      "collected_at": "2026-03-10T09:00:00Z",
+      "mapping_profile": "approval_requests_v1",
+      "redaction_status": "sanitized_fixture",
+      "description": "Pending approval requests."
+    },
+    {
+      "source_id": "identity_policies",
+      "source_system": "policy",
+      "file_type": "json",
+      "relative_path": "raw/policies.json",
+      "collected_at": "2026-03-10T09:00:00Z",
+      "mapping_profile": "identity_policies_v1",
+      "redaction_status": "sanitized_fixture",
+      "description": "Least-privilege and sharing policies."
+    },
+    {
+      "source_id": "audit_events",
+      "source_system": "audit",
+      "file_type": "json",
+      "relative_path": "raw/audit_events.json",
+      "collected_at": "2026-03-10T09:00:00Z",
+      "mapping_profile": "audit_events_v1",
+      "redaction_status": "sanitized_fixture",
+      "description": "Relevant admin and break-glass events."
+    },
+    {
+      "source_id": "crm_deals",
+      "source_system": "crm",
+      "file_type": "json",
+      "relative_path": "raw/crm_deals.json",
+      "collected_at": "2026-03-10T09:00:00Z",
+      "mapping_profile": "crm_deals_v1",
+      "redaction_status": "sanitized_fixture",
+      "description": "Open opportunity ownership context."
+    }
+  ],
+  "metadata": {
+    "fixture": true,
+    "notes": [
+      "Represents the kind of offline CSV/JSON export bundle an enterprise platform team can hand VEI first."
+    ]
+  }
+}

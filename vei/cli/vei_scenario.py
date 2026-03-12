@@ -8,6 +8,7 @@ import typer
 
 from vei.workspace.api import (
     create_workspace_scenario,
+    generate_workspace_scenarios_from_import,
     list_workspace_scenarios,
     preview_workspace_scenario,
 )
@@ -76,3 +77,19 @@ def preview_scenario(
     """Preview compiled blueprint, contract, and seeded state for a workspace scenario."""
 
     _emit(preview_workspace_scenario(root, scenario_name), indent)
+
+
+@app.command("generate")
+def generate_scenarios(
+    root: Path = typer.Option(Path("."), help="Workspace root directory"),
+    replace_generated: bool = typer.Option(
+        False, help="Replace previously generated import scenarios"
+    ),
+    indent: int = typer.Option(2, help="Pretty indent"),
+) -> None:
+    """Materialize generated scenario candidates from imported workspace artifacts."""
+
+    payload = generate_workspace_scenarios_from_import(
+        root, replace_generated=replace_generated
+    )
+    _emit([item.model_dump(mode="json") for item in payload], indent)

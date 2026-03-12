@@ -13,6 +13,7 @@ BenchmarkWorkflowValueType = Literal["str", "int", "float", "bool"]
 class BenchmarkCaseSpec(BaseModel):
     runner: BenchmarkRunner
     scenario_name: str
+    family_name: Optional[str] = None
     workflow_name: Optional[str] = None
     workflow_variant: Optional[str] = None
     blueprint_asset_path: Optional[Path] = None

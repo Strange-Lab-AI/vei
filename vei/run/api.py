@@ -113,12 +113,9 @@ def launch_workspace_run(
     spec = BenchmarkCaseSpec(
         runner=normalized_runner,
         scenario_name=scenario.scenario_name or scenario.name,
-        workflow_name=(
-            scenario.workflow_name if normalized_runner == "workflow" else None
-        ),
-        workflow_variant=(
-            scenario.workflow_variant if normalized_runner == "workflow" else None
-        ),
+        family_name=scenario.workflow_name,
+        workflow_name=scenario.workflow_name,
+        workflow_variant=scenario.workflow_variant,
         blueprint_asset_path=blueprint_asset_path,
         seed=seed,
         artifacts_dir=artifacts_dir,
@@ -326,6 +323,7 @@ def build_run_timeline(root: str | Path, run_id: str) -> list[RunTimelineEvent]:
                         channel=flow_channel_from_tool(tool),
                         time_ms=time_ms,
                         tool=tool,
+                        object_refs=_infer_object_refs(tool, record.get("args", {})),
                         payload={
                             "args": record.get("args", {}),
                             "response": record.get("response", {}),
@@ -342,6 +340,9 @@ def build_run_timeline(root: str | Path, run_id: str) -> list[RunTimelineEvent]:
                         label=f"{target} event",
                         channel=flow_channel_from_focus(target),
                         time_ms=time_ms,
+                        object_refs=_infer_object_refs(
+                            target, record.get("payload", {})
+                        ),
                         payload={
                             "target": target,
                             "payload": record.get("payload", {}),
@@ -374,7 +375,15 @@ def build_run_timeline(root: str | Path, run_id: str) -> list[RunTimelineEvent]:
                         if step.get("graph_action_ref")
                         else None
                     ),
+                    object_refs=_infer_object_refs(
+                        resolved_tool or tool,
+                        {
+                            **dict(step.get("result", {}) or {}),
+                            **dict(step.get("args", {}) or {}),
+                        },
+                    ),
                     payload={
+                        "args": step.get("args", {}),
                         "result": step.get("result", {}),
                         "observation": step.get("observation", {}),
                         "assertion_failures": step.get("assertion_failures", []),
@@ -396,6 +405,10 @@ def build_run_timeline(root: str | Path, run_id: str) -> list[RunTimelineEvent]:
                     label=f"{receipt.get('service', 'connector')}:{receipt.get('operation', 'receipt')}",
                     channel="World",
                     time_ms=int(receipt.get("time_ms", 0) or 0),
+                    object_refs=_infer_object_refs(
+                        f"{receipt.get('service', 'world')}.{receipt.get('operation', 'receipt')}",
+                        receipt,
+                    ),
                     payload=receipt,
                 )
             )
@@ -595,6 +608,42 @@ def _latest_run_state(root: str | Path, run_id: str) -> WorldState | None:
     latest = snapshots[-1]
     payload = json.loads((workspace_root / latest.path).read_text(encoding="utf-8"))
     return WorldState.model_validate(payload.get("data", {}))
+
+
+def _infer_object_refs(tool: str, payload: Dict[str, Any]) -> list[str]:
+    refs: set[str] = set()
+    normalized_tool = tool.strip().lower()
+
+    def _add(prefix: str, key: str) -> None:
+        value = payload.get(key)
+        if value not in (None, ""):
+            refs.add(f"{prefix}:{value}")
+
+    if "okta" in normalized_tool or "identity" in normalized_tool:
+        _add("identity_user", "user_id")
+        _add("identity_group", "group_id")
+        _add("identity_application", "app_id")
+    if "google_admin" in normalized_tool or "doc" in normalized_tool:
+        if (
+            "restrict_drive_share" in normalized_tool
+            or "transfer_drive_ownership" in normalized_tool
+        ):
+            _add("drive_share", "doc_id")
+        else:
+            _add("document", "doc_id")
+    if "jira" in normalized_tool or "ticket" in normalized_tool:
+        _add("ticket", "issue_id")
+        _add("ticket", "ticket_id")
+        _add("service_request", "request_id")
+        _add("incident", "incident_id")
+    if "slack" in normalized_tool or "comm_graph" in normalized_tool:
+        _add("comm_channel", "channel")
+    if "crm" in normalized_tool:
+        _add("crm_deal", "id")
+        _add("crm_deal", "deal_id")
+    if "hris" in normalized_tool:
+        _add("hris_employee", "employee_id")
+    return sorted(refs)
 
 
 def _flatten_json(prefix: str, value: Any, out: Dict[str, Any]) -> None:

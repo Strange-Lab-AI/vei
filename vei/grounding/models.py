@@ -43,6 +43,12 @@ class IdentityGovernanceBundle(BaseModel):
     policy_notes: List[str] = Field(default_factory=list)
     incident_history: List[Dict[str, Any]] = Field(default_factory=list)
     acceptance_focus: List[str] = Field(default_factory=list)
+    source_manifests: List[Dict[str, Any]] = Field(default_factory=list)
+    org_units: List[str] = Field(default_factory=list)
+    approval_policies: List[Dict[str, Any]] = Field(default_factory=list)
+    entitlement_policies: List[Dict[str, Any]] = Field(default_factory=list)
+    audit_events: List[Dict[str, Any]] = Field(default_factory=list)
+    change_references: List[Dict[str, Any]] = Field(default_factory=list)
 
 
 class GroundingBundleManifest(BaseModel):
