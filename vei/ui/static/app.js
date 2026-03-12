@@ -872,6 +872,7 @@ async function startRun(event) {
     runner,
     provider: document.getElementById("provider-input").value || null,
     model: document.getElementById("model-input").value || null,
+    bc_model: document.getElementById("bc-model-input").value || null,
     task: document.getElementById("task-input").value || null,
     max_steps: Number(document.getElementById("max-steps-input").value || 12),
   };

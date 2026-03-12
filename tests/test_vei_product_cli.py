@@ -81,6 +81,34 @@ def test_product_cli_workspace_run_and_inspect_flow(tmp_path: Path) -> None:
     assert graphs_payload["domain"] == "identity_graph"
     assert graphs_payload["graph"]["policies"][0]["policy_id"] == "POL-WAVE2"
 
+    snapshots_result = runner.invoke(
+        app,
+        ["inspect", "snapshots", "--root", str(root), "--run-id", run_id],
+    )
+    assert snapshots_result.exit_code == 0, snapshots_result.output
+    snapshots_payload = json.loads(snapshots_result.output)
+    snapshots = snapshots_payload["snapshots"]
+    assert len(snapshots) >= 2
+
+    diff_result = runner.invoke(
+        app,
+        [
+            "inspect",
+            "diff",
+            "--root",
+            str(root),
+            "--run-id",
+            run_id,
+            "--snapshot-from",
+            str(snapshots[0]["snapshot_id"]),
+            "--snapshot-to",
+            str(snapshots[-1]["snapshot_id"]),
+        ],
+    )
+    assert diff_result.exit_code == 0, diff_result.output
+    diff_payload = json.loads(diff_result.output)
+    assert isinstance(diff_payload["changed"], dict)
+
     timeline_path = root / "runs" / run_id / "timeline.json"
     timeline_path.unlink()
     fallback_events_result = runner.invoke(
@@ -114,6 +142,30 @@ def test_product_cli_rejects_invalid_runner(tmp_path: Path) -> None:
     )
     assert run_result.exit_code != 0
     assert "runner must be workflow, scripted, bc, or llm" in run_result.output
+
+
+def test_product_cli_rejects_bc_runner_without_model(tmp_path: Path) -> None:
+    runner = typer.testing.CliRunner()
+    root = tmp_path / "workspace"
+    init_result = runner.invoke(
+        app,
+        [
+            "project",
+            "init",
+            "--root",
+            str(root),
+            "--example",
+            "acquired_user_cutover",
+        ],
+    )
+    assert init_result.exit_code == 0, init_result.output
+
+    run_result = runner.invoke(
+        app,
+        ["run", "start", "--root", str(root), "--runner", "bc"],
+    )
+    assert run_result.exit_code != 0
+    assert "bc runner requires bc_model_path" in run_result.output
 
 
 def test_standalone_vei_ui_main_accepts_serve_alias(monkeypatch) -> None:
@@ -269,3 +321,30 @@ def test_product_cli_import_flow_supports_generation_and_provenance(
     assert provenance_result.exit_code == 0, provenance_result.output
     provenance_payload = json.loads(provenance_result.output)
     assert provenance_payload["provenance"][0]["origin"] == "imported"
+
+
+def test_product_cli_normalize_broken_import_returns_diagnostics_not_traceback(
+    tmp_path: Path,
+) -> None:
+    runner = typer.testing.CliRunner()
+    source = get_import_package_example_path("macrocompute_identity_export")
+    package_path = tmp_path / "broken_import"
+    shutil.copytree(source, package_path)
+    users_path = package_path / "raw" / "okta_users.csv"
+    users_path.write_text(
+        users_path.read_text(encoding="utf-8").replace("email", "primary_email", 1),
+        encoding="utf-8",
+    )
+
+    result = runner.invoke(
+        app,
+        ["project", "normalize", "--package", str(package_path)],
+    )
+
+    assert result.exit_code == 0, result.output
+    payload = json.loads(result.output)
+    assert payload["normalized_bundle"] is None
+    assert any(
+        item["code"] == "bundle.incomplete"
+        for item in payload["normalization_report"]["issues"]
+    )

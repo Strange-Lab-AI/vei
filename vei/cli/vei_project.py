@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Optional
+from typing import Literal, Optional
 
 import typer
 
@@ -21,7 +21,10 @@ from vei.imports.api import (
 )
 
 
-app = typer.Typer(add_completion=False, help="Create and compile VEI workspaces.")
+app = typer.Typer(
+    add_completion=False,
+    help="Create, import, review, and compile VEI workspaces.",
+)
 
 
 def _emit(payload: object, indent: int) -> None:
@@ -63,7 +66,7 @@ def init_workspace(
         )
 
     if example:
-        source_kind = "example"
+        source_kind: Literal["example", "family", "scenario"] = "example"
         source_ref = example
     elif family:
         source_kind = "family"
@@ -109,17 +112,20 @@ def import_workspace_command(
 ) -> None:
     """Import a workspace from a bundle or blueprint file."""
 
-    import_workspace(
-        root=root,
-        package_path=package,
-        bundle_path=bundle,
-        blueprint_asset_path=blueprint_asset,
-        compiled_blueprint_path=compiled_blueprint,
-        name=name,
-        title=title,
-        description=description,
-        overwrite=overwrite,
-    )
+    try:
+        import_workspace(
+            root=root,
+            package_path=package,
+            bundle_path=bundle,
+            blueprint_asset_path=blueprint_asset,
+            compiled_blueprint_path=compiled_blueprint,
+            name=name,
+            title=title,
+            description=description,
+            overwrite=overwrite,
+        )
+    except ValueError as exc:
+        raise typer.BadParameter(str(exc)) from exc
     _emit(show_workspace(root).model_dump(mode="json"), indent)
 
 
@@ -144,7 +150,11 @@ def normalize_import_command(
     payload = {
         "package": artifacts.package.model_dump(mode="json"),
         "normalization_report": artifacts.normalization_report.model_dump(mode="json"),
-        "normalized_bundle": artifacts.normalized_bundle.model_dump(mode="json"),
+        "normalized_bundle": (
+            artifacts.normalized_bundle.model_dump(mode="json")
+            if artifacts.normalized_bundle is not None
+            else None
+        ),
         "generated_scenarios": [
             item.model_dump(mode="json") for item in artifacts.generated_scenarios
         ],

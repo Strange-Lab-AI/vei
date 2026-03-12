@@ -38,6 +38,7 @@
               <select id="runner-select">
                 <option value="workflow">workflow</option>
                 <option value="scripted">scripted</option>
+                <option value="bc">bc</option>
                 <option value="llm">llm</option>
               </select>
             </label>
@@ -48,6 +49,10 @@
             <label>
               <span>Model</span>
               <input id="model-input" placeholder="gpt-5" />
+            </label>
+            <label>
+              <span>BC model</span>
+              <input id="bc-model-input" placeholder="/path/to/bc-policy.json" />
             </label>
             <label class="span-2">
               <span>Task override</span>

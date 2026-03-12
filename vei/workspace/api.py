@@ -124,6 +124,10 @@ def import_workspace(
     if package_path is not None:
         import_artifacts = normalize_identity_import_package(package_path)
         grounding_bundle = import_artifacts.normalized_bundle
+        if grounding_bundle is None:
+            raise ValueError(
+                "Import package could not be compiled into a workspace; review normalization diagnostics and mapping overrides first"
+            )
         asset = compile_identity_governance_bundle(grounding_bundle)
         source_kind = "import_package"
         source_ref = str(package_path)

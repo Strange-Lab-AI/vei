@@ -47,6 +47,7 @@ class RunLaunchRequest(BaseModel):
     branch: str | None = None
     model: str | None = None
     provider: str | None = None
+    bc_model: str | None = None
     task: str | None = None
     max_steps: int = 12
 
@@ -155,6 +156,8 @@ def create_ui_app(workspace_root: str | Path) -> FastAPI:
 
         if normalized_runner == "llm" and not launch.model:
             raise HTTPException(status_code=400, detail="llm runner requires model")
+        if normalized_runner == "bc" and not launch.bc_model:
+            raise HTTPException(status_code=400, detail="bc runner requires bc_model")
 
         def _worker() -> None:
             app.state.active_runs.add(resolved_run_id)
@@ -168,6 +171,7 @@ def create_ui_app(workspace_root: str | Path) -> FastAPI:
                     branch=launch.branch,
                     model=launch.model,
                     provider=launch.provider,
+                    bc_model_path=launch.bc_model,
                     task=launch.task,
                     max_steps=launch.max_steps,
                 )

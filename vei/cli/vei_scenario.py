@@ -107,9 +107,12 @@ def activate_scenario(
 ) -> None:
     """Make one workspace scenario active for subsequent runs and previews."""
 
-    payload = activate_workspace_scenario(
-        root,
-        scenario_name,
-        bootstrap_contract=bootstrap_contract,
-    )
+    try:
+        payload = activate_workspace_scenario(
+            root,
+            scenario_name,
+            bootstrap_contract=bootstrap_contract,
+        )
+    except (KeyError, ValueError) as exc:
+        raise typer.BadParameter(str(exc)) from exc
     _emit(payload.model_dump(mode="json"), indent)

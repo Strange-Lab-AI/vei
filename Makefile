@@ -29,7 +29,7 @@ setup bootstrap: $(SETUP_STAMP)
 check: $(SETUP_STAMP)
 	. $(VENV)/bin/activate && black --check vei tests
 	. $(VENV)/bin/activate && ruff check vei tests
-	. $(VENV)/bin/activate && mypy --follow-imports=skip vei/router/identity.py vei/router/tool_providers.py vei/identity vei/world/api.py vei/world/replay.py vei/router/api.py
+	. $(VENV)/bin/activate && mypy --follow-imports=skip vei/router/identity.py vei/router/tool_providers.py vei/identity vei/world/api.py vei/world/replay.py vei/router/api.py vei/workspace/api.py vei/run/api.py vei/ui/api.py vei/cli/vei.py vei/cli/vei_project.py vei/cli/vei_run.py vei/cli/vei_contract.py vei/cli/vei_scenario.py vei/cli/vei_inspect.py vei/cli/vei_ui.py
 	. $(VENV)/bin/activate && bandit -q -r vei -ll
 	@mkdir -p .artifacts
 	. $(VENV)/bin/activate && detect-secrets scan $$(git ls-files) > .artifacts/detect-secrets.json

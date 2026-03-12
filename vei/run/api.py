@@ -47,11 +47,19 @@ def launch_workspace_run(
     branch: Optional[str] = None,
     model: Optional[str] = None,
     provider: Optional[str] = None,
+    bc_model_path: str | Path | None = None,
     task: Optional[str] = None,
     max_steps: int = 12,
 ) -> RunManifest:
     workspace_root = Path(root).expanduser().resolve()
     normalized_runner = normalize_runner(runner)
+    resolved_bc_model_path = (
+        Path(bc_model_path).expanduser().resolve()
+        if bc_model_path is not None
+        else None
+    )
+    if normalized_runner == "bc" and resolved_bc_model_path is None:
+        raise ValueError("bc runner requires bc_model_path")
     summary = compile_workspace(workspace_root)
     manifest = summary.manifest
     scenario = resolve_workspace_scenario(workspace_root, manifest, scenario_name)
@@ -83,6 +91,7 @@ def launch_workspace_run(
         branch=resolved_branch,
         model=model,
         provider=provider,
+        bc_model_path=resolved_bc_model_path,
         workflow_name=scenario.workflow_name,
         workflow_variant=scenario.workflow_variant,
         artifacts=RunArtifactIndex(
@@ -92,7 +101,12 @@ def launch_workspace_run(
             blueprint_asset_path=str(blueprint_asset_path.relative_to(workspace_root)),
             contract_path=contract_path,
         ),
-        metadata={"workspace_scenario": scenario.name},
+        metadata={
+            "workspace_scenario": scenario.name,
+            "bc_model_path": (
+                str(resolved_bc_model_path) if resolved_bc_model_path else None
+            ),
+        },
     )
     write_run_manifest(workspace_root, manifest_stub)
     upsert_workspace_run(
@@ -122,6 +136,7 @@ def launch_workspace_run(
         branch=resolved_branch,
         model=model,
         provider=provider,
+        bc_model_path=resolved_bc_model_path,
         task=task,
         max_steps=max_steps,
         metadata={"workspace_name": manifest.name, "workspace_scenario": scenario.name},
@@ -194,6 +209,9 @@ def launch_workspace_run(
             metadata={
                 "workspace_scenario": scenario.name,
                 "contract_ok": contract_eval.ok if contract_eval is not None else None,
+                "bc_model_path": (
+                    str(resolved_bc_model_path) if resolved_bc_model_path else None
+                ),
             },
         )
         write_run_manifest(workspace_root, final_manifest)

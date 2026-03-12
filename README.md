@@ -33,6 +33,8 @@ VEI now exposes one coherent product shape:
 - `BlueprintAsset`: authored blueprint root that declares a scenario template, capability-graph or environment seed, requested facades, workflow, and metadata
 - `CompiledBlueprint`: compiled blueprint with resolved facades, state roots, workflow defaults, contract defaults, and run defaults
 - `GroundingBundle`: typed imported org/policy/incident input that compiles into a `BlueprintAsset`
+- `ImportPackage`: raw CSV/JSON enterprise export pack plus mapping profiles, redaction state, and provenance anchors
+- `Workspace`: file-backed environment root that stores blueprint, contracts, scenarios, imports, runs, and artifacts
 - `Scenario`: seeded enterprise world and difficulty/tool manifest
 - `Facade`: typed enterprise surface grouped by capability domain
 - `Contract`: success predicates, forbidden predicates, observation boundary, policy invariants, reward terms, and intervention rules
@@ -122,12 +124,15 @@ raw CSV/JSON exports -> import package -> review/override -> normalized groundin
 
 Canonical fixture demo:
 
+If you are running from a source checkout, the bundled fixture lives under `vei/imports/fixtures/`. In an installed environment, resolve its packaged path with `python -c "from vei.imports.api import get_import_package_example_path; print(get_import_package_example_path('macrocompute_identity_export'))"`.
+
 ```bash
-vei project validate-import --package vei/imports/fixtures/macrocompute_identity_export
-vei project review-import --package vei/imports/fixtures/macrocompute_identity_export
-vei project scaffold-overrides --package vei/imports/fixtures/macrocompute_identity_export --source-id okta_users
-vei project normalize --package vei/imports/fixtures/macrocompute_identity_export
-vei project import --root _vei_out/workspaces/macrocompute_import --package vei/imports/fixtures/macrocompute_identity_export
+cp -R vei/imports/fixtures/macrocompute_identity_export _vei_out/import_packages/macrocompute_identity_export
+vei project validate-import --package _vei_out/import_packages/macrocompute_identity_export
+vei project review-import --package _vei_out/import_packages/macrocompute_identity_export
+vei project scaffold-overrides --package _vei_out/import_packages/macrocompute_identity_export --source-id okta_users
+vei project normalize --package _vei_out/import_packages/macrocompute_identity_export
+vei project import --root _vei_out/workspaces/macrocompute_import --package _vei_out/import_packages/macrocompute_identity_export
 vei scenario generate --root _vei_out/workspaces/macrocompute_import
 vei scenario activate --root _vei_out/workspaces/macrocompute_import --scenario-name oversharing_remediation --bootstrap-contract
 vei run start --root _vei_out/workspaces/macrocompute_import --runner workflow --scenario-name oversharing_remediation
@@ -185,6 +190,12 @@ Install directly from GitHub:
 pip install "git+https://github.com/strangeloopcanon/digital-enterprise-twin.git@main"
 ```
 
+For the full product workflow, including the local UI and live LLM runs:
+
+```bash
+pip install -e ".[llm,sse,ui]"
+```
+
 SDK embedding:
 
 ```python
@@ -198,9 +209,12 @@ page = session.call_tool("browser.read", {})
 World-kernel embedding:
 
 ```python
-from vei.world.api import create_world_session
+from vei.world.api import create_world_session, get_catalog_scenario
 
-world = create_world_session(seed=42042, scenario_name="multi_channel")
+world = create_world_session(
+    seed=42042,
+    scenario=get_catalog_scenario("multi_channel"),
+)
 obs = world.observe()
 snapshot = world.snapshot("before-run")
 events = world.list_events()
@@ -237,18 +251,20 @@ VEI_LLM_LIVE_BYPASS=1 make llm-live
 
 ## Supported CLI Surface
 
-- Product workflow: `vei project|contract|scenario|run|inspect|ui`
-- Local UI: `vei ui serve` or `vei-ui serve`
-- Runtime: `vei-llm-test`, `vei-smoke`, `vei-demo`, `vei-world`
-- Ontology: `vei-blueprint bundle|bundles|asset|compile|show|observe|orient|examples|facades`
-- Release/Ops: `vei-release dataset|benchmark|nightly`
-- Scenarios: `vei-scenarios list|manifest|dump`
-- DSL/corpus: `vei-det sample-workflow|compile-workflow|run-workflow|generate-corpus|filter-corpus`
-- Policy/eval: `vei-rollout`, `vei-train`, `vei-eval`, `vei-eval-frontier`, `vei-score`
-- Showcase: `vei-eval showcase`
-- Visualization: `vei-visualize replay|flow|dashboard|export`
+- Start here
+  - `vei project|contract|scenario|run|inspect|ui`
+  - `vei ui serve` or `vei-ui serve`
+- Expert tools
+  - `vei-world`
+  - `vei-blueprint bundle|bundles|asset|compile|show|observe|orient|examples|facades`
+  - `vei-visualize replay|flow|dashboard|export`
+- Evaluation and release
+  - `vei-eval`, `vei-eval-frontier`, `vei-rollout`, `vei-train`, `vei-score`, `vei-release`
+- Catalog/debug surfaces
+  - `vei-scenarios list|manifest|dump`
+  - `vei-smoke`, `vei-demo`, `vei-det sample-workflow|compile-workflow|run-workflow|generate-corpus|filter-corpus`
 
-`vei-world graphs` now renders runtime capability graphs from stored snapshots, which is the cleanest way to inspect identity, doc, work, comm, revenue, spreadsheet, observability, and rollout state without dropping down into app-shaped component dumps. `vei-world orient` and `vei-blueprint orient` add the agent-facing layer on top: visible surfaces, active policy hints, key objects, and suggested next questions.
+`vei inspect graphs` is now the broadest product/workspace graph surface. It can inspect `identity_graph`, `doc_graph`, `work_graph`, `comm_graph`, `revenue_graph`, `ops_graph`, `obs_graph`, and `data_graph` from a recorded run. `vei-world graphs` remains the expert snapshot-level surface and currently focuses on `comm_graph`, `doc_graph`, `work_graph`, `identity_graph`, and `revenue_graph`. `vei-world orient` and `vei-blueprint orient` add the agent-facing layer on top: visible surfaces, active policy hints, key objects, and suggested next questions.
 
 Inside live MCP sessions, agents can now call the same discoverability surfaces directly with `vei.orientation`, `vei.capability_graphs`, `vei.graph_plan`, and `vei.graph_action`.
 

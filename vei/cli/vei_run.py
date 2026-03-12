@@ -35,7 +35,8 @@ def _resolve_run_id(root: Path, run_id: Optional[str]) -> str:
 def start_run(
     root: Path = typer.Option(Path("."), help="Workspace root directory"),
     runner: str = typer.Option(
-        "workflow", help="workflow, scripted, bc, or llm runner"
+        "workflow",
+        help="workflow, scripted, bc, or llm runner (bc requires --bc-model)",
     ),
     scenario_name: Optional[str] = typer.Option(None, help="Workspace scenario name"),
     run_id: Optional[str] = typer.Option(None, help="Optional run id override"),
@@ -43,6 +44,9 @@ def start_run(
     branch: Optional[str] = typer.Option(None, help="Optional branch name override"),
     model: Optional[str] = typer.Option(None, help="Model name for llm runs"),
     provider: Optional[str] = typer.Option(None, help="LLM provider override"),
+    bc_model: Optional[Path] = typer.Option(
+        None, help="Behavior-cloning checkpoint path for bc runs"
+    ),
     task: Optional[str] = typer.Option(None, help="Task prompt for llm runs"),
     max_steps: int = typer.Option(12, help="Maximum agent steps"),
     indent: int = typer.Option(2, help="Pretty indent"),
@@ -54,18 +58,22 @@ def start_run(
     except ValueError as exc:
         raise typer.BadParameter(str(exc)) from exc
 
-    manifest = launch_workspace_run(
-        root,
-        runner=resolved_runner,
-        scenario_name=scenario_name,
-        run_id=run_id,
-        seed=seed,
-        branch=branch,
-        model=model,
-        provider=provider,
-        task=task,
-        max_steps=max_steps,
-    )
+    try:
+        manifest = launch_workspace_run(
+            root,
+            runner=resolved_runner,
+            scenario_name=scenario_name,
+            run_id=run_id,
+            seed=seed,
+            branch=branch,
+            model=model,
+            provider=provider,
+            bc_model_path=bc_model,
+            task=task,
+            max_steps=max_steps,
+        )
+    except ValueError as exc:
+        raise typer.BadParameter(str(exc)) from exc
     _emit(manifest.model_dump(mode="json"), indent)
 
 

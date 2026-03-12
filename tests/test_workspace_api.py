@@ -4,6 +4,8 @@ import json
 import shutil
 from pathlib import Path
 
+import pytest
+
 from vei.blueprint.api import build_blueprint_asset_for_example, compile_blueprint
 from vei.imports.api import get_import_package_example_path, scaffold_mapping_override
 from vei.workspace.api import (
@@ -171,3 +173,22 @@ def test_activate_workspace_scenario_updates_active_scenario_and_contract(
     assert summary.manifest.active_scenario == "oversharing_remediation"
     assert preview["scenario"]["name"] == "oversharing_remediation"
     assert preview["contract"]["metadata"]["contract_bootstrap"] == "import_policy_acl"
+
+
+def test_import_workspace_fails_cleanly_for_incomplete_import_package(
+    tmp_path: Path,
+) -> None:
+    source = get_import_package_example_path("macrocompute_identity_export")
+    package_path = tmp_path / "broken_import"
+    shutil.copytree(source, package_path)
+    users_path = package_path / "raw" / "okta_users.csv"
+    users_path.write_text(
+        users_path.read_text(encoding="utf-8").replace("email", "primary_email", 1),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="review normalization diagnostics and mapping overrides first",
+    ):
+        import_workspace(root=tmp_path / "workspace", package_path=package_path)

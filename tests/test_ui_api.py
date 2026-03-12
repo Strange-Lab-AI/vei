@@ -46,6 +46,21 @@ def test_ui_api_serves_workspace_and_run_details(tmp_path: Path) -> None:
     assert timeline_response.status_code == 200
     assert any(item["kind"] == "workflow_step" for item in timeline_response.json())
 
+    snapshots_response = client.get(f"/api/runs/{manifest.run_id}/snapshots")
+    assert snapshots_response.status_code == 200
+    snapshots = snapshots_response.json()
+    assert len(snapshots) >= 2
+
+    diff_response = client.get(
+        f"/api/runs/{manifest.run_id}/diff",
+        params={
+            "snapshot_from": snapshots[0]["snapshot_id"],
+            "snapshot_to": snapshots[-1]["snapshot_id"],
+        },
+    )
+    assert diff_response.status_code == 200
+    assert isinstance(diff_response.json()["changed"], dict)
+
     contract_response = client.get(f"/api/runs/{manifest.run_id}/contract")
     assert contract_response.status_code == 200
     assert contract_response.json()["ok"] is True
@@ -102,6 +117,20 @@ def test_ui_api_rejects_invalid_runner_before_worker_starts(tmp_path: Path) -> N
     assert response.json()["detail"] == "runner must be workflow, scripted, bc, or llm"
     runs_response = client.get("/api/runs")
     assert runs_response.json() == []
+
+
+def test_ui_api_rejects_bc_runner_without_model(tmp_path: Path) -> None:
+    root = tmp_path / "workspace"
+    create_workspace_from_template(
+        root=root,
+        source_kind="example",
+        source_ref="acquired_user_cutover",
+    )
+    client = TestClient(ui_api.create_ui_app(root))
+
+    response = client.post("/api/runs", json={"runner": "bc"})
+    assert response.status_code == 400
+    assert response.json()["detail"] == "bc runner requires bc_model"
 
 
 def test_ui_api_serves_import_diagnostics_and_provenance(tmp_path: Path) -> None:

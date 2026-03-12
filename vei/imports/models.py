@@ -137,7 +137,7 @@ class GeneratedScenarioCandidate(BaseModel):
 
 class ImportPackageArtifacts(BaseModel):
     package: ImportPackage
-    normalized_bundle: IdentityGovernanceBundle
+    normalized_bundle: Optional[IdentityGovernanceBundle] = None
     normalization_report: NormalizationReport
     provenance: List[ProvenanceRecord] = Field(default_factory=list)
     redaction_reports: List[RedactionReport] = Field(default_factory=list)

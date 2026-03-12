@@ -107,7 +107,20 @@ vei-eval demo \
 
 That demo exercises Spreadsheet, Docs, CRM, feature flags, Datadog, PagerDuty, Tickets, and Slack in one contract-graded run.
 
-The cleanest environment-builder example is the identity/access-governance wedge:
+The cleanest product-shaped environment-builder example is now the workspace flow around the identity/access-governance wedge:
+
+```bash
+vei project init --root _vei_out/workspaces/acquired_cutover --example acquired_user_cutover
+vei project compile --root _vei_out/workspaces/acquired_cutover
+vei scenario preview --root _vei_out/workspaces/acquired_cutover
+vei contract validate --root _vei_out/workspaces/acquired_cutover
+vei run start --root _vei_out/workspaces/acquired_cutover --runner workflow
+vei ui serve --root _vei_out/workspaces/acquired_cutover
+```
+
+That is the canonical “start here” path.
+
+The lower-level blueprint ladder is still useful as an expert/debug surface:
 
 ```bash
 vei-blueprint examples
@@ -129,7 +142,7 @@ vei-blueprint orient \
   --example acquired_user_cutover
 ```
 
-That flow keeps the benchmark stack intact while proving that VEI can compile a typed organization bundle into a runnable world. The current built-in example exposes the full builder ladder: grounding bundle, authored blueprint asset, compiled blueprint, live world observation, and an agent-facing orientation summary. The built-in identity wedge includes HRIS employee state, Okta-style identity records, policy constraints, Google Drive sharing posture, Jira tracking, docs, Slack coordination, and CRM handoff.
+That expert flow still proves that VEI can compile a typed organization bundle into a runnable world. The current built-in example exposes the full builder ladder: grounding bundle, authored blueprint asset, compiled blueprint, live world observation, and an agent-facing orientation summary. The built-in identity wedge includes HRIS employee state, Okta-style identity records, policy constraints, Google Drive sharing posture, Jira tracking, docs, Slack coordination, and CRM handoff.
 
 The runtime side now has a matching read surface too:
 

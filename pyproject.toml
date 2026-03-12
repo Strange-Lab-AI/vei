@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "vei"
 version = "0.2.0a1"
-description = "Digital Enterprise Twin (VEI) — MCP-native synthetic Slack/Mail/Browser world"
+description = "Digital Enterprise Twin (VEI) — MCP-native enterprise environment builder and simulation kernel"
 readme = "README.md"
 requires-python = ">=3.11"
 license = { file = "LICENSE" }
@@ -76,3 +76,4 @@ exclude = []
 
 [tool.setuptools.package-data]
 "vei.ui" = ["static/*.html", "static/*.css", "static/*.js", "static/*.svg"]
+"vei.imports" = ["fixtures/*/package.json", "fixtures/*/raw/*.csv", "fixtures/*/raw/*.json"]

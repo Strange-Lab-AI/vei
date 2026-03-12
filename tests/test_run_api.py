@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import pytest
 from pathlib import Path
 
 from vei.imports.api import get_import_package_example_path
+from vei.run import api as run_api
 from vei.run.api import (
     generate_run_id,
     get_run_capability_graphs,
@@ -97,3 +99,43 @@ def test_imported_workspace_runs_generated_scenarios(tmp_path: Path) -> None:
         for event in timeline
         if event.object_refs
     )
+
+
+def test_workspace_run_failure_persists_error_manifest_and_index(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    root = tmp_path / "workspace"
+    create_workspace_from_template(
+        root=root,
+        source_kind="example",
+        source_ref="acquired_user_cutover",
+    )
+
+    def _boom(spec):
+        raise RuntimeError("simulated benchmark failure")
+
+    monkeypatch.setattr(run_api, "run_benchmark_case", _boom)
+
+    with pytest.raises(RuntimeError, match="simulated benchmark failure"):
+        launch_workspace_run(root, runner="workflow", run_id="failing-run")
+
+    manifest = run_api.load_run_manifest(
+        root / "runs" / "failing-run" / "run_manifest.json"
+    )
+    runs = list(run_api.list_run_manifests(root))
+
+    assert manifest.status == "error"
+    assert manifest.error == "simulated benchmark failure"
+    assert any(item.run_id == "failing-run" and item.status == "error" for item in runs)
+
+
+def test_bc_runner_requires_model_path(tmp_path: Path) -> None:
+    root = tmp_path / "workspace"
+    create_workspace_from_template(
+        root=root,
+        source_kind="example",
+        source_ref="acquired_user_cutover",
+    )
+
+    with pytest.raises(ValueError, match="bc runner requires bc_model_path"):
+        launch_workspace_run(root, runner="bc")

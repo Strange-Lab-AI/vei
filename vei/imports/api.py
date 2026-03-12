@@ -584,28 +584,42 @@ def normalize_identity_import_package(path: str | Path) -> ImportPackageArtifact
     primary = _select_primary_context(
         users, employees, shares, tickets, requests, deals, policies, audit_events
     )
-    bundle = _build_identity_bundle(
-        package=package,
-        users=users,
-        groups=groups,
-        apps=apps,
-        shares=shares,
-        employees=employees,
-        tickets=tickets,
-        requests=requests,
-        policies=policies,
-        deals=deals,
-        contacts=contacts,
-        companies=companies,
-        primary=primary,
-        policy_notes=policy_notes,
-        audit_events=audit_events,
-        org_units=sorted(org_units),
-        source_summaries=source_summaries,
-        issues=issues,
-    )
-    generated = generate_identity_scenario_candidates(bundle, provenance)
-    provenance.extend(_derived_provenance(bundle, generated))
+    bundle: IdentityGovernanceBundle | None
+    generated: list[GeneratedScenarioCandidate]
+    try:
+        bundle = _build_identity_bundle(
+            package=package,
+            users=users,
+            groups=groups,
+            apps=apps,
+            shares=shares,
+            employees=employees,
+            tickets=tickets,
+            requests=requests,
+            policies=policies,
+            deals=deals,
+            contacts=contacts,
+            companies=companies,
+            primary=primary,
+            policy_notes=policy_notes,
+            audit_events=audit_events,
+            org_units=sorted(org_units),
+            source_summaries=source_summaries,
+            issues=issues,
+        )
+    except ValueError as exc:
+        issues.append(
+            MappingIssue(
+                code="bundle.incomplete",
+                severity="error",
+                message=str(exc),
+            )
+        )
+        bundle = None
+        generated = []
+    else:
+        generated = generate_identity_scenario_candidates(bundle, provenance)
+        provenance.extend(_derived_provenance(bundle, generated))
     report = _build_report(
         package.name,
         issues,

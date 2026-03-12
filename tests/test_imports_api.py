@@ -4,8 +4,6 @@ import json
 import shutil
 from pathlib import Path
 
-import pytest
-
 from vei.imports.api import (
     bootstrap_contract_from_import_bundle,
     get_import_package_example_path,
@@ -120,11 +118,13 @@ def test_mapping_override_can_recover_renamed_required_field(tmp_path: Path) -> 
         encoding="utf-8",
     )
 
-    with pytest.raises(
-        ValueError,
-        match="does not contain enough identity objects",
-    ):
-        normalize_identity_import_package(package_path)
+    broken_review = review_import_package(package_path)
+    assert broken_review.normalization_report.ok is False
+    assert any(
+        item.code == "bundle.incomplete"
+        for item in broken_review.normalization_report.issues
+    )
+    assert broken_review.generated_scenarios == []
 
     destination, override = scaffold_mapping_override(
         package_path,
