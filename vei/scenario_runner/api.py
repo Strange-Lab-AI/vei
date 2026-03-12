@@ -17,6 +17,7 @@ class WorkflowRunnerAPI(Protocol):
         seed: int = 42042,
         artifacts_dir: str | None = None,
         connector_mode: str = "sim",
+        branch: str = "main",
     ) -> ScenarioRunResult: ...
 
 
@@ -26,12 +27,14 @@ def run_workflow(
     seed: int = 42042,
     artifacts_dir: str | None = None,
     connector_mode: str = "sim",
+    branch: str = "main",
 ) -> ScenarioRunResult:
     return run_compiled_workflow(
         workflow,
         seed=seed,
         artifacts_dir=artifacts_dir,
         connector_mode=connector_mode,
+        branch=branch,
     )
 
 

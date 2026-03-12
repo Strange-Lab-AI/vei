@@ -26,22 +26,48 @@ VEI is a deterministic, MCP-native enterprise simulator built around one stable 
 ## Runtime Shape
 
 ```text
-Agent / SDK / CLI
-        │
-        ▼
-  Router transport layer
-        │
-        ▼
-   WorldSession kernel
-        ├─ world state
-        ├─ event queue
-        ├─ actor state
-        ├─ receipts
-        ├─ snapshots / branch / restore
-        └─ replay / injection
+Workspace / CLI / UI / SDK / Agent
+                │
+                ▼
+         Project + Run surfaces
+                │
+                ▼
+         Router transport layer
+                │
+                ▼
+          WorldSession kernel
+          ├─ world state
+          ├─ event queue
+          ├─ actor state
+          ├─ receipts
+          ├─ snapshots / branch / restore
+          └─ replay / injection
 ```
 
 The router is a transport and tool-dispatch adapter. Mutable enterprise state belongs to the kernel, not to transport wrappers.
+
+## Product Workflow Layer
+
+VEI now has a product-shaped layer above the kernel:
+
+- `vei.workspace`
+  - file-backed workspace/project model
+  - blueprint asset, contract, scenario, compile records, and run registry
+- `vei.run`
+  - unified run manifest, normalized timeline, snapshot references, and contract summary
+- `vei.ui`
+  - local FastAPI + SSE playback/debug app over workspace and run APIs
+  - control-room style playback surface for launch, timeline, contract, graph, and snapshot inspection
+- `vei.visualization`
+  - shared flow/timeline shaping for CLI and UI playback surfaces
+
+The intended loop is:
+
+1. create or import a workspace
+2. compile or refresh runnable scenario artifacts when the workspace changes
+3. launch a run
+4. inspect orientation, graphs, timeline, snapshots, and diffs
+5. replay, branch, or export from there through the current expert surfaces such as `vei-world`, `vei-visualize`, and release/export tooling
 
 ## Stable Python Surfaces
 
@@ -83,6 +109,14 @@ The router is a transport and tool-dispatch adapter. Mutable enterprise state be
   - compilers that turn grounding bundles into `BlueprintAsset` authoring roots
 - `vei.contract`
   - contract builders and evaluators
+- `vei.workspace`
+  - create/import/show/compile workspaces
+  - scenario/contract authoring helpers and run registry
+- `vei.run`
+  - launch runs from a workspace
+  - canonical per-run manifest, timeline, and snapshot APIs
+- `vei.ui`
+  - local playback/debug server for workspace runs
 
 ## Supported Entry Points
 
@@ -93,6 +127,12 @@ The router is a transport and tool-dispatch adapter. Mutable enterprise state be
   - SSE MCP transport
 - `vei-world`
   - snapshot/receipt inspection plus runtime capability-graph and orientation rendering
+- `vei`
+  - top-level product workflow entrypoint
+  - `project`, `contract`, `scenario`, `run`, `inspect`, and `ui` groups
+- `vei-ui`
+  - standalone alias for the local playback/debug server
+  - equivalent to `vei ui serve`
 - `vei-llm-test`, `vei-eval`, `vei-eval-frontier`, `vei-report`
   - evaluation and benchmarking
 

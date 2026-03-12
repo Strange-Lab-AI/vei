@@ -42,6 +42,7 @@ from vei.benchmark.api import (
     get_benchmark_family_manifest,
     list_benchmark_family_manifest,
 )
+from vei.contract.models import ContractSpec
 from vei.benchmark.showcase import (
     BenchmarkShowcaseExample,
     get_showcase_example as _get_showcase_example,
@@ -75,6 +76,37 @@ from vei.grounding.api import (
     list_grounding_bundle_examples as _list_grounding_bundle_examples,
 )
 from vei.grounding.models import GroundingBundleManifest, IdentityGovernanceBundle
+from vei.run.api import (
+    diff_run_snapshots as _diff_run_snapshots,
+    get_run_capability_graphs as _get_run_capability_graphs,
+    get_run_orientation as _get_run_orientation,
+    launch_workspace_run as _launch_workspace_run,
+    list_run_manifests as _list_run_manifests,
+    list_run_snapshots as _list_run_snapshots,
+    load_run_manifest as _load_run_manifest,
+    load_run_timeline as _load_run_timeline,
+)
+from vei.run.models import RunManifest, RunSnapshotRef, RunTimelineEvent
+from vei.workspace.api import (
+    compile_workspace as _compile_workspace,
+    create_workspace_from_template as _create_workspace_from_template,
+    create_workspace_scenario as _create_workspace_scenario,
+    diff_workspace_contract as _diff_workspace_contract,
+    import_workspace as _import_workspace,
+    list_workspace_runs as _list_workspace_runs,
+    list_workspace_scenarios as _list_workspace_scenarios,
+    load_workspace as _load_workspace,
+    load_workspace_contract as _load_workspace_contract,
+    preview_workspace_scenario as _preview_workspace_scenario,
+    show_workspace as _show_workspace,
+    validate_workspace_contract as _validate_workspace_contract,
+)
+from vei.workspace.models import (
+    WorkspaceManifest,
+    WorkspaceRunEntry,
+    WorkspaceScenarioSpec,
+    WorkspaceSummary,
+)
 from vei.world.api import (
     WorldSessionAPI,
     create_world_session,
@@ -404,6 +436,190 @@ def create_world_session_from_blueprint_entry(
         artifacts_dir=artifacts_dir,
         connector_mode=connector_mode,
         branch=branch,
+    )
+
+
+def create_workspace_from_template_entry(
+    *,
+    root: str,
+    source_kind: str,
+    source_ref: str,
+    name: str | None = None,
+    title: str | None = None,
+    description: str | None = None,
+    workflow_name: str | None = None,
+    workflow_variant: str | None = None,
+    overwrite: bool = False,
+) -> WorkspaceManifest:
+    return _create_workspace_from_template(
+        root=root,
+        source_kind=source_kind,  # type: ignore[arg-type]
+        source_ref=source_ref,
+        name=name,
+        title=title,
+        description=description,
+        workflow_name=workflow_name,
+        workflow_variant=workflow_variant,
+        overwrite=overwrite,
+    )
+
+
+def import_workspace_entry(
+    *,
+    root: str,
+    bundle_path: str | None = None,
+    blueprint_asset_path: str | None = None,
+    compiled_blueprint_path: str | None = None,
+    name: str | None = None,
+    title: str | None = None,
+    description: str | None = None,
+    overwrite: bool = False,
+) -> WorkspaceManifest:
+    return _import_workspace(
+        root=root,
+        bundle_path=bundle_path,
+        blueprint_asset_path=blueprint_asset_path,
+        compiled_blueprint_path=compiled_blueprint_path,
+        name=name,
+        title=title,
+        description=description,
+        overwrite=overwrite,
+    )
+
+
+def load_workspace_entry(root: str) -> WorkspaceManifest:
+    return _load_workspace(root)
+
+
+def show_workspace_entry(root: str) -> WorkspaceSummary:
+    return _show_workspace(root)
+
+
+def compile_workspace_entry(root: str) -> WorkspaceSummary:
+    return _compile_workspace(root)
+
+
+def list_workspace_scenarios_entry(root: str) -> list[WorkspaceScenarioSpec]:
+    return _list_workspace_scenarios(root)
+
+
+def create_workspace_scenario_entry(
+    root: str,
+    *,
+    name: str,
+    title: str | None = None,
+    description: str | None = None,
+    scenario_name: str | None = None,
+    workflow_name: str | None = None,
+    workflow_variant: str | None = None,
+    inspection_focus: str | None = None,
+) -> WorkspaceScenarioSpec:
+    return _create_workspace_scenario(
+        root,
+        name=name,
+        title=title,
+        description=description,
+        scenario_name=scenario_name,
+        workflow_name=workflow_name,
+        workflow_variant=workflow_variant,
+        inspection_focus=inspection_focus,
+    )
+
+
+def preview_workspace_scenario_entry(
+    root: str, scenario_name: str | None = None
+) -> Dict[str, Any]:
+    return _preview_workspace_scenario(root, scenario_name)
+
+
+def load_workspace_contract_entry(
+    root: str, scenario_name: str | None = None
+) -> ContractSpec:
+    return _load_workspace_contract(root, scenario_name)
+
+
+def validate_workspace_contract_entry(
+    root: str, scenario_name: str | None = None
+) -> Dict[str, Any]:
+    return _validate_workspace_contract(root, scenario_name)
+
+
+def diff_workspace_contract_entry(
+    root: str,
+    *,
+    scenario_name: str | None = None,
+    other_path: str | None = None,
+) -> Dict[str, Any]:
+    return _diff_workspace_contract(
+        root,
+        scenario_name=scenario_name,
+        other_path=other_path,
+    )
+
+
+def list_workspace_runs_entry(root: str) -> list[WorkspaceRunEntry]:
+    return _list_workspace_runs(root)
+
+
+def launch_workspace_run_entry(
+    root: str,
+    *,
+    runner: str,
+    scenario_name: str | None = None,
+    run_id: str | None = None,
+    seed: int = 42042,
+    branch: str | None = None,
+    model: str | None = None,
+    provider: str | None = None,
+    task: str | None = None,
+    max_steps: int = 12,
+) -> RunManifest:
+    return _launch_workspace_run(
+        root,
+        runner=runner,
+        scenario_name=scenario_name,
+        run_id=run_id,
+        seed=seed,
+        branch=branch,
+        model=model,
+        provider=provider,
+        task=task,
+        max_steps=max_steps,
+    )
+
+
+def list_run_manifests_entry(root: str) -> list[RunManifest]:
+    return _list_run_manifests(root)
+
+
+def load_run_manifest_entry(path: str) -> RunManifest:
+    return _load_run_manifest(path)
+
+
+def load_run_timeline_entry(path: str) -> list[RunTimelineEvent]:
+    return _load_run_timeline(path)
+
+
+def get_run_orientation_entry(root: str, run_id: str) -> Dict[str, Any]:
+    return _get_run_orientation(root, run_id)
+
+
+def get_run_capability_graphs_entry(root: str, run_id: str) -> Dict[str, Any]:
+    return _get_run_capability_graphs(root, run_id)
+
+
+def list_run_snapshots_entry(root: str, run_id: str) -> list[RunSnapshotRef]:
+    return _list_run_snapshots(root, run_id)
+
+
+def diff_run_snapshots_entry(
+    root: str, run_id: str, *, snapshot_from: int, snapshot_to: int
+) -> Dict[str, Any]:
+    return _diff_run_snapshots(
+        root,
+        run_id,
+        snapshot_from=snapshot_from,
+        snapshot_to=snapshot_to,
     )
 
 

@@ -15,10 +15,11 @@ $(VENV)/bin/activate:
 $(SETUP_STAMP): $(VENV)/bin/activate pyproject.toml
 	. $(VENV)/bin/activate && \
 		pip install --upgrade pip setuptools wheel && \
-		pip install -e ".[llm,sse,test,rl]" && \
+		pip install -e ".[llm,sse,ui,test,rl]" && \
 		pip install $(DEPS)
 	@if [ -f .pre-commit-config.yaml ]; then \
-		. $(VENV)/bin/activate && pre-commit install --install-hooks; \
+		. $(VENV)/bin/activate && pre-commit install --install-hooks || \
+			echo "Skipping pre-commit install; hooks are managed elsewhere."; \
 	fi
 	@touch $(SETUP_STAMP)
 

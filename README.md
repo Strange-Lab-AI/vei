@@ -56,7 +56,7 @@ This repository is licensed under the Business Source License 1.1 in [LICENSE](L
 ### Install
 
 ```bash
-pip install -e ".[llm,sse]"
+pip install -e ".[llm,sse,ui]"
 ```
 
 ### Configure `.env`
@@ -88,10 +88,35 @@ vei-llm-test \
   --task "Research price, get Slack approval under budget, and email vendor for quote."
 ```
 
+### Workspace and UI flow
+
+```bash
+vei project init --root _vei_out/workspaces/acquired_cutover --example acquired_user_cutover
+vei contract validate --root _vei_out/workspaces/acquired_cutover
+vei run start --root _vei_out/workspaces/acquired_cutover --runner workflow
+vei ui serve --root _vei_out/workspaces/acquired_cutover
+```
+
+The standalone UI alias works too:
+
+```bash
+vei-ui serve --root _vei_out/workspaces/acquired_cutover
+```
+
+The unified root CLI exposes the same lifecycle:
+
+```bash
+vei project show --root _vei_out/workspaces/acquired_cutover
+vei scenario preview --root _vei_out/workspaces/acquired_cutover
+vei inspect events --root _vei_out/workspaces/acquired_cutover
+vei inspect graphs --root _vei_out/workspaces/acquired_cutover --domain identity_graph
+```
+
 ## What You Get
 
 - Deterministic simulator with replayable traces
 - Stable world-kernel API with snapshot, branch, restore, replay, inject, and event inspection
+- File-backed workspaces that keep blueprint assets, contracts, scenarios, runs, and artifacts together
 - Typed blueprint and facade catalog over the existing enterprise twins
 - Blueprint compiler with explicit facade plugins and authored `GroundingBundle -> BlueprintAsset -> CompiledBlueprint` flow
 - Environment-builder path that can compile typed capability graphs, policies, and workflow seeds into a runnable world session
@@ -103,6 +128,7 @@ vei-llm-test \
 - Scenario compilation, dataset rollout, BC training, benchmark execution, and release packaging
 - Reusable benchmark families for security containment, enterprise onboarding/migration, and revenue incident response
 - Curated complex-example showcase bundles for security incidents, acquired-user cutovers, and revenue-critical mixed-stack mitigations
+- Local playback UI for completed and in-flight workspace runs, including timeline, orientation, capability graphs, snapshots, diffs, and contract outcome panels
 
 ## Architecture
 
@@ -153,6 +179,8 @@ Useful helpers:
 - Facade catalog: `list_facade_manifest_entries()`, `get_facade_manifest_entry(name)`
 - Blueprint catalog: `list_blueprint_entries()`, `build_blueprint_asset_for_family_entry(name)`, `build_blueprint_for_family_entry(name)`, `compile_blueprint_entry(asset)`
 - Environment builder: `list_blueprint_builder_examples_entries()`, `build_blueprint_asset_for_example_entry(name)`, `create_world_session_from_blueprint_entry(asset)`
+- Workspace lifecycle: `create_workspace_from_template_entry(...)`, `import_workspace_entry(...)`, `compile_workspace_entry(...)`, `show_workspace_entry(...)`
+- Run lifecycle: `launch_workspace_run_entry(...)`, `list_run_manifests_entry(...)`, `get_run_orientation_entry(...)`, `get_run_capability_graphs_entry(...)`
 - Benchmark families: `list_benchmark_family_manifest_entries()`, `get_benchmark_family_manifest_entry(name)`
 - Release packaging: `build_release_version()`, `export_release_dataset(...)`, `export_release_benchmark(...)`, `run_release_nightly(...)`
 
@@ -175,6 +203,8 @@ VEI_LLM_LIVE_BYPASS=1 make llm-live
 
 ## Supported CLI Surface
 
+- Product workflow: `vei project|contract|scenario|run|inspect|ui`
+- Local UI: `vei ui serve` or `vei-ui serve`
 - Runtime: `vei-llm-test`, `vei-smoke`, `vei-demo`, `vei-world`
 - Ontology: `vei-blueprint bundle|bundles|asset|compile|show|observe|orient|examples|facades`
 - Release/Ops: `vei-release dataset|benchmark|nightly`
@@ -202,6 +232,21 @@ vei.graph_action
 ```
 
 The workflow layer now uses the same abstraction too: flagship onboarding and revenue/ops workflows execute graph-native steps internally and only resolve down to concrete twins at runtime.
+
+## Workspace And Playback UI
+
+The default product-shaped loop is now:
+
+1. `vei project init` or `vei project import`
+2. `vei project compile` when you want to refresh compiled artifacts after editing the workspace; `init`, `import`, and `run start` already compile for you
+3. `vei contract validate` and `vei scenario preview`
+4. `vei run start --runner workflow|scripted|bc|llm`
+5. `vei inspect orient|graphs|events|snapshots|diff|receipts`
+6. `vei ui serve` or `vei-ui serve`
+
+The local UI stays intentionally lightweight and Python-first. It opens one workspace, shows compiled scenario and contract context, launches runs with scenario/runner/provider/model/task/max-step controls, and renders a playback control room with animated channel lanes, run scorecards, capability-graph summaries, orientation cards, snapshot diffs, and raw developer drawers over the same canonical run artifacts.
+
+![VEI UI control room](docs/assets/vei_ui_control_room.png)
 
 ## Benchmarking
 
