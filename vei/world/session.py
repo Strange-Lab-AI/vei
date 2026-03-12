@@ -10,6 +10,7 @@ from vei.blueprint.plugins import list_runtime_facade_plugins
 from vei.capability_graph.api import (
     build_graph_action_plan,
     build_runtime_capability_graphs,
+    infer_graph_action_object_refs,
     get_runtime_capability_graph,
     resolve_graph_action,
 )
@@ -694,6 +695,13 @@ class WorldSession:
         executed_focus = executed_focus_map.get(resolved.domain)
         if executed_focus and executed_focus not in next_focuses:
             next_focuses.insert(0, executed_focus)
+        object_refs = infer_graph_action_object_refs(
+            domain=resolved.domain,
+            action=resolved.action,
+            args=resolved.args,
+            result=result,
+        )
+        graph_intent = f"{resolved.domain}.{resolved.action}"
         return CapabilityGraphActionResult(
             ok="error" not in result,
             branch=post_state.branch,
@@ -711,6 +719,11 @@ class WorldSession:
             ),
             next_focuses=next_focuses,
             metadata={
+                "graph_domain": resolved.domain,
+                "graph_action": resolved.action,
+                "graph_intent": graph_intent,
+                "requested_args": dict(resolved.args),
+                "affected_object_refs": object_refs,
                 "scenario_name": (
                     str((post_state.scenario or {}).get("name"))
                     if (post_state.scenario or {}).get("name") is not None

@@ -140,6 +140,13 @@ vei inspect provenance --root _vei_out/workspaces/macrocompute_import --object-r
 vei-ui serve --root _vei_out/workspaces/macrocompute_import
 ```
 
+If you want the shortest end-to-end grounded identity flow, VEI now ships a single command that prepares the workspace, generates/activates the right scenario, bootstraps the contract, and can launch the baseline plus scripted comparison runs:
+
+```bash
+vei project identity-demo --root _vei_out/workspaces/identity_demo --overwrite
+vei-ui serve --root _vei_out/workspaces/identity_demo
+```
+
 Live source sync uses the same persisted import-package model. For the first connector-backed path, point VEI at a read-only Okta config JSON:
 
 ```json
@@ -166,6 +173,7 @@ The import UI now shows:
 - suggested override locations and applied source overrides
 - generated scenario candidates
 - imported vs derived vs simulated counts
+- contract rule provenance, including which rules were imported vs inferred
 - active generated-scenario promotion into the workspace run path
 - provenance drilldown from selected run events
 
@@ -323,6 +331,8 @@ The default product-shaped loop is now:
 6. `vei ui serve` or `vei-ui serve`
 
 The local UI stays intentionally lightweight and Python-first. It opens one workspace, shows compiled scenario and contract context, launches runs with scenario/runner/provider/model/task/max-step controls, and renders a playback control room with animated channel lanes, run scorecards, capability-graph summaries, orientation cards, snapshot diffs, and raw developer drawers over the same canonical run artifacts.
+
+Run playback is now driven by the canonical append-only event spine, so live and completed runs share the same source of truth for contract updates, snapshot markers, resolved tools, and graph-native intents like `identity_graph.assign_application` or `doc_graph.restrict_drive_share`.
 
 ![VEI UI control room](docs/assets/vei_ui_control_room.png)
 

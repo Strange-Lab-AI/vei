@@ -97,7 +97,9 @@ def launch_workspace_run(
         branch=resolved_branch,
         model=model,
         provider=provider,
-        bc_model_path=resolved_bc_model_path,
+        bc_model_path=(
+            str(resolved_bc_model_path) if resolved_bc_model_path is not None else None
+        ),
         workflow_name=scenario.workflow_name,
         workflow_variant=scenario.workflow_variant,
         artifacts=RunArtifactIndex(
@@ -216,6 +218,11 @@ def launch_workspace_run(
             branch=result.diagnostics.branch or resolved_branch,
             model=model,
             provider=provider,
+            bc_model_path=(
+                str(resolved_bc_model_path)
+                if resolved_bc_model_path is not None
+                else None
+            ),
             workflow_name=result.diagnostics.workflow_name or scenario.workflow_name,
             workflow_variant=result.diagnostics.workflow_variant
             or scenario.workflow_variant,
@@ -457,7 +464,35 @@ def _build_run_timeline_from_artifacts(
             resolved_tool = (
                 str(step.get("resolved_tool")) if step.get("resolved_tool") else None
             )
+            graph_domain = (
+                str(step.get("graph_domain")) if step.get("graph_domain") else None
+            )
+            graph_action = (
+                str(step.get("graph_action")) if step.get("graph_action") else None
+            )
+            graph_intent = (
+                str(step.get("graph_intent"))
+                if step.get("graph_intent")
+                else (
+                    f"{graph_domain}.{graph_action}"
+                    if graph_domain and graph_action
+                    else None
+                )
+            )
             channel = flow_channel_from_tool(resolved_tool or tool)
+            object_refs = [
+                str(item)
+                for item in (
+                    step.get("object_refs")
+                    or _infer_object_refs(
+                        resolved_tool or tool,
+                        {
+                            **dict(step.get("result", {}) or {}),
+                            **dict(step.get("args", {}) or {}),
+                        },
+                    )
+                )
+            ]
             events.append(
                 RunTimelineEvent(
                     index=index,
@@ -472,13 +507,10 @@ def _build_run_timeline_from_artifacts(
                         if step.get("graph_action_ref")
                         else None
                     ),
-                    object_refs=_infer_object_refs(
-                        resolved_tool or tool,
-                        {
-                            **dict(step.get("result", {}) or {}),
-                            **dict(step.get("args", {}) or {}),
-                        },
-                    ),
+                    graph_domain=graph_domain,
+                    graph_action=graph_action,
+                    graph_intent=graph_intent,
+                    object_refs=object_refs,
                     payload={
                         "args": step.get("args", {}),
                         "result": step.get("result", {}),

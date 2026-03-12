@@ -8,6 +8,7 @@ from vei.router.tool_registry import ToolSpec
 from vei.sdk import (
     SessionHook,
     bootstrap_workspace_contract_entry,
+    build_identity_flow_summary_entry,
     build_blueprint_asset_for_example_entry,
     build_blueprint_asset_for_family_entry,
     build_grounding_bundle_example_entry,
@@ -34,6 +35,7 @@ from vei.sdk import (
     load_workspace_import_report_entry,
     load_workspace_provenance_entry,
     normalize_import_package_entry,
+    prepare_identity_workspace_flow_entry,
     run_benchmark_family_workflow,
     run_workflow_spec,
     validate_import_package_entry,
@@ -191,6 +193,21 @@ def test_sdk_scenario_manifest_helpers() -> None:
     all_entries = list_scenario_manifest()
     assert all_entries
     assert any(entry.name == "multi_channel" for entry in all_entries)
+
+
+def test_sdk_identity_flow_helpers_prepare_workspace(tmp_path: Path) -> None:
+    root = tmp_path / "identity-flow"
+
+    summary = prepare_identity_workspace_flow_entry(
+        str(root),
+        run_workflow=False,
+        run_scripted=False,
+    )
+    flow = build_identity_flow_summary_entry(str(root))
+
+    assert summary.active_scenario == "oversharing_remediation"
+    assert summary.generated_scenario_count >= 6
+    assert flow.package_name == "macrocompute_identity_export"
 
 
 def test_sdk_benchmark_family_workflow_helpers() -> None:

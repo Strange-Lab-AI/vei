@@ -1,6 +1,4 @@
 from vei.imports.api import (
-    bootstrap_contract_from_import_bundle,
-    generate_identity_scenario_candidates,
     get_import_package_example_path,
     list_import_package_examples,
     load_import_package,
@@ -9,12 +7,14 @@ from vei.imports.api import (
     scaffold_mapping_override,
     validate_import_package,
 )
+from vei.imports.contracts import bootstrap_contract_from_import_bundle
 from vei.imports.connectors import (
     OktaConnectorConfig,
     SourceSyncResult,
     load_okta_connector_config,
     sync_okta_import_package,
 )
+from vei.imports.scenarios import generate_identity_scenario_candidates
 from vei.imports.models import (
     GeneratedScenarioCandidate,
     ImportPackage,

@@ -154,6 +154,10 @@ def test_ui_api_serves_import_diagnostics_and_provenance(tmp_path: Path) -> None
     assert summary_response.status_code == 200
     assert summary_response.json()["package_name"] == "macrocompute_identity_export"
 
+    identity_flow_response = client.get("/api/identity/flow")
+    assert identity_flow_response.status_code == 200
+    assert identity_flow_response.json()["active_scenario"] == "default"
+
     normalization_response = client.get("/api/imports/normalization")
     assert normalization_response.status_code == 200
     assert normalization_response.json()["normalized_counts"]["identity_users"] == 2
@@ -186,6 +190,11 @@ def test_ui_api_serves_import_diagnostics_and_provenance(tmp_path: Path) -> None
     assert any(
         "drive_share:GDRIVE-2201" in item.get("object_refs", [])
         for item in timeline_response.json()
+    )
+    assert any(
+        item.get("graph_intent") == "doc_graph.restrict_drive_share"
+        for item in timeline_response.json()
+        if item.get("kind") == "workflow_step"
     )
 
 

@@ -65,6 +65,7 @@ def test_bootstrap_contract_from_import_bundle_adds_policy_constraints() -> None
     )
 
     assert payload["metadata"]["import_policy_id"] == "POL-WAVE2"
+    assert payload["metadata"]["contract_bootstrap_summary"]["applied_rule_count"] >= 6
     assert any(
         item["name"] == "import_policy:manager" for item in payload["policy_invariants"]
     )
@@ -76,6 +77,40 @@ def test_bootstrap_contract_from_import_bundle_adds_policy_constraints() -> None
         item["name"] == "stale_app_removed:APP-analytics"
         for item in payload["forbidden_predicates"]
     )
+    assert any(
+        item["name"] == "primary_app_present:APP-crm"
+        for item in payload["success_predicates"]
+    )
+    assert any(
+        item["name"] == "tracker_followthrough:JRA-204"
+        for item in payload["success_predicates"]
+    )
+    assert any(
+        item["name"] == "stakeholder_summary_sent:#identity-cutover"
+        for item in payload["success_predicates"]
+    )
+    assert any(
+        item["name"] == "stale_app_removed:APP-analytics"
+        and item["origin"] == "imported"
+        for item in payload["metadata"]["rule_provenance"]
+    )
+
+
+def test_generated_identity_candidates_include_origin_labels_and_refs() -> None:
+    package_path = get_import_package_example_path("macrocompute_identity_export")
+    artifacts = normalize_identity_import_package(package_path)
+
+    oversharing = next(
+        item
+        for item in artifacts.generated_scenarios
+        if item.name == "oversharing_remediation"
+    )
+
+    assert oversharing.metadata["priority"] == "high"
+    assert "drive_share:GDRIVE-2201" in oversharing.metadata["supporting_refs"]
+    assert oversharing.metadata["state_labels"]["drive_share:GDRIVE-2201"] == "imported"
+    assert oversharing.metadata["origin_counts"]["imported"] >= 1
+    assert oversharing.metadata["generation_reasons"]
 
 
 def test_import_package_validation_flags_missing_required_fields(

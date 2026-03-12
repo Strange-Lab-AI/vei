@@ -4,7 +4,7 @@ import csv
 import json
 from copy import deepcopy
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
 
 from vei.blueprint.models import (
     BlueprintApprovalAsset,
@@ -35,6 +35,7 @@ from vei.grounding.models import (
     IdentityGovernanceWorkflowSeed,
 )
 
+from .contracts import bootstrap_contract_from_import_bundle
 from .models import (
     GeneratedScenarioCandidate,
     ImportPackage,
@@ -49,6 +50,10 @@ from .models import (
     RedactionReport,
 )
 from .profiles import get_mapping_profile
+from .scenarios import (
+    build_generated_scenario_provenance,
+    generate_identity_scenario_candidates,
+)
 
 
 _FIXTURE_ROOT = Path(__file__).with_name("fixtures")
@@ -638,7 +643,7 @@ def normalize_identity_import_package(path: str | Path) -> ImportPackageArtifact
         generated = []
     else:
         generated = generate_identity_scenario_candidates(bundle, provenance)
-        provenance.extend(_derived_provenance(bundle, generated))
+        provenance.extend(build_generated_scenario_provenance(bundle, generated))
     report = _build_report(
         package.name,
         issues,
@@ -807,328 +812,6 @@ def _supplement_identity_context(
         )
 
     return derived
-
-
-def generate_identity_scenario_candidates(
-    bundle: IdentityGovernanceBundle,
-    provenance: Iterable[ProvenanceRecord] | None = None,
-) -> list[GeneratedScenarioCandidate]:
-    seed_params = dict(bundle.workflow_seed.model_dump(mode="json"))
-    onboarding_params = dict(seed_params)
-    identity_params = {
-        "user_id": seed_params["user_id"],
-        "employee_id": seed_params["employee_id"],
-        "primary_app_id": seed_params["crm_app_id"],
-        "stale_app_id": seed_params["crm_app_id"],
-        "doc_id": seed_params["doc_id"],
-        "request_id": "REQ-2201",
-        "ticket_id": seed_params["tracking_ticket_id"],
-        "cutover_doc_id": seed_params["cutover_doc_id"],
-        "manager_email": seed_params["manager_email"],
-        "revoked_share_email": seed_params["revoked_share_email"],
-        "allowed_share_count": seed_params["allowed_share_count"],
-        "deadline_max_ms": seed_params["deadline_max_ms"],
-        "ticket_note": seed_params["ticket_update_note"],
-        "doc_update_note": seed_params["cutover_doc_note"],
-        "slack_channel": seed_params["slack_channel"],
-        "slack_summary": seed_params["slack_summary"],
-        "onboarding_note": seed_params["onboarding_note"],
-    }
-    primary_policy = (
-        bundle.capability_graphs.identity_graph.policies[0]
-        if bundle.capability_graphs.identity_graph
-        and bundle.capability_graphs.identity_graph.policies
-        else None
-    )
-    stale_app_id = _select_stale_application(
-        (
-            bundle.capability_graphs.identity_graph.users[0].applications
-            if bundle.capability_graphs.identity_graph
-            and bundle.capability_graphs.identity_graph.users
-            else []
-        ),
-        primary_policy.allowed_application_ids if primary_policy is not None else [],
-    )
-    request_id = (
-        bundle.capability_graphs.work_graph.service_requests[0].request_id
-        if bundle.capability_graphs.work_graph
-        and bundle.capability_graphs.work_graph.service_requests
-        else "REQ-0001"
-    )
-    base_metadata = {
-        "generated_from": bundle.name,
-        "grounding_wedge": "identity_access_governance",
-        "acceptance_focus": list(bundle.acceptance_focus),
-    }
-    candidates = [
-        GeneratedScenarioCandidate(
-            name="acquired_user_cutover",
-            title="Acquired User Cutover",
-            description="Resolve the imported acquired-user cutover with least-privilege access and document hygiene.",
-            scenario_name=bundle.scenario_template_name,
-            workflow_name="enterprise_onboarding_migration",
-            workflow_variant="manager_cutover",
-            workflow_parameters=dict(onboarding_params),
-            inspection_focus="identity_graph",
-            tags=["generated", "identity", "cutover"],
-            hidden_faults={"identity_conflict": True, "overshared_document": True},
-            actor_hints=["it-integration", "sales-manager"],
-            metadata={**base_metadata, "candidate_family": "acquired_user_cutover"},
-        ),
-        GeneratedScenarioCandidate(
-            name="joiner_mover_leaver",
-            title="Joiner / Mover / Leaver",
-            description="Exercise the imported identity environment as a user lifecycle handoff with alias-style cutover.",
-            scenario_name=bundle.scenario_template_name,
-            workflow_name="enterprise_onboarding_migration",
-            workflow_variant="alias_cutover",
-            workflow_parameters={
-                **dict(onboarding_params),
-                "corporate_email": onboarding_params["corporate_email"].replace(
-                    "@", "+cutover@"
-                ),
-            },
-            inspection_focus="identity_graph",
-            tags=["generated", "identity", "lifecycle"],
-            hidden_faults={"alias_conflict": True},
-            actor_hints=["identity-admin", "manager"],
-            metadata={**base_metadata, "candidate_family": "joiner_mover_leaver"},
-        ),
-        GeneratedScenarioCandidate(
-            name="oversharing_remediation",
-            title="Oversharing Remediation",
-            description="Remove imported external sharing and document the remediation path cleanly.",
-            scenario_name=bundle.scenario_template_name,
-            workflow_name="identity_access_governance",
-            workflow_variant="oversharing_remediation",
-            workflow_parameters={
-                **dict(identity_params),
-                "doc_update_note": (
-                    "Imported policy-driven oversharing remediation completed; "
-                    "external sharing removed and policy posture restored."
-                ),
-                "slack_summary": (
-                    "Imported oversharing remediated; external share removed and "
-                    "policy posture restored."
-                ),
-            },
-            inspection_focus="doc_graph",
-            tags=["generated", "docs", "oversharing"],
-            hidden_faults={"external_share": True},
-            actor_hints=["identity-admin", "docs-owner"],
-            metadata={**base_metadata, "candidate_family": "oversharing_remediation"},
-        ),
-        GeneratedScenarioCandidate(
-            name="approval_bottleneck",
-            title="Approval Bottleneck",
-            description="Clear a pending approval chain before least-privilege activation can complete.",
-            scenario_name=bundle.scenario_template_name,
-            workflow_name="identity_access_governance",
-            workflow_variant="approval_bottleneck",
-            workflow_parameters={
-                **dict(identity_params),
-                "request_id": request_id,
-                "ticket_note": (
-                    "Imported approval bottleneck cleared and tracker updated after "
-                    "identity approval completion."
-                ),
-                "slack_summary": (
-                    "Imported approval bottleneck cleared; identity approval "
-                    "completed and access granted."
-                ),
-            },
-            inspection_focus="work_graph",
-            tags=["generated", "approval", "identity"],
-            hidden_faults={"approval_blocked": True},
-            actor_hints=["manager", "identity-approver"],
-            metadata={**base_metadata, "candidate_family": "approval_bottleneck"},
-        ),
-        GeneratedScenarioCandidate(
-            name="stale_entitlement_cleanup",
-            title="Stale Entitlement Cleanup",
-            description="Remove disallowed imported access while preserving the policy-approved application set.",
-            scenario_name=bundle.scenario_template_name,
-            workflow_name="identity_access_governance",
-            workflow_variant="stale_entitlement_cleanup",
-            workflow_parameters={
-                **dict(identity_params),
-                "stale_app_id": stale_app_id or identity_params["primary_app_id"],
-                "ticket_note": (
-                    "Imported stale entitlement removed after policy review and "
-                    "tracker updated."
-                ),
-                "slack_summary": (
-                    "Imported stale entitlement removed and least-privilege posture "
-                    "restored."
-                ),
-            },
-            inspection_focus="identity_graph",
-            tags=["generated", "least_privilege", "identity"],
-            hidden_faults={"stale_entitlement": stale_app_id is not None},
-            actor_hints=["identity-admin"],
-            metadata={**base_metadata, "candidate_family": "stale_entitlement_cleanup"},
-        ),
-        GeneratedScenarioCandidate(
-            name="break_glass_follow_up",
-            title="Break-Glass Follow-Up",
-            description="Record and clean up imported break-glass access before the next review window.",
-            scenario_name=bundle.scenario_template_name,
-            workflow_name="identity_access_governance",
-            workflow_variant="break_glass_follow_up",
-            workflow_parameters={
-                **dict(identity_params),
-                "stale_app_id": stale_app_id or identity_params["primary_app_id"],
-                "ticket_note": (
-                    "Imported break-glass follow-up completed and temporary access "
-                    "removed."
-                ),
-                "doc_update_note": (
-                    "Break-glass follow-up recorded after imported temporary access "
-                    "review."
-                ),
-                "slack_summary": (
-                    "Imported break-glass follow-up completed and temporary access "
-                    "removed."
-                ),
-            },
-            inspection_focus="identity_graph",
-            tags=["generated", "break_glass", "follow_up"],
-            hidden_faults={"break_glass_event": True},
-            actor_hints=["security-review", "identity-admin"],
-            metadata={**base_metadata, "candidate_family": "break_glass_follow_up"},
-        ),
-    ]
-    return candidates
-
-
-def bootstrap_contract_from_import_bundle(
-    *,
-    bundle: IdentityGovernanceBundle,
-    contract_payload: dict[str, Any],
-    scenario_name: str,
-    workflow_parameters: dict[str, Any],
-) -> dict[str, Any]:
-    payload = deepcopy(contract_payload)
-    identity_graph = bundle.capability_graphs.identity_graph
-    if identity_graph is None:
-        return payload
-    policy = identity_graph.policies[0] if identity_graph.policies else None
-    if policy is None:
-        raise ValueError("Cannot bootstrap contract without imported identity policy")
-
-    policy_invariants = payload.setdefault("policy_invariants", [])
-    reward_terms = payload.setdefault("reward_terms", [])
-    metadata = payload.setdefault("metadata", {})
-    metadata.update(
-        {
-            "import_policy_id": policy.policy_id,
-            "grounding_bundle": bundle.name,
-            "contract_bootstrap": "import_policy_acl",
-            "imported_vs_derived": {
-                "imported": True,
-                "derived": True,
-                "simulated": True,
-            },
-        }
-    )
-    required_approval_stages = list(policy.required_approval_stages)
-    for stage in required_approval_stages:
-        if not any(
-            item.get("name") == f"import_policy:{stage}" for item in policy_invariants
-        ):
-            policy_invariants.append(
-                {
-                    "name": f"import_policy:{stage}",
-                    "description": f"Imported policy {policy.policy_id} requires approval stage {stage}.",
-                    "required": True,
-                    "evidence": policy.policy_id,
-                    "metadata": {
-                        "origin": "imported",
-                        "source_policy_id": policy.policy_id,
-                        "stage": stage,
-                    },
-                }
-            )
-
-    doc_id = workflow_parameters.get("doc_id")
-    if doc_id:
-        for domain in policy.forbidden_share_domains:
-            predicate_name = f"forbidden_share_domain:{domain}"
-            if not any(
-                item.get("name") == predicate_name
-                for item in payload.get("forbidden_predicates", [])
-            ):
-                payload.setdefault("forbidden_predicates", []).append(
-                    {
-                        "name": predicate_name,
-                        "source": "oracle_state",
-                        "assertion": {
-                            "kind": "state_not_contains",
-                            "field": f"components.google_admin.drive_shares.{doc_id}.shared_with",
-                            "contains": domain,
-                            "description": f"Imported policy forbids share domain {domain}.",
-                        },
-                        "description": f"Imported policy forbids share domain {domain}.",
-                        "metadata": {
-                            "origin": "imported",
-                            "source_policy_id": policy.policy_id,
-                            "object_ref": f"drive_share:{doc_id}",
-                            "forbidden_domain": domain,
-                        },
-                    }
-                )
-
-    stale_app_id = workflow_parameters.get("stale_app_id")
-    user_id = workflow_parameters.get("user_id")
-    if (
-        stale_app_id
-        and user_id
-        and scenario_name
-        in {
-            "stale_entitlement_cleanup",
-            "break_glass_follow_up",
-        }
-    ):
-        predicate_name = f"stale_app_removed:{stale_app_id}"
-        if not any(
-            item.get("name") == predicate_name
-            for item in payload.get("forbidden_predicates", [])
-        ):
-            payload.setdefault("forbidden_predicates", []).append(
-                {
-                    "name": predicate_name,
-                    "source": "oracle_state",
-                    "assertion": {
-                        "kind": "state_not_contains",
-                        "field": f"components.okta.users.{user_id}.applications",
-                        "contains": stale_app_id,
-                        "description": "Imported least-privilege policy requires removing stale application access.",
-                    },
-                    "description": "Imported least-privilege policy requires removing stale application access.",
-                    "metadata": {
-                        "origin": "imported",
-                        "source_policy_id": policy.policy_id,
-                        "object_ref": f"identity_user:{user_id}",
-                        "stale_app_id": stale_app_id,
-                    },
-                }
-            )
-
-    if policy.deadline_max_ms:
-        reward_terms.append(
-            {
-                "name": f"{scenario_name}:deadline",
-                "weight": 0.2,
-                "term_type": "success",
-                "description": f"Imported policy deadline {policy.deadline_max_ms}ms respected.",
-                "metadata": {
-                    "origin": "imported",
-                    "source_policy_id": policy.policy_id,
-                    "deadline_max_ms": policy.deadline_max_ms,
-                },
-            }
-        )
-    return payload
 
 
 def _package_root(path: str | Path) -> Path:
@@ -1764,15 +1447,6 @@ def _select_forbidden_share(
     return shared_with[0] if shared_with else "external@example.net"
 
 
-def _select_stale_application(
-    application_ids: list[str], allowed_application_ids: list[str]
-) -> str | None:
-    for app_id in application_ids:
-        if allowed_application_ids and app_id not in allowed_application_ids:
-            return app_id
-    return None
-
-
 def _detect_redacted_fields(record: dict[str, Any]) -> list[str]:
     redacted: list[str] = []
     for key, value in record.items():
@@ -1803,57 +1477,6 @@ def _provenance(
         redacted_fields=list(redacted_fields),
         metadata=dict(metadata or {}),
     )
-
-
-def _derived_provenance(
-    bundle: IdentityGovernanceBundle, generated: list[GeneratedScenarioCandidate]
-) -> list[ProvenanceRecord]:
-    records: list[ProvenanceRecord] = []
-    policy_id = (
-        bundle.capability_graphs.identity_graph.policies[0].policy_id
-        if bundle.capability_graphs.identity_graph
-        and bundle.capability_graphs.identity_graph.policies
-        else "imported-policy"
-    )
-    for doc in (
-        bundle.capability_graphs.doc_graph.documents
-        if bundle.capability_graphs.doc_graph
-        else []
-    ):
-        records.append(
-            ProvenanceRecord(
-                object_ref=f"document:{doc.doc_id}",
-                label=doc.title,
-                origin="derived",
-                lineage=[f"identity_policy:{policy_id}"],
-                metadata={"generated": True},
-            )
-        )
-    if bundle.capability_graphs.comm_graph is not None:
-        for channel in bundle.capability_graphs.comm_graph.slack_channels:
-            records.append(
-                ProvenanceRecord(
-                    object_ref=f"comm_channel:{channel.channel}",
-                    label=channel.channel,
-                    origin="derived",
-                    lineage=[f"identity_policy:{policy_id}"],
-                    metadata={"generated": True},
-                )
-            )
-    for candidate in generated:
-        records.append(
-            ProvenanceRecord(
-                object_ref=f"scenario:{candidate.name}",
-                label=candidate.title,
-                origin="simulated",
-                lineage=[bundle.name],
-                metadata={
-                    "workflow_name": candidate.workflow_name,
-                    "workflow_variant": candidate.workflow_variant,
-                },
-            )
-        )
-    return records
 
 
 def _record_key(record: dict[str, Any]) -> str | None:

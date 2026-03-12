@@ -44,6 +44,11 @@ def test_workspace_run_launches_and_writes_timeline(tmp_path: Path) -> None:
     assert events[0].kind == "run_started"
     assert events[-1].kind == "run_completed"
     assert any(event.kind == "workflow_step" for event in timeline)
+    assert any(
+        event.graph_intent == "identity_graph.assign_application"
+        for event in timeline
+        if event.kind == "workflow_step"
+    )
     assert any(event.kind == "snapshot" for event in timeline)
     assert snapshots
     assert orientation["organization_name"] == "MacroCompute"
@@ -103,6 +108,12 @@ def test_imported_workspace_runs_generated_scenarios(tmp_path: Path) -> None:
         "drive_share:GDRIVE-2201" in event.object_refs
         for event in timeline
         if event.object_refs
+    )
+    assert any(
+        event.graph_domain == "doc_graph"
+        and event.graph_action == "restrict_drive_share"
+        for event in timeline
+        if event.kind == "workflow_step"
     )
 
 

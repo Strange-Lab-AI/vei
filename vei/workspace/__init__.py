@@ -22,8 +22,13 @@ from vei.workspace.api import (
     write_workspace,
     write_workspace_runs,
 )
+from vei.workspace.identity import (
+    build_identity_flow_summary,
+    prepare_identity_workspace_flow,
+)
 from vei.workspace.models import (
     WorkspaceCompileRecord,
+    WorkspaceIdentityFlowSummary,
     WorkspaceManifest,
     WorkspaceRunEntry,
     WorkspaceScenarioSpec,
@@ -35,6 +40,7 @@ from vei.workspace.models import (
 __all__ = [
     "WORKSPACE_MANIFEST",
     "WorkspaceCompileRecord",
+    "WorkspaceIdentityFlowSummary",
     "WorkspaceManifest",
     "WorkspaceRunEntry",
     "WorkspaceScenarioSpec",
@@ -54,6 +60,8 @@ __all__ = [
     "load_workspace",
     "load_workspace_blueprint_asset",
     "load_workspace_contract",
+    "build_identity_flow_summary",
+    "prepare_identity_workspace_flow",
     "preview_workspace_scenario",
     "resolve_workspace_scenario",
     "show_workspace",

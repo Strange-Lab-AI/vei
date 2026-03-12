@@ -38,6 +38,7 @@ from vei.workspace.api import (
     preview_workspace_scenario,
     show_workspace,
 )
+from vei.workspace.identity import build_identity_flow_summary
 
 
 class RunLaunchRequest(BaseModel):
@@ -83,6 +84,14 @@ def create_ui_app(workspace_root: str | Path) -> FastAPI:
     def api_import_summary() -> JSONResponse:
         summary = show_workspace(root).imports
         return JSONResponse(summary.model_dump(mode="json") if summary else {})
+
+    @app.get("/api/identity/flow")
+    def api_identity_flow() -> JSONResponse:
+        try:
+            payload = build_identity_flow_summary(root)
+        except ValueError:
+            return JSONResponse({})
+        return JSONResponse(payload.model_dump(mode="json"))
 
     @app.get("/api/imports/sources")
     def api_import_sources() -> JSONResponse:

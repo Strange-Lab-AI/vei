@@ -17,6 +17,7 @@ const state = {
   scenarioPreview: null,
   scenarioContract: null,
   importSummary: null,
+  identityFlow: null,
   importSources: null,
   importNormalization: null,
   importReview: null,
@@ -187,6 +188,7 @@ function renderWorkspaceHero() {
 
 function renderImportSummary() {
   const summary = state.importSummary;
+  const identityFlow = state.identityFlow;
   const normalization = state.importNormalization;
   const review = state.importReview;
   const panel = document.getElementById("imports-summary");
@@ -231,10 +233,12 @@ function renderImportSummary() {
           <div class="chip-row">
             ${chip(scenario.workflow_name)}
             ${chip(scenario.workflow_variant || "default")}
+            ${scenario.metadata?.priority ? chip(`priority:${scenario.metadata.priority}`, statusClass(scenario.metadata.priority === "high" ? "ok" : "")) : ""}
           </div>
           <h3>${escapeHtml(scenario.title)}</h3>
           <p class="metric-detail">${escapeHtml(scenario.description)}</p>
           <div class="chip-row">${(scenario.tags || []).slice(0, 4).map((item) => chip(item)).join("")}</div>
+          ${(scenario.metadata?.generation_reasons || []).length ? `<p class="metric-detail">${escapeHtml(scenario.metadata.generation_reasons[0])}</p>` : ""}
           <button type="button" class="ghost-button activate-scenario" data-scenario-name="${escapeHtml(scenario.name)}">Make active</button>
         </div>
       `
@@ -313,7 +317,29 @@ function renderImportSummary() {
       </div>
     `
   );
+  const flowCards = identityFlow && identityFlow.active_scenario
+    ? [
+        `
+          <div class="stack-card">
+            <h3>Identity wedge</h3>
+            <div class="chip-row">
+              ${chip(identityFlow.active_scenario)}
+              ${identityFlow.selected_candidate_family ? chip(identityFlow.selected_candidate_family) : ""}
+              ${chip(`${identityFlow.generated_scenario_count || 0} scenarios`, "ok")}
+            </div>
+            <div class="detail-grid">
+              ${detailTile("Package", identityFlow.package_name || "n/a")}
+              ${detailTile("Runs", compactNumber((identityFlow.run_ids || []).length))}
+              ${detailTile("Imported", compactNumber(identityFlow.origin_counts?.imported || 0))}
+              ${detailTile("Derived", compactNumber(identityFlow.origin_counts?.derived || 0))}
+            </div>
+            <p class="metric-detail">${escapeHtml((identityFlow.recommended_next_steps || [])[0] || "Identity workspace ready for scenario preview and run launch.")}</p>
+          </div>
+        `,
+      ]
+    : [];
   reviewPanel.innerHTML = [
+    ...flowCards,
     ...connectorCards,
     ...syncCards,
     ...sourceCards,
@@ -397,11 +423,16 @@ function renderScenarioBriefing() {
   const invariants = Array.isArray(contract.policy_invariants)
     ? contract.policy_invariants.length
     : Number(contract.policy_invariant_count || 0);
+  const ruleProvenance = Array.isArray(contract.metadata?.rule_provenance)
+    ? contract.metadata.rule_provenance
+    : [];
+  const importedRuleCount = ruleProvenance.filter((item) => item.origin === "imported").length;
   document.getElementById("contract-scorecard").innerHTML = `
     <div class="score-strip">
       ${scorePill("Success predicates", String(successCount))}
       ${scorePill("Forbidden predicates", String(forbiddenCount))}
       ${scorePill("Policy invariants", String(invariants))}
+      ${scorePill("Imported rules", String(importedRuleCount))}
       ${scorePill("Allowed tools", String(contract.observation_boundary?.allowed_tools?.length || contract.metadata?.observation_boundary?.allowed_tools?.length || 0))}
     </div>
   `;
@@ -569,7 +600,8 @@ function renderPlaybackStage() {
         event.channel,
         `t=${formatMs(event.time_ms)}`,
         event.resolved_tool ? `resolved=${event.resolved_tool}` : null,
-        event.graph_action_ref ? `graph=${event.graph_action_ref}` : null,
+        event.graph_intent ? `graph=${event.graph_intent}` : null,
+        !event.graph_intent && event.graph_action_ref ? `graph=${event.graph_action_ref}` : null,
       ].filter(Boolean);
       return `
         <div class="timeline-card ${index === state.selectedEventIndex ? "active" : ""}" data-index="${index}">
@@ -605,6 +637,8 @@ function renderEventDetail() {
       ${detailTile("Time", formatMs(event.time_ms))}
       ${detailTile("Tool", event.tool || "n/a")}
       ${detailTile("Resolved", event.resolved_tool || event.graph_action_ref || "n/a")}
+      ${detailTile("Graph intent", event.graph_intent || "n/a")}
+      ${detailTile("Graph domain", event.graph_domain || "n/a")}
     </div>
     <div class="chip-row">
       ${(event.object_refs || []).map((item) => `<button type="button" class="ghost-button provenance-chip" data-object-ref="${escapeHtml(item)}">${escapeHtml(item)}</button>`).join("")}
@@ -807,10 +841,11 @@ function togglePlayback() {
 }
 
 async function loadWorkspace() {
-  const [workspace, scenarios, importSummary, importSources, importNormalization, importReview, generatedImportScenarios, provenanceIndex] = await Promise.all([
+  const [workspace, scenarios, importSummary, identityFlow, importSources, importNormalization, importReview, generatedImportScenarios, provenanceIndex] = await Promise.all([
     getJson("/api/workspace"),
     getJson("/api/scenarios"),
     getJson("/api/imports/summary").catch(() => ({})),
+    getJson("/api/identity/flow").catch(() => ({})),
     getJson("/api/imports/sources").catch(() => ({ sources: [], syncs: [] })),
     getJson("/api/imports/normalization").catch(() => ({})),
     getJson("/api/imports/review").catch(() => ({})),
@@ -820,6 +855,7 @@ async function loadWorkspace() {
   state.workspace = workspace;
   state.scenarios = scenarios;
   state.importSummary = importSummary;
+  state.identityFlow = identityFlow;
   state.importSources = importSources;
   state.importNormalization = importNormalization;
   state.importReview = importReview;

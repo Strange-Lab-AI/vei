@@ -126,3 +126,16 @@ class WorkspaceSummary(BaseModel):
     run_count: int = 0
     latest_run_id: Optional[str] = None
     imports: Optional[WorkspaceImportSummary] = None
+
+
+class WorkspaceIdentityFlowSummary(BaseModel):
+    workspace_name: str
+    package_name: Optional[str] = None
+    generated_scenario_count: int = 0
+    active_scenario: str
+    contract_path: Optional[str] = None
+    origin_counts: Dict[str, int] = Field(default_factory=dict)
+    selected_candidate_family: Optional[str] = None
+    generated_candidates: List[str] = Field(default_factory=list)
+    recommended_next_steps: List[str] = Field(default_factory=list)
+    run_ids: List[str] = Field(default_factory=list)

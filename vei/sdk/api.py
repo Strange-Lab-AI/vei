@@ -136,7 +136,12 @@ from vei.workspace.api import (
     sync_workspace_source as _sync_workspace_source,
     validate_workspace_contract as _validate_workspace_contract,
 )
+from vei.workspace.identity import (
+    build_identity_flow_summary as _build_identity_flow_summary,
+    prepare_identity_workspace_flow as _prepare_identity_workspace_flow,
+)
 from vei.workspace.models import (
+    WorkspaceIdentityFlowSummary,
     WorkspaceManifest,
     WorkspaceRunEntry,
     WorkspaceScenarioSpec,
@@ -624,6 +629,35 @@ def sync_workspace_source_entry(
     )
 
 
+def build_identity_flow_summary_entry(root: str) -> WorkspaceIdentityFlowSummary:
+    return _build_identity_flow_summary(root)
+
+
+def prepare_identity_workspace_flow_entry(
+    root: str,
+    *,
+    package_path: str | None = None,
+    scenario_name: str | None = None,
+    overwrite: bool = False,
+    replace_generated: bool = True,
+    run_workflow: bool = False,
+    run_scripted: bool = False,
+    workflow_run_id: str | None = None,
+    scripted_run_id: str | None = None,
+) -> WorkspaceIdentityFlowSummary:
+    return _prepare_identity_workspace_flow(
+        root,
+        package_path=package_path,
+        scenario_name=scenario_name,
+        overwrite=overwrite,
+        replace_generated=replace_generated,
+        run_workflow=run_workflow,
+        run_scripted=run_scripted,
+        workflow_run_id=workflow_run_id,
+        scripted_run_id=scripted_run_id,
+    )
+
+
 def list_workspace_scenarios_entry(root: str) -> list[WorkspaceScenarioSpec]:
     return _list_workspace_scenarios(root)
 
@@ -762,6 +796,7 @@ def launch_workspace_run_entry(
     branch: str | None = None,
     model: str | None = None,
     provider: str | None = None,
+    bc_model_path: str | None = None,
     task: str | None = None,
     max_steps: int = 12,
 ) -> RunManifest:
@@ -774,6 +809,7 @@ def launch_workspace_run_entry(
         branch=branch,
         model=model,
         provider=provider,
+        bc_model_path=bc_model_path,
         task=task,
         max_steps=max_steps,
     )

@@ -65,6 +65,9 @@ class RunTimelineEvent(BaseModel):
     tool: Optional[str] = None
     resolved_tool: Optional[str] = None
     graph_action_ref: Optional[str] = None
+    graph_domain: Optional[str] = None
+    graph_action: Optional[str] = None
+    graph_intent: Optional[str] = None
     object_refs: List[str] = Field(default_factory=list)
     branch: Optional[str] = None
     snapshot_id: Optional[int] = None
@@ -84,6 +87,7 @@ class RunManifest(BaseModel):
     branch: Optional[str] = None
     model: Optional[str] = None
     provider: Optional[str] = None
+    bc_model_path: Optional[str] = None
     workflow_name: Optional[str] = None
     workflow_variant: Optional[str] = None
     success: Optional[bool] = None

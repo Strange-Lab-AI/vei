@@ -23,14 +23,12 @@ from vei.contract.api import build_contract_from_workflow, evaluate_contract
 from vei.contract.models import ContractEvaluationResult, ContractSpec
 from vei.grounding.api import compile_identity_governance_bundle
 from vei.grounding.models import IdentityGovernanceBundle
-from vei.imports.api import (
-    bootstrap_contract_from_import_bundle,
-    normalize_identity_import_package,
-)
+from vei.imports.api import normalize_identity_import_package
 from vei.imports.connectors import (
     load_okta_connector_config,
     sync_okta_import_package,
 )
+from vei.imports.contracts import bootstrap_contract_from_import_bundle
 from vei.imports.models import (
     GeneratedScenarioCandidate,
     ImportReview,

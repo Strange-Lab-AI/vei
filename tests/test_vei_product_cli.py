@@ -427,3 +427,28 @@ def test_product_cli_normalize_broken_import_returns_diagnostics_not_traceback(
         item["code"] == "bundle.incomplete"
         for item in payload["normalization_report"]["issues"]
     )
+
+
+def test_product_cli_identity_demo_prepares_workspace_and_demo_runs(
+    tmp_path: Path,
+) -> None:
+    runner = typer.testing.CliRunner()
+    root = tmp_path / "identity-demo"
+
+    result = runner.invoke(
+        app,
+        [
+            "project",
+            "identity-demo",
+            "--root",
+            str(root),
+            "--run-workflow",
+            "--run-scripted",
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    payload = json.loads(result.output)
+    assert payload["active_scenario"] == "oversharing_remediation"
+    assert payload["generated_scenario_count"] >= 6
+    assert set(payload["run_ids"]) == {"identity_workflow", "identity_scripted"}

@@ -16,6 +16,7 @@ from vei.workspace.api import (
     show_workspace,
     sync_workspace_source,
 )
+from vei.workspace.identity import prepare_identity_workspace_flow
 from vei.imports.api import (
     normalize_identity_import_package,
     review_import_package,
@@ -90,6 +91,47 @@ def init_workspace(
         overwrite=overwrite,
     )
     _emit(show_workspace(root).model_dump(mode="json"), indent)
+
+
+@app.command("identity-demo")
+def identity_demo_command(
+    root: Path = typer.Option(Path("."), help="Workspace root directory"),
+    package: Optional[Path] = typer.Option(
+        None,
+        help="Optional identity import package directory or manifest (defaults to the fixture export pack)",
+    ),
+    scenario_name: Optional[str] = typer.Option(
+        None, help="Generated scenario to activate for the identity workspace"
+    ),
+    overwrite: bool = typer.Option(False, help="Overwrite a non-empty workspace root"),
+    replace_generated: bool = typer.Option(
+        True, help="Replace previously generated import scenarios"
+    ),
+    run_workflow: bool = typer.Option(
+        True, help="Launch a workflow baseline after preparing the workspace"
+    ),
+    run_scripted: bool = typer.Option(
+        True, help="Launch a scripted comparison run after the workflow baseline"
+    ),
+    indent: int = typer.Option(2, help="Pretty indent"),
+) -> None:
+    """Prepare the canonical identity/access-governance workspace and optional demo runs."""
+
+    try:
+        payload = prepare_identity_workspace_flow(
+            root,
+            package_path=package,
+            scenario_name=scenario_name,
+            overwrite=overwrite,
+            replace_generated=replace_generated,
+            run_workflow=run_workflow,
+            run_scripted=run_scripted,
+            workflow_run_id="identity_workflow" if run_workflow else None,
+            scripted_run_id="identity_scripted" if run_scripted else None,
+        )
+    except ValueError as exc:
+        raise typer.BadParameter(str(exc)) from exc
+    _emit(payload.model_dump(mode="json"), indent)
 
 
 @app.command("import")

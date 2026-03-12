@@ -258,6 +258,60 @@ def validate_graph_action_input(
     return schema
 
 
+def infer_graph_action_object_refs(
+    *,
+    domain: CapabilityDomain,
+    action: str,
+    args: Dict[str, Any] | None = None,
+    result: Dict[str, Any] | None = None,
+) -> list[str]:
+    refs: set[str] = set()
+    payload = {**dict(args or {}), **dict(result or {})}
+
+    def _add(prefix: str, key: str) -> None:
+        value = payload.get(key)
+        if value not in (None, ""):
+            refs.add(f"{prefix}:{value}")
+
+    normalized_domain = _normalize_domain(domain)
+    normalized_action = action.strip().lower()
+
+    if normalized_domain == "identity_graph":
+        _add("identity_user", "user_id")
+        _add("identity_group", "group_id")
+        _add("identity_application", "app_id")
+    elif normalized_domain == "doc_graph":
+        if "drive_share" in normalized_action or "ownership" in normalized_action:
+            _add("drive_share", "doc_id")
+        _add("document", "doc_id")
+    elif normalized_domain == "work_graph":
+        _add("ticket", "issue_id")
+        _add("ticket", "ticket_id")
+        _add("service_request", "request_id")
+        _add("incident", "incident_id")
+    elif normalized_domain == "comm_graph":
+        _add("comm_channel", "channel")
+    elif normalized_domain == "revenue_graph":
+        _add("crm_deal", "deal_id")
+        _add("crm_deal", "id")
+        _add("crm_company", "company_id")
+        _add("crm_contact", "contact_id")
+    elif normalized_domain == "data_graph":
+        _add("workbook", "workbook_id")
+        _add("worksheet", "sheet_id")
+        _add("table", "table_id")
+        _add("cell", "cell")
+    elif normalized_domain == "obs_graph":
+        _add("service", "service_id")
+        _add("monitor", "monitor_id")
+        _add("incident", "incident_id")
+    elif normalized_domain == "ops_graph":
+        _add("feature_flag", "flag_key")
+        _add("service", "service_id")
+
+    return sorted(refs)
+
+
 def _build_comm_graph(components: Dict[str, Dict[str, Any]]) -> Optional[CommGraphView]:
     slack = components.get("slack", {})
     mail = components.get("mail", {})

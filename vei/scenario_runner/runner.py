@@ -90,12 +90,25 @@ def run_compiled_workflow(
         try:
             resolved_tool = step.tool
             graph_action_ref = None
+            graph_domain = step.graph_domain
+            graph_action = step.graph_action
+            graph_intent = None
+            object_refs: list[str] = []
             result_payload: object
             if step.graph_domain and step.graph_action:
                 graph_action_ref = f"{step.graph_domain}.{step.graph_action}"
                 graph_result = world.graph_action(dict(step.args))
                 result_payload = graph_result.result
                 resolved_tool = graph_result.tool
+                graph_intent = str(
+                    graph_result.metadata.get("graph_intent") or graph_action_ref
+                )
+                object_refs = [
+                    str(item)
+                    for item in (
+                        graph_result.metadata.get("affected_object_refs") or []
+                    )
+                ]
             else:
                 result_payload = router.call_and_step(step.tool, dict(step.args))
             observation = router.snapshot_observation(
@@ -118,10 +131,14 @@ def run_compiled_workflow(
                     tool=step.tool,
                     resolved_tool=resolved_tool,
                     graph_action_ref=graph_action_ref,
+                    graph_domain=graph_domain,
+                    graph_action=graph_action,
+                    graph_intent=graph_intent,
                     ok=ok,
                     result=result_payload,
                     observation=observation,
                     assertion_failures=assertion_failures,
+                    object_refs=object_refs,
                     time_ms=router.bus.clock_ms,
                 )
             )
@@ -145,10 +162,14 @@ def run_compiled_workflow(
                     tool=step.tool,
                     resolved_tool=resolved_tool,
                     graph_action_ref=graph_action_ref,
+                    graph_domain=graph_domain,
+                    graph_action=graph_action,
+                    graph_intent=graph_intent,
                     ok=False,
                     result={"error": str(exc)},
                     observation={},
                     assertion_failures=[str(exc)],
+                    object_refs=object_refs,
                     time_ms=router.bus.clock_ms,
                 )
             )

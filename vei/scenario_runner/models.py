@@ -42,10 +42,14 @@ class StepExecution(BaseModel):
     tool: str
     resolved_tool: Optional[str] = None
     graph_action_ref: Optional[str] = None
+    graph_domain: Optional[str] = None
+    graph_action: Optional[str] = None
+    graph_intent: Optional[str] = None
     ok: bool
     result: Any = None
     observation: Dict[str, Any] = Field(default_factory=dict)
     assertion_failures: List[str] = Field(default_factory=list)
+    object_refs: List[str] = Field(default_factory=list)
     time_ms: int = 0
 
 

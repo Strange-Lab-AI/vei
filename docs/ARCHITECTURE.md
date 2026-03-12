@@ -83,6 +83,8 @@ Imported identity workspaces now add an earlier preparation ladder:
 8. launch runs against the generated scenarios
 9. inspect diagnostics, event playback, and provenance in the same workspace/UI flow
 
+For the canonical product demo, `vei project identity-demo` wraps that ladder into one opinionated identity/access-governance flow and optionally launches the baseline plus scripted comparison runs for the active generated scenario.
+
 ## Stable Python Surfaces
 
 - `vei.world.api`
@@ -133,6 +135,7 @@ Imported identity workspaces now add an earlier preparation ladder:
 - `vei.run`
   - launch runs from a workspace
   - canonical per-run manifest, append-only event stream, derived timeline helpers, and snapshot APIs
+  - graph-native workflow execution now records requested graph intent, resolved underlying tool, and affected object refs in the same event spine
 - `vei.ui`
   - local playback/debug server for workspace runs
 
@@ -195,6 +198,7 @@ VEI keeps the current router twins, but the public ontology now groups them as f
 - Prefer live connector snapshots to land as persisted `ImportPackage` sources rather than creating a second ingestion path.
 - Prefer reviewable file-based intake: raw sources -> validation/review -> optional mapping overrides -> normalized bundle -> generated scenarios -> activated workspace scenario.
 - Prefer the run event stream as the runtime source of truth for playback, receipts, contract progress, and snapshot markers.
+- Prefer contract rules to carry provenance that says which rules were imported, derived, or simulated and which tenant objects they apply to.
 - Prefer `WorldSession -> capability_graphs() -> graph_plan() -> graph_action()` as the main agent-facing planning/mutation ladder inside a live world.
 - Use `orientation()` to help agents discover the world before they begin mutating it.
 - Prefer graph-native workflow steps for long-horizon playbooks when the intent is domain-level mutation rather than a specific vendor surface.
