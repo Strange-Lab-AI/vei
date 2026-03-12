@@ -27,6 +27,10 @@ from vei.imports.api import (
     bootstrap_contract_from_import_bundle,
     normalize_identity_import_package,
 )
+from vei.imports.connectors import (
+    load_okta_connector_config,
+    sync_okta_import_package,
+)
 from vei.imports.models import (
     GeneratedScenarioCandidate,
     ImportReview,
@@ -43,6 +47,8 @@ from .models import (
     WorkspaceCompileRecord,
     WorkspaceImportSummary,
     WorkspaceManifest,
+    WorkspaceSourceConfig,
+    WorkspaceSourceSyncRecord,
     WorkspaceRunEntry,
     WorkspaceScenarioSpec,
     WorkspaceSummary,
@@ -209,6 +215,99 @@ def show_workspace(root: str | Path) -> WorkspaceSummary:
         latest_run_id=(runs[0].run_id if runs else None),
         imports=_load_workspace_import_summary(path, manifest),
     )
+
+
+def list_workspace_sources(root: str | Path) -> list[WorkspaceSourceConfig]:
+    path = Path(root).expanduser().resolve()
+    manifest = load_workspace(path)
+    if not manifest.source_registry_path:
+        return []
+    registry_path = path / manifest.source_registry_path
+    if not registry_path.exists():
+        return []
+    payload = json.loads(registry_path.read_text(encoding="utf-8"))
+    return [WorkspaceSourceConfig.model_validate(item) for item in payload]
+
+
+def list_workspace_source_syncs(root: str | Path) -> list[WorkspaceSourceSyncRecord]:
+    path = Path(root).expanduser().resolve()
+    manifest = load_workspace(path)
+    if not manifest.source_sync_history_path:
+        return []
+    history_path = path / manifest.source_sync_history_path
+    if not history_path.exists():
+        return []
+    payload = json.loads(history_path.read_text(encoding="utf-8"))
+    return [WorkspaceSourceSyncRecord.model_validate(item) for item in payload]
+
+
+def sync_workspace_source(
+    root: str | Path,
+    *,
+    connector: str,
+    config_path: str | Path,
+    source_id: str | None = None,
+) -> WorkspaceSourceSyncRecord:
+    path = Path(root).expanduser().resolve()
+    manifest = load_workspace(path)
+    normalized_connector = connector.strip().lower()
+    resolved_source_id = source_id or f"{normalized_connector}_live"
+    now = _iso_now()
+    sync_root = (
+        path
+        / manifest.imports_dir
+        / "source_syncs"
+        / resolved_source_id
+        / now.replace(":", "-")
+    )
+    if normalized_connector != "okta":
+        raise ValueError("sync_workspace_source currently supports only connector=okta")
+
+    config = load_okta_connector_config(config_path)
+    source_entry = WorkspaceSourceConfig(
+        source_id=resolved_source_id,
+        connector=normalized_connector,
+        config_path=str(Path(config_path).expanduser().resolve()),
+        created_at=now,
+        updated_at=now,
+        metadata={"sync_root": str(sync_root.relative_to(path))},
+    )
+    _upsert_workspace_source(path, manifest, source_entry)
+
+    try:
+        sync_result = sync_okta_import_package(
+            sync_root,
+            config,
+            source_prefix=resolved_source_id,
+        )
+        _refresh_workspace_import_from_package(
+            path,
+            package_path=sync_root / "package.json",
+        )
+        record = WorkspaceSourceSyncRecord(
+            source_id=resolved_source_id,
+            connector=normalized_connector,
+            synced_at=now,
+            status="ok",
+            package_path=str((sync_root / "package.json").relative_to(path)),
+            record_counts=dict(sync_result.record_counts),
+            metadata={"sync_root": str(sync_root.relative_to(path))},
+        )
+    except Exception as exc:
+        record = WorkspaceSourceSyncRecord(
+            source_id=resolved_source_id,
+            connector=normalized_connector,
+            synced_at=now,
+            status="error",
+            package_path=str((sync_root / "package.json").relative_to(path)),
+            message=str(exc),
+            metadata={"sync_root": str(sync_root.relative_to(path))},
+        )
+        _append_workspace_source_sync(path, manifest, record)
+        raise
+
+    _append_workspace_source_sync(path, manifest, record)
+    return record
 
 
 def compile_workspace(root: str | Path) -> WorkspaceSummary:
@@ -465,7 +564,7 @@ def load_workspace_provenance(
 def load_workspace_import_review(root: str | Path) -> ImportReview | None:
     path = Path(root).expanduser().resolve()
     manifest = load_workspace(path)
-    if manifest.source_kind != "import_package" or not manifest.import_package_path:
+    if not manifest.import_package_path:
         return None
     package_path = path / manifest.import_package_path
     if not package_path.exists():
@@ -492,6 +591,73 @@ def load_workspace_import_review(root: str | Path) -> ImportReview | None:
             for source in package.sources
         },
     )
+
+
+def _refresh_workspace_import_from_package(
+    root: Path,
+    *,
+    package_path: Path,
+) -> WorkspaceManifest:
+    manifest = load_workspace(root)
+    import_artifacts = normalize_identity_import_package(package_path)
+    grounding_bundle = import_artifacts.normalized_bundle
+    if grounding_bundle is None:
+        raise ValueError(
+            "synced source package could not be normalized into a grounding bundle"
+        )
+    asset = compile_identity_governance_bundle(grounding_bundle)
+    manifest.source_kind = "import_package"
+    manifest.source_ref = str(package_path.relative_to(root))
+    manifest.import_package_path = str(package_path.relative_to(root))
+    manifest.grounding_bundle_path = "imports/normalized_bundle.json"
+    manifest.normalization_report_path = "imports/normalization_report.json"
+    manifest.provenance_path = "imports/provenance.json"
+    manifest.redaction_report_path = "imports/redaction_reports.json"
+    manifest.generated_scenarios_path = "imports/generated_scenarios.json"
+    _write_json(root / WORKSPACE_MANIFEST, manifest.model_dump(mode="json"))
+    _write_json(root / manifest.blueprint_asset_path, asset.model_dump(mode="json"))
+    _write_json(
+        root / manifest.grounding_bundle_path,
+        grounding_bundle.model_dump(mode="json"),
+    )
+    _write_json(
+        root / manifest.normalization_report_path,
+        import_artifacts.normalization_report.model_dump(mode="json"),
+    )
+    _write_json(
+        root / manifest.provenance_path,
+        [item.model_dump(mode="json") for item in import_artifacts.provenance],
+    )
+    _write_json(
+        root / manifest.redaction_report_path,
+        [item.model_dump(mode="json") for item in import_artifacts.redaction_reports],
+    )
+    _write_json(
+        root / manifest.generated_scenarios_path,
+        [item.model_dump(mode="json") for item in import_artifacts.generated_scenarios],
+    )
+    if manifest.scenarios:
+        default = manifest.scenarios[0]
+        default.title = asset.title
+        default.description = asset.description
+        default.scenario_name = asset.scenario_name
+        default.workflow_name = asset.workflow_name
+        default.workflow_variant = asset.workflow_variant
+        default.workflow_parameters = dict(asset.workflow_parameters)
+        default.metadata.update(
+            {
+                "source_kind": manifest.source_kind,
+                "source_ref": manifest.source_ref,
+                "refreshed_from_sync": True,
+            }
+        )
+        _write_json(
+            _scenario_entry_path(root, manifest, default),
+            default.model_dump(mode="json"),
+        )
+    write_workspace(root, manifest)
+    compile_workspace(root)
+    return manifest
 
 
 def load_workspace_generated_scenarios(
@@ -860,6 +1026,10 @@ def _bootstrap_workspace(
         manifest.scenarios[0].model_dump(mode="json"),
     )
     _write_json(root / manifest.runs_index_path, [])
+    if manifest.source_registry_path:
+        _write_json(root / manifest.source_registry_path, [])
+    if manifest.source_sync_history_path:
+        _write_json(root / manifest.source_sync_history_path, [])
     return manifest
 
 
@@ -993,9 +1163,13 @@ def _load_workspace_import_summary(
     for record in provenance:
         origin_counts[str(record.origin)] = origin_counts.get(str(record.origin), 0) + 1
     generated = load_workspace_generated_scenarios(root)
+    sources = list_workspace_sources(root)
+    syncs = list_workspace_source_syncs(root)
     return WorkspaceImportSummary(
         package_name=package_name,
         source_count=source_count,
+        connected_source_count=len(sources),
+        source_sync_count=len(syncs),
         issue_count=report.issue_count,
         warning_count=report.warning_count,
         error_count=report.error_count,
@@ -1004,6 +1178,40 @@ def _load_workspace_import_summary(
         normalized_counts=dict(report.normalized_counts),
         origin_counts=origin_counts,
     )
+
+
+def _upsert_workspace_source(
+    root: Path, manifest: WorkspaceManifest, entry: WorkspaceSourceConfig
+) -> WorkspaceSourceConfig:
+    entries = list_workspace_sources(root)
+    updated = False
+    for index, item in enumerate(entries):
+        if item.source_id == entry.source_id:
+            entries[index] = item.model_copy(
+                update={
+                    "connector": entry.connector,
+                    "config_path": entry.config_path,
+                    "updated_at": entry.updated_at,
+                    "metadata": _deep_merge(dict(item.metadata), dict(entry.metadata)),
+                }
+            )
+            updated = True
+            break
+    if not updated:
+        entries.append(entry)
+    registry_path = root / str(manifest.source_registry_path)
+    _write_json(registry_path, [item.model_dump(mode="json") for item in entries])
+    return entry
+
+
+def _append_workspace_source_sync(
+    root: Path, manifest: WorkspaceManifest, entry: WorkspaceSourceSyncRecord
+) -> WorkspaceSourceSyncRecord:
+    history = list_workspace_source_syncs(root)
+    history.append(entry)
+    history_path = root / str(manifest.source_sync_history_path)
+    _write_json(history_path, [item.model_dump(mode="json") for item in history])
+    return entry
 
 
 def _deep_merge(left: Dict[str, Any], right: Dict[str, Any]) -> Dict[str, Any]:

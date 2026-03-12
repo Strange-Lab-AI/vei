@@ -28,6 +28,11 @@ from vei.workspace.api import (
 )
 from vei.workspace.models import WorkspaceRunEntry
 
+from .events import (
+    append_run_event,
+    append_run_events,
+    load_run_events,
+)
 from .models import (
     RunArtifactIndex,
     RunContractSummary,
@@ -71,6 +76,7 @@ def launch_workspace_run(
         raise ValueError(f"run_id already exists: {resolved_run_id}")
     artifacts_dir = run_dir / "artifacts"
     state_dir = run_dir / "state"
+    events_path = run_dir / "events.jsonl"
     artifacts_dir.mkdir(parents=True, exist_ok=True)
     state_dir.mkdir(parents=True, exist_ok=True)
 
@@ -98,6 +104,7 @@ def launch_workspace_run(
             run_dir=str(run_dir.relative_to(workspace_root)),
             artifacts_dir=str(artifacts_dir.relative_to(workspace_root)),
             state_dir=str(state_dir.relative_to(workspace_root)),
+            events_path=str(events_path.relative_to(workspace_root)),
             blueprint_asset_path=str(blueprint_asset_path.relative_to(workspace_root)),
             contract_path=contract_path,
         ),
@@ -109,6 +116,26 @@ def launch_workspace_run(
         },
     )
     write_run_manifest(workspace_root, manifest_stub)
+    append_run_event(
+        events_path,
+        RunTimelineEvent(
+            index=0,
+            kind="run_started",
+            label=f"{normalized_runner} run started",
+            channel="World",
+            time_ms=0,
+            runner=normalized_runner,
+            status="running",
+            branch=resolved_branch,
+            payload={
+                "workspace_name": manifest.name,
+                "scenario_name": scenario.name,
+                "seed": seed,
+                "model": model,
+                "provider": provider,
+            },
+        ),
+    )
     upsert_workspace_run(
         workspace_root,
         WorkspaceRunEntry(
@@ -151,6 +178,28 @@ def launch_workspace_run(
             run_id=resolved_run_id,
             scenario_name=scenario.name,
         )
+        _append_artifact_events(
+            workspace_root, resolved_run_id, runner=normalized_runner
+        )
+        append_run_event(
+            events_path,
+            RunTimelineEvent(
+                index=0,
+                kind="run_completed",
+                label=f"{normalized_runner} run completed",
+                channel="World",
+                time_ms=int(result.metrics.time_ms or result.metrics.elapsed_ms or 0),
+                runner=normalized_runner,
+                status="ok" if result.status == "ok" else "error",
+                branch=result.diagnostics.branch or resolved_branch,
+                payload={
+                    "success": result.success,
+                    "error": result.error,
+                    "metrics": result.metrics.model_dump(mode="json"),
+                    "diagnostics": result.diagnostics.model_dump(mode="json"),
+                },
+            ),
+        )
         timeline = build_run_timeline(workspace_root, resolved_run_id)
         write_run_timeline(workspace_root, resolved_run_id, timeline)
 
@@ -178,6 +227,7 @@ def launch_workspace_run(
                 run_dir=str(run_dir.relative_to(workspace_root)),
                 artifacts_dir=str(artifacts_dir.relative_to(workspace_root)),
                 state_dir=str(state_dir.relative_to(workspace_root)),
+                events_path=str(events_path.relative_to(workspace_root)),
                 blueprint_asset_path=str(
                     blueprint_asset_path.relative_to(workspace_root)
                 ),
@@ -233,6 +283,23 @@ def launch_workspace_run(
         )
         return final_manifest
     except Exception as exc:
+        _append_artifact_events(
+            workspace_root, resolved_run_id, runner=normalized_runner
+        )
+        append_run_event(
+            events_path,
+            RunTimelineEvent(
+                index=0,
+                kind="run_failed",
+                label=f"{normalized_runner} run failed",
+                channel="World",
+                time_ms=0,
+                runner=normalized_runner,
+                status="error",
+                branch=resolved_branch,
+                payload={"error": str(exc)},
+            ),
+        )
         timeline = build_run_timeline(workspace_root, resolved_run_id)
         if timeline:
             write_run_timeline(workspace_root, resolved_run_id, timeline)
@@ -321,6 +388,18 @@ def write_run_timeline(
 
 def build_run_timeline(root: str | Path, run_id: str) -> list[RunTimelineEvent]:
     workspace_root = Path(root).expanduser().resolve()
+    events_path = workspace_root / "runs" / run_id / "events.jsonl"
+    if events_path.exists():
+        events = load_run_events(events_path)
+        for idx, item in enumerate(events, start=1):
+            item.index = idx
+        return events
+    return _build_run_timeline_from_artifacts(workspace_root, run_id)
+
+
+def _build_run_timeline_from_artifacts(
+    workspace_root: Path, run_id: str
+) -> list[RunTimelineEvent]:
     run_dir = workspace_root / "runs" / run_id
     artifacts_dir = run_dir / "artifacts"
     events: list[RunTimelineEvent] = []
@@ -465,6 +544,14 @@ def build_run_timeline(root: str | Path, run_id: str) -> list[RunTimelineEvent]:
     for idx, item in enumerate(events, start=1):
         item.index = idx
     return events
+
+
+def load_run_events_for_run(root: str | Path, run_id: str) -> list[RunTimelineEvent]:
+    workspace_root = Path(root).expanduser().resolve()
+    path = workspace_root / "runs" / run_id / "events.jsonl"
+    if not path.exists():
+        return []
+    return load_run_events(path)
 
 
 def list_run_snapshots(root: str | Path, run_id: str) -> list[RunSnapshotRef]:
@@ -626,6 +713,38 @@ def _latest_run_state(root: str | Path, run_id: str) -> WorldState | None:
     latest = snapshots[-1]
     payload = json.loads((workspace_root / latest.path).read_text(encoding="utf-8"))
     return WorldState.model_validate(payload.get("data", {}))
+
+
+def _append_artifact_events(root: Path, run_id: str, *, runner: str) -> None:
+    run_dir = root / "runs" / run_id
+    events_path = run_dir / "events.jsonl"
+    existing_keys: set[tuple[str, str, int, str | None]] = set()
+    if events_path.exists():
+        for event in load_run_events(events_path):
+            existing_keys.add(
+                (
+                    event.kind,
+                    event.label,
+                    int(event.time_ms),
+                    event.graph_action_ref or event.tool,
+                )
+            )
+    pending_events = _build_run_timeline_from_artifacts(root, run_id)
+    appendable: list[RunTimelineEvent] = []
+    for event in pending_events:
+        key = (
+            event.kind,
+            event.label,
+            int(event.time_ms),
+            event.graph_action_ref or event.tool,
+        )
+        if key in existing_keys:
+            continue
+        event.runner = runner
+        appendable.append(event)
+        existing_keys.add(key)
+    if appendable:
+        append_run_events(events_path, appendable)
 
 
 def _infer_object_refs(tool: str, payload: Dict[str, Any]) -> list[str]:

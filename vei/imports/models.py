@@ -11,11 +11,13 @@ ImportWedge = Literal["identity_access_governance"]
 ImportFileType = Literal["csv", "json"]
 ImportOrigin = Literal["imported", "derived", "simulated"]
 IssueSeverity = Literal["info", "warning", "error"]
+ImportSourceKind = Literal["file", "connector_snapshot"]
 
 
 class ImportSourceManifest(BaseModel):
     source_id: str
     source_system: str
+    source_kind: ImportSourceKind = "file"
     file_type: ImportFileType
     relative_path: str
     collected_at: str
@@ -23,6 +25,8 @@ class ImportSourceManifest(BaseModel):
     redaction_status: str = "none"
     description: Optional[str] = None
     provenance_prefix: Optional[str] = None
+    connector_id: Optional[str] = None
+    connector_metadata: Dict[str, Any] = Field(default_factory=dict)
 
 
 class ImportPackage(BaseModel):
@@ -44,6 +48,7 @@ class MappingProfileSpec(BaseModel):
     file_type: ImportFileType
     expected_fields: List[str] = Field(default_factory=list)
     required_fields: List[str] = Field(default_factory=list)
+    field_aliases: Dict[str, str] = Field(default_factory=dict)
     list_fields: List[str] = Field(default_factory=list)
     bool_fields: List[str] = Field(default_factory=list)
     int_fields: List[str] = Field(default_factory=list)

@@ -181,13 +181,19 @@ def validate_import_package(path: str | Path) -> NormalizationReport:
                 rows = []
             for row in rows[:5]:
                 adjusted = _apply_override_preview(row, override)
+                adjusted = _apply_profile_alias_preview(adjusted, profile)
                 ignored = (
                     set(override.ignored_fields) if override is not None else set()
                 )
+                alias_roots = {
+                    alias.split(".", 1)[0]
+                    for alias in getattr(profile, "field_aliases", {}).values()
+                }
                 unknown_fields.extend(
                     sorted(
                         set(adjusted)
                         - set(profile.expected_fields or adjusted.keys())
+                        - alias_roots
                         - ignored
                     )
                 )
@@ -277,10 +283,11 @@ def normalize_identity_import_package(path: str | Path) -> ImportPackageArtifact
                 row_number=index,
             )
             source_issues.extend(override_issues)
+            preview_row = _apply_profile_alias_preview(adjusted, profile)
             missing = [
                 field
                 for field in profile.required_fields
-                if adjusted.get(field) in (None, "", [])
+                if preview_row.get(field) in (None, "", [])
             ]
             if missing:
                 for field in missing:
@@ -292,13 +299,13 @@ def normalize_identity_import_package(path: str | Path) -> ImportPackageArtifact
                             row_number=index,
                             field=field,
                             message=f"Missing required field: {field}",
-                            record_key=_record_key(adjusted),
+                            record_key=_record_key(preview_row),
                         )
                     )
                 dropped_count += 1
                 continue
             extra = sorted(
-                set(adjusted)
+                set(preview_row)
                 - set(profile.expected_fields)
                 - (set(override.ignored_fields) if override is not None else set())
             )
@@ -323,7 +330,7 @@ def normalize_identity_import_package(path: str | Path) -> ImportPackageArtifact
                 index,
             )
             source_issues.extend(coercion_issues)
-            if source.mapping_profile == "okta_users_v1":
+            if source.mapping_profile in {"okta_users_v1", "okta_users_live_v1"}:
                 model = BlueprintIdentityUserAsset.model_validate(
                     {
                         "user_id": normalized["user_id"],
@@ -354,7 +361,7 @@ def normalize_identity_import_package(path: str | Path) -> ImportPackageArtifact
                         metadata={"email": model.email},
                     )
                 )
-            elif source.mapping_profile == "okta_groups_v1":
+            elif source.mapping_profile in {"okta_groups_v1", "okta_groups_live_v1"}:
                 model = BlueprintIdentityGroupAsset.model_validate(
                     {
                         "group_id": normalized["group_id"],
@@ -374,7 +381,7 @@ def normalize_identity_import_package(path: str | Path) -> ImportPackageArtifact
                         redacted_fields=redacted_fields,
                     )
                 )
-            elif source.mapping_profile == "okta_apps_v1":
+            elif source.mapping_profile in {"okta_apps_v1", "okta_apps_live_v1"}:
                 model = BlueprintIdentityApplicationAsset.model_validate(
                     {
                         "app_id": normalized["app_id"],
@@ -580,6 +587,18 @@ def normalize_identity_import_package(path: str | Path) -> ImportPackageArtifact
             )
         )
 
+    derived_support_records = _supplement_identity_context(
+        package=package,
+        users=users,
+        apps=apps,
+        shares=shares,
+        employees=employees,
+        tickets=tickets,
+        requests=requests,
+        policies=policies,
+        org_units=org_units,
+    )
+    provenance.extend(derived_support_records)
     issues.extend(_cross_validate_identity(users, apps, employees, requests, policies))
     primary = _select_primary_context(
         users, employees, shares, tickets, requests, deals, policies, audit_events
@@ -646,6 +665,148 @@ def normalize_identity_import_package(path: str | Path) -> ImportPackageArtifact
         redaction_reports=redaction_reports,
         generated_scenarios=generated,
     )
+
+
+def _supplement_identity_context(
+    *,
+    package: ImportPackage,
+    users: list[BlueprintIdentityUserAsset],
+    apps: list[BlueprintIdentityApplicationAsset],
+    shares: list[BlueprintGoogleDriveShareAsset],
+    employees: list[BlueprintHrisEmployeeAsset],
+    tickets: list[BlueprintTicketAsset],
+    requests: list[BlueprintServiceRequestAsset],
+    policies: list[BlueprintIdentityPolicyAsset],
+    org_units: set[str],
+) -> list[ProvenanceRecord]:
+    if not users:
+        return []
+
+    primary_user = users[0]
+    manager_email = primary_user.manager or f"manager@{package.organization_domain}"
+    external_domain = "example.net"
+    external_share_email = f"vendor@{external_domain}"
+    derived: list[ProvenanceRecord] = []
+
+    if primary_user.department:
+        org_units.add(primary_user.department)
+
+    if not employees:
+        employee = BlueprintHrisEmployeeAsset(
+            employee_id=f"EMP-{primary_user.user_id}",
+            email=primary_user.email,
+            display_name=primary_user.display_name
+            or f"{primary_user.first_name} {primary_user.last_name}",
+            department=primary_user.department or "Imported",
+            manager=manager_email,
+            status="ACTIVE" if primary_user.status == "ACTIVE" else "pending_cutover",
+            cohort="imported-live",
+            identity_conflict=primary_user.status != "ACTIVE",
+            onboarded=primary_user.status == "ACTIVE",
+            notes=["Derived from connector snapshot due to missing HRIS export."],
+        )
+        employees.append(employee)
+        derived.append(
+            ProvenanceRecord(
+                object_ref=f"hris_employee:{employee.employee_id}",
+                label=employee.display_name,
+                origin="derived",
+                lineage=[f"identity_user:{primary_user.user_id}"],
+                metadata={"generated": True, "reason": "missing_hris_export"},
+            )
+        )
+
+    if not policies:
+        allowed_apps = [apps[0].app_id] if apps else []
+        policy = BlueprintIdentityPolicyAsset(
+            policy_id="POL-IMPORTED-DEFAULT",
+            title="Derived least-privilege import policy",
+            allowed_application_ids=allowed_apps,
+            forbidden_share_domains=[external_domain],
+            required_approval_stages=["manager", "identity"],
+            deadline_max_ms=86_400_000,
+            metadata={
+                "generated": True,
+                "rule_origin": "inferred_from_import",
+                "reason": "missing_policy_export",
+            },
+        )
+        policies.append(policy)
+        derived.append(
+            ProvenanceRecord(
+                object_ref=f"identity_policy:{policy.policy_id}",
+                label=policy.title,
+                origin="derived",
+                lineage=[f"identity_user:{primary_user.user_id}"],
+                metadata={"generated": True, "reason": "missing_policy_export"},
+            )
+        )
+
+    if not shares:
+        share = BlueprintGoogleDriveShareAsset(
+            doc_id=f"DOC-{primary_user.user_id}",
+            title=f"{primary_user.first_name} access review",
+            owner=primary_user.email,
+            visibility="restricted",
+            classification="internal",
+            shared_with=[manager_email, external_share_email],
+        )
+        shares.append(share)
+        derived.append(
+            ProvenanceRecord(
+                object_ref=f"drive_share:{share.doc_id}",
+                label=share.title,
+                origin="derived",
+                lineage=[f"identity_user:{primary_user.user_id}"],
+                metadata={"generated": True, "reason": "missing_acl_export"},
+            )
+        )
+
+    if not tickets:
+        ticket = BlueprintTicketAsset(
+            ticket_id=f"TKT-{primary_user.user_id}",
+            title="Imported access review",
+            status="open",
+            assignee=manager_email,
+            description=(
+                "Generated tracking ticket for imported identity posture review."
+            ),
+        )
+        tickets.append(ticket)
+        derived.append(
+            ProvenanceRecord(
+                object_ref=f"ticket:{ticket.ticket_id}",
+                label=ticket.title,
+                origin="derived",
+                lineage=[f"identity_user:{primary_user.user_id}"],
+                metadata={"generated": True, "reason": "missing_ticket_export"},
+            )
+        )
+
+    if not requests:
+        request = BlueprintServiceRequestAsset(
+            request_id=f"REQ-{primary_user.user_id}",
+            title="Imported approval follow-up",
+            status="pending",
+            requester=primary_user.email,
+            description="Generated approval request derived from imported identity posture.",
+            approvals=[
+                BlueprintApprovalAsset(stage="manager", status="pending"),
+                BlueprintApprovalAsset(stage="identity", status="pending"),
+            ],
+        )
+        requests.append(request)
+        derived.append(
+            ProvenanceRecord(
+                object_ref=f"service_request:{request.request_id}",
+                label=request.title,
+                origin="derived",
+                lineage=[f"identity_user:{primary_user.user_id}"],
+                metadata={"generated": True, "reason": "missing_approval_export"},
+            )
+        )
+
+    return derived
 
 
 def generate_identity_scenario_candidates(
@@ -881,6 +1042,11 @@ def bootstrap_contract_from_import_bundle(
                     "description": f"Imported policy {policy.policy_id} requires approval stage {stage}.",
                     "required": True,
                     "evidence": policy.policy_id,
+                    "metadata": {
+                        "origin": "imported",
+                        "source_policy_id": policy.policy_id,
+                        "stage": stage,
+                    },
                 }
             )
 
@@ -903,6 +1069,12 @@ def bootstrap_contract_from_import_bundle(
                             "description": f"Imported policy forbids share domain {domain}.",
                         },
                         "description": f"Imported policy forbids share domain {domain}.",
+                        "metadata": {
+                            "origin": "imported",
+                            "source_policy_id": policy.policy_id,
+                            "object_ref": f"drive_share:{doc_id}",
+                            "forbidden_domain": domain,
+                        },
                     }
                 )
 
@@ -933,6 +1105,12 @@ def bootstrap_contract_from_import_bundle(
                         "description": "Imported least-privilege policy requires removing stale application access.",
                     },
                     "description": "Imported least-privilege policy requires removing stale application access.",
+                    "metadata": {
+                        "origin": "imported",
+                        "source_policy_id": policy.policy_id,
+                        "object_ref": f"identity_user:{user_id}",
+                        "stale_app_id": stale_app_id,
+                    },
                 }
             )
 
@@ -943,6 +1121,11 @@ def bootstrap_contract_from_import_bundle(
                 "weight": 0.2,
                 "term_type": "success",
                 "description": f"Imported policy deadline {policy.deadline_max_ms}ms respected.",
+                "metadata": {
+                    "origin": "imported",
+                    "source_policy_id": policy.policy_id,
+                    "deadline_max_ms": policy.deadline_max_ms,
+                },
             }
         )
     return payload
@@ -1098,7 +1281,7 @@ def _normalize_row(
     profile,
     row_number: int,
 ) -> tuple[dict[str, Any], list[MappingIssue]]:
-    normalized = dict(row)
+    normalized = _apply_profile_alias_preview(row, profile)
     issues: list[MappingIssue] = []
     for field in profile.list_fields:
         value = normalized.get(field)
@@ -1185,6 +1368,26 @@ def _normalize_row(
     return normalized, issues
 
 
+def _apply_profile_alias_preview(row: dict[str, Any], profile) -> dict[str, Any]:
+    normalized = dict(row)
+    for field, alias in getattr(profile, "field_aliases", {}).items():
+        if normalized.get(field) not in (None, "", []):
+            continue
+        value = _value_from_path(row, alias)
+        if value not in (None, "", []):
+            normalized[field] = value
+    return normalized
+
+
+def _value_from_path(row: dict[str, Any], path: str) -> Any:
+    current: Any = row
+    for segment in path.split("."):
+        if not isinstance(current, dict):
+            return None
+        current = current.get(segment)
+    return current
+
+
 def _cross_validate_identity(
     users: list[BlueprintIdentityUserAsset],
     apps: list[BlueprintIdentityApplicationAsset],
@@ -1196,6 +1399,36 @@ def _cross_validate_identity(
     user_ids = {item.user_id for item in users}
     emails = [item.email for item in users]
     app_ids = {item.app_id for item in apps}
+    seen_user_ids: set[str] = set()
+    duplicate_user_ids: set[str] = set()
+    seen_emails: set[str] = set()
+    duplicate_emails: set[str] = set()
+    manager_emails = {item.email for item in employees}
+    for user in users:
+        if user.user_id in seen_user_ids:
+            duplicate_user_ids.add(user.user_id)
+        seen_user_ids.add(user.user_id)
+        if user.email in seen_emails:
+            duplicate_emails.add(user.email)
+        seen_emails.add(user.email)
+    for user_id in sorted(duplicate_user_ids):
+        issues.append(
+            MappingIssue(
+                code="identity.duplicate_user_id",
+                severity="warning",
+                message=f"Duplicate identity user id detected: {user_id}",
+                record_key=user_id,
+            )
+        )
+    for email in sorted(duplicate_emails):
+        issues.append(
+            MappingIssue(
+                code="identity.duplicate_email",
+                severity="warning",
+                message=f"Duplicate identity email detected: {email}",
+                record_key=email,
+            )
+        )
     for employee in employees:
         matches = [email for email in emails if email == employee.email]
         if not matches:
@@ -1204,6 +1437,15 @@ def _cross_validate_identity(
                     code="identity.employee_without_user",
                     severity="warning",
                     message=f"No Okta user matched HRIS employee {employee.email}",
+                    record_key=employee.employee_id,
+                )
+            )
+        if employee.manager and employee.manager not in manager_emails:
+            issues.append(
+                MappingIssue(
+                    code="identity.unknown_manager",
+                    severity="warning",
+                    message=f"Manager {employee.manager} referenced by {employee.email} was not present in the employee export",
                     record_key=employee.employee_id,
                 )
             )

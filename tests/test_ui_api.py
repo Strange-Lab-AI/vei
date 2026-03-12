@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from types import SimpleNamespace
 
 from fastapi.testclient import TestClient
 
@@ -11,6 +12,7 @@ from vei.workspace.api import (
     create_workspace_from_template,
     generate_workspace_scenarios_from_import,
     import_workspace,
+    sync_workspace_source,
 )
 
 
@@ -185,3 +187,62 @@ def test_ui_api_serves_import_diagnostics_and_provenance(tmp_path: Path) -> None
         "drive_share:GDRIVE-2201" in item.get("object_refs", [])
         for item in timeline_response.json()
     )
+
+
+def test_ui_api_serves_event_alias_and_import_sources(
+    tmp_path: Path, monkeypatch
+) -> None:
+    root = tmp_path / "workspace"
+    create_workspace_from_template(
+        root=root,
+        source_kind="example",
+        source_ref="acquired_user_cutover",
+    )
+    package_source = get_import_package_example_path("macrocompute_identity_export")
+    config_path = tmp_path / "okta.json"
+    config_path.write_text(
+        '{"base_url":"https://macrocompute.okta.com","token":"test"}',
+        encoding="utf-8",
+    )
+
+    def fake_sync(sync_root, config, *, source_prefix="okta_live"):
+        package_root = Path(sync_root)
+        import shutil
+        from vei.imports.api import load_import_package
+
+        shutil.copytree(package_source, package_root, dirs_exist_ok=True)
+        package = load_import_package(package_root)
+        for source in package.sources:
+            source.source_kind = "connector_snapshot"
+            source.connector_id = source_prefix
+        (package_root / "package.json").write_text(
+            package.model_dump_json(indent=2), encoding="utf-8"
+        )
+        return SimpleNamespace(
+            connector="okta",
+            package_root=package_root,
+            package=package,
+            record_counts={"users": 2, "groups": 2, "applications": 2},
+            metadata={"source_prefix": source_prefix},
+        )
+
+    monkeypatch.setattr("vei.workspace.api.sync_okta_import_package", fake_sync)
+    sync_workspace_source(
+        root,
+        connector="okta",
+        config_path=config_path,
+        source_id="macro_okta",
+    )
+    manifest = launch_workspace_run(root, runner="workflow")
+
+    client = TestClient(ui_api.create_ui_app(root))
+
+    events_response = client.get(f"/api/runs/{manifest.run_id}/events")
+    assert events_response.status_code == 200
+    assert events_response.json()[0]["kind"] == "run_started"
+
+    sources_response = client.get("/api/imports/sources")
+    assert sources_response.status_code == 200
+    payload = sources_response.json()
+    assert payload["sources"][0]["source_id"] == "macro_okta"
+    assert payload["syncs"][0]["record_counts"]["users"] == 2

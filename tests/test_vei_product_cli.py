@@ -10,6 +10,7 @@ import typer.testing
 from vei.cli.vei import app
 from vei.cli import vei_ui
 from vei.imports.api import get_import_package_example_path
+from vei.workspace.models import WorkspaceSourceConfig, WorkspaceSourceSyncRecord
 
 
 def test_product_cli_workspace_run_and_inspect_flow(tmp_path: Path) -> None:
@@ -321,6 +322,84 @@ def test_product_cli_import_flow_supports_generation_and_provenance(
     assert provenance_result.exit_code == 0, provenance_result.output
     provenance_payload = json.loads(provenance_result.output)
     assert provenance_payload["provenance"][0]["origin"] == "imported"
+
+
+def test_product_cli_sync_source_reports_registry_and_history(
+    tmp_path: Path, monkeypatch
+) -> None:
+    runner = typer.testing.CliRunner()
+    root = tmp_path / "workspace"
+    config = tmp_path / "okta.json"
+    config.write_text(
+        '{"base_url":"https://macrocompute.okta.com","token":"test"}',
+        encoding="utf-8",
+    )
+
+    init_result = runner.invoke(
+        app,
+        [
+            "project",
+            "init",
+            "--root",
+            str(root),
+            "--example",
+            "acquired_user_cutover",
+        ],
+    )
+    assert init_result.exit_code == 0, init_result.output
+
+    record = WorkspaceSourceSyncRecord(
+        source_id="macro_okta",
+        connector="okta",
+        synced_at="2026-03-12T12:00:00+00:00",
+        status="ok",
+        package_path="imports/source_syncs/macro_okta/2026-03-12T12-00-00+00-00/package.json",
+        record_counts={"users": 2, "groups": 2, "applications": 2},
+    )
+    source = WorkspaceSourceConfig(
+        source_id="macro_okta",
+        connector="okta",
+        config_path=str(config),
+        created_at="2026-03-12T12:00:00+00:00",
+        updated_at="2026-03-12T12:00:00+00:00",
+        metadata={
+            "sync_root": "imports/source_syncs/macro_okta/2026-03-12T12-00-00+00-00"
+        },
+    )
+
+    monkeypatch.setattr(
+        "vei.cli.vei_project.sync_workspace_source",
+        lambda *args, **kwargs: record,
+    )
+    monkeypatch.setattr(
+        "vei.cli.vei_project.list_workspace_sources",
+        lambda *args, **kwargs: [source],
+    )
+    monkeypatch.setattr(
+        "vei.cli.vei_project.list_workspace_source_syncs",
+        lambda *args, **kwargs: [record],
+    )
+
+    sync_result = runner.invoke(
+        app,
+        [
+            "project",
+            "sync-source",
+            "--root",
+            str(root),
+            "--connector",
+            "okta",
+            "--config",
+            str(config),
+            "--source-id",
+            "macro_okta",
+        ],
+    )
+    assert sync_result.exit_code == 0, sync_result.output
+    sync_payload = json.loads(sync_result.output)
+    assert sync_payload["sync"]["source_id"] == "macro_okta"
+    assert sync_payload["sources"][0]["connector"] == "okta"
+    assert sync_payload["history"][0]["record_counts"]["users"] == 2
 
 
 def test_product_cli_normalize_broken_import_returns_diagnostics_not_traceback(

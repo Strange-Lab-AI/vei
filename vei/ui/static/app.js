@@ -17,6 +17,7 @@ const state = {
   scenarioPreview: null,
   scenarioContract: null,
   importSummary: null,
+  importSources: null,
   importNormalization: null,
   importReview: null,
   generatedImportScenarios: [],
@@ -192,6 +193,8 @@ function renderImportSummary() {
   const generatedPanel = document.getElementById("generated-scenarios");
   const reviewPanel = document.getElementById("import-review-grid");
   const provenancePanel = document.getElementById("provenance-detail");
+  const sourceRegistry = Array.isArray(state.importSources?.sources) ? state.importSources.sources : [];
+  const sourceSyncs = Array.isArray(state.importSources?.syncs) ? state.importSources.syncs : [];
   const hasImportPackage =
     summary &&
     normalization &&
@@ -210,6 +213,7 @@ function renderImportSummary() {
 
   panel.innerHTML = [
     metricTile("Package", summary.package_name || "import", `${summary.source_count || 0} sources`),
+    metricTile("Connected", String(summary.connected_source_count || 0), `${summary.source_sync_count || 0} syncs`),
     metricTile("Issues", String(summary.issue_count || 0), `${summary.warning_count || 0} warnings · ${summary.error_count || 0} errors`),
     metricTile("Provenance", String(summary.provenance_count || 0), `generated scenarios: ${summary.generated_scenario_count || 0}`),
     metricTile("Overrides", String((review?.source_overrides || []).length), `${(review?.normalization_report?.source_summaries || []).filter((item) => item.override_applied).length} sources adapted`),
@@ -242,6 +246,41 @@ function renderImportSummary() {
     });
   });
 
+  const connectorCards = sourceRegistry.map(
+    (item) => `
+      <div class="stack-card">
+        <h3>${escapeHtml(item.source_id)}</h3>
+        <div class="chip-row">
+          ${chip(item.connector)}
+          ${chip(item.connector_mode || "live")}
+          ${chip("connected", "ok")}
+        </div>
+        <div class="detail-grid">
+          ${detailTile("Config", item.config_path || "n/a")}
+          ${detailTile("Updated", item.updated_at || "n/a")}
+        </div>
+        <p class="metric-detail">Connector-backed source synced into the same import package pipeline as file inputs.</p>
+      </div>
+    `
+  );
+  const syncCards = sourceSyncs.slice(0, 3).map(
+    (item) => `
+      <div class="stack-card">
+        <h3>${escapeHtml(item.source_id)}</h3>
+        <div class="chip-row">
+          ${chip(item.connector)}
+          ${chip(item.status || "ok", statusClass(item.status))}
+        </div>
+        <div class="detail-grid">
+          ${detailTile("Users", compactNumber(item.record_counts?.users || 0))}
+          ${detailTile("Groups", compactNumber(item.record_counts?.groups || 0))}
+          ${detailTile("Apps", compactNumber(item.record_counts?.applications || 0))}
+          ${detailTile("Synced", item.synced_at || "n/a")}
+        </div>
+        <p class="metric-detail">${escapeHtml(item.package_path || "No package path recorded.")}</p>
+      </div>
+    `
+  );
   const sourceCards = (review?.normalization_report?.source_summaries || []).map(
     (item) => `
       <div class="stack-card">
@@ -274,7 +313,12 @@ function renderImportSummary() {
       </div>
     `
   );
-  reviewPanel.innerHTML = [...sourceCards, ...issueCards].join("");
+  reviewPanel.innerHTML = [
+    ...connectorCards,
+    ...syncCards,
+    ...sourceCards,
+    ...issueCards,
+  ].join("");
 
   const selectedRefs = state.timeline[state.selectedEventIndex]?.object_refs || [];
   const selectedRecord = state.provenanceIndex.find((item) => item.object_ref === state.selectedObjectRef) || state.provenanceIndex.find((item) => selectedRefs.includes(item.object_ref));
@@ -763,10 +807,11 @@ function togglePlayback() {
 }
 
 async function loadWorkspace() {
-  const [workspace, scenarios, importSummary, importNormalization, importReview, generatedImportScenarios, provenanceIndex] = await Promise.all([
+  const [workspace, scenarios, importSummary, importSources, importNormalization, importReview, generatedImportScenarios, provenanceIndex] = await Promise.all([
     getJson("/api/workspace"),
     getJson("/api/scenarios"),
     getJson("/api/imports/summary").catch(() => ({})),
+    getJson("/api/imports/sources").catch(() => ({ sources: [], syncs: [] })),
     getJson("/api/imports/normalization").catch(() => ({})),
     getJson("/api/imports/review").catch(() => ({})),
     getJson("/api/imports/scenarios").catch(() => []),
@@ -775,6 +820,7 @@ async function loadWorkspace() {
   state.workspace = workspace;
   state.scenarios = scenarios;
   state.importSummary = importSummary;
+  state.importSources = importSources;
   state.importNormalization = importNormalization;
   state.importReview = importReview;
   state.generatedImportScenarios = generatedImportScenarios;

@@ -22,12 +22,13 @@ from vei.run.api import (
     list_run_snapshots,
     load_run_contract_evaluation,
     load_run_manifest,
-    load_run_timeline,
     normalize_runner,
 )
 from vei import __version__ as vei_version
 from vei.workspace.api import (
     activate_workspace_scenario,
+    list_workspace_source_syncs,
+    list_workspace_sources,
     load_workspace_generated_scenarios,
     load_workspace_import_report,
     load_workspace_import_review,
@@ -82,6 +83,21 @@ def create_ui_app(workspace_root: str | Path) -> FastAPI:
     def api_import_summary() -> JSONResponse:
         summary = show_workspace(root).imports
         return JSONResponse(summary.model_dump(mode="json") if summary else {})
+
+    @app.get("/api/imports/sources")
+    def api_import_sources() -> JSONResponse:
+        return JSONResponse(
+            {
+                "sources": [
+                    item.model_dump(mode="json")
+                    for item in list_workspace_sources(root)
+                ],
+                "syncs": [
+                    item.model_dump(mode="json")
+                    for item in list_workspace_source_syncs(root)
+                ],
+            }
+        )
 
     @app.get("/api/imports/normalization")
     def api_import_normalization() -> JSONResponse:
@@ -192,15 +208,14 @@ def create_ui_app(workspace_root: str | Path) -> FastAPI:
 
     @app.get("/api/runs/{run_id}/timeline")
     def api_run_timeline(run_id: str) -> JSONResponse:
-        path = root / "runs" / run_id / "timeline.json"
-        if path.exists():
-            payload = [item.model_dump(mode="json") for item in load_run_timeline(path)]
-        else:
-            payload = [
-                item.model_dump(mode="json")
-                for item in build_run_timeline(root, run_id)
-            ]
+        payload = [
+            item.model_dump(mode="json") for item in build_run_timeline(root, run_id)
+        ]
         return JSONResponse(payload)
+
+    @app.get("/api/runs/{run_id}/events")
+    def api_run_events(run_id: str) -> JSONResponse:
+        return api_run_timeline(run_id)
 
     @app.get("/api/runs/{run_id}/orientation")
     def api_run_orientation(run_id: str) -> JSONResponse:
@@ -228,12 +243,7 @@ def create_ui_app(workspace_root: str | Path) -> FastAPI:
 
     @app.get("/api/runs/{run_id}/receipts")
     def api_run_receipts(run_id: str) -> JSONResponse:
-        timeline_path = root / "runs" / run_id / "timeline.json"
-        events = (
-            load_run_timeline(timeline_path)
-            if timeline_path.exists()
-            else build_run_timeline(root, run_id)
-        )
+        events = build_run_timeline(root, run_id)
         receipts = [
             event.model_dump(mode="json") for event in events if event.kind == "receipt"
         ]
@@ -248,7 +258,6 @@ def create_ui_app(workspace_root: str | Path) -> FastAPI:
     @app.get("/api/runs/{run_id}/stream")
     async def api_run_stream(run_id: str) -> StreamingResponse:
         manifest_path = root / "runs" / run_id / "run_manifest.json"
-        timeline_path = root / "runs" / run_id / "timeline.json"
 
         async def event_iter():
             last_payload = None
@@ -262,15 +271,10 @@ def create_ui_app(workspace_root: str | Path) -> FastAPI:
                     payload["manifest"] = json.loads(
                         manifest_path.read_text(encoding="utf-8")
                     )
-                if timeline_path.exists():
-                    payload["timeline"] = json.loads(
-                        timeline_path.read_text(encoding="utf-8")
-                    )
-                else:
-                    payload["timeline"] = [
-                        item.model_dump(mode="json")
-                        for item in build_run_timeline(root, run_id)
-                    ]
+                payload["timeline"] = [
+                    item.model_dump(mode="json")
+                    for item in build_run_timeline(root, run_id)
+                ]
                 if payload != last_payload:
                     yield f"data: {json.dumps(payload)}\n\n"
                     last_payload = payload

@@ -21,6 +21,7 @@ class ContractPredicateSpec(BaseModel):
     source: ContractSurface
     assertion: AssertionSpec
     description: Optional[str] = None
+    metadata: Dict[str, Any] = Field(default_factory=dict)
 
 
 class ObservationBoundarySpec(BaseModel):
@@ -35,6 +36,7 @@ class PolicyInvariantSpec(BaseModel):
     description: str
     required: bool = True
     evidence: Optional[str] = None
+    metadata: Dict[str, Any] = Field(default_factory=dict)
 
 
 class RewardTermSpec(BaseModel):
@@ -42,6 +44,7 @@ class RewardTermSpec(BaseModel):
     weight: float
     term_type: Literal["success", "penalty"] = "success"
     description: Optional[str] = None
+    metadata: Dict[str, Any] = Field(default_factory=dict)
 
 
 class InterventionRuleSpec(BaseModel):

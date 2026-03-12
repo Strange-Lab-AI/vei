@@ -140,8 +140,28 @@ vei inspect provenance --root _vei_out/workspaces/macrocompute_import --object-r
 vei-ui serve --root _vei_out/workspaces/macrocompute_import
 ```
 
+Live source sync uses the same persisted import-package model. For the first connector-backed path, point VEI at a read-only Okta config JSON:
+
+```json
+{
+  "base_url": "https://your-org.okta.com",
+  "token_env": "OKTA_API_TOKEN",
+  "organization_name": "Your Organization",
+  "organization_domain": "example.com"
+}
+```
+
+Then sync it into an existing workspace:
+
+```bash
+vei project sync-source --root _vei_out/workspaces/macrocompute_import --connector okta --config _vei_out/okta.json
+vei project review-import --root _vei_out/workspaces/macrocompute_import
+vei project compile --root _vei_out/workspaces/macrocompute_import
+```
+
 The import UI now shows:
 - package/source summary
+- connected source registry and sync history
 - mapping diagnostics
 - suggested override locations and applied source overrides
 - generated scenario candidates
@@ -158,6 +178,7 @@ The import UI now shows:
 - Blueprint compiler with explicit facade plugins and authored `GroundingBundle -> BlueprintAsset -> CompiledBlueprint` flow
 - Environment-builder path that can compile typed capability graphs, policies, and workflow seeds into a runnable world session
 - Grounded import pipeline that can validate file-based identity exports, normalize them into a `GroundingBundle`, generate scenario candidates, bootstrap contracts, and preserve provenance/redaction artifacts inside a workspace
+- Connector-backed import pipeline that can sync a live read-only Okta snapshot into the same canonical `ImportPackage -> GroundingBundle -> Workspace` ladder used by file exports
 - Runtime capability-graph layer that lets world sessions and snapshots expose shared domain graphs such as identity, docs, work, comms, and revenue
 - Graph-native planning and mutation layer that lets agents ask for suggested next actions and apply graph actions without dropping down to raw app tools first
 - Graph-native workflow execution, so benchmark/playbook steps can compile to `vei.graph_action` instead of only raw app-shaped tool calls
@@ -167,6 +188,7 @@ The import UI now shows:
 - Reusable benchmark families for security containment, enterprise onboarding/migration, and revenue incident response
 - Curated complex-example showcase bundles for security incidents, acquired-user cutovers, and revenue-critical mixed-stack mitigations
 - Local playback UI for completed and in-flight workspace runs, including timeline, orientation, capability graphs, snapshots, diffs, and contract outcome panels
+- Canonical append-only run event stream that drives playback, `vei inspect events`, receipts, contract status, and snapshot markers across workflow, scripted, BC, and LLM runs
 
 ## Architecture
 
@@ -181,6 +203,12 @@ Agent ──MCP──► VEI Router
                   ├─ actor state + receipts
                   └─ enterprise twins and control planes
 ```
+
+## Next Phase
+
+The current execution-ready roadmap lives in [docs/NEXT_PHASE_PLAN.md](docs/NEXT_PHASE_PLAN.md).
+
+In one line: the next phase is about making `vei.run` the canonical execution spine and making VEI much stronger at turning messy enterprise exports into runnable, inspectable, contract-graded identity environments.
 
 ## Use It As A Library
 

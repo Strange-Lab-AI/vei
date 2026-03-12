@@ -10,8 +10,11 @@ from vei.workspace.api import (
     compile_workspace,
     create_workspace_from_template,
     import_workspace,
+    list_workspace_source_syncs,
+    list_workspace_sources,
     load_workspace_import_review,
     show_workspace,
+    sync_workspace_source,
 )
 from vei.imports.api import (
     normalize_identity_import_package,
@@ -208,6 +211,42 @@ def scaffold_override_command(
         {
             "path": str(destination),
             "override": payload.model_dump(mode="json"),
+        },
+        indent,
+    )
+
+
+@app.command("sync-source")
+def sync_source_command(
+    root: Path = typer.Option(Path("."), help="Workspace root directory"),
+    connector: str = typer.Option(..., help="Source connector name such as okta"),
+    config: Path = typer.Option(..., help="Connector config JSON path"),
+    source_id: Optional[str] = typer.Option(
+        None, help="Optional stable source id override"
+    ),
+    indent: int = typer.Option(2, help="Pretty indent"),
+) -> None:
+    """Sync a live source snapshot into the workspace import pipeline."""
+
+    try:
+        record = sync_workspace_source(
+            root,
+            connector=connector,
+            config_path=config,
+            source_id=source_id,
+        )
+    except ValueError as exc:
+        raise typer.BadParameter(str(exc)) from exc
+    _emit(
+        {
+            "sync": record.model_dump(mode="json"),
+            "sources": [
+                item.model_dump(mode="json") for item in list_workspace_sources(root)
+            ],
+            "history": [
+                item.model_dump(mode="json")
+                for item in list_workspace_source_syncs(root)
+            ],
         },
         indent,
     )

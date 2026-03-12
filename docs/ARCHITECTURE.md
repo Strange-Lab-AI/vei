@@ -56,7 +56,7 @@ VEI now has a product-shaped layer above the kernel:
   - file-backed workspace/project model
   - blueprint asset, contract, scenario, compile records, and run registry
 - `vei.run`
-  - unified run manifest, normalized timeline, snapshot references, and contract summary
+  - unified run manifest, canonical append-only run event stream, snapshot references, and contract summary
 - `vei.ui`
   - local FastAPI + SSE playback/debug app over workspace and run APIs
   - control-room style playback surface for launch, timeline, contract, graph, and snapshot inspection
@@ -75,12 +75,13 @@ Imported identity workspaces now add an earlier preparation ladder:
 
 1. validate an `ImportPackage`
 2. review mapping diagnostics and scaffold source overrides where needed
-3. normalize it into a `GroundingBundle`
-4. compile into workspace artifacts
-5. generate scenario candidates and activate the right workspace scenario
-6. bootstrap contracts
-7. launch runs against the generated scenarios
-8. inspect diagnostics and provenance in the same workspace/UI flow
+3. optionally sync a live source snapshot into the same import area
+4. normalize it into a `GroundingBundle`
+5. compile into workspace artifacts
+6. generate scenario candidates and activate the right workspace scenario
+7. bootstrap contracts
+8. launch runs against the generated scenarios
+9. inspect diagnostics, event playback, and provenance in the same workspace/UI flow
 
 ## Stable Python Surfaces
 
@@ -122,6 +123,7 @@ Imported identity workspaces now add an earlier preparation ladder:
   - compilers that turn grounding bundles into `BlueprintAsset` authoring roots
 - `vei.imports`
   - canonical raw import package format for offline CSV/JSON enterprise exports
+  - connector-backed source snapshots that still persist as normal import packages
   - mapping profiles, override specs, validation/review reports, provenance, redaction reports, and scenario generation over normalized identity environments
 - `vei.contract`
   - contract builders and evaluators
@@ -130,7 +132,7 @@ Imported identity workspaces now add an earlier preparation ladder:
   - scenario/contract authoring helpers, generated-scenario activation, import diagnostics/review, provenance access, and run registry
 - `vei.run`
   - launch runs from a workspace
-  - canonical per-run manifest, timeline, and snapshot APIs
+  - canonical per-run manifest, append-only event stream, derived timeline helpers, and snapshot APIs
 - `vei.ui`
   - local playback/debug server for workspace runs
 
@@ -190,7 +192,9 @@ VEI keeps the current router twins, but the public ontology now groups them as f
 - New software environments should register as facade plugins before they become public blueprint/compiler surfaces.
 - Prefer `GroundingBundle -> BlueprintAsset -> CompiledBlueprint -> WorldSession` as the environment-builder path.
 - Prefer `ImportPackage -> GroundingBundle -> BlueprintAsset -> CompiledBlueprint -> WorldSession` when working from real or sanitized enterprise exports.
+- Prefer live connector snapshots to land as persisted `ImportPackage` sources rather than creating a second ingestion path.
 - Prefer reviewable file-based intake: raw sources -> validation/review -> optional mapping overrides -> normalized bundle -> generated scenarios -> activated workspace scenario.
+- Prefer the run event stream as the runtime source of truth for playback, receipts, contract progress, and snapshot markers.
 - Prefer `WorldSession -> capability_graphs() -> graph_plan() -> graph_action()` as the main agent-facing planning/mutation ladder inside a live world.
 - Use `orientation()` to help agents discover the world before they begin mutating it.
 - Prefer graph-native workflow steps for long-horizon playbooks when the intent is domain-level mutation rather than a specific vendor surface.

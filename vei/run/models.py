@@ -24,6 +24,7 @@ class RunArtifactIndex(BaseModel):
     run_dir: str
     artifacts_dir: str
     state_dir: str
+    events_path: Optional[str] = None
     blueprint_asset_path: Optional[str] = None
     blueprint_path: Optional[str] = None
     contract_path: Optional[str] = None
@@ -46,6 +47,9 @@ class RunSnapshotRef(BaseModel):
 class RunTimelineEvent(BaseModel):
     index: int
     kind: Literal[
+        "run_started",
+        "run_completed",
+        "run_failed",
         "trace_call",
         "trace_event",
         "workflow_step",
@@ -56,6 +60,8 @@ class RunTimelineEvent(BaseModel):
     label: str
     channel: str = "World"
     time_ms: int = 0
+    runner: Optional[str] = None
+    status: Optional[str] = None
     tool: Optional[str] = None
     resolved_tool: Optional[str] = None
     graph_action_ref: Optional[str] = None

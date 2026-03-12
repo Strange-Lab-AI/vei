@@ -18,6 +18,27 @@ WorkspaceSourceKind = Literal[
 WorkspaceRunStatus = Literal["queued", "running", "ok", "error"]
 
 
+class WorkspaceSourceConfig(BaseModel):
+    source_id: str
+    connector: str
+    config_path: str
+    connector_mode: Literal["live"] = "live"
+    created_at: str
+    updated_at: str
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+
+
+class WorkspaceSourceSyncRecord(BaseModel):
+    source_id: str
+    connector: str
+    synced_at: str
+    status: Literal["ok", "error"] = "ok"
+    package_path: str
+    message: Optional[str] = None
+    record_counts: Dict[str, int] = Field(default_factory=dict)
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+
+
 class WorkspaceScenarioSpec(BaseModel):
     name: str
     title: str
@@ -64,6 +85,8 @@ class WorkspaceManifest(BaseModel):
     provenance_path: Optional[str] = None
     redaction_report_path: Optional[str] = None
     generated_scenarios_path: Optional[str] = None
+    source_registry_path: Optional[str] = "imports/source_registry.json"
+    source_sync_history_path: Optional[str] = "imports/source_sync_history.json"
     compiled_root: str = "compiled"
     scenarios_dir: str = "scenarios"
     contracts_dir: str = "contracts"
@@ -77,6 +100,8 @@ class WorkspaceManifest(BaseModel):
 class WorkspaceImportSummary(BaseModel):
     package_name: str
     source_count: int = 0
+    connected_source_count: int = 0
+    source_sync_count: int = 0
     issue_count: int = 0
     warning_count: int = 0
     error_count: int = 0

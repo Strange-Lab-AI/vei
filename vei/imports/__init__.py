@@ -9,6 +9,12 @@ from vei.imports.api import (
     scaffold_mapping_override,
     validate_import_package,
 )
+from vei.imports.connectors import (
+    OktaConnectorConfig,
+    SourceSyncResult,
+    load_okta_connector_config,
+    sync_okta_import_package,
+)
 from vei.imports.models import (
     GeneratedScenarioCandidate,
     ImportPackage,
@@ -37,13 +43,17 @@ __all__ = [
     "NormalizationReport",
     "ProvenanceRecord",
     "RedactionReport",
+    "OktaConnectorConfig",
+    "SourceSyncResult",
     "bootstrap_contract_from_import_bundle",
     "generate_identity_scenario_candidates",
     "get_import_package_example_path",
+    "load_okta_connector_config",
     "list_import_package_examples",
     "load_import_package",
     "normalize_identity_import_package",
     "review_import_package",
     "scaffold_mapping_override",
+    "sync_okta_import_package",
     "validate_import_package",
 ]

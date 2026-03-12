@@ -11,6 +11,7 @@ from vei.run.api import (
     get_run_orientation,
     launch_workspace_run,
     list_run_snapshots,
+    load_run_events_for_run,
     load_run_timeline,
 )
 from vei.workspace.api import (
@@ -30,6 +31,7 @@ def test_workspace_run_launches_and_writes_timeline(tmp_path: Path) -> None:
 
     manifest = launch_workspace_run(root, runner="workflow")
     timeline = load_run_timeline(root / "runs" / manifest.run_id / "timeline.json")
+    events = load_run_events_for_run(root, manifest.run_id)
     snapshots = list_run_snapshots(root, manifest.run_id)
     orientation = get_run_orientation(root, manifest.run_id)
     graphs = get_run_capability_graphs(root, manifest.run_id)
@@ -38,6 +40,9 @@ def test_workspace_run_launches_and_writes_timeline(tmp_path: Path) -> None:
     assert manifest.success is True
     assert manifest.contract.ok is True
     assert manifest.artifacts.timeline_path == f"runs/{manifest.run_id}/timeline.json"
+    assert manifest.artifacts.events_path == f"runs/{manifest.run_id}/events.jsonl"
+    assert events[0].kind == "run_started"
+    assert events[-1].kind == "run_completed"
     assert any(event.kind == "workflow_step" for event in timeline)
     assert any(event.kind == "snapshot" for event in timeline)
     assert snapshots
@@ -122,10 +127,12 @@ def test_workspace_run_failure_persists_error_manifest_and_index(
     manifest = run_api.load_run_manifest(
         root / "runs" / "failing-run" / "run_manifest.json"
     )
+    events = run_api.load_run_events_for_run(root, "failing-run")
     runs = list(run_api.list_run_manifests(root))
 
     assert manifest.status == "error"
     assert manifest.error == "simulated benchmark failure"
+    assert [item.kind for item in events] == ["run_started", "run_failed"]
     assert any(item.run_id == "failing-run" and item.status == "error" for item in runs)
 
 

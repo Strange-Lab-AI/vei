@@ -87,6 +87,10 @@ from vei.imports.api import (
     scaffold_mapping_override as _scaffold_mapping_override,
     validate_import_package as _validate_import_package,
 )
+from vei.imports.connectors import (
+    OktaConnectorConfig,
+    load_okta_connector_config as _load_okta_connector_config,
+)
 from vei.imports.models import (
     GeneratedScenarioCandidate,
     ImportPackage,
@@ -101,6 +105,7 @@ from vei.run.api import (
     get_run_capability_graphs as _get_run_capability_graphs,
     get_run_orientation as _get_run_orientation,
     launch_workspace_run as _launch_workspace_run,
+    load_run_events_for_run as _load_run_events_for_run,
     list_run_manifests as _list_run_manifests,
     list_run_snapshots as _list_run_snapshots,
     load_run_manifest as _load_run_manifest,
@@ -116,6 +121,8 @@ from vei.workspace.api import (
     diff_workspace_contract as _diff_workspace_contract,
     generate_workspace_scenarios_from_import as _generate_workspace_scenarios_from_import,
     import_workspace as _import_workspace,
+    list_workspace_source_syncs as _list_workspace_source_syncs,
+    list_workspace_sources as _list_workspace_sources,
     list_workspace_runs as _list_workspace_runs,
     list_workspace_scenarios as _list_workspace_scenarios,
     load_workspace as _load_workspace,
@@ -126,12 +133,15 @@ from vei.workspace.api import (
     load_workspace_provenance as _load_workspace_provenance,
     preview_workspace_scenario as _preview_workspace_scenario,
     show_workspace as _show_workspace,
+    sync_workspace_source as _sync_workspace_source,
     validate_workspace_contract as _validate_workspace_contract,
 )
 from vei.workspace.models import (
     WorkspaceManifest,
     WorkspaceRunEntry,
     WorkspaceScenarioSpec,
+    WorkspaceSourceConfig,
+    WorkspaceSourceSyncRecord,
     WorkspaceSummary,
 )
 from vei.world.api import (
@@ -463,6 +473,10 @@ def review_import_package_entry(path: str) -> ImportReview:
     return _review_import_package(path)
 
 
+def load_okta_connector_config_entry(path: str) -> OktaConnectorConfig:
+    return _load_okta_connector_config(path)
+
+
 def scaffold_mapping_override_entry(
     path: str,
     *,
@@ -585,6 +599,29 @@ def show_workspace_entry(root: str) -> WorkspaceSummary:
 
 def compile_workspace_entry(root: str) -> WorkspaceSummary:
     return _compile_workspace(root)
+
+
+def list_workspace_sources_entry(root: str) -> list[WorkspaceSourceConfig]:
+    return _list_workspace_sources(root)
+
+
+def list_workspace_source_syncs_entry(root: str) -> list[WorkspaceSourceSyncRecord]:
+    return _list_workspace_source_syncs(root)
+
+
+def sync_workspace_source_entry(
+    root: str,
+    *,
+    connector: str,
+    config_path: str,
+    source_id: str | None = None,
+) -> WorkspaceSourceSyncRecord:
+    return _sync_workspace_source(
+        root,
+        connector=connector,
+        config_path=config_path,
+        source_id=source_id,
+    )
 
 
 def list_workspace_scenarios_entry(root: str) -> list[WorkspaceScenarioSpec]:
@@ -752,6 +789,10 @@ def load_run_manifest_entry(path: str) -> RunManifest:
 
 def load_run_timeline_entry(path: str) -> list[RunTimelineEvent]:
     return _load_run_timeline(path)
+
+
+def load_run_events_entry(root: str, run_id: str) -> list[RunTimelineEvent]:
+    return _load_run_events_for_run(root, run_id)
 
 
 def get_run_orientation_entry(root: str, run_id: str) -> Dict[str, Any]:

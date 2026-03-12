@@ -12,7 +12,6 @@ from vei.run.api import (
     get_run_capability_graphs,
     get_run_orientation,
     list_run_snapshots,
-    load_run_timeline,
 )
 from vei.workspace.api import list_workspace_runs
 from vei.workspace.api import load_workspace_provenance
@@ -36,14 +35,7 @@ def _resolve_run_id(root: Path, run_id: Optional[str]) -> str:
     return runs[0].run_id
 
 
-def _timeline_path(root: Path, run_id: str) -> Path:
-    return root / "runs" / run_id / "timeline.json"
-
-
 def _load_or_build_events(root: Path, run_id: str):
-    path = _timeline_path(root, run_id)
-    if path.exists():
-        return load_run_timeline(path)
     return build_run_timeline(root, run_id)
 
 

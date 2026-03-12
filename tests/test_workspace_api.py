@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import shutil
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -14,14 +15,18 @@ from vei.workspace.api import (
     create_workspace_from_template,
     generate_workspace_scenarios_from_import,
     import_workspace,
+    list_workspace_source_syncs,
+    list_workspace_sources,
     load_workspace_generated_scenarios,
     load_workspace_import_review,
     load_workspace_provenance,
     load_workspace_contract,
     preview_workspace_scenario,
     show_workspace,
+    sync_workspace_source,
     validate_workspace_contract,
 )
+from vei.imports.api import load_import_package
 
 
 def test_workspace_template_compile_and_preview(tmp_path: Path) -> None:
@@ -192,3 +197,60 @@ def test_import_workspace_fails_cleanly_for_incomplete_import_package(
         match="review normalization diagnostics and mapping overrides first",
     ):
         import_workspace(root=tmp_path / "workspace", package_path=package_path)
+
+
+def test_workspace_source_sync_registers_connector_and_refreshes_import_artifacts(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    root = tmp_path / "workspace"
+    create_workspace_from_template(
+        root=root,
+        source_kind="example",
+        source_ref="acquired_user_cutover",
+    )
+    package_source = get_import_package_example_path("macrocompute_identity_export")
+    config_path = tmp_path / "okta.json"
+    config_path.write_text(
+        json.dumps({"base_url": "https://macrocompute.okta.com", "token": "test"}),
+        encoding="utf-8",
+    )
+
+    def fake_sync(sync_root, config, *, source_prefix="okta_live"):
+        package_root = Path(sync_root)
+        shutil.copytree(package_source, package_root, dirs_exist_ok=True)
+        package = load_import_package(package_root)
+        for source in package.sources:
+            source.source_kind = "connector_snapshot"
+            source.connector_id = source_prefix
+        (package_root / "package.json").write_text(
+            package.model_dump_json(indent=2), encoding="utf-8"
+        )
+        return SimpleNamespace(
+            connector="okta",
+            package_root=package_root,
+            package=package,
+            record_counts={"users": 2, "groups": 2, "applications": 2},
+            metadata={"source_prefix": source_prefix},
+        )
+
+    monkeypatch.setattr("vei.workspace.api.sync_okta_import_package", fake_sync)
+
+    record = sync_workspace_source(
+        root,
+        connector="okta",
+        config_path=config_path,
+        source_id="macro_okta",
+    )
+    summary = show_workspace(root)
+    sources = list_workspace_sources(root)
+    syncs = list_workspace_source_syncs(root)
+
+    assert record.status == "ok"
+    assert record.source_id == "macro_okta"
+    assert summary.imports is not None
+    assert summary.imports.connected_source_count == 1
+    assert summary.imports.source_sync_count == 1
+    assert summary.imports.package_name == "macrocompute_identity_export"
+    assert sources[0].source_id == "macro_okta"
+    assert syncs[0].record_counts["users"] == 2
+    assert load_workspace_import_review(root) is not None
