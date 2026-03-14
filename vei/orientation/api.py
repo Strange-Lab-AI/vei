@@ -258,6 +258,75 @@ def _key_objects(graphs: Any) -> List[OrientationObject]:
                     reason="control plane is available",
                 )
             )
+    if graphs.property_graph is not None:
+        for lease in graphs.property_graph.leases[:1]:
+            objects.append(
+                OrientationObject(
+                    domain="property_graph",
+                    kind="lease",
+                    object_id=lease.lease_id,
+                    title=lease.lease_id,
+                    status=lease.status,
+                    reason="tenant opening depends on lease readiness",
+                )
+            )
+        for work_order in graphs.property_graph.work_orders[:1]:
+            objects.append(
+                OrientationObject(
+                    domain="property_graph",
+                    kind="work_order",
+                    object_id=work_order.work_order_id,
+                    title=work_order.title,
+                    status=work_order.status,
+                    reason="site readiness may still be blocked",
+                )
+            )
+    if graphs.campaign_graph is not None:
+        for campaign in graphs.campaign_graph.campaigns[:1]:
+            objects.append(
+                OrientationObject(
+                    domain="campaign_graph",
+                    kind="campaign",
+                    object_id=campaign.campaign_id,
+                    title=campaign.name,
+                    status=campaign.status,
+                    reason="launch pacing and approvals need review",
+                )
+            )
+        for creative in graphs.campaign_graph.creatives[:1]:
+            objects.append(
+                OrientationObject(
+                    domain="campaign_graph",
+                    kind="creative",
+                    object_id=creative.creative_id,
+                    title=creative.title,
+                    status=creative.status,
+                    reason="creative approval may block launch",
+                )
+            )
+    if graphs.inventory_graph is not None:
+        for quote in graphs.inventory_graph.quotes[:1]:
+            objects.append(
+                OrientationObject(
+                    domain="inventory_graph",
+                    kind="quote",
+                    object_id=quote.quote_id,
+                    title=quote.customer_name,
+                    status=quote.status,
+                    reason="quote feasibility depends on capacity and fulfillment",
+                )
+            )
+        for allocation in graphs.inventory_graph.allocations[:1]:
+            objects.append(
+                OrientationObject(
+                    domain="inventory_graph",
+                    kind="allocation",
+                    object_id=allocation.allocation_id,
+                    title=allocation.quote_id,
+                    status=allocation.status,
+                    reason="capacity reservation affects customer commitment",
+                )
+            )
     if graphs.comm_graph is not None:
         for channel in graphs.comm_graph.channels[:2]:
             objects.append(
@@ -330,6 +399,14 @@ def _next_questions(
         questions.append("Which tracking ticket or request should be updated next?")
     if any(item.domain == "ops_graph" for item in key_objects):
         questions.append("Which rollout control can safely reduce blast radius?")
+    if any(item.domain == "property_graph" for item in key_objects):
+        questions.append("Which lease, unit, or work order is blocking the opening?")
+    if any(item.domain == "campaign_graph" for item in key_objects):
+        questions.append(
+            "Which campaign approval, pacing, or reporting artifact is unsafe?"
+        )
+    if any(item.domain == "inventory_graph" for item in key_objects):
+        questions.append("Which quote or capacity pool risks overcommitment?")
     if not questions:
         questions.append("Which domain should the agent inspect first?")
     return questions[:5]

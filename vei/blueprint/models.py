@@ -14,6 +14,9 @@ CapabilityDomain = Literal[
     "obs_graph",
     "data_graph",
     "ops_graph",
+    "property_graph",
+    "campaign_graph",
+    "inventory_graph",
 ]
 
 FacadeSurface = Literal["mcp", "api", "ui", "chat", "email", "cli"]
@@ -177,6 +180,149 @@ class BlueprintCrmDealAsset(BaseModel):
     created_ms: int = 1700000000000
 
 
+class BlueprintPropertyAsset(BaseModel):
+    property_id: str
+    name: str
+    city: str
+    state: str
+    portfolio: Optional[str] = None
+    status: str = "active"
+
+
+class BlueprintBuildingAsset(BaseModel):
+    building_id: str
+    property_id: str
+    name: str
+    status: str = "operational"
+
+
+class BlueprintUnitAsset(BaseModel):
+    unit_id: str
+    building_id: str
+    label: str
+    status: str = "vacant"
+    reserved_for: Optional[str] = None
+
+
+class BlueprintTenantAsset(BaseModel):
+    tenant_id: str
+    name: str
+    segment: Optional[str] = None
+    opening_deadline_ms: Optional[int] = None
+
+
+class BlueprintLeaseAsset(BaseModel):
+    lease_id: str
+    tenant_id: str
+    unit_id: str
+    status: str
+    milestone: str = "draft"
+    amendment_pending: bool = False
+
+
+class BlueprintVendorAsset(BaseModel):
+    vendor_id: str
+    name: str
+    specialty: str
+    status: str = "active"
+
+
+class BlueprintWorkOrderAsset(BaseModel):
+    work_order_id: str
+    property_id: str
+    title: str
+    status: str
+    vendor_id: Optional[str] = None
+    scheduled_for_ms: Optional[int] = None
+
+
+class BlueprintClientAsset(BaseModel):
+    client_id: str
+    name: str
+    tier: str = "standard"
+
+
+class BlueprintCampaignAsset(BaseModel):
+    campaign_id: str
+    client_id: str
+    name: str
+    channel: str
+    status: str
+    budget_usd: float
+    spend_usd: float = 0.0
+    pacing_pct: float = 100.0
+
+
+class BlueprintCreativeAsset(BaseModel):
+    creative_id: str
+    campaign_id: str
+    title: str
+    status: str
+    approval_required: bool = True
+
+
+class BlueprintCampaignApprovalAsset(BaseModel):
+    approval_id: str
+    campaign_id: str
+    stage: str
+    status: str
+
+
+class BlueprintCampaignReportAsset(BaseModel):
+    report_id: str
+    campaign_id: str
+    title: str
+    status: str
+    stale: bool = False
+
+
+class BlueprintSiteAsset(BaseModel):
+    site_id: str
+    name: str
+    city: str
+    region: str
+    status: str = "active"
+
+
+class BlueprintCapacityPoolAsset(BaseModel):
+    pool_id: str
+    site_id: str
+    name: str
+    total_units: int
+    reserved_units: int = 0
+
+
+class BlueprintStorageUnitAsset(BaseModel):
+    unit_id: str
+    pool_id: str
+    label: str
+    status: str = "available"
+
+
+class BlueprintQuoteAsset(BaseModel):
+    quote_id: str
+    customer_name: str
+    requested_units: int
+    status: str
+    site_id: Optional[str] = None
+    committed_units: int = 0
+
+
+class BlueprintOrderAsset(BaseModel):
+    order_id: str
+    quote_id: str
+    status: str
+    site_id: Optional[str] = None
+
+
+class BlueprintAllocationAsset(BaseModel):
+    allocation_id: str
+    quote_id: str
+    pool_id: str
+    units: int
+    status: str
+
+
 class BlueprintEnvironmentAsset(BaseModel):
     organization_name: str
     organization_domain: str
@@ -216,6 +362,16 @@ class BlueprintEnvironmentSummary(BaseModel):
     hris_employee_count: int = 0
     crm_deal_count: int = 0
     slack_channel_count: int = 0
+    property_count: int = 0
+    unit_count: int = 0
+    lease_count: int = 0
+    work_order_count: int = 0
+    campaign_count: int = 0
+    creative_count: int = 0
+    report_count: int = 0
+    site_count: int = 0
+    quote_count: int = 0
+    order_count: int = 0
     scenario_template_name: Optional[str] = None
 
 
@@ -263,6 +419,37 @@ class BlueprintRevenueGraphAsset(BaseModel):
     metadata: Dict[str, Any] = Field(default_factory=dict)
 
 
+class BlueprintPropertyGraphAsset(BaseModel):
+    properties: List[BlueprintPropertyAsset] = Field(default_factory=list)
+    buildings: List[BlueprintBuildingAsset] = Field(default_factory=list)
+    units: List[BlueprintUnitAsset] = Field(default_factory=list)
+    tenants: List[BlueprintTenantAsset] = Field(default_factory=list)
+    leases: List[BlueprintLeaseAsset] = Field(default_factory=list)
+    vendors: List[BlueprintVendorAsset] = Field(default_factory=list)
+    work_orders: List[BlueprintWorkOrderAsset] = Field(default_factory=list)
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+
+
+class BlueprintCampaignGraphAsset(BaseModel):
+    clients: List[BlueprintClientAsset] = Field(default_factory=list)
+    campaigns: List[BlueprintCampaignAsset] = Field(default_factory=list)
+    creatives: List[BlueprintCreativeAsset] = Field(default_factory=list)
+    approvals: List[BlueprintCampaignApprovalAsset] = Field(default_factory=list)
+    reports: List[BlueprintCampaignReportAsset] = Field(default_factory=list)
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+
+
+class BlueprintInventoryGraphAsset(BaseModel):
+    sites: List[BlueprintSiteAsset] = Field(default_factory=list)
+    capacity_pools: List[BlueprintCapacityPoolAsset] = Field(default_factory=list)
+    storage_units: List[BlueprintStorageUnitAsset] = Field(default_factory=list)
+    quotes: List[BlueprintQuoteAsset] = Field(default_factory=list)
+    orders: List[BlueprintOrderAsset] = Field(default_factory=list)
+    allocations: List[BlueprintAllocationAsset] = Field(default_factory=list)
+    vendors: List[BlueprintVendorAsset] = Field(default_factory=list)
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+
+
 class BlueprintCapabilityGraphsAsset(BaseModel):
     organization_name: str
     organization_domain: str
@@ -273,6 +460,9 @@ class BlueprintCapabilityGraphsAsset(BaseModel):
     work_graph: Optional[BlueprintWorkGraphAsset] = None
     identity_graph: Optional[BlueprintIdentityGraphAsset] = None
     revenue_graph: Optional[BlueprintRevenueGraphAsset] = None
+    property_graph: Optional[BlueprintPropertyGraphAsset] = None
+    campaign_graph: Optional[BlueprintCampaignGraphAsset] = None
+    inventory_graph: Optional[BlueprintInventoryGraphAsset] = None
     metadata: Dict[str, Any] = Field(default_factory=dict)
 
 

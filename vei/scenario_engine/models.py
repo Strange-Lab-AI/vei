@@ -93,6 +93,9 @@ class WorkflowStepSpec(BaseModel):
             "obs_graph",
             "data_graph",
             "ops_graph",
+            "property_graph",
+            "campaign_graph",
+            "inventory_graph",
         ]
     ] = None
     graph_action: Optional[str] = None

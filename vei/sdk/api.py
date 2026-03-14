@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, Dict, Iterable, Optional, Protocol
 
 from vei.capability_graph.models import (
@@ -113,7 +114,9 @@ from vei.run.api import (
 )
 from vei.run.models import RunManifest, RunSnapshotRef, RunTimelineEvent
 from vei.workspace.api import (
+    activate_workspace_contract_variant as _activate_workspace_contract_variant,
     activate_workspace_scenario as _activate_workspace_scenario,
+    activate_workspace_scenario_variant as _activate_workspace_scenario_variant,
     bootstrap_workspace_contract as _bootstrap_workspace_contract,
     compile_workspace as _compile_workspace,
     create_workspace_from_template as _create_workspace_from_template,
@@ -123,7 +126,9 @@ from vei.workspace.api import (
     import_workspace as _import_workspace,
     list_workspace_source_syncs as _list_workspace_source_syncs,
     list_workspace_sources as _list_workspace_sources,
+    list_workspace_contract_variants as _list_workspace_contract_variants,
     list_workspace_runs as _list_workspace_runs,
+    list_workspace_scenario_variants as _list_workspace_scenario_variants,
     list_workspace_scenarios as _list_workspace_scenarios,
     load_workspace as _load_workspace,
     load_workspace_contract as _load_workspace_contract,
@@ -148,6 +153,28 @@ from vei.workspace.models import (
     WorkspaceSourceConfig,
     WorkspaceSourceSyncRecord,
     WorkspaceSummary,
+)
+from vei.verticals import (
+    VerticalContractVariantSpec,
+    VerticalPackManifest,
+    VerticalScenarioVariantSpec,
+    get_vertical_contract_variant as _get_vertical_contract_variant,
+    get_vertical_pack_manifest as _get_vertical_pack_manifest,
+    get_vertical_scenario_variant as _get_vertical_scenario_variant,
+    list_vertical_contract_variants as _list_vertical_contract_variants,
+    list_vertical_pack_manifests as _list_vertical_pack_manifests,
+    list_vertical_scenario_variants as _list_vertical_scenario_variants,
+)
+from vei.verticals.demo import (
+    VerticalDemoResult,
+    VerticalDemoSpec,
+    VerticalShowcaseResult,
+    VerticalShowcaseSpec,
+    VerticalVariantMatrixResult,
+    VerticalVariantMatrixSpec,
+    prepare_vertical_demo as _prepare_vertical_demo,
+    run_vertical_showcase as _run_vertical_showcase,
+    run_vertical_variant_matrix as _run_vertical_variant_matrix,
 )
 from vei.world.api import (
     WorldSessionAPI,
@@ -569,6 +596,141 @@ def create_workspace_from_template_entry(
     )
 
 
+def get_vertical_pack_manifest_entry(name: str) -> VerticalPackManifest:
+    return _get_vertical_pack_manifest(name)
+
+
+def list_vertical_pack_manifest_entries() -> list[VerticalPackManifest]:
+    return _list_vertical_pack_manifests()
+
+
+def list_vertical_scenario_variant_entries(
+    vertical_name: str,
+) -> list[VerticalScenarioVariantSpec]:
+    return _list_vertical_scenario_variants(vertical_name)
+
+
+def get_vertical_scenario_variant_entry(
+    vertical_name: str, variant_name: str
+) -> VerticalScenarioVariantSpec:
+    return _get_vertical_scenario_variant(vertical_name, variant_name)
+
+
+def list_vertical_contract_variant_entries(
+    vertical_name: str,
+) -> list[VerticalContractVariantSpec]:
+    return _list_vertical_contract_variants(vertical_name)
+
+
+def get_vertical_contract_variant_entry(
+    vertical_name: str, variant_name: str
+) -> VerticalContractVariantSpec:
+    return _get_vertical_contract_variant(vertical_name, variant_name)
+
+
+def prepare_vertical_demo_entry(
+    *,
+    vertical_name: str,
+    workspace_root: str,
+    compare_runner: str = "scripted",
+    overwrite: bool = True,
+    seed: int = 42042,
+    max_steps: int = 18,
+    compare_model: str | None = None,
+    compare_provider: str | None = None,
+    compare_bc_model_path: str | None = None,
+    compare_task: str | None = None,
+    scenario_variant: str | None = None,
+    contract_variant: str | None = None,
+) -> VerticalDemoResult:
+    return _prepare_vertical_demo(
+        VerticalDemoSpec(
+            vertical_name=vertical_name,
+            workspace_root=workspace_root,
+            scenario_variant=scenario_variant,
+            contract_variant=contract_variant,
+            compare_runner=compare_runner,  # type: ignore[arg-type]
+            overwrite=overwrite,
+            seed=seed,
+            max_steps=max_steps,
+            compare_model=compare_model,
+            compare_provider=compare_provider,
+            compare_bc_model_path=(
+                Path(compare_bc_model_path)
+                if compare_bc_model_path is not None
+                else None
+            ),
+            compare_task=compare_task,
+        )
+    )
+
+
+def run_vertical_showcase_entry(
+    *,
+    root: str,
+    vertical_names: list[str] | None = None,
+    compare_runner: str = "scripted",
+    overwrite: bool = True,
+    seed: int = 42042,
+    max_steps: int = 18,
+    compare_model: str | None = None,
+    compare_provider: str | None = None,
+    compare_bc_model_path: str | None = None,
+    run_id: str = "vertical_showcase",
+) -> VerticalShowcaseResult:
+    return _run_vertical_showcase(
+        VerticalShowcaseSpec(
+            vertical_names=list(vertical_names or []),
+            root=Path(root),
+            compare_runner=compare_runner,  # type: ignore[arg-type]
+            overwrite=overwrite,
+            seed=seed,
+            max_steps=max_steps,
+            compare_model=compare_model,
+            compare_provider=compare_provider,
+            compare_bc_model_path=(
+                Path(compare_bc_model_path)
+                if compare_bc_model_path is not None
+                else None
+            ),
+            run_id=run_id,
+        )
+    )
+
+
+def run_vertical_variant_matrix_entry(
+    *,
+    root: str,
+    vertical_names: list[str] | None = None,
+    compare_runner: str = "scripted",
+    overwrite: bool = True,
+    seed: int = 42042,
+    max_steps: int = 18,
+    compare_model: str | None = None,
+    compare_provider: str | None = None,
+    compare_bc_model_path: str | None = None,
+    run_id: str = "variant_matrix",
+) -> VerticalVariantMatrixResult:
+    return _run_vertical_variant_matrix(
+        VerticalVariantMatrixSpec(
+            vertical_names=list(vertical_names or []),
+            root=Path(root),
+            compare_runner=compare_runner,  # type: ignore[arg-type]
+            overwrite=overwrite,
+            seed=seed,
+            max_steps=max_steps,
+            compare_model=compare_model,
+            compare_provider=compare_provider,
+            compare_bc_model_path=(
+                Path(compare_bc_model_path)
+                if compare_bc_model_path is not None
+                else None
+            ),
+            run_id=run_id,
+        )
+    )
+
+
 def import_workspace_entry(
     *,
     root: str,
@@ -608,6 +770,33 @@ def compile_workspace_entry(root: str) -> WorkspaceSummary:
 
 def list_workspace_sources_entry(root: str) -> list[WorkspaceSourceConfig]:
     return _list_workspace_sources(root)
+
+
+def list_workspace_scenario_variants_entry(root: str) -> list[dict[str, Any]]:
+    return _list_workspace_scenario_variants(root)
+
+
+def activate_workspace_scenario_variant_entry(
+    root: str,
+    variant_name: str,
+    *,
+    bootstrap_contract: bool = False,
+) -> WorkspaceScenarioSpec:
+    return _activate_workspace_scenario_variant(
+        root,
+        variant_name,
+        bootstrap_contract=bootstrap_contract,
+    )
+
+
+def list_workspace_contract_variants_entry(root: str) -> list[dict[str, Any]]:
+    return _list_workspace_contract_variants(root)
+
+
+def activate_workspace_contract_variant_entry(
+    root: str, variant_name: str
+) -> ContractSpec:
+    return _activate_workspace_contract_variant(root, variant_name)
 
 
 def list_workspace_source_syncs_entry(root: str) -> list[WorkspaceSourceSyncRecord]:

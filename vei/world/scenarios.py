@@ -1071,6 +1071,63 @@ def scenario_checkout_spike_mitigation() -> Scenario:
     )
 
 
+def scenario_tenant_opening_conflict() -> Scenario:
+    return Scenario(
+        slack_initial_message="Harbor Point opening readiness review starts now.",
+        metadata={
+            "benchmark_family": "real_estate_management",
+            "scenario_type": "vertical_demo",
+            "difficulty": "hard",
+            "expected_steps": [8, 18],
+            "tags": [
+                "real-estate",
+                "property",
+                "lease",
+                "vendor",
+                "opening",
+            ],
+        },
+    )
+
+
+def scenario_campaign_launch_guardrail() -> Scenario:
+    return Scenario(
+        slack_initial_message="Northstar launch guardrail review is live.",
+        metadata={
+            "benchmark_family": "digital_marketing_agency",
+            "scenario_type": "vertical_demo",
+            "difficulty": "hard",
+            "expected_steps": [8, 18],
+            "tags": [
+                "marketing",
+                "campaign",
+                "budget",
+                "approval",
+                "launch",
+            ],
+        },
+    )
+
+
+def scenario_capacity_quote_commitment() -> Scenario:
+    return Scenario(
+        slack_initial_message="Atlas strategic quote readiness review is live.",
+        metadata={
+            "benchmark_family": "storage_solutions",
+            "scenario_type": "vertical_demo",
+            "difficulty": "hard",
+            "expected_steps": [8, 18],
+            "tags": [
+                "storage",
+                "inventory",
+                "capacity",
+                "quote",
+                "ops",
+            ],
+        },
+    )
+
+
 _CATALOG: Dict[str, Scenario] = {
     "macrocompute_default": scenario_macrocompute_default(),
     "extended_store": scenario_extended_store(),
@@ -1080,6 +1137,9 @@ _CATALOG: Dict[str, Scenario] = {
     "oauth_app_containment": scenario_oauth_app_containment(),
     "acquired_sales_onboarding": scenario_acquired_sales_onboarding(),
     "checkout_spike_mitigation": scenario_checkout_spike_mitigation(),
+    "tenant_opening_conflict": scenario_tenant_opening_conflict(),
+    "campaign_launch_guardrail": scenario_campaign_launch_guardrail(),
+    "capacity_quote_commitment": scenario_capacity_quote_commitment(),
 }
 
 

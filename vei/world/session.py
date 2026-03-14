@@ -690,6 +690,9 @@ class WorldSession:
             "data_graph": "spreadsheet",
             "obs_graph": "pagerduty",
             "ops_graph": "feature_flags",
+            "property_graph": "property",
+            "campaign_graph": "campaign",
+            "inventory_graph": "inventory",
         }
         next_focuses = list(next_plan.next_focuses)
         executed_focus = executed_focus_map.get(resolved.domain)

@@ -43,6 +43,12 @@ def score_enterprise_dimensions(
         )
     elif manifest.name == "revenue_incident_mitigation":
         dimensions = _score_revenue_incident(calls, state)
+    elif manifest.name == "real_estate_management":
+        dimensions = _score_real_estate_management(calls, state)
+    elif manifest.name == "digital_marketing_agency":
+        dimensions = _score_digital_marketing_agency(calls, state)
+    elif manifest.name == "storage_solutions":
+        dimensions = _score_storage_solutions(calls, state)
     else:
         dimensions = {}
 
@@ -373,6 +379,154 @@ def _score_identity_access_governance(
     return {
         "contract_alignment": _clamp(contract_alignment),
         "policy_hygiene": _clamp(policy_hygiene),
+        "artifact_follow_through": _clamp(artifact_follow_through),
+    }
+
+
+def _score_real_estate_management(
+    calls: List[Dict[str, Any]], state: WorldState | None
+) -> Dict[str, float]:
+    property_ops = state.components.get("property_ops", {}) if state else {}
+    docs = _component(state, "docs", "docs")
+    ticket_metadata = _component(state, "tickets", "metadata")
+    leases = property_ops.get("leases", {})
+    units = property_ops.get("units", {})
+    work_orders = property_ops.get("work_orders", {})
+
+    tenant_ready = 0.0
+    if any(
+        str(lease.get("milestone", "")).lower() == "executed"
+        for lease in leases.values()
+    ):
+        tenant_ready += 0.5
+    if any(
+        str(unit.get("status", "")).lower() == "reserved" for unit in units.values()
+    ):
+        tenant_ready += 0.5
+
+    operational_consistency = 0.0
+    if any(bool(order.get("vendor_id")) for order in work_orders.values()):
+        operational_consistency += 0.5
+    if (
+        _count_mutations(calls, {"property.assign_vendor", "property.reserve_unit"})
+        >= 2
+    ):
+        operational_consistency += 0.5
+
+    artifact_follow_through = 0.0
+    if any(
+        "lease amendment executed" in str(doc.get("body", "")).lower()
+        for doc in docs.values()
+    ):
+        artifact_follow_through += 0.5
+    if any(len(meta.get("comments", [])) > 0 for meta in ticket_metadata.values()):
+        artifact_follow_through += 0.5
+
+    return {
+        "tenant_readiness": _clamp(tenant_ready),
+        "operational_consistency": _clamp(operational_consistency),
+        "artifact_follow_through": _clamp(artifact_follow_through),
+    }
+
+
+def _score_digital_marketing_agency(
+    calls: List[Dict[str, Any]], state: WorldState | None
+) -> Dict[str, float]:
+    campaign_ops = state.components.get("campaign_ops", {}) if state else {}
+    docs = _component(state, "docs", "docs")
+    ticket_metadata = _component(state, "tickets", "metadata")
+    crm_component = state.components.get("crm", {}) if state else {}
+    campaigns = campaign_ops.get("campaigns", {})
+    creatives = campaign_ops.get("creatives", {})
+    reports = campaign_ops.get("reports", {})
+
+    launch_safety = 0.0
+    if any(
+        str(creative.get("status", "")).lower() == "approved"
+        for creative in creatives.values()
+    ):
+        launch_safety += 0.5
+    if any(
+        str(report.get("stale", False)).lower() == "false"
+        or not bool(report.get("stale", False))
+        for report in reports.values()
+    ):
+        launch_safety += 0.5
+
+    budget_hygiene = 0.0
+    if any(
+        float(campaign.get("pacing_pct", 999)) <= 100.0
+        for campaign in campaigns.values()
+    ):
+        budget_hygiene += 0.7
+    if _called(calls, "campaign.adjust_budget_pacing"):
+        budget_hygiene += 0.3
+
+    artifact_follow_through = 0.0
+    if any(
+        "creative approval complete" in str(doc.get("body", "")).lower()
+        for doc in docs.values()
+    ):
+        artifact_follow_through += 0.4
+    if any(len(meta.get("comments", [])) > 0 for meta in ticket_metadata.values()):
+        artifact_follow_through += 0.3
+    activities = crm_component.get("activities", [])
+    if isinstance(activities, list) and any(
+        "launch risk reduced" in json.dumps(item).lower() for item in activities
+    ):
+        artifact_follow_through += 0.3
+
+    return {
+        "launch_safety": _clamp(launch_safety),
+        "budget_hygiene": _clamp(budget_hygiene),
+        "artifact_follow_through": _clamp(artifact_follow_through),
+    }
+
+
+def _score_storage_solutions(
+    calls: List[Dict[str, Any]], state: WorldState | None
+) -> Dict[str, float]:
+    inventory_ops = state.components.get("inventory_ops", {}) if state else {}
+    docs = _component(state, "docs", "docs")
+    ticket_metadata = _component(state, "tickets", "metadata")
+    crm_component = state.components.get("crm", {}) if state else {}
+    quotes = inventory_ops.get("quotes", {})
+    allocations = inventory_ops.get("allocations", {})
+    orders = inventory_ops.get("orders", {})
+
+    capacity_feasibility = 0.0
+    if allocations:
+        capacity_feasibility += 0.6
+    if _called(calls, "inventory.allocate_capacity"):
+        capacity_feasibility += 0.4
+
+    quote_accuracy = 0.0
+    if any(
+        int(quote.get("committed_units", 0)) >= int(quote.get("requested_units", 0))
+        for quote in quotes.values()
+    ):
+        quote_accuracy += 0.6
+    if _called(calls, "inventory.revise_quote"):
+        quote_accuracy += 0.4
+
+    artifact_follow_through = 0.0
+    if any(
+        "capacity reserved" in str(doc.get("body", "")).lower() for doc in docs.values()
+    ):
+        artifact_follow_through += 0.4
+    if any(len(meta.get("comments", [])) > 0 for meta in ticket_metadata.values()):
+        artifact_follow_through += 0.3
+    activities = crm_component.get("activities", [])
+    if isinstance(activities, list) and any(
+        "quote risk reduced" in json.dumps(item).lower() for item in activities
+    ):
+        artifact_follow_through += 0.3
+    if any(bool(order.get("vendor_id")) for order in orders.values()):
+        artifact_follow_through += 0.2
+
+    return {
+        "capacity_feasibility": _clamp(capacity_feasibility),
+        "quote_accuracy": _clamp(quote_accuracy),
         "artifact_follow_through": _clamp(artifact_follow_through),
     }
 

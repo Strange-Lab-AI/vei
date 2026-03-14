@@ -6,6 +6,8 @@ from typing import Any, Dict, Sequence
 from vei.router.tool_providers import PrefixToolProvider
 from vei.router.tool_registry import ToolSpec
 from vei.sdk import (
+    activate_workspace_contract_variant_entry,
+    activate_workspace_scenario_variant_entry,
     SessionHook,
     bootstrap_workspace_contract_entry,
     build_identity_flow_summary_entry,
@@ -15,6 +17,7 @@ from vei.sdk import (
     compile_blueprint_entry,
     compile_identity_governance_bundle_entry,
     create_world_session_from_blueprint_entry,
+    create_workspace_from_template_entry,
     generate_workspace_scenarios_from_import_entry,
     create_session,
     filter_enterprise_corpus,
@@ -23,7 +26,10 @@ from vei.sdk import (
     get_benchmark_family_workflow_variant,
     get_import_package_example_path_entry,
     get_showcase_example_entry,
+    get_vertical_contract_variant_entry,
     get_scenario_manifest,
+    get_vertical_pack_manifest_entry,
+    get_vertical_scenario_variant_entry,
     import_workspace_entry,
     list_scenario_manifest,
     list_benchmark_family_workflow_variants,
@@ -31,12 +37,18 @@ from vei.sdk import (
     list_grounding_bundle_example_entries,
     list_import_package_example_entries,
     list_showcase_example_entries,
+    list_vertical_contract_variant_entries,
+    list_vertical_pack_manifest_entries,
+    list_vertical_scenario_variant_entries,
     load_workspace_generated_scenarios_entry,
     load_workspace_import_report_entry,
     load_workspace_provenance_entry,
     normalize_import_package_entry,
     prepare_identity_workspace_flow_entry,
     run_benchmark_family_workflow,
+    prepare_vertical_demo_entry,
+    run_vertical_variant_matrix_entry,
+    run_vertical_showcase_entry,
     run_workflow_spec,
     validate_import_package_entry,
     validate_benchmark_family_workflow,
@@ -304,6 +316,63 @@ def test_sdk_showcase_helpers_list_complex_examples() -> None:
         "acquired_seller_cutover",
         "checkout_revenue_flightdeck",
     } <= names
+
+
+def test_sdk_vertical_pack_helpers_prepare_demo_workspaces(tmp_path: Path) -> None:
+    pack = get_vertical_pack_manifest_entry("real_estate_management")
+    manifests = list_vertical_pack_manifest_entries()
+    demo = prepare_vertical_demo_entry(
+        vertical_name="real_estate_management",
+        workspace_root=str(tmp_path / "real-estate"),
+    )
+    showcase = run_vertical_showcase_entry(
+        root=str(tmp_path / "showcase"),
+        vertical_names=["storage_solutions"],
+        run_id="sdk_verticals",
+    )
+
+    assert pack.company_name == "Harbor Point Management"
+    assert any(item.name == "digital_marketing_agency" for item in manifests)
+    assert demo.baseline_contract_ok is True
+    assert demo.workflow_manifest_path.exists()
+    assert showcase.run_id == "sdk_verticals"
+    assert showcase.demos[0].manifest.name == "storage_solutions"
+
+
+def test_sdk_vertical_variant_helpers_and_matrix(tmp_path: Path) -> None:
+    scenario_variants = list_vertical_scenario_variant_entries("real_estate_management")
+    contract_variants = list_vertical_contract_variant_entries("real_estate_management")
+    scenario_variant = get_vertical_scenario_variant_entry(
+        "real_estate_management", "vendor_no_show"
+    )
+    contract_variant = get_vertical_contract_variant_entry(
+        "real_estate_management", "safety_over_speed"
+    )
+
+    root = tmp_path / "vertical-variant-sdk"
+    create_workspace_from_template_entry(
+        root=str(root),
+        source_kind="vertical",
+        source_ref="real_estate_management",
+    )
+    activated = activate_workspace_scenario_variant_entry(
+        str(root), "vendor_no_show", bootstrap_contract=True
+    )
+    contract = activate_workspace_contract_variant_entry(str(root), "safety_over_speed")
+    matrix = run_vertical_variant_matrix_entry(
+        root=str(tmp_path / "variant-matrix"),
+        vertical_names=["real_estate_management"],
+        run_id="sdk_matrix",
+    )
+
+    assert len(scenario_variants) == 4
+    assert len(contract_variants) == 3
+    assert scenario_variant.title == "Vendor No-Show"
+    assert contract_variant.title == "Safety Over Speed"
+    assert activated.workflow_variant == "vendor_no_show"
+    assert contract.metadata["vertical_contract_variant"] == "safety_over_speed"
+    assert len(matrix.runs) == 3
+    assert matrix.runs[0].vertical_name == "real_estate_management"
 
 
 def test_sdk_import_helpers_bootstrap_workspace_from_fixture(tmp_path: Path) -> None:

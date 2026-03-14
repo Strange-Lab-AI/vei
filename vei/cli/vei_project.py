@@ -47,6 +47,9 @@ def init_workspace(
     scenario: Optional[str] = typer.Option(
         None, help="Scenario name to initialize from"
     ),
+    vertical: Optional[str] = typer.Option(
+        None, help="Vertical world pack to initialize from"
+    ),
     name: Optional[str] = typer.Option(None, help="Workspace slug override"),
     title: Optional[str] = typer.Option(None, help="Workspace title override"),
     description: Optional[str] = typer.Option(
@@ -63,18 +66,21 @@ def init_workspace(
 ) -> None:
     """Create a workspace from a built-in template source."""
 
-    selected = sum(bool(value) for value in (example, family, scenario))
+    selected = sum(bool(value) for value in (example, family, scenario, vertical))
     if selected != 1:
         raise typer.BadParameter(
-            "Provide exactly one of --example, --family, or --scenario"
+            "Provide exactly one of --example, --family, --scenario, or --vertical"
         )
 
     if example:
-        source_kind: Literal["example", "family", "scenario"] = "example"
+        source_kind: Literal["example", "family", "scenario", "vertical"] = "example"
         source_ref = example
     elif family:
         source_kind = "family"
         source_ref = family
+    elif vertical:
+        source_kind = "vertical"
+        source_ref = vertical
     else:
         source_kind = "scenario"
         source_ref = scenario or ""

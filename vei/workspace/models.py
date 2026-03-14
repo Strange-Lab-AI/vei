@@ -9,6 +9,7 @@ WorkspaceSourceKind = Literal[
     "example",
     "family",
     "scenario",
+    "vertical",
     "grounding_bundle",
     "blueprint_asset",
     "compiled_blueprint",

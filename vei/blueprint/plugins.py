@@ -148,6 +148,58 @@ def _spreadsheet_restore(component: Any, state: Dict[str, Any]) -> None:
     component.import_state(state)
 
 
+def _property_component_factory(router: Any, scenario: "Scenario") -> Any:
+    from vei.router.property_ops import PropertyOpsSim
+
+    return PropertyOpsSim(scenario)
+
+
+def _property_provider_factory(component: Any) -> Any:
+    from vei.router.property_ops import PropertyOpsToolProvider
+
+    return PropertyOpsToolProvider(component)
+
+
+def _campaign_component_factory(router: Any, scenario: "Scenario") -> Any:
+    from vei.router.campaign_ops import CampaignOpsSim
+
+    return CampaignOpsSim(scenario)
+
+
+def _campaign_provider_factory(component: Any) -> Any:
+    from vei.router.campaign_ops import CampaignOpsToolProvider
+
+    return CampaignOpsToolProvider(component)
+
+
+def _inventory_component_factory(router: Any, scenario: "Scenario") -> Any:
+    from vei.router.inventory_ops import InventoryOpsSim
+
+    return InventoryOpsSim(scenario)
+
+
+def _inventory_provider_factory(component: Any) -> Any:
+    from vei.router.inventory_ops import InventoryOpsToolProvider
+
+    return InventoryOpsToolProvider(component)
+
+
+def _component_summary(router: Any, component: Any) -> str:
+    return component.summary()
+
+
+def _component_action_menu(router: Any, component: Any) -> List[Dict[str, Any]]:
+    return component.action_menu()
+
+
+def _component_dump(component: Any) -> Dict[str, Any]:
+    return component.export_state()
+
+
+def _component_restore(component: Any, state: Dict[str, Any]) -> None:
+    component.import_state(state)
+
+
 def _bootstrap_default_plugins() -> None:
     builtins = [
         FacadePlugin(
@@ -530,6 +582,93 @@ def _bootstrap_default_plugins() -> None:
             state_restore=_spreadsheet_restore,
             component_factory=_spreadsheet_component_factory,
             provider_factory=_spreadsheet_provider_factory,
+        ),
+        FacadePlugin(
+            manifest=_manifest(
+                name="property_ops",
+                title="Property Operations",
+                domain="property_graph",
+                router_module="vei.router.property_ops",
+                description="Property, lease, unit, vendor, and work-order domain surface.",
+                surfaces=["mcp", "ui"],
+                primary_tools=[
+                    "property.list_overview",
+                    "property.assign_vendor",
+                    "property.update_lease_milestone",
+                ],
+                state_roots=["components.property_ops"],
+                tags=["vertical", "real-estate", "operations"],
+            ),
+            tool_families=("property",),
+            tool_prefixes=("property.",),
+            scenario_seed_fields=("property_graph",),
+            component_attr="property_ops",
+            focuses=("property",),
+            event_targets=("property_ops",),
+            summary_builder=_component_summary,
+            action_menu_builder=_component_action_menu,
+            state_dump=_component_dump,
+            state_restore=_component_restore,
+            component_factory=_property_component_factory,
+            provider_factory=_property_provider_factory,
+        ),
+        FacadePlugin(
+            manifest=_manifest(
+                name="campaign_ops",
+                title="Campaign Operations",
+                domain="campaign_graph",
+                router_module="vei.router.campaign_ops",
+                description="Campaign, creative, approval, and reporting domain surface.",
+                surfaces=["mcp", "ui"],
+                primary_tools=[
+                    "campaign.list_overview",
+                    "campaign.approve_creative",
+                    "campaign.adjust_budget_pacing",
+                ],
+                state_roots=["components.campaign_ops"],
+                tags=["vertical", "marketing", "campaigns"],
+            ),
+            tool_families=("campaign",),
+            tool_prefixes=("campaign.",),
+            scenario_seed_fields=("campaign_graph",),
+            component_attr="campaign_ops",
+            focuses=("campaign",),
+            event_targets=("campaign_ops",),
+            summary_builder=_component_summary,
+            action_menu_builder=_component_action_menu,
+            state_dump=_component_dump,
+            state_restore=_component_restore,
+            component_factory=_campaign_component_factory,
+            provider_factory=_campaign_provider_factory,
+        ),
+        FacadePlugin(
+            manifest=_manifest(
+                name="inventory_ops",
+                title="Inventory Operations",
+                domain="inventory_graph",
+                router_module="vei.router.inventory_ops",
+                description="Capacity, quote, allocation, and fulfillment domain surface.",
+                surfaces=["mcp", "ui"],
+                primary_tools=[
+                    "inventory.list_overview",
+                    "inventory.allocate_capacity",
+                    "inventory.revise_quote",
+                ],
+                state_roots=["components.inventory_ops"],
+                tags=["vertical", "storage", "inventory"],
+            ),
+            tool_families=("inventory",),
+            tool_prefixes=("inventory.",),
+            scenario_seed_fields=("inventory_graph",),
+            component_attr="inventory_ops",
+            focuses=("inventory",),
+            event_targets=("inventory_ops",),
+            summary_builder=_component_summary,
+            action_menu_builder=_component_action_menu,
+            state_dump=_component_dump,
+            state_restore=_component_restore,
+            component_factory=_inventory_component_factory,
+            provider_factory=_inventory_provider_factory,
         ),
     ]
     for plugin in builtins:

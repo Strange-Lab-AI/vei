@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>VEI UI</title>
+    <title>VEI Studio</title>
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg" />
     <link rel="stylesheet" href="/static/styles.css" />
   </head>
@@ -17,16 +17,16 @@
     <div class="shell">
       <header class="hero">
         <div class="hero-copy">
-          <p class="eyebrow">VEI Local Playback UI</p>
-          <h1>Enterprise Environment Control Room</h1>
+          <p class="eyebrow">VEI Studio</p>
+          <h1>World Studio For Enterprises</h1>
           <p id="workspace-subtitle" class="hero-subtitle">Loading workspace...</p>
           <div id="workspace-metrics" class="metrics-grid"></div>
         </div>
 
-        <aside class="launch-panel">
+        <aside class="launch-panel studio-run-launch" data-studio-view="runs">
           <div class="panel-heading">
             <p class="eyebrow">Run Launcher</p>
-            <h2>Start a new episode</h2>
+            <h2>Launch the next future</h2>
           </div>
           <form id="run-form" class="run-form">
             <label>
@@ -76,11 +76,40 @@
         </aside>
       </header>
 
+      <section class="card studio-shell-card">
+        <div class="section-header">
+          <div>
+            <p class="eyebrow">Studio Flow</p>
+            <h2>Company → Situation → Objective → Run → Branch → Outcome → Exports</h2>
+          </div>
+          <button id="developer-toggle" type="button" class="ghost-button developer-toggle">
+            Show Developer Detail
+          </button>
+        </div>
+        <div id="kernel-thesis-panel" class="studio-banner"></div>
+        <div id="studio-nav" class="studio-nav">
+          <button type="button" class="studio-nav-button active" data-studio-view="worlds">1. Company</button>
+          <button type="button" class="studio-nav-button" data-studio-view="situations">2. Situation</button>
+          <button type="button" class="studio-nav-button" data-studio-view="objectives">3. Objective</button>
+          <button type="button" class="studio-nav-button" data-studio-view="runs">4. Run</button>
+        </div>
+      </section>
+
       <main class="layout">
-        <section class="card stage-card">
+        <section class="card worlds-card" data-studio-view="worlds">
           <div class="section-header">
             <div>
-              <p class="eyebrow">Playback</p>
+              <p class="eyebrow">Worlds</p>
+              <h2>Same kernel, different companies</h2>
+            </div>
+          </div>
+          <div id="worlds-panel" class="briefing-grid"></div>
+        </section>
+
+        <section class="card stage-card" data-studio-view="runs">
+          <div class="section-header">
+            <div>
+              <p class="eyebrow">Runs</p>
               <h2 id="active-run-title">No run selected</h2>
             </div>
             <div id="active-run-badges" class="badge-row"></div>
@@ -103,18 +132,28 @@
           <div id="timeline-feed" class="timeline-feed"></div>
         </section>
 
-        <section class="card briefing-card">
+        <section class="card briefing-card" data-studio-view="situations">
           <div class="section-header">
             <div>
-              <p class="eyebrow">Scenario + Contract</p>
-              <h2>Mission briefing</h2>
+              <p class="eyebrow">Situations</p>
+              <h2>What changed from the base world</h2>
             </div>
           </div>
           <div id="scenario-briefing" class="briefing-grid"></div>
-          <div id="contract-scorecard" class="contract-scorecard"></div>
+          <div id="situation-story-panel" class="story-grid"></div>
         </section>
 
-        <section class="card run-card">
+        <section class="card objective-card" data-studio-view="objectives">
+          <div class="section-header">
+            <div>
+              <p class="eyebrow">Objectives</p>
+              <h2>What the current run is optimizing for</h2>
+            </div>
+          </div>
+          <div id="objective-scorecard" class="contract-scorecard"></div>
+        </section>
+
+        <section class="card run-card" data-studio-view="runs">
           <div class="section-header">
             <div>
               <p class="eyebrow">Runs</p>
@@ -124,7 +163,28 @@
           <div id="runs-panel" class="run-grid"></div>
         </section>
 
-        <section class="card orientation-card">
+        <section class="card outcome-card" data-studio-view="runs">
+          <div class="section-header">
+            <div>
+              <p class="eyebrow">Branch + Outcome</p>
+              <h2>Two futures, one world</h2>
+            </div>
+          </div>
+          <div id="run-outcome-summary" class="contract-scorecard"></div>
+          <div id="branch-outcome-panel" class="briefing-grid"></div>
+        </section>
+
+        <section class="card exports-card" data-studio-view="runs">
+          <div class="section-header">
+            <div>
+              <p class="eyebrow">Exports</p>
+              <h2>What the same run becomes later</h2>
+            </div>
+          </div>
+          <div id="exports-panel" class="briefing-grid"></div>
+        </section>
+
+        <section class="card orientation-card" data-studio-view="runs">
           <div class="section-header">
             <div>
               <p class="eyebrow">Orientation</p>
@@ -135,7 +195,7 @@
           <div id="next-questions" class="question-list"></div>
         </section>
 
-        <section class="card graphs-card">
+        <section class="card graphs-card" data-studio-view="runs">
           <div class="section-header">
             <div>
               <p class="eyebrow">Capability Graphs</p>
@@ -145,7 +205,7 @@
           <div id="graphs-panel" class="graph-grid"></div>
         </section>
 
-        <section class="card import-card">
+        <section class="card import-card" data-studio-view="situations">
           <div class="section-header">
             <div>
               <p class="eyebrow">Grounded Import</p>
@@ -158,7 +218,7 @@
           <div id="provenance-detail" class="detail-summary"></div>
         </section>
 
-        <section class="card snapshots-card">
+        <section class="card snapshots-card" data-studio-view="runs">
           <div class="section-header">
             <div>
               <p class="eyebrow">Snapshots</p>
@@ -180,7 +240,7 @@
           <pre id="diff-panel" class="code-panel"></pre>
         </section>
 
-        <section class="card detail-card">
+        <section class="card detail-card" data-studio-view="runs">
           <div class="section-header">
             <div>
               <p class="eyebrow">Selection</p>
@@ -191,14 +251,14 @@
           <pre id="event-panel" class="code-panel"></pre>
         </section>
 
-        <section class="card raw-card">
+        <section class="card raw-card developer-only">
           <div class="section-header">
             <div>
-              <p class="eyebrow">Developer Drawers</p>
-              <h2>Raw workspace data</h2>
+              <p class="eyebrow">Developer Drawer</p>
+              <h2>Engine detail and raw workspace data</h2>
             </div>
           </div>
-          <details open>
+          <details>
             <summary>Workspace</summary>
             <pre id="workspace-panel" class="code-panel"></pre>
           </details>

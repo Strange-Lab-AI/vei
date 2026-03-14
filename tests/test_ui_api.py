@@ -259,8 +259,87 @@ def test_ui_api_serves_event_alias_and_import_sources(
     assert events_response.status_code == 200
     assert events_response.json()[0]["kind"] == "run_started"
 
+
+def test_ui_api_exposes_vertical_variant_browser(tmp_path: Path) -> None:
+    root = tmp_path / "vertical-ui"
+    create_workspace_from_template(
+        root=root,
+        source_kind="vertical",
+        source_ref="real_estate_management",
+    )
+    client = TestClient(ui_api.create_ui_app(root))
+
+    scenario_variants = client.get("/api/scenario-variants")
+    contract_variants = client.get("/api/contract-variants")
+    assert scenario_variants.status_code == 200
+    assert contract_variants.status_code == 200
+    assert len(scenario_variants.json()) == 4
+    assert len(contract_variants.json()) == 3
+
+    activate_scenario = client.post(
+        "/api/scenarios/activate",
+        json={"variant": "vendor_no_show", "bootstrap_contract": True},
+    )
+    assert activate_scenario.status_code == 200
+    assert activate_scenario.json()["workflow_variant"] == "vendor_no_show"
+
+    activate_contract = client.post(
+        "/api/contract-variants/activate",
+        json={"variant": "safety_over_speed"},
+    )
+    assert activate_contract.status_code == 200
+    assert activate_contract.json()["metadata"]["vertical_contract_variant"] == (
+        "safety_over_speed"
+    )
+
+    preview = client.get("/api/scenarios/default/preview")
+    assert preview.status_code == 200
+    assert preview.json()["active_scenario_variant"] == "vendor_no_show"
+    assert preview.json()["active_contract_variant"] == "safety_over_speed"
+
     sources_response = client.get("/api/imports/sources")
     assert sources_response.status_code == 200
     payload = sources_response.json()
-    assert payload["sources"][0]["source_id"] == "macro_okta"
-    assert payload["syncs"][0]["record_counts"]["users"] == 2
+    assert payload["sources"] == []
+    assert payload["syncs"] == []
+    assert (
+        preview.json()["compiled_blueprint"]["asset"]["capability_graphs"]["metadata"][
+            "active_scenario_variant"
+        ]
+        == "vendor_no_show"
+    )
+
+
+def test_ui_api_exposes_story_bundle_and_export_preview(tmp_path: Path) -> None:
+    root = tmp_path / "story-ui"
+    create_workspace_from_template(
+        root=root,
+        source_kind="vertical",
+        source_ref="digital_marketing_agency",
+    )
+    client = TestClient(ui_api.create_ui_app(root))
+
+    story_response = client.get("/api/story")
+    assert story_response.status_code == 200
+    story_payload = story_response.json()
+    assert story_payload["manifest"]["company_name"] == "Northstar Growth"
+    assert story_payload["scenario_variant"] == "campaign_launch_guardrail"
+    assert story_payload["contract_variant"] == "launch_safely"
+
+    launch_workspace_run(root, runner="workflow")
+    launch_workspace_run(root, runner="scripted")
+
+    story_response = client.get("/api/story")
+    assert story_response.status_code == 200
+    story_payload = story_response.json()
+    assert story_payload["outcome"]["baseline_branch"]
+    assert story_payload["kernel_proof"]["baseline"]["events"] > 0
+
+    exports_response = client.get("/api/exports-preview")
+    assert exports_response.status_code == 200
+    exports_payload = exports_response.json()
+    assert [item["name"] for item in exports_payload] == [
+        "rl_episode_export",
+        "continuous_eval_export",
+        "agent_ops_export",
+    ]

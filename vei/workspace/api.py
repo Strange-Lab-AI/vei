@@ -39,6 +39,17 @@ from vei.imports.models import (
     ProvenanceRecord,
     RedactionReport,
 )
+from vei.verticals import (
+    apply_vertical_contract_variant,
+    build_vertical_blueprint_asset,
+    default_vertical_contract_variant,
+    default_vertical_scenario_variant,
+    get_vertical_contract_variant,
+    get_vertical_scenario_variant,
+    list_vertical_contract_variants,
+    list_vertical_scenario_variants,
+)
+from vei.verticals.faults import apply_fault_overlays, overlay_summaries
 from vei.world.manifest import build_scenario_manifest
 
 from .models import (
@@ -60,7 +71,7 @@ _MODEL_T = TypeVar("_MODEL_T", bound=BaseModel)
 def create_workspace_from_template(
     *,
     root: str | Path,
-    source_kind: Literal["example", "family", "scenario"],
+    source_kind: Literal["example", "family", "scenario", "vertical"],
     source_ref: str,
     name: Optional[str] = None,
     title: Optional[str] = None,
@@ -76,6 +87,8 @@ def create_workspace_from_template(
         asset = build_blueprint_asset_for_family(
             source_ref, variant_name=workflow_variant
         )
+    elif source_kind == "vertical":
+        asset = build_vertical_blueprint_asset(source_ref)
     else:
         asset = build_blueprint_asset_for_scenario(
             source_ref,
@@ -358,6 +371,125 @@ def list_workspace_scenarios(root: str | Path) -> list[WorkspaceScenarioSpec]:
     return load_workspace(root).scenarios
 
 
+def list_workspace_scenario_variants(root: str | Path) -> list[dict[str, Any]]:
+    path = Path(root).expanduser().resolve()
+    manifest = load_workspace(path)
+    vertical_name = _workspace_vertical_name(manifest)
+    if vertical_name is None:
+        return []
+    active = _active_vertical_scenario_variant_name(path, manifest)
+    return [
+        {
+            **item.model_dump(mode="json"),
+            "active": item.name == active,
+        }
+        for item in list_vertical_scenario_variants(vertical_name)
+    ]
+
+
+def activate_workspace_scenario_variant(
+    root: str | Path,
+    variant_name: str,
+    *,
+    bootstrap_contract: bool = False,
+) -> WorkspaceScenarioSpec:
+    path = Path(root).expanduser().resolve()
+    manifest = load_workspace(path)
+    vertical_name = _workspace_vertical_name(manifest)
+    if vertical_name is None:
+        raise ValueError("workspace does not support vertical scenario variants")
+    variant = get_vertical_scenario_variant(vertical_name, variant_name)
+    scenario = resolve_workspace_scenario(path, manifest)
+    asset = load_workspace_blueprint_asset(path)
+    scenario.title = variant.title
+    scenario.description = variant.description
+    # Variants are overlays on the base company world, not separate catalog worlds.
+    scenario.scenario_name = asset.scenario_name
+    scenario.workflow_name = asset.workflow_name
+    scenario.workflow_variant = variant.workflow_variant
+    scenario.workflow_parameters = {
+        **dict(asset.workflow_parameters),
+        **dict(variant.workflow_parameter_overrides),
+    }
+    scenario.hidden_faults = {
+        item.name: {
+            "label": item.label,
+            "origin": item.origin,
+            "visibility": item.visibility,
+            "rationale": item.rationale,
+        }
+        for item in variant.fault_overlays
+    }
+    metadata = {
+        **dict(scenario.metadata),
+        "vertical": vertical_name,
+        "vertical_scenario_variant": variant.name,
+        "vertical_scenario_variant_title": variant.title,
+        "vertical_scenario_variant_rationale": variant.rationale,
+        "vertical_scenario_variant_branches": list(variant.branch_labels),
+        "vertical_scenario_variant_change_summary": list(variant.change_summary),
+        "vertical_problem_name": variant.scenario_name,
+        "vertical_scenario_fault_overlays": [
+            item.model_dump(mode="json") for item in variant.fault_overlays
+        ],
+    }
+    if "vertical_contract_variant" not in metadata:
+        metadata["vertical_contract_variant"] = default_vertical_contract_variant(
+            vertical_name
+        ).name
+    scenario.metadata = metadata
+    write_workspace(path, manifest)
+    _write_json(
+        _scenario_entry_path(path, manifest, scenario), scenario.model_dump(mode="json")
+    )
+    bootstrap_workspace_contract(path, scenario_name=scenario.name, overwrite=True)
+    compile_workspace(path)
+    return resolve_workspace_scenario(path, scenario_name=scenario.name)
+
+
+def list_workspace_contract_variants(root: str | Path) -> list[dict[str, Any]]:
+    path = Path(root).expanduser().resolve()
+    manifest = load_workspace(path)
+    vertical_name = _workspace_vertical_name(manifest)
+    if vertical_name is None:
+        return []
+    active = _active_vertical_contract_variant_name(path, manifest)
+    return [
+        {
+            **item.model_dump(mode="json"),
+            "active": item.name == active,
+        }
+        for item in list_vertical_contract_variants(vertical_name)
+    ]
+
+
+def activate_workspace_contract_variant(
+    root: str | Path,
+    variant_name: str,
+) -> ContractSpec:
+    path = Path(root).expanduser().resolve()
+    manifest = load_workspace(path)
+    vertical_name = _workspace_vertical_name(manifest)
+    if vertical_name is None:
+        raise ValueError("workspace does not support vertical contract variants")
+    variant = get_vertical_contract_variant(vertical_name, variant_name)
+    scenario = resolve_workspace_scenario(path, manifest)
+    scenario.metadata = {
+        **dict(scenario.metadata),
+        "vertical": vertical_name,
+        "vertical_contract_variant": variant.name,
+        "vertical_contract_variant_title": variant.title,
+        "vertical_contract_objective_summary": variant.objective_summary,
+        "vertical_contract_rationale": variant.rationale,
+    }
+    write_workspace(path, manifest)
+    _write_json(
+        _scenario_entry_path(path, manifest, scenario), scenario.model_dump(mode="json")
+    )
+    compile_workspace(path)
+    return load_workspace_contract(path, scenario.name)
+
+
 def create_workspace_scenario(
     root: str | Path,
     *,
@@ -416,12 +548,25 @@ def preview_workspace_scenario(
     ) or compile_blueprint(asset)
     contract, _ = load_or_bootstrap_contract(path, manifest, entry, compiled)
     scenario_seed = materialize_scenario_from_blueprint(asset)
+    vertical_name = _workspace_vertical_name(manifest)
     return {
         "workspace": manifest.model_dump(mode="json"),
         "scenario": entry.model_dump(mode="json"),
         "compiled_blueprint": compiled.model_dump(mode="json"),
         "contract": contract.model_dump(mode="json"),
         "scenario_seed": asdict(scenario_seed),
+        "active_scenario_variant": (
+            _active_vertical_scenario_variant_name(path, manifest)
+            if vertical_name is not None
+            else None
+        ),
+        "active_contract_variant": (
+            _active_vertical_contract_variant_name(path, manifest)
+            if vertical_name is not None
+            else None
+        ),
+        "available_scenario_variants": list_workspace_scenario_variants(path),
+        "available_contract_variants": list_workspace_contract_variants(path),
     }
 
 
@@ -437,7 +582,10 @@ def load_workspace_contract(
     path = Path(root).expanduser().resolve()
     manifest = load_workspace(path)
     scenario = resolve_workspace_scenario(path, manifest, scenario_name)
-    return _read_model(_resolve_contract_path(path, manifest, scenario), ContractSpec)
+    contract = _read_model(
+        _resolve_contract_path(path, manifest, scenario), ContractSpec
+    )
+    return _apply_workspace_contract_variant(path, manifest, scenario, contract)
 
 
 def validate_workspace_contract(
@@ -746,7 +894,7 @@ def bootstrap_workspace_contract(
     scenario = resolve_workspace_scenario(path, manifest, scenario_name)
     contract_path = _resolve_contract_path(path, manifest, scenario)
     if contract_path.exists() and not overwrite:
-        return _read_model(contract_path, ContractSpec)
+        return load_workspace_contract(path, scenario.name)
     if contract_path.exists():
         contract_path.unlink()
     compiled = _read_model(
@@ -805,6 +953,10 @@ def build_workspace_scenario_asset(
     asset: BlueprintAsset, scenario: WorkspaceScenarioSpec
 ) -> BlueprintAsset:
     payload = asset.model_dump(mode="python")
+    metadata = dict(scenario.metadata or {})
+    variant = _resolve_workspace_vertical_scenario_variant(metadata)
+    if variant is not None:
+        payload = apply_fault_overlays(payload, variant.fault_overlays)
     payload.update(
         {
             "scenario_name": scenario.scenario_name or asset.scenario_name,
@@ -824,8 +976,26 @@ def build_workspace_scenario_asset(
         "hidden_faults": dict(scenario.hidden_faults),
         "actor_hints": list(scenario.actor_hints),
         "contract_overrides": dict(scenario.contract_overrides),
+        "scenario_change_summary": (
+            list(variant.change_summary) or overlay_summaries(variant.fault_overlays)
+            if variant is not None
+            else []
+        ),
         **dict(scenario.metadata),
     }
+    if payload.get("capability_graphs") and variant is not None:
+        payload["capability_graphs"]["metadata"] = {
+            **dict(payload["capability_graphs"].get("metadata") or {}),
+            "active_scenario_variant": variant.name,
+            "variant_branch_labels": list(variant.branch_labels),
+            "variant_rationale": variant.rationale,
+            "variant_change_summary": list(variant.change_summary)
+            or overlay_summaries(variant.fault_overlays),
+        }
+        if variant.branch_labels:
+            payload["capability_graphs"]["metadata"]["what_if_branches"] = list(
+                variant.branch_labels
+            )
     return BlueprintAsset.model_validate(payload)
 
 
@@ -873,8 +1043,25 @@ def load_or_bootstrap_contract(
         contract = ContractSpec.model_validate(
             _deep_merge(contract.model_dump(mode="json"), scenario.contract_overrides)
         )
+    base_contract = contract
+    contract = _apply_workspace_contract_variant(
+        resolved_root, manifest, scenario, contract
+    )
     contract_path.parent.mkdir(parents=True, exist_ok=True)
-    _write_json(contract_path, contract.model_dump(mode="json"))
+    base_payload = base_contract.model_dump(mode="json")
+    base_payload["metadata"] = {
+        **dict(base_payload.get("metadata") or {}),
+        "base_contract": True,
+    }
+    for key in (
+        "vertical_contract_variant",
+        "vertical_contract_variant_title",
+        "vertical_contract_objective_summary",
+        "vertical_contract_rationale",
+    ):
+        base_payload["metadata"].pop(key, None)
+    base_contract = ContractSpec.model_validate(base_payload)
+    _write_json(contract_path, base_contract.model_dump(mode="json"))
     return contract, True
 
 
@@ -911,6 +1098,9 @@ def _bootstrap_workspace(
 ) -> WorkspaceManifest:
     created_at = _iso_now()
     workspace_name = name or asset.name.replace(".blueprint", "").replace(".", "_")
+    builder_environment_metadata: dict[str, Any] = {}
+    if asset.capability_graphs is not None:
+        builder_environment_metadata = dict(asset.capability_graphs.metadata or {})
     manifest = WorkspaceManifest(
         name=workspace_name,
         title=title or asset.title,
@@ -958,6 +1148,11 @@ def _bootstrap_workspace(
                 metadata={
                     "source_kind": source_kind,
                     "source_ref": source_ref,
+                    **(
+                        {"builder_environment": builder_environment_metadata}
+                        if builder_environment_metadata
+                        else {}
+                    ),
                     **(
                         {
                             "precompiled_blueprint_path": "sources/compiled_blueprint.json"
@@ -1085,6 +1280,81 @@ def _resolve_contract_path(
         or f"{manifest.contracts_dir}/{scenario.name}.contract.json"
     )
     return root / contract_path
+
+
+def _workspace_vertical_name(manifest: WorkspaceManifest) -> str | None:
+    if manifest.source_kind != "vertical" or not manifest.source_ref:
+        return None
+    return manifest.source_ref.strip().lower()
+
+
+def _active_vertical_scenario_variant_name(
+    root: str | Path, manifest: WorkspaceManifest
+) -> str | None:
+    vertical_name = _workspace_vertical_name(manifest)
+    if vertical_name is None:
+        return None
+    scenario = resolve_workspace_scenario(root, manifest)
+    return str(
+        scenario.metadata.get("vertical_scenario_variant")
+        or scenario.workflow_variant
+        or default_vertical_scenario_variant(vertical_name).name
+    )
+
+
+def _active_vertical_contract_variant_name(
+    root: str | Path, manifest: WorkspaceManifest
+) -> str | None:
+    vertical_name = _workspace_vertical_name(manifest)
+    if vertical_name is None:
+        return None
+    scenario = resolve_workspace_scenario(root, manifest)
+    return str(
+        scenario.metadata.get("vertical_contract_variant")
+        or default_vertical_contract_variant(vertical_name).name
+    )
+
+
+def _resolve_workspace_vertical_scenario_variant(
+    metadata: dict[str, Any]
+) -> Any | None:
+    vertical_name = metadata.get("vertical")
+    variant_name = metadata.get("vertical_scenario_variant")
+    if not vertical_name or not variant_name:
+        return None
+    try:
+        return get_vertical_scenario_variant(str(vertical_name), str(variant_name))
+    except KeyError:
+        return None
+
+
+def _resolve_workspace_vertical_contract_variant(
+    manifest: WorkspaceManifest, scenario: WorkspaceScenarioSpec
+):
+    vertical_name = _workspace_vertical_name(manifest)
+    if vertical_name is None:
+        return None
+    variant_name = (
+        scenario.metadata.get("vertical_contract_variant")
+        or default_vertical_contract_variant(vertical_name).name
+    )
+    try:
+        return get_vertical_contract_variant(vertical_name, str(variant_name))
+    except KeyError:
+        return None
+
+
+def _apply_workspace_contract_variant(
+    root: Path,
+    manifest: WorkspaceManifest,
+    scenario: WorkspaceScenarioSpec,
+    contract: ContractSpec,
+) -> ContractSpec:
+    del root
+    variant = _resolve_workspace_vertical_contract_variant(manifest, scenario)
+    if variant is None:
+        return contract
+    return apply_vertical_contract_variant(contract, variant)
 
 
 def _contract_bootstrapped(root: Path, scenario_root: Path) -> bool:

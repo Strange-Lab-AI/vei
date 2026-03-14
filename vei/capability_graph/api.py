@@ -7,6 +7,13 @@ from vei.blueprint.models import CapabilityDomain
 from vei.world.models import WorldState
 
 from .models import (
+    AllocationView,
+    CampaignApprovalView,
+    CampaignGraphView,
+    CampaignReportView,
+    CampaignView,
+    CapacityPoolView,
+    ClientView,
     CapabilityGraphActionInput,
     CapabilityGraphActionSchema,
     CapabilityGraphPlan,
@@ -24,20 +31,31 @@ from .models import (
     IdentityGroupView,
     IdentityPolicyView,
     IdentityUserView,
+    InventoryGraphView,
     ObsGraphView,
     ObsIncidentView,
     ObsMonitorView,
     ObsServiceView,
     OpsFlagView,
     OpsGraphView,
+    OrderView,
+    LeaseView,
+    PropertyGraphView,
+    PropertyView,
+    QuoteView,
     RevenueCompanyView,
     RevenueContactView,
     RevenueDealView,
     RevenueGraphView,
     RuntimeCapabilityGraphs,
     ServiceRequestView,
+    SiteView,
+    UnitView,
+    VendorView,
     WorkGraphView,
+    WorkOrderGraphView,
     WorkItemView,
+    CreativeView,
 )
 
 
@@ -62,6 +80,9 @@ def build_runtime_capability_graphs(state: WorldState) -> RuntimeCapabilityGraph
     data_graph = _build_data_graph(state.components)
     obs_graph = _build_obs_graph(state.components)
     ops_graph = _build_ops_graph(state.components)
+    property_graph = _build_property_graph(state.components)
+    campaign_graph = _build_campaign_graph(state.components)
+    inventory_graph = _build_inventory_graph(state.components)
 
     if allowed_domains is not None:
         if "comm_graph" not in allowed_domains:
@@ -80,6 +101,12 @@ def build_runtime_capability_graphs(state: WorldState) -> RuntimeCapabilityGraph
             obs_graph = None
         if "ops_graph" not in allowed_domains:
             ops_graph = None
+        if "property_graph" not in allowed_domains:
+            property_graph = None
+        if "campaign_graph" not in allowed_domains:
+            campaign_graph = None
+        if "inventory_graph" not in allowed_domains:
+            inventory_graph = None
 
     available_domains_list = [
         domain
@@ -92,6 +119,9 @@ def build_runtime_capability_graphs(state: WorldState) -> RuntimeCapabilityGraph
             ("data_graph", data_graph),
             ("obs_graph", obs_graph),
             ("ops_graph", ops_graph),
+            ("property_graph", property_graph),
+            ("campaign_graph", campaign_graph),
+            ("inventory_graph", inventory_graph),
         )
         if graph is not None
     ]
@@ -107,6 +137,9 @@ def build_runtime_capability_graphs(state: WorldState) -> RuntimeCapabilityGraph
         data_graph=data_graph,
         obs_graph=obs_graph,
         ops_graph=ops_graph,
+        property_graph=property_graph,
+        campaign_graph=campaign_graph,
+        inventory_graph=inventory_graph,
         metadata={
             "scenario_name": state.scenario.get("name"),
             "builder_mode": _scenario_metadata(state).get("builder_mode"),
@@ -137,6 +170,12 @@ def get_runtime_capability_graph(state: WorldState, domain: str) -> Optional[Any
         return graphs.obs_graph
     if normalized == "ops_graph":
         return graphs.ops_graph
+    if normalized == "property_graph":
+        return graphs.property_graph
+    if normalized == "campaign_graph":
+        return graphs.campaign_graph
+    if normalized == "inventory_graph":
+        return graphs.inventory_graph
     raise KeyError(f"unknown capability graph domain: {domain}")
 
 
@@ -308,6 +347,23 @@ def infer_graph_action_object_refs(
     elif normalized_domain == "ops_graph":
         _add("feature_flag", "flag_key")
         _add("service", "service_id")
+    elif normalized_domain == "property_graph":
+        _add("property", "property_id")
+        _add("work_order", "work_order_id")
+        _add("lease", "lease_id")
+        _add("unit", "unit_id")
+        _add("vendor", "vendor_id")
+    elif normalized_domain == "campaign_graph":
+        _add("campaign", "campaign_id")
+        _add("creative", "creative_id")
+        _add("approval", "approval_id")
+        _add("report", "report_id")
+    elif normalized_domain == "inventory_graph":
+        _add("site", "site_id")
+        _add("capacity_pool", "pool_id")
+        _add("quote", "quote_id")
+        _add("order", "order_id")
+        _add("allocation", "allocation_id")
 
     return sorted(refs)
 
@@ -607,6 +663,224 @@ def _build_ops_graph(components: Dict[str, Dict[str, Any]]) -> Optional[OpsGraph
     return OpsGraphView(flags=flags)
 
 
+def _build_property_graph(
+    components: Dict[str, Dict[str, Any]]
+) -> Optional[PropertyGraphView]:
+    property_ops = components.get("property_ops", {})
+    properties = [
+        PropertyView(
+            property_id=str(item_id),
+            name=str(payload.get("name", item_id)),
+            city=str(payload.get("city", "")),
+            state=str(payload.get("state", "")),
+            status=str(payload.get("status", "active")),
+        )
+        for item_id, payload in sorted((property_ops.get("properties") or {}).items())
+    ]
+    units = [
+        UnitView(
+            unit_id=str(item_id),
+            building_id=str(payload.get("building_id", "")),
+            label=str(payload.get("label", item_id)),
+            status=str(payload.get("status", "vacant")),
+            reserved_for=_optional_str(payload.get("reserved_for")),
+        )
+        for item_id, payload in sorted((property_ops.get("units") or {}).items())
+    ]
+    leases = [
+        LeaseView(
+            lease_id=str(item_id),
+            tenant_id=str(payload.get("tenant_id", "")),
+            unit_id=str(payload.get("unit_id", "")),
+            status=str(payload.get("status", "unknown")),
+            milestone=str(payload.get("milestone", "draft")),
+            amendment_pending=bool(payload.get("amendment_pending", False)),
+        )
+        for item_id, payload in sorted((property_ops.get("leases") or {}).items())
+    ]
+    vendors = [
+        VendorView(
+            vendor_id=str(item_id),
+            name=str(payload.get("name", item_id)),
+            specialty=str(payload.get("specialty", "")),
+            status=str(payload.get("status", "active")),
+        )
+        for item_id, payload in sorted((property_ops.get("vendors") or {}).items())
+    ]
+    work_orders = [
+        WorkOrderGraphView(
+            work_order_id=str(item_id),
+            property_id=str(payload.get("property_id", "")),
+            title=str(payload.get("title", item_id)),
+            status=str(payload.get("status", "unknown")),
+            vendor_id=_optional_str(payload.get("vendor_id")),
+            scheduled_for_ms=(
+                int(payload.get("scheduled_for_ms"))
+                if payload.get("scheduled_for_ms") is not None
+                else None
+            ),
+        )
+        for item_id, payload in sorted((property_ops.get("work_orders") or {}).items())
+    ]
+    if not properties and not units and not leases and not vendors and not work_orders:
+        return None
+    return PropertyGraphView(
+        properties=properties,
+        units=units,
+        leases=leases,
+        vendors=vendors,
+        work_orders=work_orders,
+    )
+
+
+def _build_campaign_graph(
+    components: Dict[str, Dict[str, Any]]
+) -> Optional[CampaignGraphView]:
+    campaign_ops = components.get("campaign_ops", {})
+    clients = [
+        ClientView(
+            client_id=str(item_id),
+            name=str(payload.get("name", item_id)),
+            tier=str(payload.get("tier", "standard")),
+        )
+        for item_id, payload in sorted((campaign_ops.get("clients") or {}).items())
+    ]
+    campaigns = [
+        CampaignView(
+            campaign_id=str(item_id),
+            client_id=str(payload.get("client_id", "")),
+            name=str(payload.get("name", item_id)),
+            channel=str(payload.get("channel", "")),
+            status=str(payload.get("status", "unknown")),
+            budget_usd=float(payload.get("budget_usd", 0.0) or 0.0),
+            spend_usd=float(payload.get("spend_usd", 0.0) or 0.0),
+            pacing_pct=float(payload.get("pacing_pct", 100.0) or 100.0),
+        )
+        for item_id, payload in sorted((campaign_ops.get("campaigns") or {}).items())
+    ]
+    creatives = [
+        CreativeView(
+            creative_id=str(item_id),
+            campaign_id=str(payload.get("campaign_id", "")),
+            title=str(payload.get("title", item_id)),
+            status=str(payload.get("status", "unknown")),
+            approval_required=bool(payload.get("approval_required", True)),
+        )
+        for item_id, payload in sorted((campaign_ops.get("creatives") or {}).items())
+    ]
+    approvals = [
+        CampaignApprovalView(
+            approval_id=str(item_id),
+            campaign_id=str(payload.get("campaign_id", "")),
+            stage=str(payload.get("stage", "")),
+            status=str(payload.get("status", "unknown")),
+        )
+        for item_id, payload in sorted((campaign_ops.get("approvals") or {}).items())
+    ]
+    reports = [
+        CampaignReportView(
+            report_id=str(item_id),
+            campaign_id=str(payload.get("campaign_id", "")),
+            title=str(payload.get("title", item_id)),
+            status=str(payload.get("status", "unknown")),
+            stale=bool(payload.get("stale", False)),
+        )
+        for item_id, payload in sorted((campaign_ops.get("reports") or {}).items())
+    ]
+    if (
+        not clients
+        and not campaigns
+        and not creatives
+        and not approvals
+        and not reports
+    ):
+        return None
+    return CampaignGraphView(
+        clients=clients,
+        campaigns=campaigns,
+        creatives=creatives,
+        approvals=approvals,
+        reports=reports,
+    )
+
+
+def _build_inventory_graph(
+    components: Dict[str, Dict[str, Any]]
+) -> Optional[InventoryGraphView]:
+    inventory_ops = components.get("inventory_ops", {})
+    sites = [
+        SiteView(
+            site_id=str(item_id),
+            name=str(payload.get("name", item_id)),
+            city=str(payload.get("city", "")),
+            region=str(payload.get("region", "")),
+            status=str(payload.get("status", "active")),
+        )
+        for item_id, payload in sorted((inventory_ops.get("sites") or {}).items())
+    ]
+    pools = [
+        CapacityPoolView(
+            pool_id=str(item_id),
+            site_id=str(payload.get("site_id", "")),
+            name=str(payload.get("name", item_id)),
+            total_units=int(payload.get("total_units", 0) or 0),
+            reserved_units=int(payload.get("reserved_units", 0) or 0),
+        )
+        for item_id, payload in sorted(
+            (inventory_ops.get("capacity_pools") or {}).items()
+        )
+    ]
+    quotes = [
+        QuoteView(
+            quote_id=str(item_id),
+            customer_name=str(payload.get("customer_name", "")),
+            requested_units=int(payload.get("requested_units", 0) or 0),
+            status=str(payload.get("status", "unknown")),
+            site_id=_optional_str(payload.get("site_id")),
+            committed_units=int(payload.get("committed_units", 0) or 0),
+        )
+        for item_id, payload in sorted((inventory_ops.get("quotes") or {}).items())
+    ]
+    orders = [
+        OrderView(
+            order_id=str(item_id),
+            quote_id=str(payload.get("quote_id", "")),
+            status=str(payload.get("status", "unknown")),
+            site_id=_optional_str(payload.get("site_id")),
+        )
+        for item_id, payload in sorted((inventory_ops.get("orders") or {}).items())
+    ]
+    allocations = [
+        AllocationView(
+            allocation_id=str(item_id),
+            quote_id=str(payload.get("quote_id", "")),
+            pool_id=str(payload.get("pool_id", "")),
+            units=int(payload.get("units", 0) or 0),
+            status=str(payload.get("status", "unknown")),
+        )
+        for item_id, payload in sorted((inventory_ops.get("allocations") or {}).items())
+    ]
+    vendors = [
+        VendorView(
+            vendor_id=str(item_id),
+            name=str(payload.get("name", item_id)),
+            specialty=str(payload.get("specialty", "")),
+            status=str(payload.get("status", "active")),
+        )
+        for item_id, payload in sorted((inventory_ops.get("vendors") or {}).items())
+    ]
+    if not sites and not pools and not quotes and not orders and not allocations:
+        return None
+    return InventoryGraphView(
+        sites=sites,
+        capacity_pools=pools,
+        quotes=quotes,
+        orders=orders,
+        allocations=allocations,
+        vendors=vendors,
+    )
+
+
 def _suggest_graph_steps(
     state: WorldState, graphs: RuntimeCapabilityGraphs
 ) -> list[CapabilityGraphPlanStep]:
@@ -623,6 +897,9 @@ def _suggest_graph_steps(
     steps.extend(_work_steps(state, graphs.work_graph))
     steps.extend(_revenue_steps(state, graphs.revenue_graph, graphs.identity_graph))
     steps.extend(_comm_steps(graphs.comm_graph))
+    steps.extend(_property_steps(graphs.property_graph))
+    steps.extend(_campaign_steps(graphs.campaign_graph))
+    steps.extend(_inventory_steps(graphs.inventory_graph))
     return sorted(steps, key=_plan_sort_key)
 
 
@@ -1067,6 +1344,232 @@ def _comm_steps(graph: Optional[CommGraphView]) -> list[CapabilityGraphPlanStep]
             tags=["communication"],
         )
     ]
+
+
+def _property_steps(
+    graph: Optional[PropertyGraphView],
+) -> list[CapabilityGraphPlanStep]:
+    if graph is None:
+        return []
+    steps: list[CapabilityGraphPlanStep] = []
+    for lease in graph.leases:
+        if lease.amendment_pending or lease.milestone.lower() in {"draft", "pending"}:
+            steps.append(
+                _plan_step(
+                    domain="property_graph",
+                    action="update_lease_milestone",
+                    title=f"Advance lease {lease.lease_id}",
+                    rationale="This tenant opening still depends on a lease milestone completing.",
+                    priority="high",
+                    tool="property.update_lease_milestone",
+                    args={
+                        "lease_id": lease.lease_id,
+                        "milestone": "executed",
+                        "status": "ready",
+                    },
+                    target_id=lease.lease_id,
+                    target_kind="lease",
+                    tags=["real_estate", "lease", "opening_readiness"],
+                )
+            )
+            break
+    for work_order in graph.work_orders:
+        if work_order.status.lower() in {"new", "blocked", "pending_vendor"}:
+            vendor_id = graph.vendors[0].vendor_id if graph.vendors else None
+            if vendor_id:
+                steps.append(
+                    _plan_step(
+                        domain="property_graph",
+                        action="assign_vendor",
+                        title=f"Assign vendor for {work_order.work_order_id}",
+                        rationale="A pending work order needs a committed vendor before tenant opening.",
+                        priority="high",
+                        tool="property.assign_vendor",
+                        args={
+                            "work_order_id": work_order.work_order_id,
+                            "vendor_id": vendor_id,
+                        },
+                        target_id=work_order.work_order_id,
+                        target_kind="work_order",
+                        tags=["real_estate", "vendor", "maintenance"],
+                    )
+                )
+                break
+    for unit in graph.units:
+        if unit.status.lower() == "vacant":
+            lease = next(
+                (item for item in graph.leases if item.unit_id == unit.unit_id), None
+            )
+            if lease is not None:
+                steps.append(
+                    _plan_step(
+                        domain="property_graph",
+                        action="reserve_unit",
+                        title=f"Reserve unit {unit.label}",
+                        rationale="The tenant-facing unit should be explicitly reserved before opening.",
+                        priority="medium",
+                        tool="property.reserve_unit",
+                        args={"unit_id": unit.unit_id, "tenant_id": lease.tenant_id},
+                        target_id=unit.unit_id,
+                        target_kind="unit",
+                        tags=["real_estate", "occupancy"],
+                    )
+                )
+                break
+    return steps
+
+
+def _campaign_steps(
+    graph: Optional[CampaignGraphView],
+) -> list[CapabilityGraphPlanStep]:
+    if graph is None:
+        return []
+    steps: list[CapabilityGraphPlanStep] = []
+    for creative in graph.creatives:
+        if creative.approval_required and creative.status.lower() != "approved":
+            approval = next(
+                (
+                    item
+                    for item in graph.approvals
+                    if item.campaign_id == creative.campaign_id
+                ),
+                None,
+            )
+            if approval is not None:
+                steps.append(
+                    _plan_step(
+                        domain="campaign_graph",
+                        action="approve_creative",
+                        title=f"Approve creative {creative.title}",
+                        rationale="The launch should not proceed with unapproved creative.",
+                        priority="high",
+                        tool="campaign.approve_creative",
+                        args={
+                            "creative_id": creative.creative_id,
+                            "approval_id": approval.approval_id,
+                        },
+                        target_id=creative.creative_id,
+                        target_kind="creative",
+                        tags=["marketing", "approval", "launch_safety"],
+                    )
+                )
+                break
+    for campaign in graph.campaigns:
+        if campaign.pacing_pct > 110 or campaign.spend_usd > campaign.budget_usd:
+            steps.append(
+                _plan_step(
+                    domain="campaign_graph",
+                    action="adjust_budget_pacing",
+                    title=f"Reduce pacing for {campaign.name}",
+                    rationale="Budget pacing is unsafe for this pending launch.",
+                    priority="high",
+                    tool="campaign.adjust_budget_pacing",
+                    args={"campaign_id": campaign.campaign_id, "pacing_pct": 80.0},
+                    target_id=campaign.campaign_id,
+                    target_kind="campaign",
+                    tags=["marketing", "budget", "guardrail"],
+                )
+            )
+            break
+    for report in graph.reports:
+        if report.stale:
+            steps.append(
+                _plan_step(
+                    domain="campaign_graph",
+                    action="publish_report_note",
+                    title=f"Refresh report {report.title}",
+                    rationale="Launch comms should reference a current report artifact.",
+                    priority="medium",
+                    tool="campaign.publish_report_note",
+                    args={
+                        "report_id": report.report_id,
+                        "note": "Launch guardrail review completed.",
+                    },
+                    target_id=report.report_id,
+                    target_kind="report",
+                    tags=["marketing", "artifact_follow_through"],
+                )
+            )
+            break
+    return steps
+
+
+def _inventory_steps(
+    graph: Optional[InventoryGraphView],
+) -> list[CapabilityGraphPlanStep]:
+    if graph is None:
+        return []
+    steps: list[CapabilityGraphPlanStep] = []
+    for quote in graph.quotes:
+        if quote.committed_units < quote.requested_units:
+            pool = next(
+                (
+                    item
+                    for item in graph.capacity_pools
+                    if (item.total_units - item.reserved_units)
+                    >= (quote.requested_units - quote.committed_units)
+                ),
+                None,
+            )
+            if pool is not None:
+                steps.append(
+                    _plan_step(
+                        domain="inventory_graph",
+                        action="allocate_capacity",
+                        title=f"Allocate capacity for {quote.quote_id}",
+                        rationale="The customer quote should only be committed once feasible capacity is reserved.",
+                        priority="high",
+                        tool="inventory.allocate_capacity",
+                        args={
+                            "quote_id": quote.quote_id,
+                            "pool_id": pool.pool_id,
+                            "units": quote.requested_units - quote.committed_units,
+                        },
+                        target_id=quote.quote_id,
+                        target_kind="quote",
+                        tags=["storage", "capacity", "feasibility"],
+                    )
+                )
+                steps.append(
+                    _plan_step(
+                        domain="inventory_graph",
+                        action="revise_quote",
+                        title=f"Revise quote {quote.quote_id}",
+                        rationale="The quote should reflect the feasible site and committed capacity.",
+                        priority="high",
+                        tool="inventory.revise_quote",
+                        args={
+                            "quote_id": quote.quote_id,
+                            "site_id": pool.site_id,
+                            "committed_units": quote.requested_units,
+                        },
+                        target_id=quote.quote_id,
+                        target_kind="quote",
+                        tags=["storage", "quote_accuracy"],
+                    )
+                )
+                break
+    for order in graph.orders:
+        if order.status.lower() in {"new", "pending_vendor"} and graph.vendors:
+            steps.append(
+                _plan_step(
+                    domain="inventory_graph",
+                    action="assign_vendor_action",
+                    title=f"Assign vendor for order {order.order_id}",
+                    rationale="The downstream storage rollout needs a vendor/fulfillment plan before commitment.",
+                    priority="medium",
+                    tool="inventory.assign_vendor_action",
+                    args={
+                        "order_id": order.order_id,
+                        "vendor_id": graph.vendors[0].vendor_id,
+                    },
+                    target_id=order.order_id,
+                    target_kind="order",
+                    tags=["storage", "ops_follow_through"],
+                )
+            )
+            break
+    return steps
 
 
 def _plan_step(
@@ -1530,6 +2033,122 @@ _ACTION_SCHEMAS = [
         optional_args=("env", "reason"),
         tags=("rollout", "blast_radius"),
     ),
+    _schema(
+        domain="property_graph",
+        action="assign_vendor",
+        title="Assign vendor",
+        description="Assign a vendor to a property work order.",
+        tool="property.assign_vendor",
+        required_args=("work_order_id", "vendor_id"),
+        optional_args=("note",),
+        tags=("real_estate", "maintenance"),
+    ),
+    _schema(
+        domain="property_graph",
+        action="reschedule_work_order",
+        title="Reschedule work order",
+        description="Move a work order to a safer or more feasible time slot.",
+        tool="property.reschedule_work_order",
+        required_args=("work_order_id", "scheduled_for_ms"),
+        optional_args=("note",),
+        tags=("real_estate", "maintenance"),
+    ),
+    _schema(
+        domain="property_graph",
+        action="update_lease_milestone",
+        title="Update lease milestone",
+        description="Advance a lease/amendment milestone before tenant opening.",
+        tool="property.update_lease_milestone",
+        required_args=("lease_id", "milestone"),
+        optional_args=("status",),
+        tags=("real_estate", "lease"),
+    ),
+    _schema(
+        domain="property_graph",
+        action="reserve_unit",
+        title="Reserve unit",
+        description="Reserve a unit for a tenant commitment or opening.",
+        tool="property.reserve_unit",
+        required_args=("unit_id", "tenant_id"),
+        optional_args=("status",),
+        tags=("real_estate", "occupancy"),
+    ),
+    _schema(
+        domain="campaign_graph",
+        action="approve_creative",
+        title="Approve creative",
+        description="Approve a pending creative asset and its approval record.",
+        tool="campaign.approve_creative",
+        required_args=("creative_id", "approval_id"),
+        tags=("marketing", "approval"),
+    ),
+    _schema(
+        domain="campaign_graph",
+        action="adjust_budget_pacing",
+        title="Adjust budget pacing",
+        description="Change campaign pacing before launch or overspend.",
+        tool="campaign.adjust_budget_pacing",
+        required_args=("campaign_id", "pacing_pct"),
+        optional_args=("note",),
+        tags=("marketing", "budget"),
+    ),
+    _schema(
+        domain="campaign_graph",
+        action="pause_channel_launch",
+        title="Pause launch",
+        description="Pause a campaign launch on a specific channel.",
+        tool="campaign.pause_channel_launch",
+        required_args=("campaign_id",),
+        optional_args=("reason",),
+        tags=("marketing", "launch_safety"),
+    ),
+    _schema(
+        domain="campaign_graph",
+        action="publish_report_note",
+        title="Publish report note",
+        description="Refresh a campaign report or annotate it for launch readiness.",
+        tool="campaign.publish_report_note",
+        required_args=("report_id", "note"),
+        tags=("marketing", "artifact_follow_through"),
+    ),
+    _schema(
+        domain="inventory_graph",
+        action="allocate_capacity",
+        title="Allocate capacity",
+        description="Reserve feasible capacity for a strategic customer quote.",
+        tool="inventory.allocate_capacity",
+        required_args=("quote_id", "pool_id", "units"),
+        tags=("storage", "capacity"),
+    ),
+    _schema(
+        domain="inventory_graph",
+        action="reserve_inventory_block",
+        title="Reserve inventory block",
+        description="Reserve capacity before final quote commitment.",
+        tool="inventory.reserve_inventory_block",
+        required_args=("pool_id", "units"),
+        optional_args=("note",),
+        tags=("storage", "capacity"),
+    ),
+    _schema(
+        domain="inventory_graph",
+        action="revise_quote",
+        title="Revise quote",
+        description="Update a quote to reflect feasible storage allocation.",
+        tool="inventory.revise_quote",
+        required_args=("quote_id", "site_id", "committed_units"),
+        tags=("storage", "quote"),
+    ),
+    _schema(
+        domain="inventory_graph",
+        action="assign_vendor_action",
+        title="Assign vendor action",
+        description="Assign a downstream fulfillment/vendor task for a storage order.",
+        tool="inventory.assign_vendor_action",
+        required_args=("order_id", "vendor_id"),
+        optional_args=("status",),
+        tags=("storage", "fulfillment"),
+    ),
 ]
 
 _ACTION_SCHEMA_INDEX = {
@@ -1545,6 +2164,9 @@ _DOMAIN_SET = {
     "data_graph",
     "obs_graph",
     "ops_graph",
+    "property_graph",
+    "campaign_graph",
+    "inventory_graph",
 }
 
 _DOMAIN_FOCUS = {
@@ -1556,6 +2178,9 @@ _DOMAIN_FOCUS = {
     "data_graph": "spreadsheet",
     "obs_graph": "pagerduty",
     "ops_graph": "feature_flags",
+    "property_graph": "property",
+    "campaign_graph": "campaign",
+    "inventory_graph": "inventory",
 }
 
 

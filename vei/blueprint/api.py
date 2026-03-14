@@ -25,6 +25,7 @@ from vei.world.scenario import (
     Ticket,
 )
 from vei.world.scenarios import get_scenario
+from vei.verticals import build_vertical_blueprint_asset
 
 from .models import (
     BlueprintAsset,
@@ -83,6 +84,15 @@ def build_blueprint_asset_for_family(
     *,
     variant_name: Optional[str] = None,
 ) -> BlueprintAsset:
+    if family_name.strip().lower() in {
+        "real_estate_management",
+        "digital_marketing_agency",
+        "storage_solutions",
+    }:
+        asset = build_vertical_blueprint_asset(family_name)
+        if variant_name:
+            asset.workflow_variant = variant_name
+        return asset
     family = get_benchmark_family_manifest(family_name)
     workflow_name = family.workflow_name
     if workflow_name is None:
@@ -418,6 +428,18 @@ def materialize_scenario_from_blueprint(asset: BlueprintAsset) -> Scenario:
             scenario.crm["deals"] = [
                 deal.model_dump(mode="json") for deal in environment.crm_deals
             ]
+    if asset.capability_graphs is not None and asset.capability_graphs.property_graph:
+        scenario.property_graph = asset.capability_graphs.property_graph.model_dump(
+            mode="json"
+        )
+    if asset.capability_graphs is not None and asset.capability_graphs.campaign_graph:
+        scenario.campaign_graph = asset.capability_graphs.campaign_graph.model_dump(
+            mode="json"
+        )
+    if asset.capability_graphs is not None and asset.capability_graphs.inventory_graph:
+        scenario.inventory_graph = asset.capability_graphs.inventory_graph.model_dump(
+            mode="json"
+        )
 
     metadata: Dict[str, Any] = dict(scenario.metadata or {})
     metadata.update(
@@ -518,6 +540,9 @@ def _graph_domain_tool_family(domain: str) -> str:
         "data_graph": "spreadsheet",
         "obs_graph": "pagerduty",
         "ops_graph": "feature_flags",
+        "property_graph": "property",
+        "campaign_graph": "campaign",
+        "inventory_graph": "inventory",
     }.get(domain, domain.replace("_graph", ""))
 
 
@@ -549,6 +574,56 @@ def _build_environment_summary(
         hris_employee_count=len(environment.hris_employees),
         crm_deal_count=len(environment.crm_deals),
         slack_channel_count=len(environment.slack_channels),
+        property_count=len(
+            (asset.capability_graphs.property_graph.properties)
+            if asset.capability_graphs and asset.capability_graphs.property_graph
+            else []
+        ),
+        unit_count=len(
+            (asset.capability_graphs.property_graph.units)
+            if asset.capability_graphs and asset.capability_graphs.property_graph
+            else []
+        ),
+        lease_count=len(
+            (asset.capability_graphs.property_graph.leases)
+            if asset.capability_graphs and asset.capability_graphs.property_graph
+            else []
+        ),
+        work_order_count=len(
+            (asset.capability_graphs.property_graph.work_orders)
+            if asset.capability_graphs and asset.capability_graphs.property_graph
+            else []
+        ),
+        campaign_count=len(
+            (asset.capability_graphs.campaign_graph.campaigns)
+            if asset.capability_graphs and asset.capability_graphs.campaign_graph
+            else []
+        ),
+        creative_count=len(
+            (asset.capability_graphs.campaign_graph.creatives)
+            if asset.capability_graphs and asset.capability_graphs.campaign_graph
+            else []
+        ),
+        report_count=len(
+            (asset.capability_graphs.campaign_graph.reports)
+            if asset.capability_graphs and asset.capability_graphs.campaign_graph
+            else []
+        ),
+        site_count=len(
+            (asset.capability_graphs.inventory_graph.sites)
+            if asset.capability_graphs and asset.capability_graphs.inventory_graph
+            else []
+        ),
+        quote_count=len(
+            (asset.capability_graphs.inventory_graph.quotes)
+            if asset.capability_graphs and asset.capability_graphs.inventory_graph
+            else []
+        ),
+        order_count=len(
+            (asset.capability_graphs.inventory_graph.orders)
+            if asset.capability_graphs and asset.capability_graphs.inventory_graph
+            else []
+        ),
         scenario_template_name=asset.scenario_name,
     )
 
@@ -625,6 +700,60 @@ def _build_graph_summaries(asset: BlueprintAsset) -> List[CapabilityGraphSummary
                     "companies": len(graphs.revenue_graph.companies),
                     "contacts": len(graphs.revenue_graph.contacts),
                     "deals": len(graphs.revenue_graph.deals),
+                },
+            )
+        )
+    if graphs.property_graph is not None:
+        summaries.append(
+            CapabilityGraphSummary(
+                domain="property_graph",
+                entity_count=len(graphs.property_graph.properties)
+                + len(graphs.property_graph.units)
+                + len(graphs.property_graph.leases)
+                + len(graphs.property_graph.work_orders)
+                + len(graphs.property_graph.vendors),
+                facet_counts={
+                    "properties": len(graphs.property_graph.properties),
+                    "units": len(graphs.property_graph.units),
+                    "leases": len(graphs.property_graph.leases),
+                    "work_orders": len(graphs.property_graph.work_orders),
+                    "vendors": len(graphs.property_graph.vendors),
+                },
+            )
+        )
+    if graphs.campaign_graph is not None:
+        summaries.append(
+            CapabilityGraphSummary(
+                domain="campaign_graph",
+                entity_count=len(graphs.campaign_graph.clients)
+                + len(graphs.campaign_graph.campaigns)
+                + len(graphs.campaign_graph.creatives)
+                + len(graphs.campaign_graph.approvals)
+                + len(graphs.campaign_graph.reports),
+                facet_counts={
+                    "clients": len(graphs.campaign_graph.clients),
+                    "campaigns": len(graphs.campaign_graph.campaigns),
+                    "creatives": len(graphs.campaign_graph.creatives),
+                    "approvals": len(graphs.campaign_graph.approvals),
+                    "reports": len(graphs.campaign_graph.reports),
+                },
+            )
+        )
+    if graphs.inventory_graph is not None:
+        summaries.append(
+            CapabilityGraphSummary(
+                domain="inventory_graph",
+                entity_count=len(graphs.inventory_graph.sites)
+                + len(graphs.inventory_graph.capacity_pools)
+                + len(graphs.inventory_graph.quotes)
+                + len(graphs.inventory_graph.orders)
+                + len(graphs.inventory_graph.allocations),
+                facet_counts={
+                    "sites": len(graphs.inventory_graph.sites),
+                    "capacity_pools": len(graphs.inventory_graph.capacity_pools),
+                    "quotes": len(graphs.inventory_graph.quotes),
+                    "orders": len(graphs.inventory_graph.orders),
+                    "allocations": len(graphs.inventory_graph.allocations),
                 },
             )
         )

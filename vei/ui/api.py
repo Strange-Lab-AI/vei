@@ -25,14 +25,22 @@ from vei.run.api import (
     normalize_runner,
 )
 from vei import __version__ as vei_version
+from vei.verticals.demo import (
+    load_workspace_exports_preview,
+    load_workspace_story_manifest,
+)
 from vei.workspace.api import (
+    activate_workspace_contract_variant,
     activate_workspace_scenario,
+    activate_workspace_scenario_variant,
+    list_workspace_contract_variants,
     list_workspace_source_syncs,
     list_workspace_sources,
     load_workspace_generated_scenarios,
     load_workspace_import_report,
     load_workspace_import_review,
     load_workspace_provenance,
+    list_workspace_scenario_variants,
     list_workspace_scenarios,
     load_workspace_contract,
     preview_workspace_scenario,
@@ -55,8 +63,13 @@ class RunLaunchRequest(BaseModel):
 
 
 class ScenarioActivateRequest(BaseModel):
-    scenario_name: str
+    scenario_name: str | None = None
+    variant: str | None = None
     bootstrap_contract: bool = False
+
+
+class ContractActivateRequest(BaseModel):
+    variant: str
 
 
 def create_ui_app(workspace_root: str | Path) -> FastAPI:
@@ -79,6 +92,20 @@ def create_ui_app(workspace_root: str | Path) -> FastAPI:
     @app.get("/api/workspace")
     def api_workspace() -> JSONResponse:
         return JSONResponse(show_workspace(root).model_dump(mode="json"))
+
+    @app.get("/api/story")
+    def api_story() -> JSONResponse:
+        payload = load_workspace_story_manifest(root)
+        return JSONResponse(payload.model_dump(mode="json") if payload else {})
+
+    @app.get("/api/exports-preview")
+    def api_exports_preview() -> JSONResponse:
+        return JSONResponse(
+            [
+                item.model_dump(mode="json")
+                for item in load_workspace_exports_preview(root)
+            ]
+        )
 
     @app.get("/api/imports/summary")
     def api_import_summary() -> JSONResponse:
@@ -142,14 +169,47 @@ def create_ui_app(workspace_root: str | Path) -> FastAPI:
             [item.model_dump(mode="json") for item in list_workspace_scenarios(root)]
         )
 
+    @app.get("/api/scenario-variants")
+    def api_scenario_variants() -> JSONResponse:
+        return JSONResponse(list_workspace_scenario_variants(root))
+
     @app.post("/api/scenarios/activate")
     def api_activate_scenario(request: ScenarioActivateRequest) -> JSONResponse:
-        scenario = activate_workspace_scenario(
-            root,
-            request.scenario_name,
-            bootstrap_contract=request.bootstrap_contract,
-        )
+        if bool(request.scenario_name) == bool(request.variant):
+            raise HTTPException(
+                status_code=400,
+                detail="Provide exactly one of scenario_name or variant",
+            )
+        try:
+            if request.variant:
+                scenario = activate_workspace_scenario_variant(
+                    root,
+                    request.variant,
+                    bootstrap_contract=request.bootstrap_contract,
+                )
+            else:
+                scenario = activate_workspace_scenario(
+                    root,
+                    request.scenario_name or "",
+                    bootstrap_contract=request.bootstrap_contract,
+                )
+        except (KeyError, ValueError) as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
         return JSONResponse(scenario.model_dump(mode="json"))
+
+    @app.get("/api/contract-variants")
+    def api_contract_variants() -> JSONResponse:
+        return JSONResponse(list_workspace_contract_variants(root))
+
+    @app.post("/api/contract-variants/activate")
+    def api_activate_contract_variant(
+        request: ContractActivateRequest,
+    ) -> JSONResponse:
+        try:
+            contract = activate_workspace_contract_variant(root, request.variant)
+        except (KeyError, ValueError) as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        return JSONResponse(contract.model_dump(mode="json"))
 
     @app.get("/api/scenarios/{scenario_name}/preview")
     def api_scenario_preview(scenario_name: str) -> JSONResponse:

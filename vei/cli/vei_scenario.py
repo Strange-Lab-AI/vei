@@ -8,8 +8,10 @@ import typer
 
 from vei.workspace.api import (
     activate_workspace_scenario,
+    activate_workspace_scenario_variant,
     create_workspace_scenario,
     generate_workspace_scenarios_from_import,
+    list_workspace_scenario_variants,
     list_workspace_scenarios,
     preview_workspace_scenario,
 )
@@ -33,6 +35,20 @@ def list_scenarios(
     """List workspace scenarios."""
 
     payload = [item.model_dump(mode="json") for item in list_workspace_scenarios(root)]
+    _emit(payload, indent)
+
+
+@app.command("variants")
+def list_scenario_variants(
+    root: Path = typer.Option(Path("."), help="Workspace root directory"),
+    indent: int = typer.Option(2, help="Pretty indent"),
+) -> None:
+    """List available scenario variants for a vertical workspace."""
+
+    try:
+        payload = list_workspace_scenario_variants(root)
+    except (KeyError, ValueError) as exc:
+        raise typer.BadParameter(str(exc)) from exc
     _emit(payload, indent)
 
 
@@ -99,7 +115,8 @@ def generate_scenarios(
 @app.command("activate")
 def activate_scenario(
     root: Path = typer.Option(Path("."), help="Workspace root directory"),
-    scenario_name: str = typer.Option(..., help="Workspace scenario name"),
+    scenario_name: Optional[str] = typer.Option(None, help="Workspace scenario name"),
+    variant: Optional[str] = typer.Option(None, help="Scenario variant name"),
     bootstrap_contract: bool = typer.Option(
         False, help="Re-bootstrap the scenario contract after activation"
     ),
@@ -107,12 +124,19 @@ def activate_scenario(
 ) -> None:
     """Make one workspace scenario active for subsequent runs and previews."""
 
+    if bool(scenario_name) == bool(variant):
+        raise typer.BadParameter("Provide exactly one of --scenario-name or --variant")
     try:
-        payload = activate_workspace_scenario(
-            root,
-            scenario_name,
-            bootstrap_contract=bootstrap_contract,
-        )
+        if variant:
+            payload = activate_workspace_scenario_variant(
+                root, variant, bootstrap_contract=bootstrap_contract
+            )
+        else:
+            payload = activate_workspace_scenario(
+                root,
+                scenario_name or "",
+                bootstrap_contract=bootstrap_contract,
+            )
     except (KeyError, ValueError) as exc:
         raise typer.BadParameter(str(exc)) from exc
     _emit(payload.model_dump(mode="json"), indent)

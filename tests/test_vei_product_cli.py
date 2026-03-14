@@ -452,3 +452,191 @@ def test_product_cli_identity_demo_prepares_workspace_and_demo_runs(
     assert payload["active_scenario"] == "oversharing_remediation"
     assert payload["generated_scenario_count"] >= 6
     assert set(payload["run_ids"]) == {"identity_workflow", "identity_scripted"}
+
+
+def test_product_cli_vertical_init_supports_world_packs(tmp_path: Path) -> None:
+    runner = typer.testing.CliRunner()
+    root = tmp_path / "harbor-point"
+
+    result = runner.invoke(
+        app,
+        [
+            "project",
+            "init",
+            "--root",
+            str(root),
+            "--vertical",
+            "real_estate_management",
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    payload = json.loads(result.output)
+    assert payload["manifest"]["source_kind"] == "vertical"
+    assert payload["manifest"]["source_ref"] == "real_estate_management"
+    assert payload["manifest"]["title"] == "Harbor Point Management"
+
+
+def test_product_cli_vertical_showcase_builds_demo_bundle(tmp_path: Path) -> None:
+    runner = typer.testing.CliRunner()
+    root = tmp_path / "vertical-showcase"
+
+    result = runner.invoke(
+        app,
+        [
+            "showcase",
+            "verticals",
+            "--root",
+            str(root),
+            "--run-id",
+            "vc_worlds",
+            "--vertical",
+            "real_estate_management",
+            "--vertical",
+            "digital_marketing_agency",
+            "--vertical",
+            "storage_solutions",
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    payload = json.loads(result.output)
+    assert payload["run_id"] == "vc_worlds"
+    assert len(payload["demos"]) == 3
+    assert "shared world kernel" in payload["kernel_thesis"]
+    assert all(item["baseline_graph_action_count"] > 0 for item in payload["demos"])
+    overview_path = root / "vc_worlds" / "vertical_showcase_overview.md"
+    assert overview_path.exists()
+    overview = overview_path.read_text(encoding="utf-8")
+    assert "VEI Vertical World Pack Showcase" in overview
+    assert "One kernel, three companies" in overview
+    assert "RL environment" in overview
+
+
+def test_product_cli_vertical_variant_commands_and_matrix(tmp_path: Path) -> None:
+    runner = typer.testing.CliRunner()
+    root = tmp_path / "harbor-point"
+
+    init_result = runner.invoke(
+        app,
+        [
+            "project",
+            "init",
+            "--root",
+            str(root),
+            "--vertical",
+            "real_estate_management",
+        ],
+    )
+    assert init_result.exit_code == 0, init_result.output
+
+    variants_result = runner.invoke(
+        app,
+        ["scenario", "variants", "--root", str(root)],
+    )
+    assert variants_result.exit_code == 0, variants_result.output
+    assert len(json.loads(variants_result.output)) == 4
+
+    activate_result = runner.invoke(
+        app,
+        [
+            "scenario",
+            "activate",
+            "--root",
+            str(root),
+            "--variant",
+            "vendor_no_show",
+            "--bootstrap-contract",
+        ],
+    )
+    assert activate_result.exit_code == 0, activate_result.output
+    assert json.loads(activate_result.output)["workflow_variant"] == "vendor_no_show"
+
+    contract_variants = runner.invoke(
+        app,
+        ["contract", "variants", "--root", str(root)],
+    )
+    assert contract_variants.exit_code == 0, contract_variants.output
+    assert len(json.loads(contract_variants.output)) == 3
+
+    contract_activate = runner.invoke(
+        app,
+        [
+            "contract",
+            "activate",
+            "--root",
+            str(root),
+            "--variant",
+            "safety_over_speed",
+        ],
+    )
+    assert contract_activate.exit_code == 0, contract_activate.output
+    assert (
+        json.loads(contract_activate.output)["metadata"]["vertical_contract_variant"]
+        == "safety_over_speed"
+    )
+
+    matrix_root = tmp_path / "variant-matrix"
+    matrix_result = runner.invoke(
+        app,
+        [
+            "showcase",
+            "variant-matrix",
+            "--root",
+            str(matrix_root),
+            "--run-id",
+            "vc_matrix",
+        ],
+    )
+    assert matrix_result.exit_code == 0, matrix_result.output
+    payload = json.loads(matrix_result.output)
+    assert len(payload["runs"]) == 9
+    assert "same runtime kernel" in (
+        matrix_root / "vc_matrix" / "vertical_variant_matrix_overview.md"
+    ).read_text(encoding="utf-8")
+
+
+def test_product_cli_story_showcase_builds_narrative_bundle(tmp_path: Path) -> None:
+    runner = typer.testing.CliRunner()
+    root = tmp_path / "story-showcase"
+
+    result = runner.invoke(
+        app,
+        [
+            "showcase",
+            "story",
+            "--root",
+            str(root),
+            "--run-id",
+            "vc_story",
+            "--vertical",
+            "real_estate_management",
+            "--scenario-variant",
+            "vendor_no_show",
+            "--contract-variant",
+            "safety_over_speed",
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    payload = json.loads(result.output)
+    assert payload["run_id"] == "vc_story"
+    assert len(payload["stories"]) == 1
+    story = payload["stories"][0]
+    assert story["scenario_variant"] == "vendor_no_show"
+    assert story["contract_variant"] == "safety_over_speed"
+    story_root = root / "vc_story" / "real_estate_management"
+    assert (story_root / "story_manifest.json").exists()
+    assert (story_root / "story_overview.md").exists()
+    assert (story_root / "exports_preview.json").exists()
+    overview = (story_root / "story_overview.md").read_text(encoding="utf-8")
+    assert "VEI Story" in overview
+    assert "Branch Story" in overview
+    exports_preview = json.loads(
+        (story_root / "exports_preview.json").read_text(encoding="utf-8")
+    )
+    assert [item["name"] for item in exports_preview] == [
+        "rl_episode_export",
+        "continuous_eval_export",
+        "agent_ops_export",
+    ]

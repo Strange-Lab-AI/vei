@@ -8,8 +8,10 @@ import typer
 
 from vei.run.api import evaluate_run_workspace_contract, load_run_manifest
 from vei.workspace.api import (
+    activate_workspace_contract_variant,
     bootstrap_workspace_contract,
     diff_workspace_contract,
+    list_workspace_contract_variants,
     list_workspace_runs,
     load_workspace_contract,
     validate_workspace_contract,
@@ -32,6 +34,20 @@ def _resolve_run_id(root: Path, run_id: Optional[str]) -> str:
     if not runs:
         raise typer.BadParameter("No runs found; provide --run-id")
     return runs[0].run_id
+
+
+@app.command("variants")
+def list_contract_variants(
+    root: Path = typer.Option(Path("."), help="Workspace root directory"),
+    indent: int = typer.Option(2, help="Pretty indent"),
+) -> None:
+    """List available contract variants for a vertical workspace."""
+
+    try:
+        payload = list_workspace_contract_variants(root)
+    except (KeyError, ValueError) as exc:
+        raise typer.BadParameter(str(exc)) from exc
+    _emit(payload, indent)
 
 
 @app.command("show")
@@ -119,4 +135,19 @@ def bootstrap_contract(
     payload = bootstrap_workspace_contract(
         root, scenario_name=scenario_name, overwrite=overwrite
     )
+    _emit(payload.model_dump(mode="json"), indent)
+
+
+@app.command("activate")
+def activate_contract_variant(
+    root: Path = typer.Option(Path("."), help="Workspace root directory"),
+    variant: str = typer.Option(..., help="Contract variant name"),
+    indent: int = typer.Option(2, help="Pretty indent"),
+) -> None:
+    """Activate a contract variant overlay for the active workspace scenario."""
+
+    try:
+        payload = activate_workspace_contract_variant(root, variant)
+    except (KeyError, ValueError) as exc:
+        raise typer.BadParameter(str(exc)) from exc
     _emit(payload.model_dump(mode="json"), indent)

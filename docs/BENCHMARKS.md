@@ -88,6 +88,78 @@ That command executes three stronger enterprise examples on the same kernel-back
 
 The showcase writes one `showcase_overview.md` plus per-example demo bundles, which makes it the best single command for proving that VEI can coordinate long-horizon, partially observable enterprise tasks across multiple surfaces.
 
+Run the workspace-backed vertical world-pack showcase:
+
+```bash
+vei showcase verticals \
+  --root _vei_out/vertical_showcase \
+  --run-id vc_worlds
+```
+
+That showcase creates three separate company workspaces, runs a workflow baseline plus a freer comparison run for each, and writes `vertical_showcase_overview.md` plus per-workspace `vertical_demo_overview.md` files:
+
+- `real_estate_management`
+- `digital_marketing_agency`
+- `storage_solutions`
+
+That bundle is also the cleanest proof that VEI is a kernel product, not a collection of disconnected demos:
+
+- the same workspace/compiler flow creates each company world
+- the same run/event spine records the baseline and comparison runs
+- the same snapshot/branch model supports the “what if” stories
+- the same contract engine turns business outcomes into pass/fail signals
+
+That is the architectural reason the product can later serve as an RL environment, a continuous evaluation stack, and an agent-management surface without changing the underlying world model.
+
+Run the variant-lab matrix on top of the same vertical worlds:
+
+```bash
+vei showcase variant-matrix \
+  --root _vei_out/vertical_showcase \
+  --run-id vc_variant_matrix
+```
+
+That command does not rebuild the company worlds. Instead, it reuses the same three vertical workspaces and runs curated combinations of:
+
+- scenario variants
+- contract variants
+- workflow baseline
+- freer comparison runner
+
+The result is the clearest “same world, many futures” demo path in the repo:
+
+- same company world
+- different hidden faults and branch labels
+- different business objectives
+- same world kernel, event spine, snapshot model, and playback UI
+
+Run the narrative-first Studio story bundle:
+
+```bash
+vei showcase story \
+  --root _vei_out/vertical_showcase \
+  --run-id vc_story \
+  --vertical real_estate_management \
+  --scenario-variant vendor_no_show \
+  --contract-variant safety_over_speed
+```
+
+This is the cleanest business-facing demo path. It writes one top-level `story_showcase_overview.md` bundle and, inside the selected workspace, the narrative artifacts:
+
+- `story_manifest.json`
+- `story_overview.md`
+- `exports_preview.json`
+
+The Studio UI then presents the run through the product primitives:
+
+- Company
+- Situation
+- Objective
+- Run
+- Branch
+- Outcome
+- Exports
+
 The flagship mixed-stack demo is the revenue/ops primary variant:
 
 ```bash

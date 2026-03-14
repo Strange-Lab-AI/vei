@@ -10,13 +10,17 @@ import pytest
 from vei.blueprint.api import build_blueprint_asset_for_example, compile_blueprint
 from vei.imports.api import get_import_package_example_path, scaffold_mapping_override
 from vei.workspace.api import (
+    activate_workspace_contract_variant,
     activate_workspace_scenario,
+    activate_workspace_scenario_variant,
     bootstrap_workspace_contract,
     create_workspace_from_template,
     generate_workspace_scenarios_from_import,
     import_workspace,
+    list_workspace_contract_variants,
     list_workspace_source_syncs,
     list_workspace_sources,
+    list_workspace_scenario_variants,
     load_workspace_generated_scenarios,
     load_workspace_import_review,
     load_workspace_provenance,
@@ -179,6 +183,36 @@ def test_activate_workspace_scenario_updates_active_scenario_and_contract(
     assert summary.manifest.active_scenario == "oversharing_remediation"
     assert preview["scenario"]["name"] == "oversharing_remediation"
     assert preview["contract"]["metadata"]["contract_bootstrap"] == "import_policy_acl"
+
+
+def test_vertical_workspace_variant_activation_updates_preview_and_contract(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "vertical-workspace"
+    create_workspace_from_template(
+        root=root,
+        source_kind="vertical",
+        source_ref="real_estate_management",
+    )
+
+    scenario_variants = list_workspace_scenario_variants(root)
+    contract_variants = list_workspace_contract_variants(root)
+    activate_workspace_scenario_variant(root, "vendor_no_show", bootstrap_contract=True)
+    contract = activate_workspace_contract_variant(root, "safety_over_speed")
+    preview = preview_workspace_scenario(root)
+
+    assert len(scenario_variants) == 4
+    assert len(contract_variants) == 3
+    assert preview["active_scenario_variant"] == "vendor_no_show"
+    assert preview["active_contract_variant"] == "safety_over_speed"
+    assert preview["scenario"]["workflow_variant"] == "vendor_no_show"
+    assert (
+        preview["compiled_blueprint"]["asset"]["capability_graphs"]["metadata"][
+            "active_scenario_variant"
+        ]
+        == "vendor_no_show"
+    )
+    assert contract.metadata["vertical_contract_variant"] == "safety_over_speed"
 
 
 def test_import_workspace_fails_cleanly_for_incomplete_import_package(
