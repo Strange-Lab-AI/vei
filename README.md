@@ -151,9 +151,7 @@ That path writes:
 - `presentation_manifest.json`
 - `presentation_guide.md`
 
-The point is product legibility: VEI now presents the demo as **Presentation → Company → Situation → Objective → Run → Branch → Outcome → Exports**, while the underlying kernel stays the same. The new presentation artifacts give you a clean live-demo talk track on top of the same Studio workspace.
-
-If you want the short spoken flow for a live meeting, use [docs/PRESENTATION_TALK_TRACK.md](/Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/docs/PRESENTATION_TALK_TRACK.md).
+The point is product legibility: VEI now presents the demo as **Presentation → Company → Situation → Objective → Run → Branch → Outcome → Exports**, while the underlying kernel stays the same. The new presentation artifacts give you a clean live-demo flow on top of the same Studio workspace.
 
 ### Grounded import flow
 

@@ -163,8 +163,6 @@ The Studio UI then presents the run through the product primitives:
 - Outcome
 - Exports
 
-For the spoken meeting flow that matches this path, use [PRESENTATION_TALK_TRACK.md](/Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/docs/PRESENTATION_TALK_TRACK.md).
-
 The flagship mixed-stack demo is the revenue/ops primary variant:
 
 ```bash

@@ -71,6 +71,7 @@ vei_out/
 evals/
 **/trace.jsonl
 archive_data/
+docs/PRESENTATION_TALK_TRACK.md
 
 # Environment files and logs
 .env
