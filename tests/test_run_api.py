@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import pytest
 from pathlib import Path
 
@@ -19,6 +20,14 @@ from vei.workspace.api import (
     import_workspace,
 )
 from vei.workspace.api import create_workspace_from_template
+
+
+def _set_runs_dir(root: Path, runs_dir: str) -> None:
+    project_path = root / "vei_project.json"
+    payload = json.loads(project_path.read_text(encoding="utf-8"))
+    payload["runs_dir"] = runs_dir
+    payload["runs_index_path"] = f"{runs_dir}/index.json"
+    project_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
 
 
 def test_workspace_run_launches_and_writes_timeline(tmp_path: Path) -> None:
@@ -157,3 +166,25 @@ def test_bc_runner_requires_model_path(tmp_path: Path) -> None:
 
     with pytest.raises(ValueError, match="bc runner requires bc_model_path"):
         launch_workspace_run(root, runner="bc")
+
+
+def test_workspace_run_respects_custom_runs_dir(tmp_path: Path) -> None:
+    root = tmp_path / "workspace"
+    create_workspace_from_template(
+        root=root,
+        source_kind="example",
+        source_ref="acquired_user_cutover",
+    )
+    _set_runs_dir(root, "runtime_runs")
+
+    manifest = launch_workspace_run(root, runner="workflow", run_id="custom-runs")
+
+    timeline = load_run_timeline(
+        root / "runtime_runs" / manifest.run_id / "timeline.json"
+    )
+    events = load_run_events_for_run(root, manifest.run_id)
+
+    assert manifest.artifacts.run_dir == f"runtime_runs/{manifest.run_id}"
+    assert (root / "runtime_runs" / manifest.run_id / "run_manifest.json").exists()
+    assert timeline
+    assert events[0].kind == "run_started"

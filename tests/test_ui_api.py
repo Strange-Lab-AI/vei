@@ -406,3 +406,21 @@ def test_ui_api_exposes_playable_mission_mode(tmp_path: Path) -> None:
     assert branch_response.status_code == 200
     branch_payload = branch_response.json()
     assert branch_payload["run_id"].startswith("human_branch")
+
+    activate_response = client.post(
+        "/api/missions/activate",
+        json={
+            "mission_name": "vendor_no_show",
+            "objective_variant": "safety_over_speed",
+        },
+    )
+    assert activate_response.status_code == 200
+
+    playable_response = client.get("/api/playable")
+    assert playable_response.status_code == 200
+    assert playable_response.json()["mission"]["mission_name"] == "vendor_no_show"
+    assert playable_response.json()["run_id"] is None
+
+    ready_state_response = client.get("/api/missions/state")
+    assert ready_state_response.status_code == 200
+    assert ready_state_response.json() == {}

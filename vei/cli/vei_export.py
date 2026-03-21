@@ -18,12 +18,15 @@ app = typer.Typer(
 def export_mission_run_command(
     root: Path = typer.Option(Path("."), help="Workspace root directory"),
     run_id: str = typer.Option(..., help="Mission run id"),
-    format: str = typer.Option(
+    export_format: str = typer.Option(
         ...,
         "--format",
         help="Export preview to render: rl, eval, or agent-ops",
     ),
     indent: int = typer.Option(2, help="Pretty indent"),
 ) -> None:
-    payload = export_mission_run(root, run_id=run_id, export_format=format)
+    try:
+        payload = export_mission_run(root, run_id=run_id, export_format=export_format)
+    except (ValueError, KeyError) as exc:
+        raise typer.BadParameter(str(exc)) from exc
     typer.echo(json.dumps(payload, indent=indent))

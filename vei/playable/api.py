@@ -9,10 +9,15 @@ from vei.benchmark.workflows import get_benchmark_family_workflow_spec
 from vei.blueprint.api import create_world_session_from_blueprint
 from vei.capability_graph.models import CapabilityGraphActionInput
 from vei.contract.models import ContractEvaluationResult
-from vei.fidelity import get_or_build_workspace_fidelity_report
+from vei.fidelity import (
+    build_workspace_fidelity_report,
+    get_or_build_workspace_fidelity_report,
+)
 from vei.run.api import (
     build_run_timeline,
     generate_run_id,
+    get_workspace_run_dir,
+    get_workspace_run_manifest_path,
     list_run_manifests,
     list_run_snapshots,
     load_run_contract_evaluation,
@@ -127,6 +132,14 @@ def activate_workspace_playable_mission(
     resolved_objective = objective_variant or mission.default_objective
     activate_workspace_contract_variant(workspace_root, resolved_objective)
     preview = preview_workspace_scenario(workspace_root)
+    fidelity = build_workspace_fidelity_report(workspace_root)
+    _write_playable_bundle_preview(
+        workspace_root,
+        world_name=manifest.title,
+        mission=mission,
+        objective_variant=resolved_objective,
+        fidelity_status=fidelity.status,
+    )
     return {
         "mission": mission.model_dump(mode="json"),
         "objective_variant": resolved_objective,
@@ -146,7 +159,10 @@ def prepare_playable_workspace(
     max_steps: int = 18,
 ) -> MissionSessionState:
     workspace_root = Path(root).expanduser().resolve()
-    selected_mission = mission or list_playable_missions(world)[0].mission_name
+    available_missions = list_playable_missions(world)
+    if not available_missions:
+        raise ValueError(f"unknown playable world: {world}")
+    selected_mission = mission or available_missions[0].mission_name
     selected_spec = get_playable_mission(world, selected_mission)
     resolved_objective = objective or selected_spec.default_objective
     story = prepare_vertical_story(
@@ -276,7 +292,7 @@ def start_workspace_mission_run(
         objective_variant=objective_name,
     )
     run_id = run_id or generate_run_id(prefix="human_play")
-    run_dir = workspace_root / manifest.runs_dir / run_id
+    run_dir = get_workspace_run_dir(workspace_root, run_id)
     if run_dir.exists():
         raise ValueError(f"run_id already exists: {run_id}")
     artifacts_dir = run_dir / "artifacts"
@@ -406,7 +422,7 @@ def load_workspace_mission_state(
     resolved_run_id = run_id or _latest_human_run_id(workspace_root)
     if resolved_run_id is None:
         return None
-    path = workspace_root / "runs" / resolved_run_id / MISSION_STATE_FILE
+    path = get_workspace_run_dir(workspace_root, resolved_run_id) / MISSION_STATE_FILE
     if not path.exists():
         return None
     return MissionSessionState.model_validate_json(path.read_text(encoding="utf-8"))
@@ -534,7 +550,7 @@ def branch_workspace_mission_run(
     )
     _upsert_human_run_index(workspace_root, branched, started_at=_iso_now())
     append_run_event(
-        workspace_root / "runs" / new_run_id / "events.jsonl",
+        get_workspace_run_dir(workspace_root, new_run_id) / "events.jsonl",
         RunTimelineEvent(
             index=0,
             kind="run_started",
@@ -569,7 +585,7 @@ def finish_workspace_mission_run(
         workspace_root,
         state,
         started_at=load_run_manifest(
-            workspace_root / "runs" / run_id / "run_manifest.json"
+            get_workspace_run_manifest_path(workspace_root, run_id)
         ).started_at,
         status="ok" if contract_eval.ok else "error",
         success=contract_eval.ok,
@@ -581,14 +597,14 @@ def finish_workspace_mission_run(
         workspace_root,
         state,
         started_at=load_run_manifest(
-            workspace_root / "runs" / run_id / "run_manifest.json"
+            get_workspace_run_manifest_path(workspace_root, run_id)
         ).started_at,
         completed_at=completed_at,
         success=contract_eval.ok,
         status="ok" if contract_eval.ok else "error",
     )
     append_run_event(
-        workspace_root / "runs" / run_id / "events.jsonl",
+        get_workspace_run_dir(workspace_root, run_id) / "events.jsonl",
         RunTimelineEvent(
             index=0,
             kind="run_completed",
@@ -683,7 +699,10 @@ def write_contract_evaluation(
     contract_eval: ContractEvaluationResult,
 ) -> Path:
     workspace_root = Path(root).expanduser().resolve()
-    path = workspace_root / "runs" / run_id / "workspace_contract_evaluation.json"
+    path = (
+        get_workspace_run_dir(workspace_root, run_id)
+        / "workspace_contract_evaluation.json"
+    )
     path.write_text(contract_eval.model_dump_json(indent=2), encoding="utf-8")
     return path
 
@@ -724,18 +743,91 @@ def render_playable_overview(state: MissionSessionState) -> str:
     return "\n".join(lines).rstrip() + "\n"
 
 
-def _write_playable_bundle(root: Path, state: MissionSessionState) -> None:
-    bundle = {
-        "world_name": state.world_name,
-        "hero": state.mission.hero,
-        "mission": state.mission.model_dump(mode="json"),
-        "run_id": state.run_id,
-        "fidelity_status": state.metadata.get("fidelity_status"),
+def _render_playable_preview_overview(
+    *,
+    world_name: str,
+    mission: PlayableMissionSpec,
+    objective_variant: str,
+    root: Path,
+) -> str:
+    return (
+        f"# VEI Playable World · {world_name}\n\n"
+        f"- Mission: `{mission.title}`\n"
+        f"- Objective: `{objective_variant}`\n\n"
+        f"{mission.briefing}\n\n"
+        "## Why this works as a playable world\n\n"
+        f"- {mission.why_it_matters}\n"
+        "- The player uses the same graph-native action ladder as the automated runs.\n"
+        "- Every move writes to the same run/event/snapshot model used elsewhere in VEI.\n"
+        "- The result already looks like future RL, eval, and agent-ops data.\n\n"
+        "## Next command\n\n"
+        f"- `python -m vei.cli.vei ui serve --root {root} --host 127.0.0.1 --port 3011`\n"
+    )
+
+
+def _build_playable_bundle_payload(
+    *,
+    root: Path,
+    world_name: str,
+    mission: PlayableMissionSpec,
+    run_id: str | None,
+    fidelity_status: str | None,
+    objective_variant: str | None = None,
+) -> dict[str, Any]:
+    return {
+        "world_name": world_name,
+        "hero": mission.hero,
+        "mission": mission.model_dump(mode="json"),
+        "objective_variant": objective_variant,
+        "run_id": run_id,
+        "fidelity_status": fidelity_status,
         "ui_command": (
             "python -m vei.cli.vei ui serve "
             f"--root {root} --host 127.0.0.1 --port 3011"
         ),
     }
+
+
+def _write_playable_bundle_preview(
+    root: Path,
+    *,
+    world_name: str,
+    mission: PlayableMissionSpec,
+    objective_variant: str,
+    fidelity_status: str | None,
+) -> None:
+    bundle = _build_playable_bundle_payload(
+        root=root,
+        world_name=world_name,
+        mission=mission,
+        run_id=None,
+        fidelity_status=fidelity_status,
+        objective_variant=objective_variant,
+    )
+    (root / PLAYABLE_BUNDLE_FILE).write_text(
+        json.dumps(bundle, indent=2),
+        encoding="utf-8",
+    )
+    (root / PLAYABLE_OVERVIEW_FILE).write_text(
+        _render_playable_preview_overview(
+            world_name=world_name,
+            mission=mission,
+            objective_variant=objective_variant,
+            root=root,
+        ),
+        encoding="utf-8",
+    )
+
+
+def _write_playable_bundle(root: Path, state: MissionSessionState) -> None:
+    bundle = _build_playable_bundle_payload(
+        root=root,
+        world_name=state.world_name,
+        mission=state.mission,
+        run_id=state.run_id,
+        fidelity_status=state.metadata.get("fidelity_status"),
+        objective_variant=state.objective_variant,
+    )
     (root / PLAYABLE_BUNDLE_FILE).write_text(
         json.dumps(bundle, indent=2),
         encoding="utf-8",
@@ -772,7 +864,7 @@ def _restore_workspace_session(
     workspace_root: Path,
     state: MissionSessionState,
 ):
-    run_dir = workspace_root / "runs" / state.run_id
+    run_dir = get_workspace_run_dir(workspace_root, state.run_id)
     manifest = load_run_manifest(run_dir / "run_manifest.json")
     session = _build_workspace_session(
         workspace_root,
@@ -969,7 +1061,7 @@ def _write_mission_state(
     run_id: str,
     state: MissionSessionState,
 ) -> Path:
-    path = workspace_root / "runs" / run_id / MISSION_STATE_FILE
+    path = get_workspace_run_dir(workspace_root, run_id) / MISSION_STATE_FILE
     path.write_text(state.model_dump_json(indent=2), encoding="utf-8")
     return path
 
@@ -979,7 +1071,7 @@ def _write_mission_exports(
     run_id: str,
     exports: list[MissionExportBundle],
 ) -> Path:
-    path = workspace_root / "runs" / run_id / MISSION_EXPORT_FILE
+    path = get_workspace_run_dir(workspace_root, run_id) / MISSION_EXPORT_FILE
     path.write_text(
         json.dumps([item.model_dump(mode="json") for item in exports], indent=2),
         encoding="utf-8",
@@ -998,7 +1090,7 @@ def _write_human_run_manifest(
     error: str | None,
     completed_at: str | None = None,
 ) -> RunManifest:
-    run_dir = workspace_root / "runs" / state.run_id
+    run_dir = get_workspace_run_dir(workspace_root, state.run_id)
     manifest = RunManifest(
         run_id=state.run_id,
         workspace_name=load_workspace(workspace_root).name,
@@ -1053,7 +1145,7 @@ def _upsert_human_run_index(
             status=status,  # type: ignore[arg-type]
             manifest_path=str(
                 (
-                    workspace_root / "runs" / state.run_id / "run_manifest.json"
+                    get_workspace_run_manifest_path(workspace_root, state.run_id)
                 ).relative_to(workspace_root)
             ),
             started_at=started_at,
@@ -1072,7 +1164,7 @@ def _write_human_step_events(
     snapshot_id: int,
     contract_eval: ContractEvaluationResult,
 ) -> None:
-    run_dir = workspace_root / "runs" / state.run_id
+    run_dir = get_workspace_run_dir(workspace_root, state.run_id)
     append_run_event(
         run_dir / "events.jsonl",
         RunTimelineEvent(
@@ -1085,7 +1177,11 @@ def _write_human_step_events(
             resolved_tool=move.resolved_tool,
             graph_intent=move.graph_intent,
             graph_domain=move.graph_intent.split(".", 1)[0],
-            graph_action=move.graph_intent.split(".", 1)[1],
+            graph_action=(
+                move.graph_intent.split(".", 1)[1]
+                if "." in move.graph_intent
+                else move.graph_intent
+            ),
             object_refs=move.object_refs,
             branch=state.branch_name,
             payload=move.payload,
@@ -1139,7 +1235,7 @@ def _seed_branch_snapshot(
     branch_name: str,
     payload: dict[str, Any],
 ) -> None:
-    run_dir = workspace_root / "runs" / new_run_id
+    run_dir = get_workspace_run_dir(workspace_root, new_run_id)
     branch_dir = run_dir / "state" / branch_name
     state_dir = branch_dir / "snapshots"
     artifacts_dir = run_dir / "artifacts"
@@ -1267,256 +1363,9 @@ def _contract_summary(contract_eval: ContractEvaluationResult) -> RunContractSum
 
 
 def _mission_specs() -> list[PlayableMissionSpec]:
-    return [
-        PlayableMissionSpec(
-            vertical_name="real_estate_management",
-            mission_name="tenant_opening_conflict",
-            title="Tenant Opening Conflict",
-            briefing="A flagship Harbor Point tenant needs to open Monday morning, but the lease amendment, vendor assignment, and unit reservation are all drifting.",
-            why_it_matters="This is the clearest proof that one company world can turn into a tense, business-real mission instead of a static workflow demo.",
-            failure_impact="Missed opening day hurts tenant trust, leasing credibility, and property readiness.",
-            scenario_variant="tenant_opening_conflict",
-            default_objective="opening_readiness",
-            supported_objectives=[
-                "opening_readiness",
-                "minimize_tenant_disruption",
-                "safety_over_speed",
-            ],
-            branch_labels=[
-                "Protect the opening with a clean readiness path",
-                "Trade speed for a riskier opening branch",
-            ],
-            hero=True,
-            action_budget=7,
-            turn_budget=9,
-            countdown_ms=180000,
-            primary_domain="property_graph",
-            manual_moves=[
-                PlayableMissionMoveSpec(
-                    move_id="risk:wrong_vendor",
-                    title="Assign the wrong vendor anyway",
-                    summary="Force a mismatched vendor onto the blocking work order.",
-                    tier="risky",
-                    graph_action=CapabilityGraphActionInput(
-                        domain="property_graph",
-                        action="assign_vendor",
-                        args={
-                            "work_order_id": "WO-HPM-88",
-                            "vendor_id": "VEND-HPM-ELEC",
-                            "note": "Forced risky assignment.",
-                        },
-                    ),
-                    consequence_preview="You might move faster, but the opening could stay operationally invalid.",
-                )
-            ],
-            tags=["hero", "real-estate"],
-        ),
-        PlayableMissionSpec(
-            vertical_name="real_estate_management",
-            mission_name="vendor_no_show",
-            title="Vendor No-Show",
-            briefing="The original HVAC vendor disappears late, and property ops has to recover the opening path fast.",
-            why_it_matters="This makes the same company feel alive: one last-minute vendor shock turns the world into a different mission.",
-            failure_impact="Without a recovery path, the anchor tenant misses the opening window.",
-            scenario_variant="vendor_no_show",
-            default_objective="safety_over_speed",
-            supported_objectives=["opening_readiness", "safety_over_speed"],
-            branch_labels=[
-                "Route to a safe backup path",
-                "Keep waiting and risk a missed opening",
-            ],
-            primary_domain="property_graph",
-            manual_moves=[],
-            tags=["hero", "real-estate"],
-        ),
-        PlayableMissionSpec(
-            vertical_name="real_estate_management",
-            mission_name="lease_revision_late",
-            title="Lease Revision Late",
-            briefing="Legal redlines arrive late and compress the opening deadline for the Harbor Point tenant.",
-            why_it_matters="This mission shows deadline pressure without changing the underlying company.",
-            failure_impact="A rushed handoff can create an invalid opening or a delayed move-in.",
-            scenario_variant="lease_revision_late",
-            default_objective="safety_over_speed",
-            supported_objectives=["opening_readiness", "safety_over_speed"],
-            branch_labels=[
-                "Compress prep safely",
-                "Force the opening and carry hidden risk",
-            ],
-            primary_domain="property_graph",
-            manual_moves=[],
-            tags=["hero", "real-estate"],
-        ),
-        PlayableMissionSpec(
-            vertical_name="real_estate_management",
-            mission_name="double_booked_unit",
-            title="Double-Booked Unit",
-            briefing="Unit 14A is reserved for the wrong tenant right before the flagship opening.",
-            why_it_matters="The same property world can produce space and reservation conflicts, not just document drift.",
-            failure_impact="The tenant arrives to a broken move-in and trust damage spreads fast.",
-            scenario_variant="double_booked_unit",
-            default_objective="minimize_tenant_disruption",
-            supported_objectives=[
-                "opening_readiness",
-                "minimize_tenant_disruption",
-            ],
-            branch_labels=[
-                "Reclaim the unit cleanly",
-                "Leave the reservation conflict unresolved",
-            ],
-            primary_domain="property_graph",
-            manual_moves=[],
-            tags=["hero", "real-estate"],
-        ),
-        PlayableMissionSpec(
-            vertical_name="real_estate_management",
-            mission_name="maintenance_cascade",
-            title="Maintenance Cascade",
-            briefing="The opening checklist is stable on paper, but prep is cascading across maintenance and vendor coordination.",
-            why_it_matters="This fifth Harbor Point mission gives the hero world more replay value without adding a whole new industry.",
-            failure_impact="Prep debt spills into opening day and the property team loses control of the schedule.",
-            scenario_variant="tenant_opening_conflict",
-            default_objective="safety_over_speed",
-            supported_objectives=[
-                "opening_readiness",
-                "minimize_tenant_disruption",
-                "safety_over_speed",
-            ],
-            branch_labels=[
-                "Stabilize the maintenance path",
-                "Push the work downstream and carry hidden opening risk",
-            ],
-            primary_domain="property_graph",
-            manual_moves=[
-                PlayableMissionMoveSpec(
-                    move_id="risk:skip_unit_reservation",
-                    title="Skip unit reservation and rush the opening",
-                    summary="Leave the reservation unresolved while declaring the opening path complete.",
-                    tier="risky",
-                    graph_action=CapabilityGraphActionInput(
-                        domain="comm_graph",
-                        action="post_message",
-                        args={
-                            "channel": "#harbor-point-ops",
-                            "text": "Opening declared ready before unit reservation is confirmed.",
-                        },
-                    ),
-                    consequence_preview="This looks fast, but it leaves a hidden operational gap in the world state.",
-                )
-            ],
-            tags=["hero", "real-estate"],
-        ),
-        PlayableMissionSpec(
-            vertical_name="digital_marketing_agency",
-            mission_name="campaign_launch_guardrail",
-            title="Campaign Launch Guardrail",
-            briefing="Northstar Growth needs to stop a hot launch from going live with approval, pacing, and reporting drift.",
-            why_it_matters="This is the cleanest proof that the kernel can model client work, approvals, budgets, and comms in one mission.",
-            failure_impact="Bad launch state burns budget and client trust at the same time.",
-            scenario_variant="campaign_launch_guardrail",
-            default_objective="launch_safely",
-            supported_objectives=[
-                "launch_safely",
-                "protect_budget",
-                "client_comms_first",
-            ],
-            branch_labels=[
-                "Launch with safety restored",
-                "Let unsafe spend continue and absorb the fallout",
-            ],
-            primary_domain="campaign_graph",
-            manual_moves=[
-                PlayableMissionMoveSpec(
-                    move_id="risk:overpace_campaign",
-                    title="Keep spend hot to preserve reach",
-                    summary="Raise pacing instead of cooling it down.",
-                    tier="risky",
-                    graph_action=CapabilityGraphActionInput(
-                        domain="campaign_graph",
-                        action="adjust_budget_pacing",
-                        args={"campaign_id": "CMP-APEX-01", "pacing_pct": 150.0},
-                    ),
-                    consequence_preview="Reach may hold for a moment, but client budget risk climbs fast.",
-                )
-            ],
-            tags=["support", "marketing"],
-        ),
-        PlayableMissionSpec(
-            vertical_name="digital_marketing_agency",
-            mission_name="budget_runaway",
-            title="Budget Runaway",
-            briefing="Spend accelerates beyond plan, and the agency has to protect the client before the launch budget blows up.",
-            why_it_matters="This short mission makes the same agency world feel like a finance-and-trust problem instead of only an approval problem.",
-            failure_impact="Overspend erodes margin and damages the client relationship.",
-            scenario_variant="budget_runaway",
-            default_objective="protect_budget",
-            supported_objectives=["launch_safely", "protect_budget"],
-            branch_labels=[
-                "Throttle spend and protect budget",
-                "Keep momentum and accept budget risk",
-            ],
-            primary_domain="campaign_graph",
-            manual_moves=[],
-            tags=["support", "marketing"],
-        ),
-        PlayableMissionSpec(
-            vertical_name="storage_solutions",
-            mission_name="capacity_quote_commitment",
-            title="Capacity Quote Commitment",
-            briefing="Atlas Storage Systems has to lock a feasible commitment for a strategic customer before ops overcommits the rollout.",
-            why_it_matters="This shows the kernel handling capacity, quotes, vendors, and customer commitments as one playable operational world.",
-            failure_impact="A broken commitment creates downstream fulfillment failure with a strategic account.",
-            scenario_variant="capacity_quote_commitment",
-            default_objective="no_overcommit",
-            supported_objectives=[
-                "no_overcommit",
-                "maximize_feasible_revenue",
-                "ops_consistency",
-            ],
-            branch_labels=[
-                "Commit only what ops can really deliver",
-                "Overpromise now and push failure downstream",
-            ],
-            primary_domain="inventory_graph",
-            manual_moves=[
-                PlayableMissionMoveSpec(
-                    move_id="risk:inflate_quote",
-                    title="Promise more capacity than the pool can support",
-                    summary="Revise the quote upward without protecting feasibility first.",
-                    tier="risky",
-                    graph_action=CapabilityGraphActionInput(
-                        domain="inventory_graph",
-                        action="revise_quote",
-                        args={
-                            "quote_id": "QTE-ATLAS-01",
-                            "site_id": "SITE-ATLAS-MKE",
-                            "committed_units": 180,
-                        },
-                    ),
-                    consequence_preview="Revenue might look higher, but the world drifts toward overcommit and failed delivery.",
-                )
-            ],
-            tags=["support", "storage"],
-        ),
-        PlayableMissionSpec(
-            vertical_name="storage_solutions",
-            mission_name="vendor_dispatch_gap",
-            title="Vendor Dispatch Gap",
-            briefing="The preferred dispatch path is shaky, so Atlas has to stabilize fulfillment before a strategic promise becomes impossible.",
-            why_it_matters="This short mission proves the same storage world can pivot from capacity planning to downstream execution discipline.",
-            failure_impact="A weak dispatch path turns a promising deal into an operational miss.",
-            scenario_variant="vendor_dispatch_gap",
-            default_objective="ops_consistency",
-            supported_objectives=["no_overcommit", "ops_consistency"],
-            branch_labels=[
-                "Stabilize downstream execution",
-                "Keep the quote live without dispatch certainty",
-            ],
-            primary_domain="inventory_graph",
-            manual_moves=[],
-            tags=["support", "storage"],
-        ),
-    ]
+    from ._catalog import mission_specs
+
+    return mission_specs()
 
 
 def _iso_now() -> str:

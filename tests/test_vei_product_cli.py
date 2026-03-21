@@ -706,6 +706,28 @@ def test_product_cli_prepares_playable_world_and_exports(tmp_path: Path) -> None
     assert export_payload["name"] == "rl"
 
 
+def test_product_cli_rejects_unknown_playable_world(tmp_path: Path) -> None:
+    runner = typer.testing.CliRunner()
+    root = tmp_path / "playable-invalid"
+
+    result = runner.invoke(
+        app,
+        [
+            "studio",
+            "play",
+            "--root",
+            str(root),
+            "--world",
+            "not_a_world",
+            "--no-serve",
+        ],
+    )
+
+    assert result.exit_code != 0
+    assert "unknown playable world" in result.output
+    assert "Traceback" not in result.output
+
+
 def test_product_cli_playable_showcase_builds_publishable_bundle(
     tmp_path: Path,
 ) -> None:

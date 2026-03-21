@@ -51,16 +51,22 @@ def play_command(
         help="Serve the UI after preparing the playable workspace",
     ),
 ) -> None:
-    state = prepare_playable_workspace(
-        root,
-        world=world,
-        mission=mission,
-        objective=objective,
-        compare_runner=compare_runner,
-        overwrite=overwrite,
-        seed=seed,
-        max_steps=max_steps,
-    )
+    normalized_runner = compare_runner.strip().lower()
+    if normalized_runner not in {"scripted", "bc", "llm"}:
+        raise typer.BadParameter("compare-runner must be one of scripted|bc|llm")
+    try:
+        state = prepare_playable_workspace(
+            root,
+            world=world,
+            mission=mission,
+            objective=objective,
+            compare_runner=normalized_runner,
+            overwrite=overwrite,
+            seed=seed,
+            max_steps=max_steps,
+        )
+    except (ValueError, KeyError) as exc:
+        raise typer.BadParameter(str(exc)) from exc
     fidelity = get_or_build_workspace_fidelity_report(root)
     payload = {
         "workspace_root": str(Path(root).expanduser().resolve()),

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import TYPE_CHECKING, Iterable
 
 from vei.blueprint.api import create_world_session_from_blueprint
 from vei.capability_graph.models import CapabilityGraphActionInput
@@ -19,6 +20,9 @@ from .models import (
     TwinFidelityCheck,
     TwinFidelityReport,
 )
+
+if TYPE_CHECKING:
+    from vei.world.api import WorldSessionAPI
 
 
 REPORT_PATH = Path("fidelity_report.json")
@@ -101,7 +105,7 @@ def write_workspace_fidelity_report(
     return path
 
 
-def _check_slack_surface(session) -> TwinFidelityCase:
+def _check_slack_surface(session: WorldSessionAPI) -> TwinFidelityCase:
     channel = "#harbor-point-ops"
     message = "Fidelity probe: opening update recorded."
     result = session.call_tool(
@@ -148,7 +152,7 @@ def _check_slack_surface(session) -> TwinFidelityCase:
     )
 
 
-def _check_docs_surface(session) -> TwinFidelityCase:
+def _check_docs_surface(session: WorldSessionAPI) -> TwinFidelityCase:
     doc_id = "DOC-HPM-OPENING"
     body = "Opening checklist draft.\n\nBoundary fidelity note recorded."
     result = session.call_tool(
@@ -195,7 +199,7 @@ def _check_docs_surface(session) -> TwinFidelityCase:
     )
 
 
-def _check_tickets_surface(session) -> TwinFidelityCase:
+def _check_tickets_surface(session: WorldSessionAPI) -> TwinFidelityCase:
     ticket_id = "JRA-HPM-17"
     comment = "Fidelity probe: opening blocker reviewed."
     result = session.call_tool(
@@ -204,7 +208,10 @@ def _check_tickets_surface(session) -> TwinFidelityCase:
     )
     ticket = session.call_tool("tickets.get", {"ticket_id": ticket_id})
     history = list(ticket.get("history", []))
-    comment_visible = any(result.get("comment_id") in str(item) for item in history)
+    cid = result.get("comment_id")
+    comment_visible = any(
+        item.get("comment") == cid or item.get("comment_id") == cid for item in history
+    )
     checks = [
         TwinFidelityCheck(
             name="request_shape",
@@ -220,7 +227,7 @@ def _check_tickets_surface(session) -> TwinFidelityCase:
         ),
         TwinFidelityCheck(
             name="history_semantics",
-            status="ok" if str(ticket.get("status", "")).lower() else "warning",
+            status="ok" if ticket.get("status") else "warning",
             summary="Ticket state remains readable after the write and keeps explicit status semantics.",
             payload={"status": ticket.get("status")},
         ),
@@ -236,7 +243,7 @@ def _check_tickets_surface(session) -> TwinFidelityCase:
     )
 
 
-def _check_identity_surface(session) -> TwinFidelityCase:
+def _check_identity_surface(session: WorldSessionAPI) -> TwinFidelityCase:
     action = CapabilityGraphActionInput(
         domain="work_graph",
         action="update_request_approval",
@@ -307,7 +314,7 @@ def _check_identity_surface(session) -> TwinFidelityCase:
     )
 
 
-def _check_property_surface(session) -> TwinFidelityCase:
+def _check_property_surface(session: WorldSessionAPI) -> TwinFidelityCase:
     action = CapabilityGraphActionInput(
         domain="property_graph",
         action="assign_vendor",
@@ -362,7 +369,7 @@ def _check_property_surface(session) -> TwinFidelityCase:
     )
 
 
-def _check_campaign_surface(session) -> TwinFidelityCase:
+def _check_campaign_surface(session: WorldSessionAPI) -> TwinFidelityCase:
     action = CapabilityGraphActionInput(
         domain="campaign_graph",
         action="approve_creative",
@@ -419,7 +426,7 @@ def _check_campaign_surface(session) -> TwinFidelityCase:
     )
 
 
-def _check_inventory_surface(session) -> TwinFidelityCase:
+def _check_inventory_surface(session: WorldSessionAPI) -> TwinFidelityCase:
     action = CapabilityGraphActionInput(
         domain="inventory_graph",
         action="allocate_capacity",
@@ -477,15 +484,9 @@ def _check_inventory_surface(session) -> TwinFidelityCase:
     )
 
 
-def _safe_graph_error(session, action: CapabilityGraphActionInput) -> str:
-    try:
-        session.graph_action(action)
-    except Exception as exc:  # pragma: no cover - defensive
-        return str(exc)
-    return ""
-
-
-def _safe_tool_error(session, tool: str, args: dict[str, object]) -> str:
+def _safe_tool_error(
+    session: WorldSessionAPI, tool: str, args: dict[str, object]
+) -> str:
     try:
         session.call_tool(tool, args)
     except Exception as exc:  # pragma: no cover - defensive
@@ -493,7 +494,7 @@ def _safe_tool_error(session, tool: str, args: dict[str, object]) -> str:
     return ""
 
 
-def _combine_status(statuses) -> FidelityStatus:
+def _combine_status(statuses: Iterable[FidelityStatus]) -> FidelityStatus:
     items = list(statuses)
     if any(item == "error" for item in items):
         return "error"
@@ -506,7 +507,9 @@ def _iso_now() -> str:
     return datetime.now(UTC).replace(microsecond=0).isoformat()
 
 
-def _check_vertical_surface(session, vertical_name: str) -> TwinFidelityCase:
+def _check_vertical_surface(
+    session: WorldSessionAPI, vertical_name: str
+) -> TwinFidelityCase:
     normalized = vertical_name.strip().lower()
     if normalized == "digital_marketing_agency":
         return _check_campaign_surface(session)

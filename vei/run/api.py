@@ -23,6 +23,7 @@ from vei.workspace.api import (
     compile_workspace,
     evaluate_workspace_contract_against_state,
     list_workspace_runs,
+    load_workspace,
     resolve_workspace_scenario,
     upsert_workspace_run,
 )
@@ -375,6 +376,20 @@ def write_run_manifest(root: str | Path, manifest: RunManifest) -> RunManifest:
     return manifest
 
 
+def get_workspace_runs_dir(root: str | Path) -> Path:
+    workspace_root = Path(root).expanduser().resolve()
+    manifest = load_workspace(workspace_root)
+    return workspace_root / manifest.runs_dir
+
+
+def get_workspace_run_dir(root: str | Path, run_id: str) -> Path:
+    return get_workspace_runs_dir(root) / run_id
+
+
+def get_workspace_run_manifest_path(root: str | Path, run_id: str) -> Path:
+    return get_workspace_run_dir(root, run_id) / "run_manifest.json"
+
+
 def load_run_timeline(path: str | Path) -> list[RunTimelineEvent]:
     payload = json.loads(Path(path).read_text(encoding="utf-8"))
     return [RunTimelineEvent.model_validate(item) for item in payload]
@@ -384,7 +399,9 @@ def write_run_timeline(
     root: str | Path, run_id: str, events: list[RunTimelineEvent]
 ) -> Path:
     workspace_root = Path(root).expanduser().resolve()
-    manifest = load_run_manifest(workspace_root / "runs" / run_id / "run_manifest.json")
+    manifest = load_run_manifest(
+        get_workspace_run_manifest_path(workspace_root, run_id)
+    )
     path = workspace_root / manifest.artifacts.run_dir / "timeline.json"
     path.write_text(
         json.dumps([event.model_dump(mode="json") for event in events], indent=2),
@@ -395,7 +412,7 @@ def write_run_timeline(
 
 def build_run_timeline(root: str | Path, run_id: str) -> list[RunTimelineEvent]:
     workspace_root = Path(root).expanduser().resolve()
-    events_path = workspace_root / "runs" / run_id / "events.jsonl"
+    events_path = get_workspace_run_dir(workspace_root, run_id) / "events.jsonl"
     if events_path.exists():
         events = load_run_events(events_path)
         for idx, item in enumerate(events, start=1):
@@ -407,7 +424,7 @@ def build_run_timeline(root: str | Path, run_id: str) -> list[RunTimelineEvent]:
 def _build_run_timeline_from_artifacts(
     workspace_root: Path, run_id: str
 ) -> list[RunTimelineEvent]:
-    run_dir = workspace_root / "runs" / run_id
+    run_dir = get_workspace_run_dir(workspace_root, run_id)
     artifacts_dir = run_dir / "artifacts"
     events: list[RunTimelineEvent] = []
     index = 1
@@ -580,7 +597,7 @@ def _build_run_timeline_from_artifacts(
 
 def load_run_events_for_run(root: str | Path, run_id: str) -> list[RunTimelineEvent]:
     workspace_root = Path(root).expanduser().resolve()
-    path = workspace_root / "runs" / run_id / "events.jsonl"
+    path = get_workspace_run_dir(workspace_root, run_id) / "events.jsonl"
     if not path.exists():
         return []
     return load_run_events(path)
@@ -588,8 +605,8 @@ def load_run_events_for_run(root: str | Path, run_id: str) -> list[RunTimelineEv
 
 def list_run_snapshots(root: str | Path, run_id: str) -> list[RunSnapshotRef]:
     workspace_root = Path(root).expanduser().resolve()
-    run_dir = workspace_root / "runs" / run_id
-    manifest_path = run_dir / "run_manifest.json"
+    run_dir = get_workspace_run_dir(workspace_root, run_id)
+    manifest_path = get_workspace_run_manifest_path(workspace_root, run_id)
     branch = None
     if manifest_path.exists():
         branch = load_run_manifest(manifest_path).branch
@@ -663,7 +680,10 @@ def load_run_contract_evaluation(
     root: str | Path, run_id: str
 ) -> Dict[str, Any] | None:
     workspace_root = Path(root).expanduser().resolve()
-    path = workspace_root / "runs" / run_id / "workspace_contract_evaluation.json"
+    path = (
+        get_workspace_run_dir(workspace_root, run_id)
+        / "workspace_contract_evaluation.json"
+    )
     if not path.exists():
         return None
     return json.loads(path.read_text(encoding="utf-8"))
@@ -676,7 +696,7 @@ def evaluate_run_workspace_contract(
     scenario_name: Optional[str] = None,
 ) -> ContractEvaluationResult | None:
     workspace_root = Path(root).expanduser().resolve()
-    run_dir = workspace_root / "runs" / run_id
+    run_dir = get_workspace_run_dir(workspace_root, run_id)
     if not run_dir.exists():
         return None
     evaluation_inputs = _extract_run_evaluation_inputs(workspace_root, run_id)
@@ -696,7 +716,7 @@ def evaluate_run_workspace_contract(
 def _extract_run_evaluation_inputs(
     workspace_root: Path, run_id: str
 ) -> Dict[str, Any] | None:
-    run_dir = workspace_root / "runs" / run_id
+    run_dir = get_workspace_run_dir(workspace_root, run_id)
     artifacts_dir = run_dir / "artifacts"
     state = _latest_run_state(workspace_root, run_id)
     if state is None:
@@ -748,7 +768,7 @@ def _latest_run_state(root: str | Path, run_id: str) -> WorldState | None:
 
 
 def _append_artifact_events(root: Path, run_id: str, *, runner: str) -> None:
-    run_dir = root / "runs" / run_id
+    run_dir = get_workspace_run_dir(root, run_id)
     events_path = run_dir / "events.jsonl"
     existing_keys: set[tuple[str, str, int, str | None]] = set()
     if events_path.exists():

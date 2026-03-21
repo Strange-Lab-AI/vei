@@ -30,6 +30,8 @@ from vei.run.api import (
     generate_run_id,
     get_run_capability_graphs,
     get_run_orientation,
+    get_workspace_run_dir,
+    get_workspace_run_manifest_path,
     launch_workspace_run,
     list_run_manifests,
     list_run_snapshots,
@@ -107,8 +109,6 @@ def create_ui_app(workspace_root: str | Path) -> FastAPI:
     static_dir = Path(__file__).with_name("static")
     app = FastAPI(title="VEI UI", version=vei_version)
     app.state.workspace_root = root
-    app.state.active_runs = set()
-
     app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
     @app.get("/")
@@ -178,6 +178,10 @@ def create_ui_app(workspace_root: str | Path) -> FastAPI:
 
     @app.get("/api/missions/state")
     def api_mission_state(run_id: str | None = None) -> JSONResponse:
+        if run_id is None:
+            bundle = load_workspace_playable_bundle(root)
+            if bundle is not None and not bundle.get("run_id"):
+                return JSONResponse({})
         payload = load_workspace_mission_state(root, run_id)
         return JSONResponse(payload.model_dump(mode="json") if payload else {})
 
@@ -380,7 +384,7 @@ def create_ui_app(workspace_root: str | Path) -> FastAPI:
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
         resolved_run_id = launch.run_id or generate_run_id()
-        if (root / "runs" / resolved_run_id).exists():
+        if get_workspace_run_dir(root, resolved_run_id).exists():
             raise HTTPException(status_code=409, detail="run_id already exists")
 
         if normalized_runner == "llm" and not launch.model:
@@ -389,23 +393,19 @@ def create_ui_app(workspace_root: str | Path) -> FastAPI:
             raise HTTPException(status_code=400, detail="bc runner requires bc_model")
 
         def _worker() -> None:
-            app.state.active_runs.add(resolved_run_id)
-            try:
-                launch_workspace_run(
-                    root,
-                    runner=normalized_runner,
-                    scenario_name=launch.scenario_name,
-                    run_id=resolved_run_id,
-                    seed=launch.seed,
-                    branch=launch.branch,
-                    model=launch.model,
-                    provider=launch.provider,
-                    bc_model_path=launch.bc_model,
-                    task=launch.task,
-                    max_steps=launch.max_steps,
-                )
-            finally:
-                app.state.active_runs.discard(resolved_run_id)
+            launch_workspace_run(
+                root,
+                runner=normalized_runner,
+                scenario_name=launch.scenario_name,
+                run_id=resolved_run_id,
+                seed=launch.seed,
+                branch=launch.branch,
+                model=launch.model,
+                provider=launch.provider,
+                bc_model_path=launch.bc_model,
+                task=launch.task,
+                max_steps=launch.max_steps,
+            )
 
         Thread(target=_worker, daemon=True).start()
         return JSONResponse(
@@ -414,7 +414,7 @@ def create_ui_app(workspace_root: str | Path) -> FastAPI:
 
     @app.get("/api/runs/{run_id}")
     def api_run(run_id: str) -> JSONResponse:
-        path = root / "runs" / run_id / "run_manifest.json"
+        path = get_workspace_run_manifest_path(root, run_id)
         if not path.exists():
             raise HTTPException(status_code=404, detail="run not found")
         return JSONResponse(load_run_manifest(path).model_dump(mode="json"))
@@ -470,7 +470,7 @@ def create_ui_app(workspace_root: str | Path) -> FastAPI:
 
     @app.get("/api/runs/{run_id}/stream")
     async def api_run_stream(run_id: str) -> StreamingResponse:
-        manifest_path = root / "runs" / run_id / "run_manifest.json"
+        manifest_path = get_workspace_run_manifest_path(root, run_id)
 
         async def event_iter():
             last_payload = None
