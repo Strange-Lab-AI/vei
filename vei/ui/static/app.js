@@ -486,7 +486,13 @@ async function refreshPlayableArtifacts() {
   const payload = await fetchPlayableArtifacts();
   state.playableBundle = nonEmptyPayload(payload.playableBundle);
   state.missions = Array.isArray(payload.missions) ? payload.missions : [];
-  state.missionState = nonEmptyPayload(payload.missionState);
+  const fetched = nonEmptyPayload(payload.missionState);
+  const current = state.missionState;
+  const currentHasMoves = current && Array.isArray(current.available_moves) && current.available_moves.length > 0;
+  const fetchedHasMoves = fetched && Array.isArray(fetched.available_moves) && fetched.available_moves.length > 0;
+  if (!currentHasMoves || fetchedHasMoves) {
+    state.missionState = fetched;
+  }
   state.fidelityReport = nonEmptyPayload(payload.fidelityReport);
   renderMissionSelector();
   renderMissionSummary();
@@ -2415,6 +2421,7 @@ async function startMission() {
     if (payload.run_id) {
       await selectRun(payload.run_id, { previousSurfaceState: null });
     }
+    state.missionState = payload;
     state.moveHistory = [];
     recordMoveSnapshot("World loaded");
     renderMissionPlay();
@@ -2447,6 +2454,7 @@ async function applyMissionMove(moveId) {
 
     const oldSurface = previousSurfaceState;
     await refreshActiveRun(payload.run_id, { previousSurfaceState: oldSurface });
+    state.missionState = payload;
 
     const diff = diffSurfaceState(oldSurface, state.surfaceState);
     if (diff.panels.length > 0) {
@@ -2482,6 +2490,7 @@ async function branchMission() {
     await loadRuns({ selectActiveRun: false });
     state.missionState = payload;
     await selectRun(payload.run_id, { previousSurfaceState: state.surfaceState });
+    state.missionState = payload;
     status.textContent = `Branch ${payload.branch_name} is live.`;
     setStudioView("outcome");
   } catch (error) {
@@ -2503,6 +2512,7 @@ async function finishMission() {
     await loadRuns({ selectActiveRun: false });
     state.missionState = payload;
     await selectRun(payload.run_id, { previousSurfaceState: state.surfaceState });
+    state.missionState = payload;
     status.textContent = payload.scorecard?.mission_success
       ? "Mission finished cleanly."
       : "Mission finished with remaining risk.";
