@@ -229,26 +229,18 @@ function formatDomainTitle(domain) {
   return GRAPH_TITLES[domain] || domain.replaceAll("_", " ");
 }
 
+const SURFACE_TITLES = {
+  slack: "Slack",
+  mail: "Email",
+  tickets: "Work Tracker",
+  docs: "Docs",
+  approvals: "Approvals",
+  vertical_heartbeat: "Business Core",
+};
+const SURFACE_HIGHLIGHT_MS = 2600;
+
 function formatSurfaceTitle(surface) {
-  if (surface === "slack") {
-    return "Slack";
-  }
-  if (surface === "mail") {
-    return "Email";
-  }
-  if (surface === "tickets") {
-    return "Work Tracker";
-  }
-  if (surface === "docs") {
-    return "Docs";
-  }
-  if (surface === "approvals") {
-    return "Approvals";
-  }
-  if (surface === "vertical_heartbeat") {
-    return "Business Core";
-  }
-  return formatDomainTitle(surface);
+  return SURFACE_TITLES[surface] || formatDomainTitle(surface);
 }
 
 function summarizeMoveValue(value) {
@@ -297,13 +289,13 @@ function setSurfaceHighlights(highlights, { preserveExisting = false } = {}) {
 
   clearSurfaceHighlightTimer();
   state.surfaceHighlights = { panels: nextPanels, refs: nextRefs };
-  state.surfaceHighlightExpiresAt = Date.now() + 2600;
+  state.surfaceHighlightExpiresAt = Date.now() + SURFACE_HIGHLIGHT_MS;
   state.surfaceHighlightTimer = window.setTimeout(() => {
     state.surfaceHighlights = { panels: [], refs: [] };
     state.surfaceHighlightExpiresAt = 0;
     state.surfaceHighlightTimer = null;
     renderLivingCompanyView();
-  }, 2600);
+  }, SURFACE_HIGHLIGHT_MS);
 }
 
 function normalizeStudioView(view) {
@@ -629,7 +621,7 @@ function renderMissionSelector() {
         ${detailTile("State", state.missionState?.status || "ready")}
       </div>
     `
-    : `<p class="metric-detail">This workspace is not using a playable world pack yet.</p>`;
+    : `<p class="metric-detail">No company world is loaded yet.</p>`;
 }
 
 function renderMissionSummary() {
@@ -752,7 +744,7 @@ function renderSurfaceWall() {
     panel.innerHTML = `
       <div class="surface-placeholder">
         <p class="eyebrow">Living Company</p>
-        <h3>${loadingRun ? "Bringing the software wall into focus" : "Enter a world to see the software wall"}</h3>
+        <h3>${loadingRun ? "Loading company systems" : "Enter a world to see its tools"}</h3>
         <p class="metric-detail">${
           loadingRun
             ? "Loading the latest company state so the tools can appear here."
@@ -784,7 +776,7 @@ function renderSurfaceWall() {
             </div>
           </header>
           ${surfacePanel.headline ? `<p class="surface-headline">${escapeHtml(surfacePanel.headline)}</p>` : ""}
-          <div class="surface-items surface-items-${escapeHtml(surfacePanel.kind)}">
+          <div class="surface-items">
             ${(surfacePanel.items || [])
               .map((item) => renderSurfaceItem(surfacePanel, item, changedRefs))
               .join("")}
@@ -988,7 +980,7 @@ function renderMissionPlay() {
       </div>
       <div class="story-card">
         <p class="eyebrow">Branch labels</p>
-        <div class="chip-row">${(missionState.mission.branch_labels || []).map((item) => chip(item)).join("")}</div>
+        <div class="chip-row">${(missionState.mission?.branch_labels || []).map((item) => chip(item)).join("")}</div>
       </div>
     </div>
   `;
@@ -1079,7 +1071,7 @@ function renderFidelityPanel() {
     panel.innerHTML = `
       <div class="story-card story-span-2">
         <p class="eyebrow">Twin fidelity</p>
-        <p class="metric-detail">Fidelity checks appear here for playable worlds once a report is available.</p>
+        <p class="metric-detail">System health checks appear here once a fidelity report is available.</p>
       </div>
     `;
     renderJson("fidelity-raw-panel", {});
@@ -1626,14 +1618,14 @@ function renderRunSummary() {
         <div class="chip-row">${graphDomains.map((item) => chip(formatDomainTitle(item))).join("")}</div>
       </div>
       <div class="story-card">
-        <p class="eyebrow">Kernel leverage</p>
-        <h3>One runtime, reusable outputs</h3>
+        <p class="eyebrow">Reusable outputs</p>
+        <h3>Same run, many downstream uses</h3>
         <div class="chip-row">
-          ${chip("RL env")}
-          ${chip("continuous eval")}
-          ${chip("agent management")}
+          ${chip("training data")}
+          ${chip("evaluation")}
+          ${chip("operations")}
         </div>
-        <p class="metric-detail">The same run artifacts can later drive RL episodes, continuous eval deltas, and live agent operations because the kernel records state, contracts, provenance, and tool resolution in one place.</p>
+        <p class="metric-detail">Every run records state, contracts, provenance, and tool resolution in one place, so the same artifacts can drive training, evaluation, and live operations.</p>
         <div class="chip-row">${resolvedTools.slice(0, 5).map((item) => chip(item)).join("")}</div>
       </div>
       ${

@@ -12,6 +12,7 @@
   --accent-coral: #ff6d5e;
   --border: rgba(17, 34, 53, 0.12);
   --shadow: 0 24px 70px rgba(17, 34, 53, 0.12);
+  --surface-highlight-duration: 2.6s;
 }
 
 * {
@@ -630,7 +631,7 @@ body.developer-mode .developer-only {
 .surface-updated-tag {
   background: rgba(30, 108, 242, 0.12);
   color: #1758c0;
-  animation: updatedFade 2.6s ease forwards;
+  animation: updatedFade var(--surface-highlight-duration, 2.6s) ease forwards;
 }
 
 .surface-changed {

@@ -151,7 +151,7 @@ def _real_estate_asset() -> BlueprintAsset:
             messages=[
                 _slack_message(
                     "1710000000.000100",
-                    "ops-bot",
+                    "harbor.ops",
                     "Anchor tenant opening still blocked by lease amendment and HVAC work order.",
                 ),
                 _slack_message(
@@ -180,7 +180,7 @@ def _real_estate_asset() -> BlueprintAsset:
                 _slack_message(
                     "1710000240.000500",
                     "nina.leasing",
-                    "BlueBottle wants confirmation that signage, keys, and opening-day access will all be synchronized.",
+                    "Meridian wants confirmation that signage, keys, and opening-day access will all be synchronized.",
                 ),
                 _slack_message(
                     "1710000300.000600",
@@ -206,7 +206,7 @@ def _real_estate_asset() -> BlueprintAsset:
                 ),
                 _slack_message(
                     "1710000480.000900",
-                    "vendor-bot",
+                    "marcus.facilities",
                     "Brightline Electric confirmed backup availability for Monday morning only.",
                 ),
                 _slack_message(
@@ -256,7 +256,7 @@ def _real_estate_asset() -> BlueprintAsset:
                 _slack_message(
                     "1710000840.001500",
                     "sam.tenants",
-                    "BlueBottle is staging trainers onsite Sunday night if we stay green.",
+                    "Meridian is staging trainers onsite Sunday night if we stay green.",
                 ),
             ],
         ),
@@ -264,19 +264,19 @@ def _real_estate_asset() -> BlueprintAsset:
     mail_threads = [
         _mail_thread(
             "MAIL-HPM-ANCHOR",
-            title="BlueBottle opening coordination",
+            title="Meridian opening coordination",
             category="customer",
             messages=[
                 _mail_message(
-                    "melissa@bluebottlefitness.example.com",
-                    "me@example",
+                    "melissa@meridianfitness.example.com",
+                    "nina.leasing@harborpoint.example.com",
                     "Need Monday opening confirmation",
                     "We are locking staffing and signage now. Can you confirm the unit will be ready and reserved for us by end of day?",
                     time_ms=1710001000000,
                 ),
                 _mail_message(
-                    "me@example",
-                    "melissa@bluebottlefitness.example.com",
+                    "nina.leasing@harborpoint.example.com",
+                    "melissa@meridianfitness.example.com",
                     "Re: Need Monday opening confirmation",
                     "We are coordinating lease execution, vendor prep, and opening-day access now. I will send the final readiness packet today.",
                     unread=False,
@@ -291,7 +291,7 @@ def _real_estate_asset() -> BlueprintAsset:
             messages=[
                 _mail_message(
                     "dispatch@westshorehvac.example.com",
-                    "me@example",
+                    "marcus.facilities@harborpoint.example.com",
                     "Saturday slot still unconfirmed",
                     "We can hold the 9am Saturday window for Harbor Point if approval is finalized before 3pm today.",
                     time_ms=1710001600000,
@@ -313,7 +313,7 @@ def _real_estate_asset() -> BlueprintAsset:
             messages=[
                 _mail_message(
                     "harper.legal@harborpoint.example.com",
-                    "me@example",
+                    "nina.leasing@harborpoint.example.com",
                     "Redlines for LEASE-HPM-14A",
                     "Updated amendment language is attached. Need leasing signoff on occupancy wording before execution.",
                     time_ms=1710002200000,
@@ -327,7 +327,7 @@ def _real_estate_asset() -> BlueprintAsset:
             messages=[
                 _mail_message(
                     "security@harborpoint.example.com",
-                    "me@example",
+                    "sophia.gm@harborpoint.example.com",
                     "Need final access roster for Harbor Point weekend work",
                     "Please send approved vendor names, unit list, and after-hours access windows for the opening prep teams.",
                     time_ms=1710002500000,
@@ -347,7 +347,7 @@ def _real_estate_asset() -> BlueprintAsset:
         ),
         BlueprintDocumentAsset(
             doc_id="DOC-HPM-REDLINES",
-            title="BlueBottle 14A Lease Amendment Redlines",
+            title="Meridian 14A Lease Amendment Redlines",
             body=(
                 "Occupancy clause revised for Monday launch.\n"
                 "Counsel notes that execution must happen before storefront reservation is finalized."
@@ -374,7 +374,7 @@ def _real_estate_asset() -> BlueprintAsset:
         ),
         BlueprintDocumentAsset(
             doc_id="DOC-HPM-TENANT",
-            title="BlueBottle Tenant Launch Packet",
+            title="Meridian Tenant Launch Packet",
             body=(
                 "Tenant-facing packet with move-in timing, storefront access, and opening-day support contacts.\n"
                 "Currently marked hold until lease and prep milestones are complete."
@@ -556,7 +556,7 @@ def _real_estate_asset() -> BlueprintAsset:
                 tenants=[
                     BlueprintTenantAsset(
                         tenant_id="TEN-HPM-ANCHOR",
-                        name="BlueBottle Fitness",
+                        name="Meridian Fitness",
                         segment="anchor",
                         opening_deadline_ms=1710432000000,
                     ),
@@ -789,13 +789,13 @@ def _marketing_asset() -> BlueprintAsset:
             messages=[
                 _mail_message(
                     "melissa@apexhealth.example.com",
-                    "me@example",
+                    "alex.account@northstar.example.com",
                     "Still on for this afternoon?",
                     "Please confirm whether the hero creative and reporting packet will be finalized before launch. Our leadership team is asking now.",
                     time_ms=1710101000000,
                 ),
                 _mail_message(
-                    "me@example",
+                    "alex.account@northstar.example.com",
                     "melissa@apexhealth.example.com",
                     "Re: Still on for this afternoon?",
                     "We are verifying creative approval and pacing safety. I will send the readiness note shortly.",
@@ -811,7 +811,7 @@ def _marketing_asset() -> BlueprintAsset:
             messages=[
                 _mail_message(
                     "jon.creative@northstar.example.com",
-                    "me@example",
+                    "alex.account@northstar.example.com",
                     "Hero cut ready for final signoff",
                     "Version 5 is uploaded with the medical disclaimer slate. Need the client signoff recorded before trafficking.",
                     time_ms=1710101600000,
@@ -825,7 +825,7 @@ def _marketing_asset() -> BlueprintAsset:
             messages=[
                 _mail_message(
                     "riley.analytics@northstar.example.com",
-                    "me@example",
+                    "alex.account@northstar.example.com",
                     "Launch report still stale",
                     "The PDF packet is still pointing at Friday data. I can republish as soon as pacing corrections are agreed.",
                     time_ms=1710101900000,
@@ -839,7 +839,7 @@ def _marketing_asset() -> BlueprintAsset:
             messages=[
                 _mail_message(
                     "support@metapartners.example.com",
-                    "me@example",
+                    "alex.account@northstar.example.com",
                     "Bid multipliers changed during weekend learning phase",
                     "We observed elevated bid pressure on the Apex launch set. Recommend pausing auto-expansion until caps are reset.",
                     time_ms=1710102200000,
@@ -1289,13 +1289,13 @@ def _storage_asset() -> BlueprintAsset:
             messages=[
                 _mail_message(
                     "darcy@zenithbio.example.com",
-                    "me@example",
+                    "priya.revops@atlasstorage.example.com",
                     "Can you still honor the April rollout window?",
                     "Our program team needs a written commitment on unit count, site split, and dispatch timing by this afternoon.",
                     time_ms=1710201000000,
                 ),
                 _mail_message(
-                    "me@example",
+                    "priya.revops@atlasstorage.example.com",
                     "darcy@zenithbio.example.com",
                     "Re: Can you still honor the April rollout window?",
                     "We are finalizing the feasible site split and dispatch plan now. I will send the updated rollout note shortly.",
@@ -1311,7 +1311,7 @@ def _storage_asset() -> BlueprintAsset:
             messages=[
                 _mail_message(
                     "ops@rapidfreight.example.com",
-                    "me@example",
+                    "haruto.ops@atlasstorage.example.com",
                     "Need confirmed unit counts before dispatch lock",
                     "We can protect the Friday pickup window if the final pallet map and cold-chain count arrive before 2pm.",
                     time_ms=1710201600000,
@@ -1325,7 +1325,7 @@ def _storage_asset() -> BlueprintAsset:
             messages=[
                 _mail_message(
                     "haruto.ops@atlasstorage.example.com",
-                    "me@example",
+                    "priya.revops@atlasstorage.example.com",
                     "Feasible split for Zenith if Milwaukee takes ambient inventory",
                     "Attaching the draft split. We still need quote language updated so sales does not overpromise Chicago capacity.",
                     time_ms=1710201900000,
@@ -1339,7 +1339,7 @@ def _storage_asset() -> BlueprintAsset:
             messages=[
                 _mail_message(
                     "priya.revops@atlasstorage.example.com",
-                    "me@example",
+                    "haruto.ops@atlasstorage.example.com",
                     "Quote still shows full commitment",
                     "Please revise the quote note so it matches the allocation plan and the vendor dispatch status before it goes out.",
                     time_ms=1710202200000,
