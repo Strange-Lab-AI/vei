@@ -56,12 +56,11 @@ const state = {
   surfaceHighlights: { panels: [], refs: [] },
   surfaceHighlightExpiresAt: 0,
   surfaceHighlightTimer: null,
-  showLivingCompanyGuide: true,
   snapshots: [],
   selectedEventIndex: 0,
   selectedSnapshotFrom: null,
   selectedSnapshotTo: null,
-  studioView: "play",
+  studioView: "company",
   developerMode: false,
   playbackTimer: null,
   eventSource: null,
@@ -300,13 +299,17 @@ function setSurfaceHighlights(highlights, { preserveExisting = false } = {}) {
 
 function normalizeStudioView(view) {
   const normalized = String(view || "").toLowerCase();
-  if (normalized === "situations") {
-    return "missions";
-  }
-  if (normalized === "runs") {
-    return "play";
-  }
-  return normalized || "play";
+  const ALIASES = {
+    play: "company",
+    worlds: "company",
+    situations: "crisis",
+    missions: "crisis",
+    objectives: "crisis",
+    results: "outcome",
+    runs: "outcome",
+    exports: "outcome",
+  };
+  return ALIASES[normalized] || normalized || "company";
 }
 
 function setStudioView(view) {
@@ -323,13 +326,8 @@ function toggleDeveloperMode() {
   state.developerMode = !state.developerMode;
   document.body.classList.toggle("developer-mode", state.developerMode);
   document.getElementById("developer-toggle").textContent = state.developerMode
-    ? "Hide Systems Detail"
-    : "Show Systems Detail";
-}
-
-function toggleLivingCompanyGuide() {
-  state.showLivingCompanyGuide = !state.showLivingCompanyGuide;
-  renderLivingCompanyGuide();
+    ? "Hide Engine"
+    : "Show Engine";
 }
 
 function jumpToStudioView(view) {
@@ -447,9 +445,9 @@ function renderStudioShell() {
     "A stable company world with live tools, shared business state, and pressure building across the work.";
   panel.innerHTML = `
     <div class="story-card accent-card">
-      <p class="eyebrow">Start Here</p>
-      <h3>This is a work crisis simulator.</h3>
-      <p class="metric-detail">Read the pressure on the right, scan the tools, then make one move and watch the company change.</p>
+      <p class="eyebrow">What this is</p>
+      <h3>A full enterprise, running as software.</h3>
+      <p class="metric-detail">Every tool, every person, every process \u2014 simulated end\u2011to\u2011end. Make one move and watch the ripple hit Slack, email, tickets, docs, and the business core at the same time.</p>
     </div>
     <div class="story-card">
       <p class="eyebrow">Current Company</p>
@@ -457,9 +455,8 @@ function renderStudioShell() {
       <p class="metric-detail">${escapeHtml(companyBriefing)}</p>
     </div>
     <div class="story-card">
-      <p class="eyebrow">What To Watch</p>
-      <div class="chip-row">${["Current tension", "Changed tools", "Next move", "Move log"].map((item) => chip(item)).join("")}</div>
-      <p class="metric-detail">${escapeHtml(presentation.demo_goal || "The company stays fixed while the situation, the objective, and the outcome move underneath your choices.")}</p>
+      <p class="eyebrow">How it works</p>
+      <p class="metric-detail">${escapeHtml(presentation.demo_goal || "Pick a crisis. Define what success looks like. Then play moves and watch the company change \u2014 or fork reality and compare two futures side by side.")}</p>
     </div>
   `;
   setStudioView(state.studioView);
@@ -696,43 +693,29 @@ function renderMissionSummary() {
 }
 
 function renderLivingCompanyView() {
-  renderLivingCompanyGuide();
   renderSurfaceWall();
   renderLivingCompanyRail();
+  updateContextHint();
 }
 
-function renderLivingCompanyGuide() {
-  const panel = document.getElementById("living-company-guide");
-  const toggle = document.getElementById("living-company-guide-toggle");
-  if (!panel || !toggle) {
+function updateContextHint() {
+  const hint = document.getElementById("shell-context-hint");
+  if (!hint) {
     return;
   }
-  toggle.textContent = state.showLivingCompanyGuide ? "Hide Quick Guide" : "Show Quick Guide";
-  if (!state.showLivingCompanyGuide) {
-    panel.innerHTML = "";
-    panel.classList.add("hidden-panel");
-    return;
+  const ms = state.missionState;
+  if (ms?.status === "completed") {
+    hint.textContent = "Mission complete \u2014 branch the outcome or start a new crisis";
+  } else if (ms?.run_id) {
+    const moveCount = (ms.executed_moves || []).length;
+    hint.textContent = moveCount
+      ? `${moveCount} move${moveCount === 1 ? "" : "s"} played \u2014 pick the next action or finish`
+      : "You\u2019re in the world \u2014 play your first move below";
+  } else if (state.missions.length) {
+    hint.textContent = "Pick a crisis above, then watch every system react";
+  } else {
+    hint.textContent = "Loading company world\u2026";
   }
-  panel.classList.remove("hidden-panel");
-  panel.innerHTML = `
-    <div class="living-company-guide-card">
-      <div>
-        <p class="eyebrow">How to read this world</p>
-        <h3>One move changes the company.</h3>
-        <p class="metric-detail">Problem → evidence → choice → consequence.</p>
-      </div>
-      <button type="button" class="ghost-button living-company-guide-dismiss">Got it</button>
-      <div class="living-company-guide-steps">
-        <p><strong>1.</strong> Start on the right. It tells you what is going wrong, what success means, and what your next move will touch.</p>
-        <p><strong>2.</strong> Scan the tools. Chat, email, tracker, docs, approvals, and the business core show the same company from different angles.</p>
-        <p><strong>3.</strong> Play one move below. The changed tools light up and the move log records exactly what happened.</p>
-      </div>
-    </div>
-  `;
-  panel.querySelector(".living-company-guide-dismiss")?.addEventListener("click", () => {
-    state.showLivingCompanyGuide = false;
-    renderLivingCompanyGuide();
-  });
 }
 
 function renderSurfaceWall() {
@@ -825,47 +808,42 @@ function renderLivingCompanyRail() {
   const changedCount = (state.surfaceHighlights?.panels || []).length;
   const surfaceState = state.surfaceState;
 
+  const moveCount = (missionState?.executed_moves || []).length;
+  const systemCount = (surfaceState?.panels || []).length;
+
   panel.innerHTML = `
     <div class="story-card accent-card">
       <p class="eyebrow">Current tension</p>
       <h3>${escapeHtml(surfaceState?.company_name || state.story?.manifest?.company_name || state.workspace?.manifest?.title || "Company")}</h3>
-      <p class="metric-detail">${escapeHtml(surfaceState?.current_tension || mission?.briefing || "Choose a mission to bring the company into focus.")}</p>
+      <p class="metric-detail">${escapeHtml(surfaceState?.current_tension || mission?.briefing || "Choose a crisis above to bring the company under pressure.")}</p>
     </div>
     <div class="story-card">
-      <p class="eyebrow">Mission</p>
+      <p class="eyebrow">Situation</p>
+      <h3>${escapeHtml(mission?.title || "No crisis selected")}</h3>
       <div class="detail-grid">
-        ${detailTile("Situation", mission?.title || "Not selected")}
-        ${detailTile("Objective", objective)}
-        ${detailTile("Run", state.activeRun?.run_id || missionState?.run_id || "Not started")}
+        ${detailTile("Success means", objective)}
         ${detailTile("Branch", state.activeRun?.branch || missionState?.branch_name || "base")}
       </div>
       ${mission?.failure_impact ? `<p class="metric-detail">${escapeHtml(mission.failure_impact)}</p>` : ""}
     </div>
-    <div class="story-card">
-      <p class="eyebrow">Next move</p>
-      ${
-        recommendedMove
-          ? `
+    ${
+      recommendedMove
+        ? `
+          <div class="story-card">
+            <p class="eyebrow">Recommended move</p>
             <h3>${escapeHtml(recommendedMove.title)}</h3>
-            <p class="metric-detail">${escapeHtml(recommendedMove.summary || "")}</p>
-            <p class="metric-detail">${escapeHtml(recommendedMove.consequence_preview || "")}</p>
-          `
-          : `<p class="metric-detail">Finish the mission, branch the run, or switch to another situation.</p>`
-      }
-    </div>
+            <p class="metric-detail">${escapeHtml(recommendedMove.consequence_preview || recommendedMove.summary || "")}</p>
+          </div>
+        `
+        : ""
+    }
     <div class="story-card">
-      <p class="eyebrow">State pulse</p>
+      <p class="eyebrow">Pulse</p>
       <div class="detail-grid">
-        ${detailTile("Moves", String((missionState?.executed_moves || []).length))}
-        ${detailTile("Changed tools", String(changedCount))}
-        ${detailTile("Latest action", latestToolEvent?.resolved_tool || latestToolEvent?.graph_intent || "waiting")}
-        ${detailTile("Systems", String((surfaceState?.panels || []).length))}
-      </div>
-      <div class="chip-row">
-        ${uniqueStrings((surfaceState?.panels || []).map((item) => formatSurfaceTitle(item.surface)))
-          .slice(0, 6)
-          .map((item) => chip(item))
-          .join("")}
+        ${detailTile("Moves", String(moveCount))}
+        ${detailTile("Changed", String(changedCount))}
+        ${detailTile("Systems", String(systemCount))}
+        ${detailTile("Last tool", latestToolEvent?.resolved_tool || "waiting")}
       </div>
     </div>
   `;
@@ -2159,7 +2137,7 @@ async function activateMission(name, objectiveVariant = null) {
     });
     await loadWorkspace();
     status.textContent = `Mission ${name} is ready.`;
-    setStudioView("missions");
+    setStudioView("crisis");
   } catch (error) {
     status.textContent = `Mission activation failed: ${error}`;
   }
@@ -2187,7 +2165,7 @@ async function startMission() {
       await selectRun(payload.run_id, { previousSurfaceState: null });
     }
     status.textContent = `Mission ${payload.mission?.title || payload.run_id} is live.`;
-    setStudioView("play");
+    setStudioView("company");
   } catch (error) {
     status.textContent = `Mission start failed: ${error}`;
   }
@@ -2234,7 +2212,7 @@ async function branchMission() {
     await loadRuns({ selectActiveRun: false });
     await selectRun(payload.run_id, { previousSurfaceState: state.surfaceState });
     status.textContent = `Branch ${payload.branch_name} is live.`;
-    setStudioView("results");
+    setStudioView("outcome");
   } catch (error) {
     status.textContent = `Branch failed: ${error}`;
   }
@@ -2256,7 +2234,7 @@ async function finishMission() {
     status.textContent = payload.scorecard?.mission_success
       ? "Mission finished cleanly."
       : "Mission finished with remaining risk.";
-    setStudioView("results");
+    setStudioView("outcome");
   } catch (error) {
     status.textContent = `Finish failed: ${error}`;
   }
@@ -2420,11 +2398,10 @@ function bindControls() {
   });
   document.querySelectorAll(".studio-nav-button").forEach((node) => {
     node.addEventListener("click", () => {
-      setStudioView(node.dataset.studioView || "worlds");
+      setStudioView(node.dataset.studioView || "company");
     });
   });
   document.getElementById("developer-toggle").addEventListener("click", toggleDeveloperMode);
-  document.getElementById("living-company-guide-toggle").addEventListener("click", toggleLivingCompanyGuide);
   document.getElementById("scenario-select").addEventListener("change", (event) => {
     void loadScenario(event.target.value);
   });

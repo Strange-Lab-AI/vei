@@ -325,6 +325,10 @@ body.developer-mode .developer-only {
   display: block;
 }
 
+body.developer-mode .studio-nav-button.developer-only {
+  display: inline-block;
+}
+
 .card {
   padding: 22px;
   min-height: 180px;
@@ -452,42 +456,6 @@ body.developer-mode .developer-only {
   grid-template-columns: minmax(0, 1.65fr) minmax(300px, 0.85fr);
   gap: 16px;
   align-items: start;
-}
-
-.living-company-guide {
-  margin-bottom: 16px;
-}
-
-.living-company-guide-card {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 12px 18px;
-  align-items: start;
-  padding: 16px 18px;
-  border-radius: 24px;
-  border: 1px solid rgba(30, 108, 242, 0.16);
-  background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.94), rgba(238, 246, 255, 0.9)),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.06), transparent);
-  box-shadow: 0 18px 40px rgba(30, 108, 242, 0.08);
-}
-
-.living-company-guide-card h3 {
-  margin: 6px 0 0;
-  font-size: 1.08rem;
-  letter-spacing: -0.04em;
-}
-
-.living-company-guide-steps {
-  grid-column: 1 / -1;
-  display: grid;
-  gap: 10px;
-}
-
-.living-company-guide-steps p {
-  margin: 0;
-  color: var(--ink-soft);
-  line-height: 1.5;
 }
 
 .living-company-rail {
@@ -1184,9 +1152,6 @@ body.developer-mode .developer-only {
     grid-template-columns: 1fr;
   }
 
-  .living-company-guide-card {
-    grid-template-columns: 1fr;
-  }
 }
 
 /* --- Gradient text in hero --- */
