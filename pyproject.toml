@@ -68,6 +68,8 @@ vei-release = "vei.cli.vei_release:app"
 vei-report = "vei.cli.vei_report:app"
 vei-visualize = "vei.cli.vei_visualize:app"
 vei-det = "vei.cli.vei_det_pipeline:app"
+vei-context = "vei.cli.vei_context:app"
+vei-synthesize = "vei.cli.vei_synthesize:app"
 
 [tool.setuptools.packages.find]
 where = ["."]
