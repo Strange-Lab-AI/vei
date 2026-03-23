@@ -1,16 +1,18 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
 
 from vei.context.models import ContextProviderConfig
-from vei.context.providers.slack import SlackContextProvider
-from vei.context.providers.jira import JiraContextProvider
-from vei.context.providers.google import GoogleContextProvider
 from vei.context.providers import get_provider, list_providers
+from vei.context.providers.google import GoogleContextProvider
+from vei.context.providers.jira import JiraContextProvider
+from vei.context.providers.okta import OktaContextProvider
+from vei.context.providers.slack import SlackContextProvider
 
 
 def _mock_urlopen(payload: Any):
@@ -195,3 +197,48 @@ def test_google_provider_captures_users_and_docs(
     assert result.record_counts["users"] == 1
     assert result.record_counts["documents"] == 1
     assert result.data["users"][0]["email"] == "alice@example.com"
+
+
+def test_okta_provider_reads_payload_before_tempdir_is_removed(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setenv("VEI_OKTA_TOKEN", "okta-test-token")
+
+    def fake_sync_okta_import_package(destination_root: Path, _config: Any) -> Any:
+        raw_root = Path(destination_root) / "raw"
+        raw_root.mkdir(parents=True, exist_ok=True)
+        (raw_root / "okta_users.json").write_text(
+            json.dumps({"users": [{"id": "U1"}]}),
+            encoding="utf-8",
+        )
+        (raw_root / "okta_groups.json").write_text(
+            json.dumps({"groups": [{"id": "G1"}]}),
+            encoding="utf-8",
+        )
+        (raw_root / "okta_apps.json").write_text(
+            json.dumps({"applications": [{"id": "A1"}]}),
+            encoding="utf-8",
+        )
+        return MagicMock(
+            package_root=Path(destination_root),
+            record_counts={"users": 1, "groups": 1, "applications": 1},
+        )
+
+    with patch(
+        "vei.context.providers.okta.sync_okta_import_package",
+        side_effect=fake_sync_okta_import_package,
+    ):
+        provider = OktaContextProvider()
+        result = provider.capture(
+            ContextProviderConfig(
+                provider="okta",
+                token_env="VEI_OKTA_TOKEN",
+                base_url="https://example.okta.com",
+            )
+        )
+
+    assert result.status == "ok"
+    assert result.record_counts == {"users": 1, "groups": 1, "applications": 1}
+    assert result.data["users"] == [{"id": "U1"}]
+    assert result.data["groups"] == [{"id": "G1"}]
+    assert result.data["applications"] == [{"id": "A1"}]

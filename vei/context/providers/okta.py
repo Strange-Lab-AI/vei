@@ -30,11 +30,7 @@ class OktaContextProvider:
         )
         with tempfile.TemporaryDirectory(prefix="vei_okta_") as tmp:
             result = sync_okta_import_package(Path(tmp), okta_config)
-
-        raw_dir = result.package_root / "raw"
-        users = _load_json_key(raw_dir / "okta_users.json", "users")
-        groups = _load_json_key(raw_dir / "okta_groups.json", "groups")
-        apps = _load_json_key(raw_dir / "okta_apps.json", "applications")
+            users, groups, apps = _load_okta_raw_payloads(result.package_root)
 
         return ContextSourceResult(
             provider="okta",
@@ -47,6 +43,17 @@ class OktaContextProvider:
                 "applications": apps,
             },
         )
+
+
+def _load_okta_raw_payloads(
+    package_root: Path,
+) -> tuple[list[dict], list[dict], list[dict]]:
+    raw_dir = package_root / "raw"
+    return (
+        _load_json_key(raw_dir / "okta_users.json", "users"),
+        _load_json_key(raw_dir / "okta_groups.json", "groups"),
+        _load_json_key(raw_dir / "okta_apps.json", "applications"),
+    )
 
 
 def _load_json_key(path: Path, key: str) -> list[dict]:

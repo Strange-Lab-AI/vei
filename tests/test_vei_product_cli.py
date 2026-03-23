@@ -169,6 +169,18 @@ def test_product_cli_rejects_bc_runner_without_model(tmp_path: Path) -> None:
     assert "bc runner requires bc_model_path" in run_result.output
 
 
+def test_product_cli_exposes_context_and_synthesize_commands() -> None:
+    runner = typer.testing.CliRunner()
+
+    context_result = runner.invoke(app, ["context", "--help"])
+    assert context_result.exit_code == 0, context_result.output
+    assert "Capture live context from enterprise systems." in context_result.output
+
+    synthesize_result = runner.invoke(app, ["synthesize", "--help"])
+    assert synthesize_result.exit_code == 0, synthesize_result.output
+    assert "Generate training data from completed runs." in synthesize_result.output
+
+
 def test_standalone_vei_ui_main_accepts_serve_alias(monkeypatch) -> None:
     captured: dict[str, object] = {}
 
