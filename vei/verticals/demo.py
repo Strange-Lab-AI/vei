@@ -1383,6 +1383,29 @@ def _curated_variant_matrix(
                 rationale="The company stays the same; the objective changes to downstream execution discipline.",
             ),
         ],
+        "b2b_saas": [
+            VerticalVariantMatrixCombination(
+                name="save_renewal",
+                title="Save the Renewal",
+                scenario_variant="enterprise_renewal_risk",
+                contract_variant="save_the_renewal",
+                rationale="Flagship B2B SaaS path: fix the product, rebuild trust, close the renewal.",
+            ),
+            VerticalVariantMatrixCombination(
+                name="protect_revenue",
+                title="Protect Revenue",
+                scenario_variant="pricing_negotiation_deadlock",
+                contract_variant="protect_revenue",
+                rationale="Same company, different pressure: hold the line on price while the customer pushes for a discount.",
+            ),
+            VerticalVariantMatrixCombination(
+                name="health_first",
+                title="Customer Health First",
+                scenario_variant="support_escalation_spiral",
+                contract_variant="customer_health_first",
+                rationale="Fix the support and product issues before advancing the commercial conversation.",
+            ),
+        ],
     }
     if vertical_name not in curated:
         raise KeyError(f"unknown vertical pack: {vertical_name}")

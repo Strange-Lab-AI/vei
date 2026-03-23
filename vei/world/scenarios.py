@@ -1128,6 +1128,19 @@ def scenario_capacity_quote_commitment() -> Scenario:
     )
 
 
+def _b2b_saas_scenario(name: str, slack_msg: str) -> Scenario:
+    return Scenario(
+        slack_initial_message=slack_msg,
+        metadata={
+            "benchmark_family": "b2b_saas",
+            "scenario_type": "vertical_demo",
+            "difficulty": "hard",
+            "expected_steps": [8, 18],
+            "tags": ["saas", "renewal", "crm", "support", "enterprise"],
+        },
+    )
+
+
 _CATALOG: Dict[str, Scenario] = {
     "macrocompute_default": scenario_macrocompute_default(),
     "extended_store": scenario_extended_store(),
@@ -1140,6 +1153,18 @@ _CATALOG: Dict[str, Scenario] = {
     "tenant_opening_conflict": scenario_tenant_opening_conflict(),
     "campaign_launch_guardrail": scenario_campaign_launch_guardrail(),
     "capacity_quote_commitment": scenario_capacity_quote_commitment(),
+    "enterprise_renewal_risk": _b2b_saas_scenario(
+        "enterprise_renewal_risk",
+        "Apex renewal war room is live.",
+    ),
+    "support_escalation_spiral": _b2b_saas_scenario(
+        "support_escalation_spiral",
+        "Apex P1 escalation review starts now.",
+    ),
+    "pricing_negotiation_deadlock": _b2b_saas_scenario(
+        "pricing_negotiation_deadlock",
+        "Apex pricing negotiation is stalled.",
+    ),
 }
 
 

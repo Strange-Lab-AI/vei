@@ -515,8 +515,12 @@ function renderWorkspaceHero() {
   const story = state.story || {};
   const subtitle = document.getElementById("workspace-subtitle");
   subtitle.classList.remove("loading-pulse");
-  subtitle.textContent =
-    `${manifest.description || "Workspace ready."} ${story.company_briefing ? `${story.company_briefing} ` : ""}${workspace.run_count ? `This company already has ${workspace.run_count} recorded path${workspace.run_count === 1 ? "" : "s"}.` : "Enter the world to start building a history of decisions and outcomes."}`;
+  const companyName = story.manifest?.company_name || manifest.title || "Workspace";
+  const crisis = story.manifest?.scenario_name?.replace(/_/g, " ") || "";
+  const pathCount = workspace.run_count || 0;
+  subtitle.textContent = pathCount
+    ? `${companyName}${crisis ? ` \u2014 ${crisis}` : ""}. ${pathCount} recorded path${pathCount === 1 ? "" : "s"}.`
+    : `${companyName}${crisis ? ` \u2014 ${crisis}` : ""}. Enter the world to begin.`;
   renderWorkspaceMetrics();
   renderStudioShell();
   renderWorldsPanel();
@@ -693,9 +697,36 @@ function renderMissionSummary() {
 }
 
 function renderLivingCompanyView() {
+  renderLivingCompanyContext();
   renderSurfaceWall();
   renderLivingCompanyRail();
   updateContextHint();
+}
+
+function renderLivingCompanyContext() {
+  const panel = document.getElementById("living-company-context");
+  if (!panel) return;
+  const story = state.story || {};
+  const companyName = story.manifest?.company_name || state.workspace?.manifest?.title || "";
+  const briefing = story.company_briefing || state.workspace?.manifest?.description || "";
+  const mission = state.missionState?.mission || state.playableBundle?.mission || state.missions[0] || null;
+  const failureImpact = story.failure_impact || mission?.failure_impact || "";
+  if (!companyName) {
+    panel.innerHTML = "";
+    return;
+  }
+  const crisisLine = mission
+    ? `<strong>${escapeHtml(mission.title)}</strong>: ${escapeHtml(mission.briefing || mission.description || "")}`
+    : "";
+  panel.innerHTML = `
+    <div class="context-strip">
+      <div class="context-strip-company">
+        <strong>${escapeHtml(companyName)}</strong> &mdash; ${escapeHtml(briefing)}
+      </div>
+      ${crisisLine ? `<div class="context-strip-crisis">${crisisLine}</div>` : ""}
+      ${failureImpact ? `<div class="context-strip-stakes">${escapeHtml(failureImpact)}</div>` : ""}
+    </div>
+  `;
 }
 
 function updateContextHint() {
@@ -815,7 +846,7 @@ function renderLivingCompanyRail() {
     <div class="story-card accent-card">
       <p class="eyebrow">Current tension</p>
       <h3>${escapeHtml(surfaceState?.company_name || state.story?.manifest?.company_name || state.workspace?.manifest?.title || "Company")}</h3>
-      <p class="metric-detail">${escapeHtml(mission?.briefing || surfaceState?.current_tension || "Choose a crisis above to bring the company under pressure.")}</p>
+      <p class="metric-detail">${escapeHtml(mission?.briefing || state.story?.company_briefing || "Choose a crisis above to bring the company under pressure.")}</p>
     </div>
     <div class="story-card">
       <p class="eyebrow">Situation</p>

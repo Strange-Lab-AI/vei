@@ -504,6 +504,120 @@ _VERTICAL_SCENARIO_VARIANTS: dict[str, dict[str, VerticalScenarioVariantSpec]] =
             ],
         ),
     },
+    "b2b_saas": {
+        "enterprise_renewal_risk": VerticalScenarioVariantSpec(
+            vertical_name="b2b_saas",
+            name="enterprise_renewal_risk",
+            title="Enterprise Renewal at Risk",
+            description=(
+                "Save a $480K enterprise renewal by fixing a broken integration, "
+                "rebuilding stakeholder trust, and neutralizing a competitive threat."
+            ),
+            scenario_name="enterprise_renewal_risk",
+            workflow_variant="enterprise_renewal_risk",
+            branch_labels=[
+                "Fix the integration first and rebuild trust before the renewal conversation",
+                "Lead with the discount and hope the product issues don't kill the deal",
+            ],
+            rationale="Flagship B2B SaaS crisis: product failure, champion loss, and competitive pressure converge on one renewal.",
+            change_summary=[
+                "Product champion departed; new decision-maker is evaluating a competitor.",
+                "Breaking API change has left the customer's pipeline down for 9 days.",
+            ],
+        ),
+        "support_escalation_spiral": VerticalScenarioVariantSpec(
+            vertical_name="b2b_saas",
+            name="support_escalation_spiral",
+            title="Support Escalation Spiral",
+            description=(
+                "A P1 support ticket is bouncing between engineering and CS while "
+                "the customer's patience runs out."
+            ),
+            scenario_name="support_escalation_spiral",
+            workflow_variant="support_escalation_spiral",
+            workflow_parameter_overrides={
+                "ticket_note": "P1 ownership assigned, fix deployed, and customer confirmation received.",
+                "slack_summary": "Apex P1 resolved and post-incident review scheduled.",
+            },
+            fault_overlays=[
+                FaultOverlaySpec(
+                    name="p1_ownership_gap",
+                    path="capability_graphs.work_graph.tickets[ticket_id=JRA-PIN-101].assignee",
+                    operation="set",
+                    value="unassigned",
+                    label="P1 ticket has no clear owner.",
+                    rationale="The ticket has been reassigned three times in 9 days.",
+                    visibility="visible",
+                ),
+                FaultOverlaySpec(
+                    name="escalation_deadline",
+                    path="capability_graphs.work_graph.service_requests[request_id=SR-PIN-201].status",
+                    operation="set",
+                    value="critical_overdue",
+                    label="Support escalation is now critically overdue.",
+                    rationale="SLA breach is imminent and the customer has mentioned it in writing.",
+                    visibility="visible",
+                ),
+            ],
+            branch_labels=[
+                "Assign a single owner and fast-track the fix",
+                "Keep the ticket in triage and risk SLA breach",
+            ],
+            rationale="Shows how the same company world can surface an ops failure instead of a commercial one.",
+            change_summary=[
+                "P1 ticket ownership is unassigned after multiple handoffs.",
+                "Support escalation has crossed the SLA threshold.",
+            ],
+        ),
+        "pricing_negotiation_deadlock": VerticalScenarioVariantSpec(
+            vertical_name="b2b_saas",
+            name="pricing_negotiation_deadlock",
+            title="Pricing Negotiation Deadlock",
+            description=(
+                "The customer is pushing for a 40% discount and sales cannot get "
+                "finance alignment on the counteroffer."
+            ),
+            scenario_name="pricing_negotiation_deadlock",
+            workflow_variant="pricing_negotiation_deadlock",
+            workflow_parameter_overrides={
+                "discount_pct": 40,
+                "crm_note": "Renewal terms agreed after structured negotiation and value demonstration.",
+            },
+            fault_overlays=[
+                FaultOverlaySpec(
+                    name="deal_stage_regression",
+                    path="capability_graphs.revenue_graph.deals[id=DEAL-APEX-RENEWAL].stage",
+                    operation="set",
+                    value="negotiation_stalled",
+                    label="Deal stage has regressed to negotiation stalled.",
+                    rationale="Customer's discount demand exceeds the pre-approved authority.",
+                    visibility="visible",
+                ),
+                FaultOverlaySpec(
+                    name="proposal_blocked",
+                    path="capability_graphs.doc_graph.documents[doc_id=DOC-PIN-PROPOSAL].body",
+                    operation="set",
+                    value=(
+                        "Renewal proposal draft.\n\n"
+                        "BLOCKED: Customer requesting 40% discount. Finance has not approved.\n"
+                        "Counter-proposal needs CRO sign-off before it can be sent."
+                    ),
+                    label="Renewal proposal is blocked on pricing approval.",
+                    rationale="Sales cannot send the proposal without finance alignment.",
+                    visibility="visible",
+                ),
+            ],
+            branch_labels=[
+                "Offer value-based counter and hold the line on price",
+                "Accept the discount to save the deal and eat the margin",
+            ],
+            rationale="Demonstrates commercial pressure without changing the product or support situation.",
+            change_summary=[
+                "Deal stage regressed to negotiation stalled.",
+                "Renewal proposal is blocked on discount authorization.",
+            ],
+        ),
+    },
 }
 
 

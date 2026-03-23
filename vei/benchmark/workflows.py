@@ -209,6 +209,26 @@ class StorageSolutionsWorkflowParams(BaseModel):
     deadline_max_ms: int = 180_000
 
 
+class B2bSaasWorkflowParams(BaseModel):
+    request_id: str = "SR-PIN-201"
+    ticket_id: str = "JRA-PIN-101"
+    deal_id: str = "DEAL-APEX-RENEWAL"
+    doc_id: str = "DOC-PIN-PROPOSAL"
+    contact_id: str = "CON-JORDAN"
+    slack_channel: str = "#apex-renewal"
+    ticket_note: str = (
+        "Integration fix deployed, customer confirmed, and renewal proposal advanced."
+    )
+    crm_note: str = (
+        "Apex renewal back on track after integration restore and stakeholder engagement."
+    )
+    slack_summary: str = (
+        "Apex integration fixed, exec sponsor engaged, and renewal proposal ready to send."
+    )
+    discount_pct: int = 0
+    deadline_max_ms: int = 180_000
+
+
 WorkflowParams = (
     SecurityContainmentWorkflowParams
     | EnterpriseOnboardingMigrationWorkflowParams
@@ -217,6 +237,7 @@ WorkflowParams = (
     | RealEstateManagementWorkflowParams
     | DigitalMarketingAgencyWorkflowParams
     | StorageSolutionsWorkflowParams
+    | B2bSaasWorkflowParams
 )
 
 
@@ -365,6 +386,19 @@ _PARAMETER_DESCRIPTIONS: Dict[str, Dict[str, str]] = {
         "crm_note": "Commercial note recorded once the commitment is safe to send.",
         "slack_summary": "Slack summary posted after the commitment is aligned.",
         "deadline_max_ms": "Virtual-time deadline for the capacity-commitment workflow.",
+    },
+    "b2b_saas": {
+        "request_id": "Support request escalated by the customer.",
+        "ticket_id": "Engineering ticket blocking the customer fix.",
+        "deal_id": "CRM deal representing the renewal.",
+        "doc_id": "Renewal proposal or incident document updated during the workflow.",
+        "contact_id": "CRM contact for the new decision-maker.",
+        "slack_channel": "Slack channel used for renewal coordination.",
+        "ticket_note": "Tracker note written after the integration is fixed.",
+        "crm_note": "Commercial note recorded once the renewal is advanced.",
+        "slack_summary": "Slack summary posted after the save plan is executed.",
+        "discount_pct": "Discount percentage offered to the customer.",
+        "deadline_max_ms": "Virtual-time deadline for the renewal workflow.",
     },
 }
 
@@ -651,6 +685,35 @@ _VARIANT_CATALOG: Dict[str, Dict[str, _VariantDefinition]] = {
             ),
         ),
     },
+    "b2b_saas": {
+        "enterprise_renewal_risk": _VariantDefinition(
+            name="enterprise_renewal_risk",
+            title="Enterprise Renewal at Risk",
+            description="Save a $480K renewal by fixing the integration, rebuilding trust, and neutralizing competitive pressure.",
+            scenario_name="enterprise_renewal_risk",
+            parameters=B2bSaasWorkflowParams(),
+        ),
+        "support_escalation_spiral": _VariantDefinition(
+            name="support_escalation_spiral",
+            title="Support Escalation Spiral",
+            description="Resolve a P1 bouncing between teams before the customer loses patience.",
+            scenario_name="support_escalation_spiral",
+            parameters=B2bSaasWorkflowParams(
+                ticket_note="P1 ownership assigned, fix deployed, and customer confirmation received.",
+                slack_summary="Apex P1 resolved and post-incident review scheduled.",
+            ),
+        ),
+        "pricing_negotiation_deadlock": _VariantDefinition(
+            name="pricing_negotiation_deadlock",
+            title="Pricing Negotiation Deadlock",
+            description="Break a pricing stalemate without giving away all the margin.",
+            scenario_name="pricing_negotiation_deadlock",
+            parameters=B2bSaasWorkflowParams(
+                discount_pct=40,
+                crm_note="Renewal terms agreed after structured negotiation and value demonstration.",
+            ),
+        ),
+    },
 }
 
 _SCENARIO_TO_WORKFLOW = {
@@ -669,6 +732,9 @@ _SCENARIO_TO_WORKFLOW = {
     "vendor_dispatch_gap": "storage_solutions",
     "fragmented_capacity": "storage_solutions",
     "overcommit_quote_risk": "storage_solutions",
+    "enterprise_renewal_risk": "b2b_saas",
+    "support_escalation_spiral": "b2b_saas",
+    "pricing_negotiation_deadlock": "b2b_saas",
 }
 
 
@@ -2506,6 +2572,134 @@ def _build_storage_solutions_spec(
     )
 
 
+def _build_b2b_saas_spec(
+    params: B2bSaasWorkflowParams, *, variant_name: str
+) -> WorkflowScenarioSpec:
+    return WorkflowScenarioSpec.model_validate(
+        {
+            "name": "b2b_saas",
+            "objective": {
+                "statement": "Save a $480K enterprise renewal by fixing the product, rebuilding trust, and closing the deal.",
+                "success": [
+                    "integration fixed",
+                    "stakeholder engaged",
+                    "competitive threat neutralized",
+                    "renewal advanced",
+                ],
+            },
+            "world": {"catalog": "enterprise_renewal_risk"},
+            "actors": [
+                {"actor_id": "cs-lead", "role": "Customer Success Lead"},
+                {"actor_id": "sales-rep", "role": "Account Executive"},
+            ],
+            "constraints": [
+                {
+                    "name": "customer_trust",
+                    "description": "Do not advance the commercial conversation before the product issue is resolved.",
+                }
+            ],
+            "approvals": [
+                {
+                    "stage": "engineering",
+                    "approver": "product-lead",
+                    "required": True,
+                }
+            ],
+            "steps": [
+                {
+                    "step_id": "advance_fix_approval",
+                    "description": "Approve the hotfix release.",
+                    "graph_domain": "work_graph",
+                    "graph_action": "update_request_approval",
+                    "args": {
+                        "request_id": params.request_id,
+                        "approval_stage": "engineering",
+                        "approval_status": "APPROVED",
+                        "comment": "Hotfix approved for customer-facing release.",
+                    },
+                },
+                {
+                    "step_id": "resolve_p1",
+                    "description": "Close the P1 ticket after the fix is deployed.",
+                    "graph_domain": "work_graph",
+                    "graph_action": "add_issue_comment",
+                    "args": {
+                        "issue_id": params.ticket_id,
+                        "body": params.ticket_note,
+                    },
+                },
+                {
+                    "step_id": "update_renewal_doc",
+                    "description": "Update the renewal proposal with the fix evidence.",
+                    "graph_domain": "doc_graph",
+                    "graph_action": "update_document",
+                    "args": {
+                        "doc_id": params.doc_id,
+                        "body": "Renewal proposal updated with integration fix confirmation and success metrics.",
+                    },
+                },
+                {
+                    "step_id": "log_renewal_activity",
+                    "description": "Record the renewal progress in CRM.",
+                    "graph_domain": "revenue_graph",
+                    "graph_action": "log_activity",
+                    "args": {
+                        "kind": "note",
+                        "deal_id": params.deal_id,
+                        "note": params.crm_note,
+                    },
+                },
+                {
+                    "step_id": "post_save_summary",
+                    "description": "Post the renewal save plan summary to Slack.",
+                    "graph_domain": "comm_graph",
+                    "graph_action": "post_message",
+                    "args": {
+                        "channel": params.slack_channel,
+                        "text": params.slack_summary,
+                    },
+                },
+            ],
+            "success_assertions": [
+                {
+                    "kind": "state_contains",
+                    "field": f"components.tickets.metadata.{params.ticket_id}.comments",
+                    "contains": params.ticket_note,
+                },
+                {
+                    "kind": "state_contains",
+                    "field": "components.crm.activities",
+                    "contains": params.crm_note,
+                },
+                {
+                    "kind": "state_contains",
+                    "field": f"components.slack.channels.{params.slack_channel}.messages",
+                    "contains": params.slack_summary,
+                },
+                {"kind": "time_max_ms", "max_value": params.deadline_max_ms},
+            ],
+            "failure_paths": [
+                {
+                    "name": "discount_without_fix",
+                    "trigger_step": "log_renewal_activity",
+                    "recovery_steps": [
+                        "resolve_p1",
+                        "update_renewal_doc",
+                        "post_save_summary",
+                    ],
+                    "notes": "Branch if the commercial move happens before the product fix lands.",
+                }
+            ],
+            "tags": ["benchmark-family", "vertical", "saas", variant_name],
+            "metadata": {
+                "benchmark_family": "b2b_saas",
+                "workflow_variant": variant_name,
+                "workflow_parameters": params.model_dump(mode="json"),
+            },
+        }
+    )
+
+
 _WORKFLOW_BUILDERS = {
     "security_containment": _build_security_containment_spec,
     "enterprise_onboarding_migration": _build_enterprise_onboarding_spec,
@@ -2514,6 +2708,7 @@ _WORKFLOW_BUILDERS = {
     "real_estate_management": _build_real_estate_management_spec,
     "digital_marketing_agency": _build_digital_marketing_agency_spec,
     "storage_solutions": _build_storage_solutions_spec,
+    "b2b_saas": _build_b2b_saas_spec,
 }
 
 

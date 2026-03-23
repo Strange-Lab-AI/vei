@@ -129,10 +129,19 @@ body {
   line-height: 0.95;
 }
 
+.hero-tagline {
+  max-width: 52ch;
+  margin: 10px 0 6px;
+  font-size: 1.15rem;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+}
 .hero-subtitle {
   max-width: 68ch;
-  margin: 14px 0 22px;
-  font-size: 1.06rem;
+  margin: 4px 0 22px;
+  font-size: 0.95rem;
   line-height: 1.55;
   color: var(--ink-soft);
 }
@@ -450,6 +459,25 @@ body.developer-mode .studio-nav-button.developer-only {
   background: radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.12), transparent 32%);
   pointer-events: none;
 }
+
+.living-company-context {
+  margin-bottom: 12px;
+}
+.context-strip {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 18px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, rgba(30,108,242,.06), rgba(26,168,141,.04));
+  border-left: 3px solid var(--accent);
+  font-size: 0.92rem;
+  line-height: 1.5;
+  color: var(--ink);
+}
+.context-strip-company { color: var(--ink-soft); }
+.context-strip-crisis { font-size: 0.94rem; }
+.context-strip-stakes { font-size: 0.88rem; color: var(--ink-muted); font-style: italic; }
 
 .living-company-layout {
   display: grid;

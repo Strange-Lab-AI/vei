@@ -309,6 +309,83 @@ _VERTICAL_CONTRACT_VARIANTS: dict[str, dict[str, VerticalContractVariantSpec]] =
             ],
         ),
     },
+    "b2b_saas": {
+        "save_the_renewal": VerticalContractVariantSpec(
+            vertical_name="b2b_saas",
+            name="save_the_renewal",
+            title="Save the Renewal",
+            description="Default business contract: retain the customer at any reasonable cost.",
+            objective_summary="Prioritize retention: fix the product, rebuild trust, and get the renewal signed.",
+            rationale="This is the default Pinnacle Analytics objective for the Apex renewal.",
+            policy_invariants=[
+                PolicyInvariantSpec(
+                    name="renewal_retention",
+                    description="Integration must be fixed and stakeholder trust rebuilt before the renewal conversation advances.",
+                    metadata={"origin": "simulated", "variant": "save_the_renewal"},
+                )
+            ],
+            reward_terms=[
+                RewardTermSpec(
+                    name="retention_bias",
+                    weight=2.0,
+                    description="Reward actions that move the customer from at-risk to renewed.",
+                    metadata={"origin": "simulated", "variant": "save_the_renewal"},
+                )
+            ],
+        ),
+        "protect_revenue": VerticalContractVariantSpec(
+            vertical_name="b2b_saas",
+            name="protect_revenue",
+            title="Protect Revenue",
+            description="Bias toward maximizing contract value without losing the deal.",
+            objective_summary="Preserve ARR and minimize discount depth while still closing the renewal.",
+            rationale="Useful when the same renewal should be solved with a commercially aggressive posture.",
+            policy_invariants=[
+                PolicyInvariantSpec(
+                    name="revenue_preservation",
+                    description="Discount authorization should be minimized; prefer value demonstration over price concession.",
+                    metadata={"origin": "simulated", "variant": "protect_revenue"},
+                )
+            ],
+            reward_terms=[
+                RewardTermSpec(
+                    name="revenue_maximization_bias",
+                    weight=2.5,
+                    description="Reward renewals that preserve or grow ARR.",
+                    metadata={"origin": "simulated", "variant": "protect_revenue"},
+                )
+            ],
+        ),
+        "customer_health_first": VerticalContractVariantSpec(
+            vertical_name="b2b_saas",
+            name="customer_health_first",
+            title="Customer Health First",
+            description="Bias toward product stability and support quality over commercial pressure.",
+            objective_summary="Fix the product and support issues first; the commercial conversation follows trust.",
+            rationale="Shows that the same renewal world can be optimized for long-term customer health.",
+            policy_invariants=[
+                PolicyInvariantSpec(
+                    name="health_over_commerce",
+                    description="Product fix and support resolution must precede any commercial conversation.",
+                    metadata={
+                        "origin": "simulated",
+                        "variant": "customer_health_first",
+                    },
+                )
+            ],
+            reward_terms=[
+                RewardTermSpec(
+                    name="health_score_bias",
+                    weight=2.2,
+                    description="Reward actions that improve customer health score before advancing the deal.",
+                    metadata={
+                        "origin": "simulated",
+                        "variant": "customer_health_first",
+                    },
+                )
+            ],
+        ),
+    },
 }
 
 

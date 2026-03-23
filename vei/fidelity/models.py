@@ -13,6 +13,7 @@ FidelitySurface = Literal[
     "property",
     "campaign",
     "inventory",
+    "revenue_graph",
 ]
 FidelityStatus = Literal["ok", "warning", "error"]
 

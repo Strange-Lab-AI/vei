@@ -106,8 +106,14 @@ def write_workspace_fidelity_report(
 
 
 def _check_slack_surface(session: WorldSessionAPI) -> TwinFidelityCase:
-    channel = "#harbor-point-ops"
-    message = "Fidelity probe: opening update recorded."
+    channels_result = session.call_tool("slack.list_channels", {})
+    if isinstance(channels_result, list):
+        channels_list = channels_result
+    else:
+        channels_list = channels_result.get("channels", [])
+    first = channels_list[0] if channels_list else "#general"
+    channel = first if isinstance(first, str) else first.get("name", "#general")
+    message = "Fidelity probe: update recorded."
     result = session.call_tool(
         "slack.send_message",
         {"channel": channel, "text": message},
@@ -153,8 +159,17 @@ def _check_slack_surface(session: WorldSessionAPI) -> TwinFidelityCase:
 
 
 def _check_docs_surface(session: WorldSessionAPI) -> TwinFidelityCase:
-    doc_id = "DOC-HPM-OPENING"
-    body = "Opening checklist draft.\n\nBoundary fidelity note recorded."
+    docs_list = session.call_tool("docs.list", {})
+    all_docs = (
+        docs_list if isinstance(docs_list, list) else docs_list.get("documents", [])
+    )
+    if all_docs and isinstance(all_docs[0], dict):
+        doc_id = all_docs[0].get("doc_id", "DOC-FIDELITY-1")
+    elif all_docs and isinstance(all_docs[0], str):
+        doc_id = all_docs[0]
+    else:
+        doc_id = "DOC-FIDELITY-1"
+    body = "Boundary fidelity note recorded."
     result = session.call_tool(
         "docs.update",
         {"doc_id": doc_id, "body": body},
@@ -200,8 +215,21 @@ def _check_docs_surface(session: WorldSessionAPI) -> TwinFidelityCase:
 
 
 def _check_tickets_surface(session: WorldSessionAPI) -> TwinFidelityCase:
-    ticket_id = "JRA-HPM-17"
-    comment = "Fidelity probe: opening blocker reviewed."
+    tickets_list = session.call_tool("tickets.list", {})
+    all_tickets = (
+        tickets_list
+        if isinstance(tickets_list, list)
+        else tickets_list.get("issues", [])
+    )
+    if all_tickets and isinstance(all_tickets[0], dict):
+        ticket_id = all_tickets[0].get("key") or all_tickets[0].get(
+            "ticket_id", "JRA-FIDELITY-1"
+        )
+    elif all_tickets and isinstance(all_tickets[0], str):
+        ticket_id = all_tickets[0]
+    else:
+        ticket_id = "JRA-FIDELITY-1"
+    comment = "Fidelity probe: blocker reviewed."
     result = session.call_tool(
         "tickets.add_comment",
         {"ticket_id": ticket_id, "body": comment},
@@ -244,12 +272,35 @@ def _check_tickets_surface(session: WorldSessionAPI) -> TwinFidelityCase:
 
 
 def _check_identity_surface(session: WorldSessionAPI) -> TwinFidelityCase:
+    requests_result = session.call_tool("servicedesk.list_requests", {})
+    rows = (
+        requests_result.get("requests", [])
+        if isinstance(requests_result, dict)
+        else requests_result if isinstance(requests_result, list) else []
+    )
+    request_id = "REQ-FIDELITY-1"
+    approval_stage = "vendor"
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        rid = row.get("id") or row.get("request_id")
+        if not rid:
+            continue
+        detail = session.call_tool("servicedesk.get_request", {"request_id": rid})
+        if not isinstance(detail, dict):
+            continue
+        request_id = rid
+        for appr in detail.get("approvals", []):
+            if isinstance(appr, dict) and appr.get("stage"):
+                approval_stage = appr["stage"]
+                break
+        break
     action = CapabilityGraphActionInput(
         domain="work_graph",
         action="update_request_approval",
         args={
-            "request_id": "REQ-HPM-1",
-            "approval_stage": "vendor",
+            "request_id": request_id,
+            "approval_stage": approval_stage,
             "approval_status": "APPROVED",
             "comment": "Boundary probe approval.",
         },
@@ -257,13 +308,13 @@ def _check_identity_surface(session: WorldSessionAPI) -> TwinFidelityCase:
     result = session.graph_action(action)
     request_state = session.call_tool(
         "servicedesk.get_request",
-        {"request_id": "REQ-HPM-1"},
+        {"request_id": request_id},
     )
     request_view = next(
         (
             item
             for item in result.graph.get("service_requests", [])
-            if item.get("request_id") == "REQ-HPM-1"
+            if item.get("request_id") == request_id
         ),
         {},
     )
@@ -515,4 +566,36 @@ def _check_vertical_surface(
         return _check_campaign_surface(session)
     if normalized == "storage_solutions":
         return _check_inventory_surface(session)
+    if normalized == "b2b_saas":
+        return _check_revenue_surface(session)
     return _check_property_surface(session)
+
+
+def _check_revenue_surface(session: WorldSessionAPI) -> TwinFidelityCase:
+    action = CapabilityGraphActionInput(
+        domain="revenue_graph",
+        action="log_activity",
+        args={
+            "kind": "note",
+            "deal_id": "DEAL-APEX-RENEWAL",
+            "note": "Fidelity probe: renewal check recorded.",
+        },
+    )
+    result = session.graph_action(action)
+    checks = [
+        TwinFidelityCheck(
+            name="revenue_graph_action",
+            status="ok" if result.ok else "warning",
+            summary="Revenue graph accepts a deal activity note.",
+            payload={"resolved_tool": result.tool},
+        ),
+    ]
+    return TwinFidelityCase(
+        surface="revenue_graph",
+        title="Revenue / CRM boundary",
+        boundary_contract="CRM actions should record deal activity with explicit, observable state.",
+        why_it_matters="Renewal missions depend on CRM state changes being visible and consistent.",
+        resolved_tool=result.tool,
+        status=_combine_status(item.status for item in checks),
+        checks=checks,
+    )

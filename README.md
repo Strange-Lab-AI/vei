@@ -1,33 +1,40 @@
 ## Digital Enterprise Twin (VEI)
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/strangeloopcanon/digital-enterprise-twin)
 
-![VEI Virtual Office](docs/assets/virtual_office.gif)
-<p align="center"><sub>Conceptual office view</sub></p>
+![VEI Studio — Pinnacle Analytics](docs/assets/vei_studio_hero.png)
 
-VEI is a deterministic, MCP-native enterprise simulator for training, evaluating, and replaying agent behavior against synthetic business systems. The stable boundary is the world kernel: a `WorldSession` owns world state, event queues, snapshots, branches, replay, injection, actor state, and receipts.
+VEI is a deterministic, MCP-native enterprise simulator for training, evaluating, and replaying agent behavior against synthetic business systems. Pick a company, pick a crisis, define what success looks like, and then play moves or let an agent play them — every tool, every person, every process reacts as one connected system.
 
-## What VEI Can Simulate
+The stable boundary is the world kernel: a `WorldSession` owns world state, event queues, snapshots, branches, replay, injection, actor state, and receipts.
 
-Plainly: VEI can simulate an enterprise environment where an agent has to discover what systems exist, inspect state, take actions, coordinate across tools, and satisfy business constraints over time.
+## What VEI Simulates
 
-- Time and state
-  - Virtual time, scheduled events, pending work, snapshots, branches, replay, and restore
-- Software surfaces
-  - Slack, Mail, Browser, Docs, Spreadsheet, Tickets, CRM, ERP, Okta-style identity, ServiceDesk, Google Admin, SIEM, Datadog, PagerDuty, feature flags, HRIS, and Jira-style issues
-- Enterprise artifacts
-  - Documents, workbooks, tickets, incidents, alerts, flags, identity records, deals, comments, and audit-like receipts
-- Vertical worlds
-  - Real estate management, digital marketing agency, and storage-solutions company packs with domain objects, deadlines, branch paths, and business-semantic contracts
-  - Each world pack now supports multiple scenario variants and contract variants on top of the same stable base company
-  - The same world packs now also ship as playable missions, so a human can step through the world using the same kernel as the automated runs
-- Long-horizon work
-  - Multi-step tasks that cross systems, have hidden state, require follow-through, and can fail midway
-- Policies and outcomes
-  - Success predicates, forbidden states, policy invariants, observation boundaries, deadlines, and contract-graded outcomes
-- Agent discoverability
-  - Capability graphs, orientation summaries, policy hints, key objects, suggested next inspection focuses, and graph-native plan/action surfaces
-- Humans and interventions
-  - Multiple actors, approvals, injected events, branch-and-recover flows, and replayable operator intervention
+VEI simulates a complete enterprise environment — every software system, every person, every process — as one deterministic, branchable world. An agent (or a human) discovers what systems exist, inspects state, takes actions that ripple across all tools simultaneously, and is evaluated against business constraints.
+
+**What is simulated:**
+
+- **Software surfaces** — Slack, Email, Browser, Docs, Spreadsheet, Tickets, CRM, ERP, Okta-style identity, ServiceDesk, Google Admin, SIEM, Datadog, PagerDuty, feature flags, HRIS, and Jira-style issues. One move in one system can trigger visible changes across all the others.
+- **Vertical company worlds** — Each vertical is a complete company with realistic seed data across all surfaces:
+  - **Pinnacle Analytics** (B2B SaaS) — $480K enterprise renewal at risk, broken integration, departed champion, competitor circling
+  - **Harbor Point Management** (Real Estate) — Flagship tenant opening with lease, vendor, and property-readiness pressure
+  - **Northstar Growth** (Marketing Agency) — Campaign launch with approval, pacing, and reporting risk
+  - **Atlas Storage Systems** (Storage/Logistics) — Strategic customer quote with fragmented capacity
+- **Time and state** — Virtual time, scheduled events, snapshots, branches, replay, and restore
+- **Policies and outcomes** — Success predicates, forbidden states, policy invariants, observation boundaries, deadlines, and contract-graded outcomes
+- **Long-horizon work** — Multi-step tasks that cross systems, have hidden state, require follow-through, and can fail midway
+
+**How the simulation works:**
+
+1. A `BlueprintAsset` declares the company: its org structure, tool data (Slack channels, email threads, tickets, docs, CRM deals), and domain objects (leases, campaigns, capacity pools, etc.)
+2. The blueprint compiles into a `WorldSession` — a deterministic kernel that owns all state, event queues, and tool dispatch
+3. A `Scenario` overlays pressure on the world (a crisis, a deadline, a fault injection)
+4. A `Contract` defines what success looks like (predicates, invariants, reward terms)
+5. Actions flow through MCP tools, resolve to capability-graph mutations, and produce observable side effects across every surface simultaneously
+6. The entire run is recorded as an append-only event spine — replayable, branchable, and gradeable
+
+Each world pack supports multiple scenario variants and contract variants, so the same company can be placed under different pressures with different success criteria. The same packs also ship as playable missions for human step-through.
+
+![VEI Studio — four companies, same engine](docs/assets/vei_studio_companies.png)
 
 ## Core Primitives
 
@@ -265,7 +272,9 @@ The import UI now shows:
 - Runtime capability-graph layer that lets world sessions and snapshots expose shared domain graphs such as identity, docs, work, comms, and revenue
 - Graph-native planning and mutation layer that lets agents ask for suggested next actions and apply graph actions without dropping down to raw app tools first
 - Graph-native workflow execution, so benchmark/playbook steps can compile to `vei.graph_action` instead of only raw app-shaped tool calls
-- Vertical world packs for real estate management, digital marketing agencies, and storage-solutions companies with built-in scenario variants, contract variants, and curated “same world, many futures” demo paths
+- Vertical world packs for B2B SaaS, real estate management, digital marketing agencies, and storage-solutions companies with built-in scenario variants, contract variants, and curated “same world, many futures” demo paths
+- Context capture layer that pulls live enterprise data from Slack, Jira, Google Workspace, and Okta into a structured `ContextSnapshot`, then hydrates a `BlueprintAsset` from it
+- Synthesis layer that extracts runbooks, training data (conversations, trajectories, demonstrations), and agent configurations from completed world runs
 - Agent-orientation layer that lets sessions and snapshots expose agent-facing summaries of visible surfaces, active policies, key objects, and suggested next questions
 - Enterprise twins for Slack, Mail, Browser, Docs, Spreadsheet, Tickets, DB, ERP/CRM, Okta-style identity, ServiceDesk, Google Admin, SIEM, Datadog, PagerDuty, feature flags, HRIS, and Jira-style issue flows
 - Scenario compilation, dataset rollout, BC training, benchmark execution, and release packaging
@@ -369,6 +378,10 @@ VEI_LLM_LIVE_BYPASS=1 make llm-live
 - Start here
   - `vei project|contract|scenario|run|inspect|showcase|ui`
   - `vei ui serve` or `vei-ui serve`
+  - `vei studio play` (mission-driven playable mode)
+- Context and synthesis
+  - `vei context capture|hydrate|diff`
+  - `vei synthesize runbook|training-set|agent-config`
 - Expert tools
   - `vei-world`
   - `vei-blueprint bundle|bundles|asset|compile|show|observe|orient|examples|facades`
@@ -384,6 +397,7 @@ VEI_LLM_LIVE_BYPASS=1 make llm-live
 The product CLI also now supports built-in vertical demo worlds:
 
 ```bash
+vei project init --root _vei_out/workspaces/pinnacle --vertical b2b_saas
 vei project init --root _vei_out/workspaces/harbor_point --vertical real_estate_management
 vei project init --root _vei_out/workspaces/northstar_growth --vertical digital_marketing_agency
 vei project init --root _vei_out/workspaces/atlas_storage --vertical storage_solutions
@@ -421,7 +435,9 @@ The local UI stays intentionally lightweight and Python-first. It opens one work
 
 Run playback is now driven by the canonical append-only event spine, so live and completed runs share the same source of truth for contract updates, snapshot markers, resolved tools, and graph-native intents like `identity_graph.assign_application` or `doc_graph.restrict_drive_share`.
 
-![VEI UI control room](docs/assets/vei_ui_control_room.png)
+![VEI Studio — full page](docs/assets/vei_studio_full.png)
+
+The Studio front door is the Living Company view: Slack, email, tickets, docs, approvals, and the vertical business system displayed side by side as a software wall. Moves land visibly across all surfaces. The three-tab navigation (Company, Crisis, Outcome) keeps the audience focused while a developer toggle exposes the full engine underneath.
 
 Imported workspaces add a grounded-intake layer on top of that same UI: source-package health, normalization diagnostics, scenario candidates, imported/derived/simulated object counts, and provenance drilldown from timeline events to raw-source lineage.
 
@@ -518,6 +534,7 @@ vei showcase verticals \
 
 That command creates three separate workspace-backed companies, runs the deterministic workflow baseline plus a freer comparison runner for each, and writes one `vertical_showcase_overview.md` bundle alongside ready-to-open workspace roots:
 
+- `b2b_saas`: Pinnacle Analytics / `enterprise_renewal_risk`
 - `real_estate_management`: Harbor Point Management / `tenant_opening_conflict`
 - `digital_marketing_agency`: Northstar Growth / `campaign_launch_guardrail`
 - `storage_solutions`: Atlas Storage Systems / `capacity_quote_commitment`
