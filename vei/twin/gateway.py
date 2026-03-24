@@ -1,0 +1,1253 @@
+from __future__ import annotations
+
+import hashlib
+import json
+import re
+from contextlib import asynccontextmanager
+from datetime import UTC, datetime
+from pathlib import Path
+from typing import Any
+
+from fastapi import FastAPI, HTTPException, Request, Response
+from fastapi.responses import JSONResponse
+
+from vei.benchmark.models import BenchmarkMetrics
+from vei.blueprint.api import create_world_session_from_blueprint
+from vei.contract.models import ContractEvaluationResult
+from vei.router.errors import MCPError
+from vei.run.api import (
+    build_run_timeline,
+    generate_run_id,
+    get_run_surface_state,
+    get_workspace_run_dir,
+    list_run_snapshots,
+    load_run_manifest,
+    write_run_manifest,
+)
+from vei.run.events import append_run_event
+from vei.run.models import (
+    RunArtifactIndex,
+    RunContractSummary,
+    RunManifest,
+    RunTimelineEvent,
+)
+from vei.workspace.api import (
+    build_workspace_scenario_asset,
+    evaluate_workspace_contract_against_state,
+    load_workspace,
+    load_workspace_blueprint_asset,
+    resolve_workspace_scenario,
+    temporary_env,
+    upsert_workspace_run,
+)
+from vei.workspace.models import WorkspaceRunEntry
+from vei.world.api import WorldSessionAPI
+
+from .api import load_customer_twin
+from .models import CustomerTwinBundle, TwinRuntimeStatus
+
+
+class TwinRuntime:
+    def __init__(self, workspace_root: Path, bundle: CustomerTwinBundle):
+        self.workspace_root = workspace_root
+        self.bundle = bundle
+        self.workspace_manifest = load_workspace(workspace_root)
+        self.scenario = resolve_workspace_scenario(
+            workspace_root, self.workspace_manifest
+        )
+        self.run_id = generate_run_id(prefix="external")
+        self.branch_name = f"{self.workspace_manifest.name}.{self.run_id}"
+        self.run_dir = get_workspace_run_dir(workspace_root, self.run_id)
+        self.events_path = self.run_dir / "events.jsonl"
+        self.contract_path = self.run_dir / "workspace_contract_evaluation.json"
+        self.state_dir = self.run_dir / "state"
+        self.artifacts_dir = self.run_dir / "artifacts"
+        self.started_at = _iso_now()
+        self.status = TwinRuntimeStatus(
+            run_id=self.run_id,
+            branch_name=self.branch_name,
+            started_at=self.started_at,
+            metadata={"organization_name": bundle.organization_name},
+        )
+
+        self.state_dir.mkdir(parents=True, exist_ok=True)
+        self.artifacts_dir.mkdir(parents=True, exist_ok=True)
+        self.session = self._build_session()
+        snapshot = self.session.snapshot("gateway.start")
+        contract_eval = self._evaluate(snapshot, result={"status": "started"})
+        self.status.latest_snapshot_id = snapshot.snapshot_id
+        self._update_contract_status(contract_eval)
+        self._write_contract_eval(contract_eval)
+        self._write_manifest(
+            status="running", success=None, error=None, completed_at=None
+        )
+        self._upsert_run_index(status="running", success=None, completed_at=None)
+        self._append_event(
+            kind="run_started",
+            label="external agent session started",
+            channel="World",
+            time_ms=snapshot.time_ms,
+            status="running",
+            payload={
+                "organization_name": bundle.organization_name,
+                "organization_domain": bundle.organization_domain,
+            },
+        )
+        self._append_snapshot_event(
+            "gateway.start", snapshot.snapshot_id, snapshot.time_ms
+        )
+        self._append_contract_event(contract_eval, snapshot.time_ms)
+
+    def finalize(self, *, error: str | None = None) -> None:
+        if self.status.status != "running":
+            return
+        completed_at = _iso_now()
+        if error is not None:
+            self.status.status = "error"
+        else:
+            self.status.status = "completed"
+        self.status.completed_at = completed_at
+        success = self.status.latest_contract_ok if error is None else False
+        self._write_manifest(
+            status="error" if error else "ok",
+            success=success,
+            error=error,
+            completed_at=completed_at,
+        )
+        self._upsert_run_index(
+            status="error" if error else "ok",
+            success=success,
+            completed_at=completed_at,
+        )
+        self._append_event(
+            kind="run_completed" if error is None else "run_failed",
+            label=(
+                "external agent session completed"
+                if error is None
+                else "external agent session failed"
+            ),
+            channel="World",
+            time_ms=0,
+            status="ok" if error is None else "error",
+            payload={"error": error},
+        )
+
+    def dispatch(
+        self,
+        *,
+        external_tool: str,
+        resolved_tool: str,
+        args: dict[str, Any],
+        focus_hint: str,
+    ) -> Any:
+        try:
+            result = self.session.call_tool(resolved_tool, args)
+            observation = self.session.observe(focus_hint)
+            snapshot = self.session.snapshot(f"gateway:{external_tool}")
+            contract_eval = self._evaluate(
+                snapshot,
+                visible_observation=observation,
+                result=result,
+            )
+            self.status.latest_snapshot_id = snapshot.snapshot_id
+            self.status.request_count += 1
+            self._update_contract_status(contract_eval)
+            self._write_contract_eval(contract_eval)
+            self._write_manifest(
+                status="running", success=None, error=None, completed_at=None
+            )
+            self._append_event(
+                kind="workflow_step",
+                label=external_tool,
+                channel=_channel_for_focus(focus_hint),
+                time_ms=snapshot.time_ms,
+                tool=external_tool,
+                resolved_tool=resolved_tool,
+                object_refs=_object_refs(args, result),
+                payload={"args": args, "result": result},
+            )
+            self._append_snapshot_event(
+                f"gateway:{external_tool}",
+                snapshot.snapshot_id,
+                snapshot.time_ms,
+            )
+            self._append_contract_event(contract_eval, snapshot.time_ms)
+            return result
+        except Exception as exc:  # noqa: BLE001
+            snapshot = self.session.snapshot(f"error:{external_tool}")
+            contract_eval = self._evaluate(
+                snapshot,
+                result={"error": _error_payload(exc)},
+            )
+            self.status.latest_snapshot_id = snapshot.snapshot_id
+            self.status.request_count += 1
+            self._update_contract_status(contract_eval)
+            self._write_contract_eval(contract_eval)
+            self._write_manifest(
+                status="running", success=None, error=None, completed_at=None
+            )
+            self._append_event(
+                kind="workflow_step",
+                label=external_tool,
+                channel=_channel_for_focus(focus_hint),
+                time_ms=snapshot.time_ms,
+                status="error",
+                tool=external_tool,
+                resolved_tool=resolved_tool,
+                object_refs=_object_refs(args, {}),
+                payload={"args": args, "error": _error_payload(exc)},
+            )
+            self._append_snapshot_event(
+                f"error:{external_tool}",
+                snapshot.snapshot_id,
+                snapshot.time_ms,
+            )
+            self._append_contract_event(contract_eval, snapshot.time_ms)
+            raise
+
+    def peek(self, tool: str, args: dict[str, Any] | None = None) -> Any:
+        return self.session.call_tool(tool, args or {})
+
+    def status_payload(self) -> dict[str, Any]:
+        return {
+            "bundle": self.bundle.model_dump(mode="json"),
+            "runtime": self.status.model_dump(mode="json"),
+            "manifest": load_run_manifest(
+                self.run_dir / "run_manifest.json"
+            ).model_dump(mode="json"),
+        }
+
+    def _build_session(self) -> WorldSessionAPI:
+        asset = build_workspace_scenario_asset(
+            load_workspace_blueprint_asset(self.workspace_root),
+            self.scenario,
+        )
+        with (
+            temporary_env("VEI_STATE_DIR", str(self.state_dir)),
+            temporary_env(
+                "VEI_CRM_ALIAS_PACKS",
+                "salesforce",
+            ),
+        ):
+            return create_world_session_from_blueprint(
+                asset,
+                seed=42042,
+                artifacts_dir=str(self.artifacts_dir),
+                branch=self.branch_name,
+                connector_mode="sim",
+            )
+
+    def _evaluate(
+        self,
+        snapshot: Any,
+        *,
+        visible_observation: dict[str, Any] | None = None,
+        result: object | None = None,
+    ) -> ContractEvaluationResult:
+        return evaluate_workspace_contract_against_state(
+            root=self.workspace_root,
+            scenario_name=self.scenario.name,
+            oracle_state=snapshot.data.model_dump(),
+            visible_observation=visible_observation or {},
+            result=result,
+            pending=self.session.pending(),
+            time_ms=snapshot.time_ms,
+        )
+
+    def _write_contract_eval(self, contract_eval: ContractEvaluationResult) -> None:
+        self.contract_path.write_text(
+            contract_eval.model_dump_json(indent=2),
+            encoding="utf-8",
+        )
+
+    def _write_manifest(
+        self,
+        *,
+        status: str,
+        success: bool | None,
+        error: str | None,
+        completed_at: str | None,
+    ) -> None:
+        manifest = RunManifest(
+            run_id=self.run_id,
+            workspace_name=self.workspace_manifest.name,
+            scenario_name=self.scenario.name,
+            runner="external",
+            status=status,  # type: ignore[arg-type]
+            started_at=self.started_at,
+            completed_at=completed_at,
+            seed=42042,
+            branch=self.branch_name,
+            success=success,
+            metrics=BenchmarkMetrics(actions=self.status.request_count),
+            contract=_contract_summary(self.contract_path),
+            artifacts=RunArtifactIndex(
+                run_dir=str(self.run_dir.relative_to(self.workspace_root)),
+                artifacts_dir=str(self.artifacts_dir.relative_to(self.workspace_root)),
+                state_dir=str(self.state_dir.relative_to(self.workspace_root)),
+                events_path=str(self.events_path.relative_to(self.workspace_root)),
+                contract_path=str(self.contract_path.relative_to(self.workspace_root)),
+            ),
+            snapshots=list_run_snapshots(self.workspace_root, self.run_id),
+            error=error,
+            metadata={
+                "gateway_mode": "compatibility",
+                "organization_name": self.bundle.organization_name,
+                "surfaces": [item.name for item in self.bundle.gateway.surfaces],
+            },
+        )
+        write_run_manifest(self.workspace_root, manifest)
+
+    def _upsert_run_index(
+        self,
+        *,
+        status: str,
+        success: bool | None,
+        completed_at: str | None,
+    ) -> None:
+        upsert_workspace_run(
+            self.workspace_root,
+            WorkspaceRunEntry(
+                run_id=self.run_id,
+                scenario_name=self.scenario.name,
+                runner="external",
+                status=status,  # type: ignore[arg-type]
+                manifest_path=str(
+                    (self.run_dir / "run_manifest.json").relative_to(
+                        self.workspace_root
+                    )
+                ),
+                started_at=self.started_at,
+                completed_at=completed_at,
+                success=success,
+                branch=self.branch_name,
+                metadata={"gateway_mode": "compatibility"},
+            ),
+        )
+
+    def _update_contract_status(self, contract_eval: ContractEvaluationResult) -> None:
+        issues = len(contract_eval.dynamic_validation.issues) + len(
+            contract_eval.static_validation.issues
+        )
+        self.status.latest_contract_ok = contract_eval.ok
+        self.status.contract_issue_count = issues
+
+    def _append_event(
+        self,
+        *,
+        kind: str,
+        label: str,
+        channel: str,
+        time_ms: int,
+        status: str | None = None,
+        tool: str | None = None,
+        resolved_tool: str | None = None,
+        object_refs: list[str] | None = None,
+        payload: dict[str, Any] | None = None,
+    ) -> None:
+        append_run_event(
+            self.events_path,
+            RunTimelineEvent(
+                index=0,
+                kind=kind,  # type: ignore[arg-type]
+                label=label,
+                channel=channel,
+                time_ms=time_ms,
+                runner="external",
+                status=status,
+                tool=tool,
+                resolved_tool=resolved_tool,
+                object_refs=list(object_refs or []),
+                branch=self.branch_name,
+                payload=dict(payload or {}),
+            ),
+        )
+
+    def _append_snapshot_event(
+        self, label: str, snapshot_id: int, time_ms: int
+    ) -> None:
+        append_run_event(
+            self.events_path,
+            RunTimelineEvent(
+                index=0,
+                kind="snapshot",
+                label=label,
+                channel="World",
+                time_ms=time_ms,
+                runner="external",
+                branch=self.branch_name,
+                snapshot_id=snapshot_id,
+                payload={
+                    "path": _snapshot_path(
+                        self.workspace_root, self.run_id, snapshot_id
+                    )
+                },
+            ),
+        )
+
+    def _append_contract_event(
+        self, contract_eval: ContractEvaluationResult, time_ms: int
+    ) -> None:
+        issues = len(contract_eval.dynamic_validation.issues) + len(
+            contract_eval.static_validation.issues
+        )
+        append_run_event(
+            self.events_path,
+            RunTimelineEvent(
+                index=0,
+                kind="contract",
+                label="external session contract updated",
+                channel="World",
+                time_ms=time_ms,
+                runner="external",
+                branch=self.branch_name,
+                payload={
+                    "ok": contract_eval.ok,
+                    "issue_count": issues,
+                },
+            ),
+        )
+
+
+def create_twin_gateway_app(root: str | Path) -> FastAPI:
+    workspace_root = Path(root).expanduser().resolve()
+    bundle = load_customer_twin(workspace_root)
+    runtime = TwinRuntime(workspace_root, bundle)
+
+    @asynccontextmanager
+    async def _lifespan(_: FastAPI):
+        try:
+            yield
+        finally:
+            runtime.finalize()
+
+    app = FastAPI(
+        title="VEI Customer Twin Gateway",
+        version="1",
+        lifespan=_lifespan,
+    )
+    app.state.runtime = runtime
+
+    @app.get("/")
+    def root_index() -> JSONResponse:
+        return JSONResponse(
+            {
+                "organization_name": bundle.organization_name,
+                "organization_domain": bundle.organization_domain,
+                "surfaces": [
+                    item.model_dump(mode="json") for item in bundle.gateway.surfaces
+                ],
+                "status_path": "/api/twin",
+            }
+        )
+
+    @app.get("/healthz")
+    def healthz() -> JSONResponse:
+        return JSONResponse({"ok": True, "run_id": runtime.run_id})
+
+    @app.get("/api/twin")
+    def api_twin() -> JSONResponse:
+        return JSONResponse(runtime.status_payload())
+
+    @app.get("/api/twin/history")
+    def api_twin_history() -> JSONResponse:
+        payload = [
+            item.model_dump(mode="json")
+            for item in build_run_timeline(workspace_root, runtime.run_id)
+        ]
+        return JSONResponse(payload)
+
+    @app.get("/api/twin/surfaces")
+    def api_twin_surfaces() -> JSONResponse:
+        payload = get_run_surface_state(workspace_root, runtime.run_id)
+        return JSONResponse(payload.model_dump(mode="json"))
+
+    @app.post("/api/twin/finalize")
+    def api_twin_finalize() -> JSONResponse:
+        runtime.finalize()
+        return JSONResponse(runtime.status_payload())
+
+    @app.get("/slack/api/conversations.list")
+    async def slack_conversations_list(request: Request) -> JSONResponse:
+        if not _slack_auth_ok(request, bundle.gateway.auth_token):
+            return JSONResponse({"ok": False, "error": "invalid_auth"})
+        try:
+            payload = runtime.dispatch(
+                external_tool="slack.conversations.list",
+                resolved_tool="slack.list_channels",
+                args={},
+                focus_hint="slack",
+            )
+        except Exception as exc:  # noqa: BLE001
+            return JSONResponse({"ok": False, "error": _provider_error_code(exc)})
+        channels = payload if isinstance(payload, list) else payload.get("channels", [])
+        return JSONResponse(
+            {"ok": True, "channels": [_slack_channel(channel) for channel in channels]}
+        )
+
+    @app.get("/slack/api/conversations.history")
+    async def slack_conversations_history(request: Request) -> JSONResponse:
+        if not _slack_auth_ok(request, bundle.gateway.auth_token):
+            return JSONResponse({"ok": False, "error": "invalid_auth"})
+        channel_arg = request.query_params.get("channel", "")
+        channel_name = _resolve_slack_channel_name(runtime, channel_arg)
+        try:
+            payload = runtime.dispatch(
+                external_tool="slack.conversations.history",
+                resolved_tool="slack.open_channel",
+                args={"channel": channel_name},
+                focus_hint="slack",
+            )
+        except Exception as exc:  # noqa: BLE001
+            return JSONResponse({"ok": False, "error": _provider_error_code(exc)})
+        messages = payload.get("messages", []) if isinstance(payload, dict) else []
+        return JSONResponse(
+            {
+                "ok": True,
+                "messages": [
+                    _slack_message(channel_name, message) for message in messages
+                ],
+                "has_more": False,
+            }
+        )
+
+    @app.get("/slack/api/conversations.replies")
+    async def slack_conversations_replies(request: Request) -> JSONResponse:
+        if not _slack_auth_ok(request, bundle.gateway.auth_token):
+            return JSONResponse({"ok": False, "error": "invalid_auth"})
+        channel_name = _resolve_slack_channel_name(
+            runtime, request.query_params.get("channel", "")
+        )
+        thread_ts = request.query_params.get("ts", "")
+        try:
+            payload = runtime.dispatch(
+                external_tool="slack.conversations.replies",
+                resolved_tool="slack.fetch_thread",
+                args={"channel": channel_name, "thread_ts": thread_ts},
+                focus_hint="slack",
+            )
+        except Exception as exc:  # noqa: BLE001
+            return JSONResponse({"ok": False, "error": _provider_error_code(exc)})
+        messages = payload.get("messages", []) if isinstance(payload, dict) else []
+        return JSONResponse(
+            {
+                "ok": True,
+                "messages": [
+                    _slack_message(channel_name, message) for message in messages
+                ],
+            }
+        )
+
+    @app.post("/slack/api/chat.postMessage")
+    async def slack_post_message(request: Request) -> JSONResponse:
+        if not _slack_auth_ok(request, bundle.gateway.auth_token):
+            return JSONResponse({"ok": False, "error": "invalid_auth"})
+        body = await _request_payload(request)
+        channel_name = _resolve_slack_channel_name(
+            runtime, str(body.get("channel", ""))
+        )
+        args = {
+            "channel": channel_name,
+            "text": str(body.get("text", "")),
+            "thread_ts": body.get("thread_ts"),
+        }
+        try:
+            payload = runtime.dispatch(
+                external_tool="slack.chat.postMessage",
+                resolved_tool="slack.send_message",
+                args=args,
+                focus_hint="slack",
+            )
+        except Exception as exc:  # noqa: BLE001
+            return JSONResponse({"ok": False, "error": _provider_error_code(exc)})
+        ts = str(payload.get("ts", ""))
+        return JSONResponse(
+            {
+                "ok": True,
+                "channel": _slack_channel_id(channel_name),
+                "ts": ts,
+                "message": {
+                    "type": "message",
+                    "text": str(args["text"]),
+                    "user": _slack_user_id("agent"),
+                    "ts": ts,
+                },
+            }
+        )
+
+    @app.get("/jira/rest/api/3/project")
+    async def jira_projects(request: Request) -> JSONResponse:
+        _require_bearer(request, bundle.gateway.auth_token)
+        project_key = _jira_project_key(runtime)
+        return JSONResponse(
+            [{"id": project_key, "key": project_key, "name": bundle.organization_name}]
+        )
+
+    @app.get("/jira/rest/api/3/search")
+    async def jira_search_get(request: Request) -> JSONResponse:
+        _require_bearer(request, bundle.gateway.auth_token)
+        return JSONResponse(_jira_search(runtime, request.query_params))
+
+    @app.post("/jira/rest/api/3/search")
+    async def jira_search_post(request: Request) -> JSONResponse:
+        _require_bearer(request, bundle.gateway.auth_token)
+        body = await _request_payload(request)
+        return JSONResponse(_jira_search(runtime, body))
+
+    @app.get("/jira/rest/api/3/issue/{issue_id}")
+    async def jira_issue(request: Request, issue_id: str) -> JSONResponse:
+        _require_bearer(request, bundle.gateway.auth_token)
+        try:
+            payload = runtime.dispatch(
+                external_tool="jira.issue.get",
+                resolved_tool="jira.get_issue",
+                args={"issue_id": issue_id},
+                focus_hint="tickets",
+            )
+        except Exception as exc:  # noqa: BLE001
+            raise _http_exception(exc) from exc
+        return JSONResponse(_jira_issue(payload))
+
+    @app.get("/jira/rest/api/3/issue/{issue_id}/transitions")
+    async def jira_issue_transitions(request: Request, issue_id: str) -> JSONResponse:
+        _require_bearer(request, bundle.gateway.auth_token)
+        try:
+            payload = runtime.dispatch(
+                external_tool="jira.issue.get",
+                resolved_tool="jira.get_issue",
+                args={"issue_id": issue_id},
+                focus_hint="tickets",
+            )
+        except Exception as exc:  # noqa: BLE001
+            raise _http_exception(exc) from exc
+        status = str(payload.get("status", "open"))
+        return JSONResponse({"transitions": _jira_transitions(status)})
+
+    @app.post("/jira/rest/api/3/issue/{issue_id}/comment")
+    async def jira_add_comment(request: Request, issue_id: str) -> JSONResponse:
+        _require_bearer(request, bundle.gateway.auth_token)
+        body = await _request_payload(request)
+        args = {"issue_id": issue_id, "body": str(body.get("body", ""))}
+        try:
+            payload = runtime.dispatch(
+                external_tool="jira.issue.comment",
+                resolved_tool="jira.add_comment",
+                args=args,
+                focus_hint="tickets",
+            )
+        except Exception as exc:  # noqa: BLE001
+            raise _http_exception(exc) from exc
+        return JSONResponse(
+            {"id": payload.get("comment_id"), "body": body.get("body", "")},
+            status_code=201,
+        )
+
+    @app.post("/jira/rest/api/3/issue/{issue_id}/transitions")
+    async def jira_transition(request: Request, issue_id: str) -> Response:
+        _require_bearer(request, bundle.gateway.auth_token)
+        body = await _request_payload(request)
+        transition = (
+            body.get("transition", {})
+            if isinstance(body.get("transition"), dict)
+            else {}
+        )
+        status = transition.get("id") or transition.get("name") or body.get("status")
+        try:
+            runtime.dispatch(
+                external_tool="jira.issue.transition",
+                resolved_tool="jira.transition_issue",
+                args={"issue_id": issue_id, "status": str(status or "")},
+                focus_hint="tickets",
+            )
+        except Exception as exc:  # noqa: BLE001
+            raise _http_exception(exc) from exc
+        return Response(status_code=204)
+
+    @app.get("/graph/v1.0/me/messages")
+    async def graph_messages(request: Request) -> JSONResponse:
+        _require_bearer(request, bundle.gateway.auth_token)
+        payload = runtime.dispatch(
+            external_tool="graph.messages.list",
+            resolved_tool="mail.list",
+            args={"folder": "INBOX"},
+            focus_hint="mail",
+        )
+        messages = payload if isinstance(payload, list) else payload.get("messages", [])
+        return JSONResponse(
+            {"value": [_graph_message_summary(message) for message in messages]}
+        )
+
+    @app.get("/graph/v1.0/me/messages/{message_id}")
+    async def graph_message(request: Request, message_id: str) -> JSONResponse:
+        _require_bearer(request, bundle.gateway.auth_token)
+        try:
+            summary = runtime.dispatch(
+                external_tool="graph.messages.get",
+                resolved_tool="mail.open",
+                args={"id": message_id},
+                focus_hint="mail",
+            )
+        except Exception as exc:  # noqa: BLE001
+            raise _http_exception(exc) from exc
+        listing = runtime.peek("mail.list", {"folder": "INBOX"})
+        message = _find_mail_message(listing, message_id)
+        return JSONResponse(_graph_message(message, summary))
+
+    @app.post("/graph/v1.0/me/sendMail")
+    async def graph_send_mail(request: Request) -> Response:
+        _require_bearer(request, bundle.gateway.auth_token)
+        body = await _request_payload(request)
+        message = (
+            body.get("message", {}) if isinstance(body.get("message"), dict) else {}
+        )
+        to_address = _graph_first_recipient(message.get("toRecipients"))
+        subject = str(message.get("subject", ""))
+        body_content = _graph_body_content(message.get("body"))
+        try:
+            runtime.dispatch(
+                external_tool="graph.messages.send",
+                resolved_tool="mail.compose",
+                args={"to": to_address, "subj": subject, "body_text": body_content},
+                focus_hint="mail",
+            )
+        except Exception as exc:  # noqa: BLE001
+            raise _http_exception(exc) from exc
+        return Response(status_code=202)
+
+    @app.get("/graph/v1.0/me/events")
+    async def graph_events(request: Request) -> JSONResponse:
+        _require_bearer(request, bundle.gateway.auth_token)
+        payload = runtime.dispatch(
+            external_tool="graph.events.list",
+            resolved_tool="calendar.list_events",
+            args={},
+            focus_hint="calendar",
+        )
+        events = payload if isinstance(payload, list) else payload.get("events", [])
+        return JSONResponse({"value": [_graph_event(event) for event in events]})
+
+    @app.post("/graph/v1.0/me/events")
+    async def graph_create_event(request: Request) -> JSONResponse:
+        _require_bearer(request, bundle.gateway.auth_token)
+        body = await _request_payload(request)
+        args = {
+            "title": str(body.get("subject", "Untitled")),
+            "start_ms": _graph_datetime_to_ms(
+                (body.get("start") or {}).get("dateTime")
+            ),
+            "end_ms": _graph_datetime_to_ms((body.get("end") or {}).get("dateTime")),
+            "attendees": _graph_attendees(body.get("attendees")),
+            "location": ((body.get("location") or {}).get("displayName") or None),
+            "description": _graph_body_content(body.get("body")),
+            "organizer": _graph_email_address(
+                (body.get("organizer") or {}).get("emailAddress")
+            ),
+        }
+        try:
+            payload = runtime.dispatch(
+                external_tool="graph.events.create",
+                resolved_tool="calendar.create_event",
+                args=args,
+                focus_hint="calendar",
+            )
+        except Exception as exc:  # noqa: BLE001
+            raise _http_exception(exc) from exc
+        return JSONResponse({"id": payload.get("event_id")}, status_code=201)
+
+    @app.get("/salesforce/services/data/v60.0/query")
+    async def salesforce_query(request: Request) -> JSONResponse:
+        _require_bearer(request, bundle.gateway.auth_token)
+        query = request.query_params.get("q", "")
+        return JSONResponse(_salesforce_query(runtime, query))
+
+    @app.get("/salesforce/services/data/v60.0/sobjects/Opportunity/{record_id}")
+    async def salesforce_opportunity_get(
+        request: Request, record_id: str
+    ) -> JSONResponse:
+        _require_bearer(request, bundle.gateway.auth_token)
+        try:
+            payload = runtime.dispatch(
+                external_tool="salesforce.opportunity.get",
+                resolved_tool="salesforce.opportunity.get",
+                args={"id": record_id},
+                focus_hint="crm",
+            )
+        except Exception as exc:  # noqa: BLE001
+            raise _http_exception(exc) from exc
+        return JSONResponse(_salesforce_opportunity(payload))
+
+    @app.post("/salesforce/services/data/v60.0/sobjects/Opportunity")
+    async def salesforce_opportunity_create(request: Request) -> JSONResponse:
+        _require_bearer(request, bundle.gateway.auth_token)
+        body = await _request_payload(request)
+        args = {
+            "name": str(body.get("Name", "")),
+            "amount": float(body.get("Amount", 0) or 0),
+            "stage": str(body.get("StageName", "New")),
+            "contact_id": body.get("ContactId"),
+            "company_id": body.get("AccountId"),
+            "close_date": body.get("CloseDate"),
+        }
+        try:
+            payload = runtime.dispatch(
+                external_tool="salesforce.opportunity.create",
+                resolved_tool="salesforce.opportunity.create",
+                args=args,
+                focus_hint="crm",
+            )
+        except Exception as exc:  # noqa: BLE001
+            raise _http_exception(exc) from exc
+        return JSONResponse(
+            {"id": payload.get("id"), "success": True, "errors": []}, status_code=201
+        )
+
+    @app.post("/salesforce/services/data/v60.0/sobjects/Task")
+    async def salesforce_task_create(request: Request) -> JSONResponse:
+        _require_bearer(request, bundle.gateway.auth_token)
+        body = await _request_payload(request)
+        args = {
+            "kind": "task",
+            "deal_id": body.get("WhatId"),
+            "contact_id": body.get("WhoId"),
+            "note": body.get("Description") or body.get("Subject") or "",
+        }
+        try:
+            payload = runtime.dispatch(
+                external_tool="salesforce.task.create",
+                resolved_tool="salesforce.activity.log",
+                args=args,
+                focus_hint="crm",
+            )
+        except Exception as exc:  # noqa: BLE001
+            raise _http_exception(exc) from exc
+        return JSONResponse(
+            {"id": payload.get("id"), "success": True, "errors": []}, status_code=201
+        )
+
+    return app
+
+
+def _slack_auth_ok(request: Request, token: str) -> bool:
+    auth = request.headers.get("authorization", "")
+    return auth == f"Bearer {token}"
+
+
+def _require_bearer(request: Request, token: str) -> None:
+    if request.headers.get("authorization", "") == f"Bearer {token}":
+        return
+    raise HTTPException(status_code=401, detail="invalid bearer token")
+
+
+async def _request_payload(request: Request) -> dict[str, Any]:
+    content_type = request.headers.get("content-type", "")
+    if "application/json" in content_type:
+        payload = await request.json()
+        return payload if isinstance(payload, dict) else {}
+    if (
+        "application/x-www-form-urlencoded" in content_type
+        or "multipart/form-data" in content_type
+    ):
+        form = await request.form()
+        return dict(form)
+    return {}
+
+
+def _slack_channel(channel: str) -> dict[str, Any]:
+    name = channel[1:] if channel.startswith("#") else channel
+    return {
+        "id": _slack_channel_id(channel),
+        "name": name,
+        "is_channel": True,
+        "is_member": True,
+    }
+
+
+def _slack_channel_id(channel: str) -> str:
+    digest = hashlib.sha1(channel.encode("utf-8"), usedforsecurity=False)
+    return "C" + digest.hexdigest()[:8].upper()
+
+
+def _slack_user_id(user: str) -> str:
+    digest = hashlib.sha1(user.encode("utf-8"), usedforsecurity=False)
+    return "U" + digest.hexdigest()[:8].upper()
+
+
+def _resolve_slack_channel_name(runtime: TwinRuntime, value: str) -> str:
+    if value.startswith("#"):
+        return value
+    channels = runtime.peek("slack.list_channels", {})
+    if isinstance(channels, list):
+        for channel in channels:
+            if _slack_channel_id(str(channel)) == value:
+                return str(channel)
+    if value:
+        return f"#{value}"
+    raise HTTPException(status_code=400, detail="channel is required")
+
+
+def _slack_message(channel: str, message: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "type": "message",
+        "user": _slack_user_id(str(message.get("user", "unknown"))),
+        "username": str(message.get("user", "unknown")),
+        "text": str(message.get("text", "")),
+        "ts": str(message.get("ts", "")),
+        "thread_ts": message.get("thread_ts"),
+        "channel": _slack_channel_id(channel),
+    }
+
+
+def _jira_search(runtime: TwinRuntime, params: Any) -> dict[str, Any]:
+    jql = str(params.get("jql", ""))
+    max_results = int(params.get("maxResults", params.get("max_results", 25)) or 25)
+    start_at = int(params.get("startAt", params.get("start_at", 0)) or 0)
+    args: dict[str, Any] = {"limit": max_results}
+    status = _extract_jql_value(jql, "status")
+    assignee = _extract_jql_value(jql, "assignee")
+    if status:
+        args["status"] = status
+    if assignee:
+        args["assignee"] = assignee
+    payload = runtime.dispatch(
+        external_tool="jira.search",
+        resolved_tool="jira.list_issues",
+        args=args,
+        focus_hint="tickets",
+    )
+    issues = payload if isinstance(payload, list) else payload.get("issues", [])
+    sliced = issues[start_at : start_at + max_results]
+    return {
+        "startAt": start_at,
+        "maxResults": max_results,
+        "total": len(issues),
+        "issues": [_jira_issue(issue) for issue in sliced],
+    }
+
+
+def _jira_issue(issue: dict[str, Any]) -> dict[str, Any]:
+    issue_id = str(issue.get("issue_id", issue.get("ticket_id", "")))
+    return {
+        "id": issue_id,
+        "key": issue_id,
+        "fields": {
+            "summary": issue.get("title", ""),
+            "description": issue.get("description", ""),
+            "status": {"name": issue.get("status", "open")},
+            "assignee": {"displayName": issue.get("assignee") or "unassigned"},
+            "priority": {"name": issue.get("priority", "P3")},
+            "labels": issue.get("labels", []),
+            "comment": {"total": issue.get("comment_count", 0)},
+        },
+    }
+
+
+def _jira_transitions(status: str) -> list[dict[str, Any]]:
+    allowed = {
+        "open": ["in_progress", "blocked", "resolved", "closed"],
+        "in_progress": ["blocked", "resolved", "closed"],
+        "blocked": ["open", "in_progress", "resolved", "closed"],
+        "resolved": ["closed", "open", "in_progress"],
+        "closed": ["open"],
+    }
+    return [{"id": item, "name": item} for item in allowed.get(status.lower(), [])]
+
+
+def _extract_jql_value(jql: str, key: str) -> str | None:
+    pattern = re.compile(rf"{key}\s*=\s*['\"]?([^'\"]+)['\"]?", re.IGNORECASE)
+    match = pattern.search(jql)
+    if not match:
+        return None
+    return match.group(1).strip()
+
+
+def _graph_message_summary(message: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "id": message.get("id", ""),
+        "subject": message.get("subj", ""),
+        "from": {
+            "emailAddress": {
+                "address": message.get("from", ""),
+                "name": message.get("from", ""),
+            }
+        },
+        "toRecipients": [
+            {
+                "emailAddress": {
+                    "address": message.get("to", ""),
+                    "name": message.get("to", ""),
+                }
+            }
+        ],
+        "bodyPreview": message.get("body_text", ""),
+        "isRead": not bool(message.get("unread", False)),
+        "receivedDateTime": _ms_to_iso(int(message.get("time", 0) or 0)),
+    }
+
+
+def _graph_message(message: dict[str, Any], opened: dict[str, Any]) -> dict[str, Any]:
+    summary = _graph_message_summary(message)
+    summary["body"] = {
+        "contentType": "text",
+        "content": opened.get("body_text", ""),
+    }
+    return summary
+
+
+def _find_mail_message(payload: Any, message_id: str) -> dict[str, Any]:
+    messages = payload if isinstance(payload, list) else payload.get("messages", [])
+    for message in messages:
+        if str(message.get("id", "")) == message_id:
+            return dict(message)
+    return {"id": message_id}
+
+
+def _graph_first_recipient(payload: Any) -> str:
+    if not isinstance(payload, list) or not payload:
+        return ""
+    first = payload[0]
+    if not isinstance(first, dict):
+        return ""
+    return _graph_email_address(first.get("emailAddress"))
+
+
+def _graph_email_address(payload: Any) -> str:
+    if not isinstance(payload, dict):
+        return ""
+    return str(payload.get("address", ""))
+
+
+def _graph_body_content(payload: Any) -> str:
+    if isinstance(payload, str):
+        return payload
+    if not isinstance(payload, dict):
+        return ""
+    return str(payload.get("content", ""))
+
+
+def _graph_event(event: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "id": event.get("event_id", ""),
+        "subject": event.get("title", ""),
+        "start": {"dateTime": _ms_to_iso(int(event.get("start_ms", 0) or 0))},
+        "end": {"dateTime": _ms_to_iso(int(event.get("end_ms", 0) or 0))},
+        "attendees": [
+            {"emailAddress": {"address": item, "name": item}}
+            for item in event.get("attendees", [])
+        ],
+        "organizer": {
+            "emailAddress": {
+                "address": event.get("organizer", ""),
+                "name": event.get("organizer", ""),
+            }
+        },
+        "location": {"displayName": event.get("location", "")},
+        "bodyPreview": event.get("description", ""),
+        "isCancelled": str(event.get("status", "")).upper() == "CANCELED",
+    }
+
+
+def _graph_datetime_to_ms(value: Any) -> int:
+    if not value:
+        return int(datetime.now(UTC).timestamp() * 1000)
+    parsed = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    return int(parsed.timestamp() * 1000)
+
+
+def _graph_attendees(payload: Any) -> list[str]:
+    if not isinstance(payload, list):
+        return []
+    result: list[str] = []
+    for item in payload:
+        if not isinstance(item, dict):
+            continue
+        address = _graph_email_address(item.get("emailAddress"))
+        if address:
+            result.append(address)
+    return result
+
+
+def _salesforce_query(runtime: TwinRuntime, query: str) -> dict[str, Any]:
+    lowered = query.lower()
+    limit_match = re.search(r"limit\s+(\d+)", lowered)
+    limit = int(limit_match.group(1)) if limit_match else 25
+    if "from opportunity" in lowered:
+        payload = runtime.dispatch(
+            external_tool="salesforce.query.opportunity",
+            resolved_tool="salesforce.opportunity.list",
+            args={"limit": limit},
+            focus_hint="crm",
+        )
+        rows = payload if isinstance(payload, list) else payload.get("deals", [])
+        records = [_salesforce_opportunity(item) for item in rows[:limit]]
+        return {"totalSize": len(records), "done": True, "records": records}
+    if "from contact" in lowered:
+        payload = runtime.dispatch(
+            external_tool="salesforce.query.contact",
+            resolved_tool="salesforce.contact.list",
+            args={"limit": limit},
+            focus_hint="crm",
+        )
+        rows = payload if isinstance(payload, list) else payload.get("contacts", [])
+        records = [_salesforce_contact(item) for item in rows[:limit]]
+        return {"totalSize": len(records), "done": True, "records": records}
+    payload = runtime.dispatch(
+        external_tool="salesforce.query.account",
+        resolved_tool="salesforce.account.list",
+        args={"limit": limit},
+        focus_hint="crm",
+    )
+    rows = payload if isinstance(payload, list) else payload.get("companies", [])
+    records = [_salesforce_account(item) for item in rows[:limit]]
+    return {"totalSize": len(records), "done": True, "records": records}
+
+
+def _salesforce_opportunity(payload: dict[str, Any]) -> dict[str, Any]:
+    record_id = str(payload.get("id", ""))
+    return {
+        "attributes": {
+            "type": "Opportunity",
+            "url": f"/services/data/v60.0/sobjects/Opportunity/{record_id}",
+        },
+        "Id": record_id,
+        "Name": payload.get("name", ""),
+        "StageName": payload.get("stage", ""),
+        "Amount": payload.get("amount", 0),
+        "AccountId": payload.get("company_id"),
+        "ContactId": payload.get("contact_id"),
+    }
+
+
+def _salesforce_contact(payload: dict[str, Any]) -> dict[str, Any]:
+    record_id = str(payload.get("id", ""))
+    return {
+        "attributes": {
+            "type": "Contact",
+            "url": f"/services/data/v60.0/sobjects/Contact/{record_id}",
+        },
+        "Id": record_id,
+        "Email": payload.get("email", ""),
+        "FirstName": payload.get("first_name", ""),
+        "LastName": payload.get("last_name", ""),
+        "AccountId": payload.get("company_id"),
+    }
+
+
+def _salesforce_account(payload: dict[str, Any]) -> dict[str, Any]:
+    record_id = str(payload.get("id", ""))
+    return {
+        "attributes": {
+            "type": "Account",
+            "url": f"/services/data/v60.0/sobjects/Account/{record_id}",
+        },
+        "Id": record_id,
+        "Name": payload.get("name", ""),
+        "Domain__c": payload.get("domain", ""),
+    }
+
+
+def _http_exception(exc: Exception) -> HTTPException:
+    if isinstance(exc, MCPError):
+        return HTTPException(
+            status_code=400, detail={"code": exc.code, "message": exc.message}
+        )
+    if isinstance(exc, ValueError):
+        return HTTPException(status_code=400, detail=str(exc))
+    return HTTPException(status_code=500, detail=str(exc))
+
+
+def _provider_error_code(exc: Exception) -> str:
+    if isinstance(exc, MCPError):
+        return exc.code
+    if isinstance(exc, ValueError):
+        return "invalid_args"
+    return "operation_failed"
+
+
+def _error_payload(exc: Exception) -> dict[str, Any]:
+    if isinstance(exc, MCPError):
+        return {"code": exc.code, "message": exc.message}
+    return {"code": exc.__class__.__name__.lower(), "message": str(exc)}
+
+
+def _channel_for_focus(focus: str) -> str:
+    mapping = {
+        "slack": "Communication",
+        "mail": "Communication",
+        "tickets": "Work",
+        "calendar": "Work",
+        "crm": "Revenue",
+    }
+    return mapping.get(focus, "World")
+
+
+def _object_refs(args: dict[str, Any], result: Any) -> list[str]:
+    refs: list[str] = []
+    for key in (
+        "channel",
+        "issue_id",
+        "ticket_id",
+        "id",
+        "event_id",
+        "deal_id",
+        "company_id",
+        "contact_id",
+    ):
+        value = args.get(key)
+        if value:
+            refs.append(str(value))
+    if isinstance(result, dict):
+        for key in ("id", "issue_id", "ticket_id", "event_id"):
+            value = result.get(key)
+            if value:
+                refs.append(str(value))
+    return sorted(set(refs))
+
+
+def _snapshot_path(root: Path, run_id: str, snapshot_id: int) -> str | None:
+    for item in list_run_snapshots(root, run_id):
+        if item.snapshot_id == snapshot_id:
+            return item.path
+    return None
+
+
+def _contract_summary(path: Path) -> RunContractSummary:
+    if not path.exists():
+        return RunContractSummary()
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    evaluation = ContractEvaluationResult.model_validate(payload)
+    issues = len(evaluation.dynamic_validation.issues) + len(
+        evaluation.static_validation.issues
+    )
+    total = evaluation.success_predicate_count + evaluation.forbidden_predicate_count
+    passed = evaluation.success_predicates_passed + max(
+        0,
+        evaluation.forbidden_predicate_count - evaluation.forbidden_predicates_failed,
+    )
+    return RunContractSummary(
+        contract_name=evaluation.contract_name,
+        ok=evaluation.ok,
+        success_assertion_count=total,
+        success_assertions_passed=passed,
+        success_assertions_failed=max(0, total - passed),
+        issue_count=issues,
+        evaluation_path=str(path.name),
+    )
+
+
+def _jira_project_key(runtime: TwinRuntime) -> str:
+    payload = runtime.peek("jira.list_issues", {"limit": 1})
+    issues = payload if isinstance(payload, list) else payload.get("issues", [])
+    if not issues:
+        return "VEI"
+    issue_id = str(issues[0].get("issue_id", "VEI-1"))
+    return issue_id.split("-", 1)[0]
+
+
+def _ms_to_iso(value: int) -> str:
+    if value <= 0:
+        return datetime.now(UTC).isoformat()
+    return datetime.fromtimestamp(value / 1000, tz=UTC).isoformat()
+
+
+def _iso_now() -> str:
+    return datetime.now(UTC).isoformat()

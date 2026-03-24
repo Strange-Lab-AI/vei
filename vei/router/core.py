@@ -528,6 +528,8 @@ class MailSim:
         self.messages: Dict[str, Dict[str, Any]] = {}
         self.inbox: List[str] = []
         self.counter = 1
+        self.local_domains = self._local_domains(scenario)
+        self.local_mailbox = "me@example"
         self._variants_override = (
             scenario.vendor_reply_variants
             if scenario and scenario.vendor_reply_variants
@@ -548,7 +550,14 @@ class MailSim:
                     time_ms = int(message.get("time_ms") or (self.bus.clock_ms + index))
                     sender = str(message.get("from") or "unknown@example")
                     recipient = str(message.get("to") or "me@example")
-                    unread = bool(message.get("unread", recipient == "me@example"))
+                    if (
+                        self._is_local_recipient(recipient)
+                        and self.local_mailbox == "me@example"
+                    ):
+                        self.local_mailbox = recipient
+                    unread = bool(
+                        message.get("unread", self._is_local_recipient(recipient))
+                    )
                     record = {
                         "id": mid,
                         "from": sender,
@@ -568,7 +577,7 @@ class MailSim:
                         "category": category,
                     }
                     self.messages[mid] = record
-                    if recipient == "me@example":
+                    if self._is_local_recipient(recipient):
                         seeded_inbox.append((time_ms, mid))
             seeded_inbox.sort(key=lambda item: item[0], reverse=True)
             self.inbox = [message_id for _, message_id in seeded_inbox]
@@ -597,12 +606,12 @@ class MailSim:
         self.counter += 1
         self.messages[mid] = {
             "id": mid,
-            "from": "me@example",
+            "from": self.local_mailbox,
             "to": to,
             "subj": subj,
             "time": self.bus.clock_ms,
             "unread": False,
-            "headers": {"From": "me@example", "To": to, "Subject": subj},
+            "headers": {"From": self.local_mailbox, "To": to, "Subject": subj},
             "body_text": body_text,
         }
         # Schedule vendor reply with varied templates (scenario override if provided)
@@ -641,13 +650,13 @@ class MailSim:
         msg = {
             "id": mid,
             "from": event["from"],
-            "to": "me@example",
+            "to": self.local_mailbox,
             "subj": event["subj"],
             "time": self.bus.clock_ms,
             "unread": True,
             "headers": {
                 "From": event["from"],
-                "To": "me@example",
+                "To": self.local_mailbox,
                 "Subject": event["subj"],
             },
             "body_text": event["body_text"],
@@ -655,6 +664,22 @@ class MailSim:
         self.messages[mid] = msg
         self.inbox.insert(0, mid)
         return {"id": mid}
+
+    def _is_local_recipient(self, address: str) -> bool:
+        if address == "me@example":
+            return True
+        if "@" not in address:
+            return False
+        _, domain = address.rsplit("@", 1)
+        return domain.strip().lower() in self.local_domains
+
+    def _local_domains(self, scenario: Optional[Scenario]) -> set[str]:
+        metadata = dict(scenario.metadata or {}) if scenario is not None else {}
+        domain = str(metadata.get("builder_organization_domain", "")).strip().lower()
+        result = {"example", "example.com"}
+        if domain:
+            result.add(domain)
+        return result
 
 
 class BrowserVirtual:
