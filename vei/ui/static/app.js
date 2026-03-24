@@ -63,6 +63,8 @@ const state = {
   studioView: "company",
   developerMode: false,
   cinemaMode: false,
+  boardMode: false,
+  boardEventLog: [],
   cinemaAutoAdvance: false,
   cinemaAutoTimer: null,
   playbackTimer: null,
@@ -242,6 +244,33 @@ const SURFACE_TITLES = {
   vertical_heartbeat: "Business Core",
 };
 const SURFACE_HIGHLIGHT_MS = 2600;
+
+const DOMAIN_TO_SURFACE = {
+  comm_graph: "slack",
+  doc_graph: "docs",
+  work_graph: "tickets",
+  identity_graph: "approvals",
+  property_graph: "vertical_heartbeat",
+  revenue_graph: "vertical_heartbeat",
+  campaign_graph: "vertical_heartbeat",
+  inventory_graph: "vertical_heartbeat",
+  ops_graph: "tickets",
+};
+
+function guessMoveTargets(move) {
+  const targets = new Set();
+  const domain = move.graph_action?.domain;
+  if (domain && DOMAIN_TO_SURFACE[domain]) targets.add(DOMAIN_TO_SURFACE[domain]);
+  const preview = (move.consequence_preview || "").toLowerCase();
+  if (/slack|message|channel|comm/.test(preview)) targets.add("slack");
+  if (/mail|email/.test(preview)) targets.add("mail");
+  if (/ticket|issue|jira|comment/.test(preview)) targets.add("tickets");
+  if (/doc|document|checklist|artifact/.test(preview)) targets.add("docs");
+  if (/approv|request|vendor/.test(preview)) targets.add("approvals");
+  if (/lease|unit|property|work.?order|revenue|campaign/.test(preview)) targets.add("vertical_heartbeat");
+  if (!targets.size && domain) targets.add("vertical_heartbeat");
+  return [...targets];
+}
 
 function formatSurfaceTitle(surface) {
   return SURFACE_TITLES[surface] || formatDomainTitle(surface);
@@ -769,6 +798,14 @@ function playCascade(changedPanels, changedRefs) {
 // ---------------------------------------------------------------------------
 function toggleCinemaMode() {
   state.cinemaMode = !state.cinemaMode;
+  if (state.cinemaMode && state.boardMode) {
+    state.boardMode = false;
+    document.body.classList.remove("board-mode");
+    const bBtn = document.getElementById("board-toggle");
+    if (bBtn) bBtn.textContent = "Board";
+    const section = document.getElementById("board-game-section");
+    if (section) section.style.display = "none";
+  }
   document.body.classList.toggle("cinema-mode", state.cinemaMode);
   const btn = document.getElementById("cinema-toggle");
   if (btn) btn.textContent = state.cinemaMode ? "Exit Presentation" : "Present";
@@ -841,7 +878,11 @@ function toggleCinemaAutoAdvance() {
   } else {
     stopCinemaAutoAdvance();
   }
-  renderCinemaNarrative();
+  if (state.boardMode) {
+    renderBoardStatusBar();
+  } else {
+    renderCinemaNarrative();
+  }
 }
 
 function stopCinemaAutoAdvance() {
@@ -868,7 +909,356 @@ function cinemaAutoStep() {
   });
 }
 
+// ---------------------------------------------------------------------------
+// Board game view
+// ---------------------------------------------------------------------------
+const HEX_ICONS = {
+  slack: "\u{1F4AC}",
+  mail: "\u{1F4E7}",
+  tickets: "\u{1F3AB}",
+  docs: "\u{1F4C4}",
+  approvals: "\u2705",
+  vertical_heartbeat: "\u{1F4C8}",
+};
+
+const HEX_ACCENT = {
+  slack: "#36c5f0",
+  mail: "#ffb454",
+  tickets: "#ff6d5e",
+  docs: "#1aa88d",
+  approvals: "#9b7bff",
+  vertical_heartbeat: "#1e6cf2",
+};
+
+function toggleBoardMode() {
+  state.boardMode = !state.boardMode;
+  if (state.boardMode && state.cinemaMode) {
+    state.cinemaMode = false;
+    document.body.classList.remove("cinema-mode");
+    const cinBtn = document.getElementById("cinema-toggle");
+    if (cinBtn) cinBtn.textContent = "Present";
+    stopCinemaAutoAdvance();
+  }
+  document.body.classList.toggle("board-mode", state.boardMode);
+  const btn = document.getElementById("board-toggle");
+  if (btn) btn.textContent = state.boardMode ? "Exit Board" : "Board";
+  const section = document.getElementById("board-game-section");
+  if (section) section.style.display = state.boardMode ? "" : "none";
+  if (state.boardMode) {
+    setStudioView("company");
+    renderBoardGame();
+    const hasMoves = (state.missionState?.available_moves || []).some(
+      (m) => !m.executed && m.availability !== "blocked"
+    );
+    if (hasMoves) {
+      state.cinemaAutoAdvance = true;
+      window.setTimeout(cinemaAutoStep, 1400);
+    }
+  } else {
+    stopCinemaAutoAdvance();
+    dismissBoardOverlay();
+  }
+}
+
+function renderBoardGame() {
+  renderBoardStatusBar();
+  renderHexGrid();
+  renderBoardActionCards();
+  renderBoardEventTicker();
+  if (state.missionState?.status === "completed") renderBoardVictory();
+}
+
+function renderBoardStatusBar() {
+  const bar = document.getElementById("board-status-bar");
+  if (!bar) return;
+  const ms = state.missionState;
+  const mission = ms?.mission || state.playableBundle?.mission || null;
+  const score = ms?.scorecard || {};
+  const moveCount = (ms?.executed_moves || []).length;
+  const budget = score.action_budget_remaining ?? "?";
+  const totalBudget = moveCount + (typeof budget === "number" ? budget : 0);
+  const company = state.surfaceState?.company_name
+    || state.workspace?.manifest?.title || "Company";
+  const scorePct = Math.min(100, Math.max(0, score.overall_score || 0));
+  const lastMove = moveCount ? ms.executed_moves[moveCount - 1] : null;
+
+  let narrative = "";
+  if (ms?.status === "completed") {
+    narrative = score.mission_success ? "Mission complete \u2014 all systems green." : "Mission closed with exposure.";
+  } else if (lastMove) {
+    narrative = `Turn ${moveCount}: ${lastMove.title}`;
+  } else if (mission) {
+    narrative = mission.briefing || mission.description || "";
+  }
+
+  bar.innerHTML = `
+    <div class="board-bar-left">
+      <span class="board-company">${escapeHtml(company)}</span>
+      <span class="board-narrative">${escapeHtml(narrative)}</span>
+    </div>
+    <div class="board-bar-right">
+      <div class="board-stat">
+        <span class="board-stat-label">Turn</span>
+        <span class="board-stat-value">${moveCount} / ${totalBudget || "?"}</span>
+      </div>
+      <div class="board-stat">
+        <span class="board-stat-label">Score</span>
+        <div class="board-score-gauge">
+          <div class="board-score-fill" style="width:${scorePct}%"></div>
+          <span class="board-score-num">${scorePct}</span>
+        </div>
+      </div>
+      <div class="board-stat">
+        <span class="board-stat-label">Risk</span>
+        <span class="board-stat-value board-risk-${score.business_risk || "unknown"}">${score.business_risk || "\u2014"}</span>
+      </div>
+      <button type="button" id="board-auto-toggle" class="ghost-button board-auto-btn">
+        ${state.cinemaAutoAdvance ? "\u23F8 Pause" : "\u25B6 Auto"}
+      </button>
+    </div>
+  `;
+  const autoBtn = document.getElementById("board-auto-toggle");
+  if (autoBtn) autoBtn.addEventListener("click", toggleCinemaAutoAdvance);
+}
+
+function renderHexGrid() {
+  const grid = document.getElementById("board-hex-grid");
+  if (!grid) return;
+  const panels = state.surfaceState?.panels || [];
+  const changedSet = new Set(state.surfaceHighlights?.panels || []);
+
+  if (!panels.length) {
+    grid.innerHTML = `<div class="board-hex-empty">Enter a world to see the board</div>`;
+    return;
+  }
+
+  grid.innerHTML = panels.map((p, i) => {
+    const icon = HEX_ICONS[p.surface] || "\u{1F3E2}";
+    const title = formatSurfaceTitle(p.surface);
+    const count = (p.items || []).length;
+    const stat = p.headline || `${count} item${count === 1 ? "" : "s"}`;
+    const changed = changedSet.has(p.surface);
+    const statusCls = `hex-status-${p.status || "ok"}`;
+    const pulseCls = changed ? "hex-pulse" : "";
+    return `
+      <div class="board-hex ${statusCls} ${pulseCls}" data-surface="${escapeHtml(p.surface)}" style="--hex-i:${i}" role="button" tabindex="0">
+        <div class="hex-shape">
+          <div class="hex-content">
+            <span class="hex-icon">${icon}</span>
+            <span class="hex-title">${escapeHtml(title)}</span>
+            <span class="hex-stat">${escapeHtml(stat)}</span>
+            ${changed ? '<span class="hex-changed-badge">UPDATED</span>' : ""}
+          </div>
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  grid.querySelectorAll(".board-hex").forEach((hex) => {
+    hex.addEventListener("click", () => {
+      toggleHexDetail(hex.dataset.surface);
+    });
+  });
+}
+
+function toggleHexDetail(surface) {
+  const existing = document.getElementById("hex-detail-panel");
+  if (existing) {
+    if (existing.dataset.surface === surface) { existing.remove(); return; }
+    existing.remove();
+  }
+  const panel = state.surfaceState?.panels?.find((p) => p.surface === surface);
+  if (!panel) return;
+  const accent = HEX_ACCENT[surface] || "#7b5bff";
+  const items = (panel.items || []).slice(0, 6);
+  const el = document.createElement("div");
+  el.id = "hex-detail-panel";
+  el.className = "hex-detail-panel";
+  el.dataset.surface = surface;
+  el.style.setProperty("--hex-accent", accent);
+  el.innerHTML = `
+    <div class="hex-detail-header">
+      <span class="hex-detail-icon">${HEX_ICONS[surface] || "\u{1F3E2}"}</span>
+      <div>
+        <strong>${escapeHtml(formatSurfaceTitle(surface))}</strong>
+        <span class="hex-detail-status">${escapeHtml(panel.status || "ok")}</span>
+      </div>
+      <button type="button" class="hex-detail-close">\u2715</button>
+    </div>
+    <p class="hex-detail-headline">${escapeHtml(panel.headline || "")}</p>
+    <div class="hex-detail-items">
+      ${items.map((item) => `
+        <div class="hex-detail-item">
+          <strong>${escapeHtml(item.title)}</strong>
+          ${item.subtitle ? `<span class="hex-detail-sub">${escapeHtml(item.subtitle)}</span>` : ""}
+          ${item.body ? `<p>${escapeHtml(item.body).slice(0, 120)}</p>` : ""}
+        </div>
+      `).join("")}
+      ${(panel.items || []).length > 6 ? `<p class="hex-detail-more">+${(panel.items || []).length - 6} more</p>` : ""}
+    </div>
+  `;
+  el.querySelector(".hex-detail-close").addEventListener("click", () => el.remove());
+  const area = document.querySelector(".board-hex-area");
+  if (area) area.appendChild(el);
+}
+
+function renderBoardActionCards() {
+  const panel = document.getElementById("board-action-cards");
+  if (!panel) return;
+  const ms = state.missionState;
+  if (!ms || !Array.isArray(ms.available_moves) || !ms.available_moves.length) {
+    panel.innerHTML = `<div class="board-cards-empty">
+      <p class="eyebrow">Actions</p>
+      <p>Enter a world to get your hand of cards.</p>
+    </div>`;
+    return;
+  }
+
+  panel.innerHTML = `
+    <p class="eyebrow board-cards-title">Action Cards</p>
+    ${ms.available_moves.map((move) => {
+      const used = move.executed;
+      const blocked = move.availability === "blocked";
+      const risky = move.availability === "risky";
+      const recommended = move.availability === "recommended";
+      const availClass = risky ? "card-risky" : recommended ? "card-recommended" : "card-available";
+      const stateClass = used ? "card-used" : blocked ? "card-blocked" : "";
+      const targets = guessMoveTargets(move);
+      const targetDots = targets.map((s) =>
+        `<span class="card-target-dot" title="${escapeHtml(formatSurfaceTitle(s))}" style="background:${HEX_ACCENT[s] || "#7b5bff"}">${HEX_ICONS[s] || "\u25CF"}</span>`
+      ).join("");
+      return `
+        <div class="board-card ${availClass} ${stateClass}" data-move-id="${escapeHtml(move.move_id)}">
+          <div class="board-card-top">
+            <div class="board-card-badge">${used ? "played" : escapeHtml(move.availability)}</div>
+            ${targetDots ? `<div class="card-target-row">${targetDots}</div>` : ""}
+          </div>
+          <h4 class="board-card-title">${escapeHtml(move.title)}</h4>
+          ${!used && !blocked
+            ? `<button type="button" class="board-card-play" data-move-id="${escapeHtml(move.move_id)}">
+                ${risky ? "Risk it" : "Play"}
+              </button>`
+            : ""}
+        </div>
+      `;
+    }).join("")}
+  `;
+
+  panel.querySelectorAll(".board-card-play").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      void applyMissionMove(btn.dataset.moveId);
+    });
+  });
+}
+
+function renderBoardEventTicker() {
+  const ticker = document.getElementById("board-event-ticker");
+  if (!ticker) return;
+  const log = state.boardEventLog;
+  if (!log.length) {
+    ticker.innerHTML = `<span class="ticker-empty">Waiting for first move\u2026</span>`;
+    return;
+  }
+  ticker.innerHTML = log.map((entry) =>
+    `<span class="ticker-entry"><strong>Turn ${entry.turn}:</strong> ${escapeHtml(entry.title)} \u2192 ${entry.systems.map((s) => escapeHtml(formatSurfaceTitle(s))).join(", ")}</span>`
+  ).join('<span class="ticker-sep">\u00b7</span>');
+  ticker.scrollLeft = ticker.scrollWidth;
+}
+
+function recordBoardEvent(moveTitle, changedPanels) {
+  const turn = (state.missionState?.executed_moves || []).length;
+  state.boardEventLog.push({ turn, title: moveTitle, systems: changedPanels });
+}
+
+function animateHexRipple(changedPanels) {
+  if (!state.boardMode || !changedPanels.length) return;
+  changedPanels.forEach((surface) => {
+    const hex = document.querySelector(`.board-hex[data-surface="${surface}"]`);
+    if (!hex) return;
+    hex.classList.remove("hex-ripple");
+    void hex.offsetWidth;
+    hex.classList.add("hex-ripple");
+    window.setTimeout(() => hex.classList.remove("hex-ripple"), 1200);
+  });
+}
+
+function fireParticleTrail(cardEl, changedPanels) {
+  if (!state.boardMode || !cardEl || !changedPanels.length) return;
+  const container = document.getElementById("board-particles");
+  if (!container) return;
+  const boardRect = container.getBoundingClientRect();
+  const cardRect = cardEl.getBoundingClientRect();
+  const startX = cardRect.left - boardRect.left;
+  const startY = cardRect.top + cardRect.height / 2 - boardRect.top;
+
+  changedPanels.forEach((surface, idx) => {
+    const hex = document.querySelector(`.board-hex[data-surface="${surface}"]`);
+    if (!hex) return;
+    const hexRect = hex.getBoundingClientRect();
+    const endX = hexRect.left + hexRect.width / 2 - boardRect.left;
+    const endY = hexRect.top + hexRect.height / 2 - boardRect.top;
+    const dot = document.createElement("div");
+    dot.className = "board-particle";
+    dot.style.setProperty("--px-start", `${startX}px`);
+    dot.style.setProperty("--py-start", `${startY}px`);
+    dot.style.setProperty("--px-end", `${endX}px`);
+    dot.style.setProperty("--py-end", `${endY}px`);
+    dot.style.setProperty("--p-color", HEX_ACCENT[surface] || "#7b5bff");
+    dot.style.animationDelay = `${idx * 120}ms`;
+    container.appendChild(dot);
+    window.setTimeout(() => dot.remove(), 1000);
+  });
+}
+
+function renderBoardVictory() {
+  if (document.getElementById("board-victory-overlay")) return;
+  const ms = state.missionState;
+  const score = ms?.scorecard || {};
+  const mission = ms?.mission || {};
+  const success = score.mission_success;
+  const overlay = document.createElement("div");
+  overlay.id = "board-victory-overlay";
+  overlay.className = `board-victory-overlay ${success ? "victory-success" : "victory-exposure"}`;
+  overlay.innerHTML = `
+    <div class="victory-card">
+      <div class="victory-icon">${success ? "\u{1F3C6}" : "\u26A0\uFE0F"}</div>
+      <h2 class="victory-title">${success ? "Mission Complete" : "Mission Closed"}</h2>
+      <p class="victory-subtitle">${success ? "All objectives met. Every system is green." : "Exposure remains. Some objectives were not met."}</p>
+      <div class="victory-stats">
+        <div class="victory-stat">
+          <span class="victory-stat-num">${score.overall_score || 0}</span>
+          <span class="victory-stat-label">Score</span>
+        </div>
+        <div class="victory-stat">
+          <span class="victory-stat-num">${score.move_count || 0}</span>
+          <span class="victory-stat-label">Moves</span>
+        </div>
+        <div class="victory-stat">
+          <span class="victory-stat-num">${score.success_assertions_passed || 0}/${score.success_assertions_total || 0}</span>
+          <span class="victory-stat-label">Assertions</span>
+        </div>
+        <div class="victory-stat">
+          <span class="victory-stat-num">${score.business_risk || "\u2014"}</span>
+          <span class="victory-stat-label">Final Risk</span>
+        </div>
+      </div>
+      <button type="button" class="victory-dismiss">Continue</button>
+    </div>
+  `;
+  overlay.querySelector(".victory-dismiss").addEventListener("click", dismissBoardOverlay);
+  overlay.addEventListener("click", (e) => { if (e.target === overlay) dismissBoardOverlay(); });
+  document.querySelector(".board-game-section")?.appendChild(overlay);
+}
+
+function dismissBoardOverlay() {
+  document.getElementById("board-victory-overlay")?.remove();
+}
+
 function renderLivingCompanyView() {
+  if (state.boardMode) {
+    renderBoardGame();
+    return;
+  }
   renderLivingCompanyContext();
   renderSurfaceWall();
   renderLivingCompanyRail();
@@ -2391,6 +2781,7 @@ async function startMission() {
       await selectRun(payload.run_id, { previousSurfaceState: null });
     }
     state.missionState = payload;
+    state.boardEventLog = [];
     renderMissionPlay();
     status.textContent = `Mission ${payload.mission?.title || payload.run_id} is live.`;
     setStudioView("company");
@@ -2425,9 +2816,16 @@ async function applyMissionMove(moveId) {
 
     const diff = diffSurfaceState(oldSurface, state.surfaceState);
     if (diff.panels.length > 0) {
-      state.cascadeActive = true;
-      renderSurfaceWall();
-      await playCascade(diff.panels, diff.refs);
+      if (state.boardMode) {
+        const playedCard = document.querySelector(`.board-card[data-move-id="${moveId}"]`);
+        fireParticleTrail(playedCard, diff.panels);
+        recordBoardEvent(moveTitle, diff.panels);
+        animateHexRipple(diff.panels);
+      } else {
+        state.cascadeActive = true;
+        renderSurfaceWall();
+        await playCascade(diff.panels, diff.refs);
+      }
     }
     renderLivingCompanyView();
     renderMissionPlay();
@@ -2651,6 +3049,7 @@ function bindControls() {
   });
   document.getElementById("developer-toggle").addEventListener("click", toggleDeveloperMode);
   document.getElementById("cinema-toggle").addEventListener("click", toggleCinemaMode);
+  document.getElementById("board-toggle").addEventListener("click", toggleBoardMode);
   document.getElementById("scenario-select").addEventListener("change", (event) => {
     void loadScenario(event.target.value);
   });
