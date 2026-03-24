@@ -65,6 +65,11 @@ const state = {
   cinemaMode: false,
   boardMode: false,
   boardEventLog: [],
+  compareMode: false,
+  compareRunA: null,
+  compareRunB: null,
+  compareTimelineA: [],
+  compareTimelineB: [],
   cinemaAutoAdvance: false,
   cinemaAutoTimer: null,
   playbackTimer: null,
@@ -946,6 +951,7 @@ function toggleBoardMode() {
   if (section) section.style.display = state.boardMode ? "" : "none";
   if (state.boardMode) {
     setStudioView("company");
+    clearFlowLines();
     renderBoardGame();
     const hasMoves = (state.missionState?.available_moves || []).some(
       (m) => !m.executed && m.availability !== "blocked"
@@ -1210,6 +1216,57 @@ function fireParticleTrail(cardEl, changedPanels) {
   });
 }
 
+function drawFlowLines(changedPanels) {
+  const svg = document.getElementById("board-flow-svg");
+  if (!svg || !changedPanels.length) return;
+  const area = svg.parentElement;
+  if (!area) return;
+  const areaRect = area.getBoundingClientRect();
+
+  function hexCenter(surface) {
+    const hex = document.querySelector(`.board-hex[data-surface="${surface}"]`);
+    if (!hex) return null;
+    const r = hex.getBoundingClientRect();
+    return { x: r.left + r.width / 2 - areaRect.left, y: r.top + r.height / 2 - areaRect.top };
+  }
+
+  const pairs = [];
+  for (let i = 0; i < changedPanels.length; i++) {
+    for (let j = i + 1; j < changedPanels.length; j++) {
+      pairs.push([changedPanels[i], changedPanels[j]]);
+    }
+  }
+
+  pairs.forEach(([a, b]) => {
+    const pa = hexCenter(a);
+    const pb = hexCenter(b);
+    if (!pa || !pb) return;
+    const existingKey = `flow-${[a, b].sort().join("-")}`;
+    if (svg.querySelector(`[data-flow-key="${existingKey}"]`)) {
+      const el = svg.querySelector(`[data-flow-key="${existingKey}"]`);
+      el.classList.add("flow-line-active");
+      window.setTimeout(() => el.classList.remove("flow-line-active"), 2000);
+      return;
+    }
+    const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    line.setAttribute("x1", pa.x);
+    line.setAttribute("y1", pa.y);
+    line.setAttribute("x2", pb.x);
+    line.setAttribute("y2", pb.y);
+    line.setAttribute("stroke", HEX_ACCENT[a] || "#7b5bff");
+    line.setAttribute("stroke-dasharray", "6 4");
+    line.setAttribute("data-flow-key", existingKey);
+    line.classList.add("flow-line", "flow-line-active");
+    svg.appendChild(line);
+    window.setTimeout(() => line.classList.remove("flow-line-active"), 2000);
+  });
+}
+
+function clearFlowLines() {
+  const svg = document.getElementById("board-flow-svg");
+  if (svg) svg.innerHTML = "";
+}
+
 function renderBoardVictory() {
   if (document.getElementById("board-victory-overlay")) return;
   const ms = state.missionState;
@@ -1252,6 +1309,159 @@ function renderBoardVictory() {
 
 function dismissBoardOverlay() {
   document.getElementById("board-victory-overlay")?.remove();
+}
+
+// ---------------------------------------------------------------------------
+// Compare mode — overlay two run timelines on the board
+// ---------------------------------------------------------------------------
+const TOOL_TO_SURFACE = {
+  "slack.post_message": "slack", "slack.list_channels": "slack", "slack.read_channel": "slack",
+  "mail.send": "mail", "mail.list": "mail", "mail.read_thread": "mail",
+  "tickets.create": "tickets", "tickets.update": "tickets", "tickets.list": "tickets",
+  "tickets.add_comment": "tickets",
+  "docs.update": "docs", "docs.create": "docs", "docs.list": "docs",
+  "servicedesk.create_request": "approvals", "servicedesk.update_request_approval": "approvals",
+  "servicedesk.list_requests": "approvals",
+};
+
+function toolToSurface(tool) {
+  if (!tool) return null;
+  if (TOOL_TO_SURFACE[tool]) return TOOL_TO_SURFACE[tool];
+  const prefix = tool.split(".")[0];
+  const map = { slack: "slack", mail: "mail", tickets: "tickets", docs: "docs", servicedesk: "approvals" };
+  return map[prefix] || "vertical_heartbeat";
+}
+
+function timelineSurfaceHits(timeline) {
+  const hits = {};
+  for (const ev of timeline) {
+    if (ev.kind !== "trace_call" && ev.kind !== "workflow_step") continue;
+    const surface = toolToSurface(ev.tool || ev.resolved_tool);
+    if (surface) hits[surface] = (hits[surface] || 0) + 1;
+  }
+  return hits;
+}
+
+async function toggleCompareMode() {
+  state.compareMode = !state.compareMode;
+  const bar = document.getElementById("board-compare-bar");
+  const btn = document.getElementById("compare-toggle");
+  if (!state.compareMode) {
+    if (bar) bar.style.display = "none";
+    if (btn) btn.textContent = "Compare";
+    state.compareRunA = null;
+    state.compareRunB = null;
+    state.compareTimelineA = [];
+    state.compareTimelineB = [];
+    if (state.boardMode) renderBoardGame();
+    return;
+  }
+  if (btn) btn.textContent = "Exit Compare";
+  if (!state.boardMode) toggleBoardMode();
+
+  const runs = state.runs || [];
+  if (runs.length < 2) {
+    if (bar) { bar.style.display = "flex"; bar.innerHTML = "<span>Need at least 2 recorded paths to compare.</span>"; }
+    return;
+  }
+  state.compareRunA = runs[0];
+  state.compareRunB = runs[1];
+  const [tlA, tlB] = await Promise.all([
+    getJson(`/api/runs/${runs[0].run_id}/timeline`),
+    getJson(`/api/runs/${runs[1].run_id}/timeline`),
+  ]);
+  state.compareTimelineA = tlA;
+  state.compareTimelineB = tlB;
+  renderCompareBar();
+  renderCompareHexOverlay();
+}
+
+function renderCompareBar() {
+  const bar = document.getElementById("board-compare-bar");
+  if (!bar) return;
+  bar.style.display = "flex";
+  const a = state.compareRunA;
+  const b = state.compareRunB;
+  if (!a || !b) { bar.innerHTML = ""; return; }
+
+  const nameA = a.runner || a.run_id?.split("_").slice(0, 2).join("_") || "Path A";
+  const nameB = b.runner || b.run_id?.split("_").slice(0, 2).join("_") || "Path B";
+  const stepsA = state.compareTimelineA.filter((e) => e.kind === "trace_call" || e.kind === "workflow_step").length;
+  const stepsB = state.compareTimelineB.filter((e) => e.kind === "trace_call" || e.kind === "workflow_step").length;
+
+  bar.innerHTML = `
+    <span class="compare-pill compare-pill-a"><span class="compare-dot"></span>${escapeHtml(nameA)} (${stepsA} steps)</span>
+    <span class="compare-pill compare-pill-b"><span class="compare-dot"></span>${escapeHtml(nameB)} (${stepsB} steps)</span>
+    <div class="compare-score-row">
+      <div class="compare-score"><span class="compare-score-val" style="color:#5ba0ff">${a.final_score ?? "?"}</span><span class="compare-score-label">${escapeHtml(nameA)}</span></div>
+      <span style="color:rgba(244,248,251,0.2);font-size:1.2rem;align-self:center">vs</span>
+      <div class="compare-score"><span class="compare-score-val" style="color:#ffb454">${b.final_score ?? "?"}</span><span class="compare-score-label">${escapeHtml(nameB)}</span></div>
+    </div>
+  `;
+}
+
+function renderCompareHexOverlay() {
+  const hitsA = timelineSurfaceHits(state.compareTimelineA);
+  const hitsB = timelineSurfaceHits(state.compareTimelineB);
+  const allSurfaces = new Set([...Object.keys(hitsA), ...Object.keys(hitsB)]);
+
+  document.querySelectorAll(".board-hex").forEach((hex) => {
+    hex.classList.remove("hex-ring-a", "hex-ring-b");
+    const s = hex.dataset.surface;
+    if (hitsA[s]) hex.classList.add("hex-ring-a");
+    if (hitsB[s]) hex.classList.add("hex-ring-b");
+
+    const existingStat = hex.querySelector(".hex-compare-stat");
+    if (existingStat) existingStat.remove();
+    if (hitsA[s] || hitsB[s]) {
+      const stat = document.createElement("div");
+      stat.className = "hex-compare-stat";
+      stat.innerHTML = `<span style="color:#5ba0ff">${hitsA[s] || 0}</span> / <span style="color:#ffb454">${hitsB[s] || 0}</span>`;
+      hex.querySelector(".hex-content")?.appendChild(stat);
+    }
+  });
+
+  clearFlowLines();
+  drawCompareFlowLines(state.compareTimelineA, "#5ba0ff");
+  drawCompareFlowLines(state.compareTimelineB, "#ffb454");
+}
+
+function drawCompareFlowLines(timeline, color) {
+  const svg = document.getElementById("board-flow-svg");
+  if (!svg) return;
+  const area = svg.parentElement;
+  if (!area) return;
+  const areaRect = area.getBoundingClientRect();
+
+  function hexCenter(surface) {
+    const hex = document.querySelector(`.board-hex[data-surface="${surface}"]`);
+    if (!hex) return null;
+    const r = hex.getBoundingClientRect();
+    return { x: r.left + r.width / 2 - areaRect.left, y: r.top + r.height / 2 - areaRect.top };
+  }
+
+  const surfaces = [];
+  for (const ev of timeline) {
+    if (ev.kind !== "trace_call" && ev.kind !== "workflow_step") continue;
+    const s = toolToSurface(ev.tool || ev.resolved_tool);
+    if (s && !surfaces.includes(s)) surfaces.push(s);
+  }
+  for (let i = 0; i < surfaces.length - 1; i++) {
+    const pa = hexCenter(surfaces[i]);
+    const pb = hexCenter(surfaces[i + 1]);
+    if (!pa || !pb) continue;
+    const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    line.setAttribute("x1", pa.x);
+    line.setAttribute("y1", pa.y);
+    line.setAttribute("x2", pb.x);
+    line.setAttribute("y2", pb.y);
+    line.setAttribute("stroke", color);
+    line.setAttribute("stroke-dasharray", "6 4");
+    line.classList.add("flow-line");
+    line.style.animation = "none";
+    line.style.opacity = "0.4";
+    svg.appendChild(line);
+  }
 }
 
 function renderLivingCompanyView() {
@@ -2821,6 +3031,7 @@ async function applyMissionMove(moveId) {
         fireParticleTrail(playedCard, diff.panels);
         recordBoardEvent(moveTitle, diff.panels);
         animateHexRipple(diff.panels);
+        drawFlowLines(diff.panels);
       } else {
         state.cascadeActive = true;
         renderSurfaceWall();
@@ -3050,6 +3261,7 @@ function bindControls() {
   document.getElementById("developer-toggle").addEventListener("click", toggleDeveloperMode);
   document.getElementById("cinema-toggle").addEventListener("click", toggleCinemaMode);
   document.getElementById("board-toggle").addEventListener("click", toggleBoardMode);
+  document.getElementById("compare-toggle").addEventListener("click", toggleCompareMode);
   document.getElementById("scenario-select").addEventListener("change", (event) => {
     void loadScenario(event.target.value);
   });

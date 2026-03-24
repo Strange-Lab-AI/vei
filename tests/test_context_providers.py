@@ -242,3 +242,127 @@ def test_okta_provider_reads_payload_before_tempdir_is_removed(
     assert result.data["users"] == [{"id": "U1"}]
     assert result.data["groups"] == [{"id": "G1"}]
     assert result.data["applications"] == [{"id": "A1"}]
+
+
+# ---------------------------------------------------------------------------
+# Slack export ingestion
+# ---------------------------------------------------------------------------
+
+
+def test_slack_export_captures_channels_and_users(tmp_path: Path) -> None:
+    """Parsing a minimal Slack export directory produces correct counts."""
+    from vei.context.providers.slack import capture_from_export
+
+    users_json = [
+        {
+            "id": "U001",
+            "name": "alice",
+            "real_name": "Alice Smith",
+            "profile": {"email": "alice@example.com"},
+            "is_bot": False,
+            "deleted": False,
+        },
+        {
+            "id": "U002",
+            "name": "bob",
+            "real_name": "Bob Jones",
+            "profile": {},
+            "is_bot": False,
+            "deleted": False,
+        },
+    ]
+    channels_json = [
+        {"id": "C001", "name": "general"},
+        {"id": "C002", "name": "random"},
+    ]
+    general_day = [
+        {"ts": "1700000001.000", "user": "U001", "text": "Hello world"},
+        {"ts": "1700000002.000", "user": "U002", "text": "Hi Alice"},
+        {
+            "ts": "1700000003.000",
+            "user": "U001",
+            "text": "Let's ship it",
+            "subtype": "channel_join",
+        },
+    ]
+    random_day = [
+        {"ts": "1700000010.000", "user": "U002", "text": "Random thought"},
+    ]
+
+    (tmp_path / "users.json").write_text(json.dumps(users_json))
+    (tmp_path / "channels.json").write_text(json.dumps(channels_json))
+    (tmp_path / "general").mkdir()
+    (tmp_path / "general" / "2023-11-15.json").write_text(json.dumps(general_day))
+    (tmp_path / "random").mkdir()
+    (tmp_path / "random" / "2023-11-15.json").write_text(json.dumps(random_day))
+
+    result = capture_from_export(tmp_path)
+
+    assert result.status == "ok"
+    assert result.record_counts["channels"] == 2
+    assert result.record_counts["users"] == 2
+    assert result.record_counts["messages"] == 3
+    ch_general = next(c for c in result.data["channels"] if c["channel"] == "#general")
+    assert len(ch_general["messages"]) == 2
+    assert ch_general["messages"][0]["user"] == "alice"
+
+
+def test_slack_export_channel_filter(tmp_path: Path) -> None:
+    """Channel filter restricts which channels are ingested."""
+    from vei.context.providers.slack import capture_from_export
+
+    (tmp_path / "users.json").write_text("[]")
+    (tmp_path / "channels.json").write_text(
+        json.dumps(
+            [
+                {"id": "C1", "name": "general"},
+                {"id": "C2", "name": "secret"},
+            ]
+        )
+    )
+    (tmp_path / "general").mkdir()
+    (tmp_path / "general" / "2024-01-01.json").write_text(
+        json.dumps(
+            [
+                {"ts": "1", "user": "U1", "text": "public"},
+            ]
+        )
+    )
+    (tmp_path / "secret").mkdir()
+    (tmp_path / "secret" / "2024-01-01.json").write_text(
+        json.dumps(
+            [
+                {"ts": "2", "user": "U1", "text": "private"},
+            ]
+        )
+    )
+
+    result = capture_from_export(tmp_path, channel_filter=["general"])
+
+    assert result.record_counts["channels"] == 1
+    names = [c["channel"] for c in result.data["channels"]]
+    assert names == ["#general"]
+
+
+def test_slack_export_api_integration(tmp_path: Path) -> None:
+    """The top-level ingest_slack_export API produces a valid ContextSnapshot."""
+    from vei.context.api import ingest_slack_export
+
+    (tmp_path / "users.json").write_text(json.dumps([{"id": "U1", "name": "dev"}]))
+    (tmp_path / "channels.json").write_text(json.dumps([{"id": "C1", "name": "eng"}]))
+    (tmp_path / "eng").mkdir()
+    (tmp_path / "eng" / "2024-06-01.json").write_text(
+        json.dumps(
+            [
+                {"ts": "100", "user": "U1", "text": "shipped"},
+            ]
+        )
+    )
+
+    snap = ingest_slack_export(tmp_path, organization_name="TestCorp")
+
+    assert snap.organization_name == "TestCorp"
+    source = snap.source_for("slack")
+    assert source is not None
+    assert source.status == "ok"
+    assert source.record_counts["messages"] == 1

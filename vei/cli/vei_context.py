@@ -66,6 +66,43 @@ def capture(
     )
 
 
+@app.command("ingest-slack")
+def ingest_slack(
+    export_dir: str = typer.Option(
+        ..., "--export", "-e", help="Path to Slack workspace export directory"
+    ),
+    org: str = typer.Option(..., "--org", help="Organization name"),
+    domain: str = typer.Option("", "--domain", help="Organization domain"),
+    output: str = typer.Option(
+        "context_snapshot.json", "--output", "-o", help="Output snapshot path"
+    ),
+    message_limit: int = typer.Option(200, "--limit", help="Max messages per channel"),
+) -> None:
+    """Ingest a Slack workspace export directory (offline, no API key needed)."""
+    from vei.context.api import ingest_slack_export
+
+    path = Path(export_dir)
+    if not path.is_dir():
+        raise typer.BadParameter(f"not a directory: {export_dir}")
+
+    snapshot = ingest_slack_export(
+        path,
+        organization_name=org,
+        organization_domain=domain,
+        message_limit=message_limit,
+    )
+    text = snapshot.model_dump_json(indent=2)
+    Path(output).write_text(text, encoding="utf-8")
+
+    source = snapshot.source_for("slack")
+    counts = source.record_counts if source else {}
+    typer.echo(
+        f"Ingested {counts.get('channels', 0)} channels, "
+        f"{counts.get('messages', 0)} messages, "
+        f"{counts.get('users', 0)} users -> {output}"
+    )
+
+
 @app.command()
 def hydrate(
     snapshot: str = typer.Option(
