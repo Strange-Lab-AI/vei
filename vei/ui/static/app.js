@@ -56,6 +56,7 @@ const state = {
   surfaceHighlights: { panels: [], refs: [] },
   surfaceHighlightExpiresAt: 0,
   surfaceHighlightTimer: null,
+  lastMoveImpact: null,
   snapshots: [],
   selectedEventIndex: 0,
   selectedSnapshotFrom: null,
@@ -302,6 +303,17 @@ function uniqueStrings(values) {
   return [...new Set((values || []).filter((item) => typeof item === "string" && item))];
 }
 
+function latestExecutedMove() {
+  const executed = state.missionState?.executed_moves || [];
+  return executed.length ? executed[executed.length - 1] : null;
+}
+
+function closeToolbarMenus() {
+  document.querySelectorAll(".toolbar-menu[open]").forEach((node) => {
+    node.removeAttribute("open");
+  });
+}
+
 function clearSurfaceHighlightTimer() {
   if (!state.surfaceHighlightTimer) {
     return;
@@ -364,9 +376,10 @@ function setStudioView(view) {
 function toggleDeveloperMode() {
   state.developerMode = !state.developerMode;
   document.body.classList.toggle("developer-mode", state.developerMode);
+  closeToolbarMenus();
   document.getElementById("developer-toggle").textContent = state.developerMode
-    ? "Hide Engine"
-    : "Show Engine";
+    ? "Hide Systems Detail"
+    : "Systems Detail";
 }
 
 function jumpToStudioView(view) {
@@ -476,26 +489,42 @@ function renderPresentationPanel() {
 function renderStudioShell() {
   const panel = document.getElementById("kernel-thesis-panel");
   const story = state.story || {};
-  const presentation = state.presentation || story.presentation || {};
-  const selectedWorld = story.manifest?.company_name || state.workspace?.manifest?.title || "Workspace";
+  const selectedWorld =
+    story.manifest?.company_name ||
+    state.workspace?.manifest?.title ||
+    "Company";
+  const mission = state.missionState?.mission || state.playableBundle?.mission || state.missions[0] || null;
+  const objective =
+    state.missionState?.objective_variant ||
+    mission?.default_objective ||
+    state.scenarioPreview?.active_contract_variant ||
+    "default";
   const companyBriefing =
+    mission?.briefing ||
     story.company_briefing ||
     state.workspace?.manifest?.description ||
-    "A stable company world with live tools, shared business state, and pressure building across the work.";
+    "Company state is loading.";
+  const systemCount = state.surfaceState?.panels?.length || (story.manifest?.key_surfaces || []).length || 0;
+  if (!panel) {
+    setStudioView(state.studioView);
+    renderPresentationPanel();
+    return;
+  }
   panel.innerHTML = `
-    <div class="story-card accent-card">
-      <p class="eyebrow">What this is</p>
-      <h3>A full enterprise, running as software.</h3>
-      <p class="metric-detail">Every tool, every person, every process \u2014 simulated end\u2011to\u2011end. Make one move and watch the ripple hit Slack, email, tickets, docs, and the business core at the same time.</p>
+    <div class="shell-summary-item">
+      <span class="metric-label">Company</span>
+      <strong>${escapeHtml(selectedWorld)}</strong>
+      <span class="metric-detail">${escapeHtml(story.manifest?.title || state.workspace?.manifest?.source_ref || "active workspace")}</span>
     </div>
-    <div class="story-card">
-      <p class="eyebrow">Current Company</p>
-      <h3>${escapeHtml(selectedWorld)}</h3>
-      <p class="metric-detail">${escapeHtml(companyBriefing)}</p>
+    <div class="shell-summary-item">
+      <span class="metric-label">Current tension</span>
+      <strong>${escapeHtml(mission?.title || "No crisis selected")}</strong>
+      <span class="metric-detail">${escapeHtml(companyBriefing)}</span>
     </div>
-    <div class="story-card">
-      <p class="eyebrow">How it works</p>
-      <p class="metric-detail">${escapeHtml(presentation.demo_goal || "Pick a crisis. Define what success looks like. Then play moves and watch the company change \u2014 or fork reality and compare two futures side by side.")}</p>
+    <div class="shell-summary-item">
+      <span class="metric-label">Success means</span>
+      <strong>${escapeHtml(objective)}</strong>
+      <span class="metric-detail">${systemCount} live system${systemCount === 1 ? "" : "s"} in view</span>
     </div>
   `;
   setStudioView(state.studioView);
@@ -543,11 +572,15 @@ function renderWorkspaceMetrics() {
   }
   const manifest = workspace.manifest || {};
   const latestRun = state.runs[0];
+  const missionState = state.missionState;
+  const systemCount = state.surfaceState?.panels?.length
+    || (state.story?.manifest?.key_surfaces || []).length
+    || 0;
   panel.innerHTML = [
-    metricTile("Workspace", manifest.title || manifest.name || "Workspace", manifest.source_kind || "template"),
-    metricTile("Situations", String((manifest.scenarios || []).length), `active: ${manifest.active_scenario || "default"}`),
-    metricTile("Paths", String(workspace.run_count || 0), latestRun ? `latest: ${latestRun.run_id}` : "none yet"),
-    metricTile("Objectives", String((workspace.compiled_scenarios || []).length), "compiled"),
+    chip(manifest.title || manifest.name || "Workspace"),
+    chip(`${systemCount} system${systemCount === 1 ? "" : "s"}`),
+    chip(`${workspace.run_count || 0} path${workspace.run_count === 1 ? "" : "s"}`),
+    chip(missionState?.status || (latestRun ? latestRun.status : "ready"), statusClass(missionState?.status || latestRun?.status)),
   ].join("");
 }
 
@@ -558,63 +591,76 @@ function renderWorkspaceHero() {
   }
   const manifest = workspace.manifest || {};
   const story = state.story || {};
+  const mission = state.missionState?.mission || state.playableBundle?.mission || state.missions[0] || null;
+  const title = document.getElementById("workspace-title");
   const subtitle = document.getElementById("workspace-subtitle");
-  subtitle.classList.remove("loading-pulse");
   const companyName = story.manifest?.company_name || manifest.title || "Workspace";
-  const crisis = story.manifest?.scenario_name?.replace(/_/g, " ") || "";
-  const pathCount = workspace.run_count || 0;
-  subtitle.textContent = pathCount
-    ? `${companyName}${crisis ? ` \u2014 ${crisis}` : ""}. ${pathCount} recorded path${pathCount === 1 ? "" : "s"}.`
-    : `${companyName}${crisis ? ` \u2014 ${crisis}` : ""}. Enter the world to begin.`;
+  const missionLine = mission?.briefing || story.company_briefing || manifest.description || "Choose a crisis and enter the world.";
+  if (title) {
+    title.textContent = companyName;
+  }
+  subtitle.classList.remove("loading-pulse");
+  subtitle.textContent = missionLine;
   renderWorkspaceMetrics();
   renderStudioShell();
   renderWorldsPanel();
+  renderWorldsStrip();
   renderJson("workspace-panel", workspace);
 }
 
 function renderWorldsPanel() {
-  const panel = document.getElementById("worlds-panel");
+  const panel = document.getElementById("world-menu-panel");
+  const label = document.getElementById("world-menu-label");
   const story = state.story;
   const workspace = state.workspace;
-  if (!panel || !workspace) {
+  if (!workspace) {
     return;
   }
   const manifest = workspace.manifest || {};
   const availableWorlds = Array.isArray(story?.available_worlds) ? story.available_worlds : [];
   const currentWorldName = story?.manifest?.name || manifest.source_ref || "";
-  const keySurfaces = Array.isArray(story?.manifest?.key_surfaces)
-    ? story.manifest.key_surfaces
-    : [];
-  panel.innerHTML = `
-    <div class="story-card accent-card story-span-2">
-      <p class="eyebrow">Company</p>
-      <h3>${escapeHtml(story?.manifest?.company_name || manifest.title || manifest.name || "Workspace")}</h3>
-      <p class="metric-detail">${escapeHtml(story?.company_briefing || manifest.description || "This workspace is one stable company environment with shared tools and business state.")}</p>
-      <div class="chip-row">${keySurfaces.map((item) => chip(formatDomainTitle(item))).join("")}</div>
-    </div>
-    <div class="story-card">
-      <p class="eyebrow">Why failure matters</p>
-      <p class="metric-detail">${escapeHtml(story?.failure_impact || "This scenario matters because operational drift has business consequences, not just engine consequences.")}</p>
-    </div>
-    <div class="story-card">
-      <p class="eyebrow">Objective focus</p>
-      <p class="metric-detail">${escapeHtml(story?.manifest?.objective_focus || story?.objective_briefing || "The current objective tells VEI what good looks like in this world.")}</p>
-    </div>
-    ${availableWorlds
-      .map(
-        (item) => `
-          <div class="story-card ${item.name === currentWorldName ? "story-current" : ""}">
-            <p class="eyebrow">${item.title}</p>
-            <h3>${escapeHtml(item.company_name)}</h3>
-            <p class="metric-detail">${escapeHtml(item.company_briefing || item.description || "")}</p>
-            <div class="chip-row">
-              ${item.name === currentWorldName ? chip("current company", "ok") : chip("another company")}
-              ${(item.key_surfaces || []).slice(0, 3).map((surface) => chip(formatDomainTitle(surface))).join("")}
-            </div>
+  const companyName = story?.manifest?.company_name || manifest.title || manifest.name || "Workspace";
+  if (label) {
+    label.textContent = companyName;
+  }
+  if (!panel) {
+    return;
+  }
+  panel.innerHTML = availableWorlds
+    .map(
+      (item) => `
+        <div class="world-menu-item ${item.name === currentWorldName ? "world-menu-item-current" : ""}">
+          <div class="world-menu-head">
+            <strong>${escapeHtml(item.company_name)}</strong>
+            ${item.name === currentWorldName ? chip("current", "ok") : chip("included")}
           </div>
-        `
-      )
-      .join("")}
+          <p class="metric-detail">${escapeHtml(item.company_briefing || item.description || "")}</p>
+          <div class="chip-row">
+            ${(item.key_surfaces || []).slice(0, 3).map((surface) => chip(formatDomainTitle(surface))).join("")}
+          </div>
+        </div>
+      `
+    )
+    .join("");
+}
+
+function renderWorldsStrip() {
+  const strip = document.getElementById("worlds-strip");
+  if (!strip) return;
+  const story = state.story;
+  const availableWorlds = Array.isArray(story?.available_worlds) ? story.available_worlds : [];
+  if (availableWorlds.length <= 1) {
+    strip.innerHTML = "";
+    return;
+  }
+  const currentWorldName = story?.manifest?.name || state.workspace?.manifest?.source_ref || "";
+  strip.innerHTML = `
+    <span class="worlds-strip-label">Companies in this engine</span>
+    <div class="worlds-strip-chips">
+      ${availableWorlds.map((w) =>
+        `<span class="worlds-strip-chip ${w.name === currentWorldName ? "worlds-strip-chip-active" : ""}">${escapeHtml(w.company_name)}</span>`
+      ).join("")}
+    </div>
   `;
 }
 
@@ -662,11 +708,11 @@ function renderMissionSelector() {
     .join("");
   summary.innerHTML = currentMission
     ? `
-      <div class="detail-grid">
-        ${detailTile("World", state.workspace?.manifest?.title || state.playableBundle?.world_name || "workspace")}
-        ${detailTile("Mission", currentMission.title || currentMission.mission_name)}
-        ${detailTile("Objective", selectedObjective || "default")}
-        ${detailTile("State", state.missionState?.status || "ready")}
+      <div class="chip-row">
+        ${chip(state.workspace?.manifest?.title || state.playableBundle?.world_name || "workspace")}
+        ${chip(currentMission.title || currentMission.mission_name)}
+        ${chip(selectedObjective || "default")}
+        ${chip(state.missionState?.status || "ready", statusClass(state.missionState?.status || "ready"))}
       </div>
     `
     : `<p class="metric-detail">No company world is loaded yet.</p>`;
@@ -802,6 +848,7 @@ function playCascade(changedPanels, changedRefs) {
 // Cinema mode: full-screen presentation layout
 // ---------------------------------------------------------------------------
 function toggleCinemaMode() {
+  closeToolbarMenus();
   state.cinemaMode = !state.cinemaMode;
   if (state.cinemaMode && state.boardMode) {
     state.boardMode = false;
@@ -936,6 +983,7 @@ const HEX_ACCENT = {
 };
 
 function toggleBoardMode() {
+  closeToolbarMenus();
   state.boardMode = !state.boardMode;
   if (state.boardMode && state.cinemaMode) {
     state.cinemaMode = false;
@@ -1343,6 +1391,7 @@ function timelineSurfaceHits(timeline) {
 }
 
 async function toggleCompareMode() {
+  closeToolbarMenus();
   state.compareMode = !state.compareMode;
   const bar = document.getElementById("board-compare-bar");
   const btn = document.getElementById("compare-toggle");
@@ -1470,6 +1519,7 @@ function renderLivingCompanyView() {
     return;
   }
   renderLivingCompanyContext();
+  renderLivingCompanyImpact();
   renderSurfaceWall();
   renderLivingCompanyRail();
   updateContextHint();
@@ -1498,6 +1548,36 @@ function renderLivingCompanyContext() {
       </div>
       ${crisisLine ? `<div class="context-strip-crisis">${crisisLine}</div>` : ""}
       ${failureImpact ? `<div class="context-strip-stakes">${escapeHtml(failureImpact)}</div>` : ""}
+    </div>
+  `;
+}
+
+function renderLivingCompanyImpact() {
+  const panel = document.getElementById("living-company-impact");
+  if (!panel) {
+    return;
+  }
+  const impact = state.lastMoveImpact;
+  if (!impact || !impact.systems?.length) {
+    panel.innerHTML = "";
+    panel.classList.remove("impact-visible");
+    return;
+  }
+  panel.classList.add("impact-visible");
+  panel.innerHTML = `
+    <div class="impact-ribbon">
+      <div class="impact-ribbon-copy">
+        <span class="metric-label">Last move</span>
+        <strong>${escapeHtml(impact.title || "Move applied")}</strong>
+        <p class="metric-detail">${escapeHtml(impact.summary || "The company state shifted after the last move.")}</p>
+      </div>
+      <div class="impact-ribbon-meta">
+        <span class="impact-ribbon-label">Systems hit</span>
+        <div class="chip-row">
+          ${impact.systems.map((item) => chip(formatSurfaceTitle(item), "ok")).join("")}
+        </div>
+        ${impact.refs?.length ? `<div class="chip-row">${impact.refs.slice(0, 4).map((item) => chip(item)).join("")}</div>` : ""}
+      </div>
     </div>
   `;
 }
@@ -1544,20 +1624,12 @@ function renderSurfaceWall() {
     return;
   }
 
-  const changedPanels = new Set(state.surfaceHighlights?.panels || []);
+  const impact = state.lastMoveImpact;
+  const changedPanels = new Set(state.surfaceHighlights?.panels || impact?.systems || []);
   const changedRefs = new Set(state.surfaceHighlights?.refs || []);
   const isCascade = state.cascadeActive && changedPanels.size > 0;
 
-  const changedStrip = changedPanels.size > 0
-    ? `<div class="changed-systems-strip">
-        <span class="changed-systems-label">Changed:</span>
-        ${[...changedPanels].map((s) =>
-          `<span class="changed-system-chip">${escapeHtml(formatSurfaceTitle(s))}</span>`
-        ).join("")}
-      </div>`
-    : "";
-
-  panel.innerHTML = changedStrip + surfaceState.panels
+  panel.innerHTML = surfaceState.panels
     .map((surfacePanel) => {
       const changed = changedPanels.has(surfacePanel.surface);
       const pendingClass = isCascade && changed ? "cascade-pending" : "";
@@ -1627,10 +1699,13 @@ function renderLivingCompanyRail() {
   const recommendedMove = (missionState?.available_moves || []).find(
     (move) => move.availability === "recommended" && !move.executed
   ) || (missionState?.available_moves || []).find((move) => !move.executed) || null;
+  const blockedMove = (missionState?.available_moves || []).find(
+    (move) => move.availability === "blocked" && !move.executed
+  ) || null;
   const latestToolEvent = [...(state.timeline || [])].reverse().find(
     (event) => event.resolved_tool || event.graph_intent
   );
-  const changedCount = (state.surfaceHighlights?.panels || []).length;
+  const impact = state.lastMoveImpact;
   const surfaceState = state.surfaceState;
 
   const moveCount = (missionState?.executed_moves || []).length;
@@ -1652,12 +1727,35 @@ function renderLivingCompanyRail() {
       ${mission?.failure_impact ? `<p class="metric-detail">${escapeHtml(mission.failure_impact)}</p>` : ""}
     </div>
     ${
+      blockedMove
+        ? `
+          <div class="story-card">
+            <p class="eyebrow">What is blocked</p>
+            <h3>${escapeHtml(blockedMove.title)}</h3>
+            <p class="metric-detail">${escapeHtml(blockedMove.blocked_reason || "This path is blocked until another system changes.")}</p>
+          </div>
+        `
+        : ""
+    }
+    ${
       recommendedMove
         ? `
           <div class="story-card">
-            <p class="eyebrow">Recommended move</p>
+            <p class="eyebrow">Next move</p>
             <h3>${escapeHtml(recommendedMove.title)}</h3>
             <p class="metric-detail">${escapeHtml(recommendedMove.consequence_preview || recommendedMove.summary || "")}</p>
+          </div>
+        `
+        : ""
+    }
+    ${
+      impact
+        ? `
+          <div class="story-card">
+            <p class="eyebrow">What changed</p>
+            <h3>${escapeHtml(impact.title || "Last move")}</h3>
+            <p class="metric-detail">${escapeHtml(impact.summary || "The company state changed after the last move.")}</p>
+            <div class="chip-row">${(impact.systems || []).map((item) => chip(formatSurfaceTitle(item), "ok")).join("")}</div>
           </div>
         `
         : ""
@@ -1666,7 +1764,7 @@ function renderLivingCompanyRail() {
       <p class="eyebrow">Pulse</p>
       <div class="detail-grid">
         ${detailTile("Moves", String(moveCount))}
-        ${detailTile("Changed", String(changedCount))}
+        ${detailTile("Systems hit", String((impact?.systems || []).length))}
         ${detailTile("Systems", String(systemCount))}
         ${detailTile("Last tool", latestToolEvent?.resolved_tool || "waiting")}
       </div>
@@ -1724,6 +1822,33 @@ function normalizeSurfacePanel(panel) {
   };
 }
 
+function buildMoveImpact(moveSpec, diff) {
+  const executedMove = latestExecutedMove();
+  const systems = uniqueStrings(
+    (diff?.panels || []).length
+      ? diff.panels
+      : guessMoveTargets(moveSpec || executedMove || {})
+  );
+  const refs = uniqueStrings([
+    ...(diff?.refs || []),
+    ...((executedMove?.object_refs || []).slice(0, 6)),
+  ]);
+  const summary =
+    moveSpec?.consequence_preview ||
+    executedMove?.payload?.observation?.summary ||
+    executedMove?.payload?.scenario_brief ||
+    executedMove?.summary ||
+    moveSpec?.summary ||
+    "";
+  return {
+    title: executedMove?.title || moveSpec?.title || "Move applied",
+    summary,
+    systems,
+    refs,
+    tool: executedMove?.resolved_tool || "",
+  };
+}
+
 function renderMissionPlay() {
   const panel = document.getElementById("mission-moves-panel");
   const scorecard = document.getElementById("mission-scorecard");
@@ -1733,6 +1858,7 @@ function renderMissionPlay() {
   }
   const missionState = state.missionState;
   if (!missionState) {
+    state.lastMoveImpact = null;
     scorecard.innerHTML = `
       <div class="story-card story-span-2">
         <p class="eyebrow">Play</p>
@@ -2951,6 +3077,7 @@ async function activateMission(name, objectiveVariant = null) {
   }
   const status = document.getElementById("mission-form-status");
   status.textContent = `Activating mission ${name}...`;
+  state.lastMoveImpact = null;
   try {
     await getJson("/api/missions/activate", {
       method: "POST",
@@ -2975,6 +3102,7 @@ async function startMission() {
   const missionName = missionSelect?.value;
   const objectiveVariant = objectiveSelect?.value || null;
   status.textContent = "Entering world\u2026";
+  state.lastMoveImpact = null;
   try {
     const payload = await getJson("/api/missions/start", {
       method: "POST",
@@ -3025,17 +3153,25 @@ async function applyMissionMove(moveId) {
     state.missionState = payload;
 
     const diff = diffSurfaceState(oldSurface, state.surfaceState);
-    if (diff.panels.length > 0) {
+    const impact = buildMoveImpact(moveSpec, diff);
+    const impactPanels = impact.systems || [];
+    state.lastMoveImpact = impactPanels.length ? impact : null;
+
+    if (!diff.panels.length && impactPanels.length) {
+      setSurfaceHighlights({ panels: impactPanels, refs: impact.refs || [] });
+    }
+
+    if (impactPanels.length > 0) {
       if (state.boardMode) {
         const playedCard = document.querySelector(`.board-card[data-move-id="${moveId}"]`);
-        fireParticleTrail(playedCard, diff.panels);
-        recordBoardEvent(moveTitle, diff.panels);
-        animateHexRipple(diff.panels);
-        drawFlowLines(diff.panels);
+        fireParticleTrail(playedCard, impactPanels);
+        recordBoardEvent(moveTitle, impactPanels);
+        animateHexRipple(impactPanels);
+        drawFlowLines(impactPanels);
       } else {
         state.cascadeActive = true;
         renderSurfaceWall();
-        await playCascade(diff.panels, diff.refs);
+        await playCascade(impactPanels, impact.refs || []);
       }
     }
     renderLivingCompanyView();
@@ -3043,7 +3179,9 @@ async function applyMissionMove(moveId) {
 
     status.textContent = payload.status === "completed"
       ? "Mission completed. Inspect the results or branch the run."
-      : `${moveTitle} \u2014 ${diff.panels.length} system${diff.panels.length === 1 ? "" : "s"} affected.`;
+      : impact.summary
+        ? `${moveTitle} \u2014 ${impact.summary}`
+        : `${moveTitle} \u2014 ${impactPanels.length} system${impactPanels.length === 1 ? "" : "s"} hit.`;
   } catch (error) {
     status.textContent = `Move failed: ${error}`;
   }
@@ -3055,6 +3193,7 @@ async function branchMission() {
   }
   const status = document.getElementById("mission-form-status");
   status.textContent = "Creating branch...";
+  state.lastMoveImpact = null;
   try {
     const payload = await getJson(`/api/missions/${state.missionState.run_id}/branch`, {
       method: "POST",
@@ -3079,6 +3218,7 @@ async function finishMission() {
   }
   const status = document.getElementById("mission-form-status");
   status.textContent = "Finishing mission...";
+  state.lastMoveImpact = null;
   try {
     const payload = await getJson(`/api/missions/${state.missionState.run_id}/finish`, {
       method: "POST",
@@ -3255,6 +3395,7 @@ const PROVIDER_LABELS = {
 };
 
 function toggleConnectPanel() {
+  closeToolbarMenus();
   const panel = document.getElementById("connect-panel");
   const isVisible = panel.style.display !== "none";
   panel.style.display = isVisible ? "none" : "block";

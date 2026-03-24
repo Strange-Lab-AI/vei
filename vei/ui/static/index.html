@@ -18,111 +18,119 @@
     </div>
 
     <div class="shell">
-      <header class="hero">
-        <div class="hero-copy">
-          <p class="eyebrow">VEI Studio</p>
-          <h1>The enterprise <span class="gradient-word">as software</span></h1>
-          <p class="hero-tagline">Simulate any company. Test any decision. Watch every system react.</p>
-          <p id="workspace-subtitle" class="hero-subtitle loading-pulse">Booting world&hellip;</p>
-          <div id="workspace-metrics" class="metrics-grid"></div>
+      <header class="hero studio-topbar">
+        <div class="studio-topbar-brand">
+          <div class="brand-mark">VEI Studio</div>
+          <div class="brand-copy">
+            <p class="eyebrow">Company</p>
+            <h1 id="workspace-title">Loading company&hellip;</h1>
+            <p id="workspace-subtitle" class="studio-topbar-subtitle loading-pulse">Loading current tension&hellip;</p>
+          </div>
         </div>
 
-        <aside class="launch-panel studio-run-launch">
-          <div class="panel-heading">
-            <p class="eyebrow">World State</p>
-            <h2>Choose the crisis, define success, make your move</h2>
-          </div>
-          <div class="run-form">
-            <label>
-              <span>Crisis</span>
-              <select id="mission-select"></select>
-            </label>
-            <label>
-              <span>Success means</span>
-              <select id="objective-select"></select>
-            </label>
-            <div id="mission-launch-summary" class="span-2 detail-summary"></div>
-            <div class="run-form-actions span-2">
-              <button id="start-mission-button" type="button">Enter World</button>
-              <button id="branch-mission-button" type="button" class="ghost-button">Fork Reality</button>
-              <button id="finish-mission-button" type="button" class="ghost-button">Close Mission</button>
-            </div>
-            <p id="mission-form-status" class="form-status span-2">
-              One move ripples across every system &mdash; chat, email, tickets, docs, approvals, and the business core stay in sync.
-            </p>
-          </div>
-          <details class="developer-only">
-            <summary>Developer run launcher</summary>
-            <form id="run-form" class="run-form">
-              <label>
-                <span>Scenario</span>
-                <select id="scenario-select"></select>
-              </label>
-              <label>
-                <span>Runner</span>
-                <select id="runner-select">
-                  <option value="workflow">workflow</option>
-                  <option value="scripted">scripted</option>
-                  <option value="bc">bc</option>
-                  <option value="llm">llm</option>
-                </select>
-              </label>
-              <label>
-                <span>Provider</span>
-                <input id="provider-input" placeholder="openai" />
-              </label>
-              <label>
-                <span>Model</span>
-                <input id="model-input" placeholder="gpt-5" />
-              </label>
-              <label>
-                <span>BC model</span>
-                <input id="bc-model-input" placeholder="/path/to/bc-policy.json" />
-              </label>
-              <label class="span-2">
-                <span>Task override</span>
-                <textarea
-                  id="task-input"
-                  rows="3"
-                  placeholder="Optional custom task for scripted or llm runs"
-                ></textarea>
-              </label>
-              <label>
-                <span>Max steps</span>
-                <input id="max-steps-input" type="number" min="1" value="12" />
-              </label>
-              <div class="run-form-actions span-2">
-                <button id="start-run-button" type="submit">Start Run</button>
-                <p id="run-form-status" class="form-status">
-                  Workflow, scripted, and live LLM runs all land in the same run model.
-                </p>
+        <div class="studio-topbar-controls">
+          <label class="toolbar-field toolbar-field-world">
+            <span>Company</span>
+            <details id="world-menu" class="toolbar-menu">
+              <summary><span id="world-menu-label">Loading company&hellip;</span></summary>
+              <div id="world-menu-panel" class="toolbar-menu-panel"></div>
+            </details>
+          </label>
+          <label class="toolbar-field">
+            <span>Crisis</span>
+            <select id="mission-select"></select>
+          </label>
+          <label class="toolbar-field">
+            <span>Success means</span>
+            <select id="objective-select"></select>
+          </label>
+          <div class="toolbar-actions">
+            <button id="start-mission-button" type="button">Enter World</button>
+            <button id="developer-toggle" type="button" class="ghost-button developer-toggle">Systems Detail</button>
+            <details id="views-menu" class="toolbar-menu toolbar-menu-actions">
+              <summary>Views</summary>
+              <div class="toolbar-menu-panel toolbar-menu-actions-panel">
+                <button id="connect-toggle" type="button" class="ghost-button connect-toggle">Connections</button>
+                <button id="board-toggle" type="button" class="ghost-button board-toggle">Board View</button>
+                <button id="compare-toggle" type="button" class="ghost-button compare-toggle">Compare Paths</button>
+                <button id="cinema-toggle" type="button" class="ghost-button cinema-toggle">Presentation</button>
+                <button id="branch-mission-button" type="button" class="ghost-button">Fork Reality</button>
+                <button id="finish-mission-button" type="button" class="ghost-button">Close Mission</button>
               </div>
-            </form>
-          </details>
-        </aside>
+            </details>
+          </div>
+        </div>
+
+        <div class="studio-topbar-meta">
+          <div id="workspace-metrics" class="workspace-metrics-inline"></div>
+          <div id="mission-launch-summary" class="toolbar-summary"></div>
+          <p id="mission-form-status" class="form-status">
+            Read the company state, then make the next move.
+          </p>
+        </div>
       </header>
 
+      <div id="worlds-strip" class="worlds-strip"></div>
+
       <section class="card studio-shell-card">
-        <div class="section-header">
-          <div>
-            <p class="eyebrow" id="shell-context-hint">Pick a crisis above, then watch every system react</p>
-          </div>
-          <div class="section-header-controls">
-            <button id="connect-toggle" type="button" class="ghost-button connect-toggle">Connect</button>
-            <button id="board-toggle" type="button" class="ghost-button board-toggle">Board</button>
-            <button id="compare-toggle" type="button" class="ghost-button compare-toggle">Compare</button>
-            <button id="cinema-toggle" type="button" class="ghost-button cinema-toggle">Present</button>
-            <button id="developer-toggle" type="button" class="ghost-button developer-toggle">Show Engine</button>
-          </div>
+        <div class="studio-shell-row">
+          <p class="eyebrow" id="shell-context-hint">Track the company, then make the next move</p>
+          <div id="kernel-thesis-panel" class="studio-banner"></div>
         </div>
-        <div id="kernel-thesis-panel" class="studio-banner"></div>
         <div id="studio-nav" class="studio-nav">
           <button type="button" class="studio-nav-button active" data-studio-view="company">Company</button>
           <button type="button" class="studio-nav-button" data-studio-view="crisis">Crisis</button>
           <button type="button" class="studio-nav-button" data-studio-view="outcome">Outcome</button>
-          <button type="button" class="studio-nav-button developer-only" data-studio-view="presentation">Briefing</button>
         </div>
         <div id="cinema-narrative" class="cinema-narrative"></div>
+        <details class="developer-only studio-dev-launcher">
+          <summary>Run tools</summary>
+          <form id="run-form" class="run-form">
+            <label>
+              <span>Scenario</span>
+              <select id="scenario-select"></select>
+            </label>
+            <label>
+              <span>Runner</span>
+              <select id="runner-select">
+                <option value="workflow">workflow</option>
+                <option value="scripted">scripted</option>
+                <option value="bc">bc</option>
+                <option value="llm">llm</option>
+              </select>
+            </label>
+            <label>
+              <span>Provider</span>
+              <input id="provider-input" placeholder="openai" />
+            </label>
+            <label>
+              <span>Model</span>
+              <input id="model-input" placeholder="gpt-5" />
+            </label>
+            <label>
+              <span>BC model</span>
+              <input id="bc-model-input" placeholder="/path/to/bc-policy.json" />
+            </label>
+            <label class="span-2">
+              <span>Task override</span>
+              <textarea
+                id="task-input"
+                rows="3"
+                placeholder="Optional custom task for scripted or llm runs"
+              ></textarea>
+            </label>
+            <label>
+              <span>Max steps</span>
+              <input id="max-steps-input" type="number" min="1" value="12" />
+            </label>
+            <div class="run-form-actions span-2">
+              <button id="start-run-button" type="submit">Start Run</button>
+              <p id="run-form-status" class="form-status">
+                Workflow, scripted, and live LLM runs all land in the same run model.
+              </p>
+            </div>
+          </form>
+        </details>
       </section>
 
       <main class="layout">
@@ -156,8 +164,8 @@
         <section class="card living-company-card" data-studio-view="company">
           <div class="section-header">
             <div>
-              <p class="eyebrow">Living Company</p>
-              <h2 id="living-company-title">Every system, one view</h2>
+              <p class="eyebrow">Company</p>
+              <h2 id="living-company-title">Live operating state</h2>
             </div>
           </div>
           <div id="cascade-bar" class="cascade-bar">
@@ -165,6 +173,7 @@
             <span id="cascade-label" class="cascade-label"></span>
           </div>
           <div id="living-company-context" class="living-company-context"></div>
+          <div id="living-company-impact" class="living-company-impact"></div>
           <div class="living-company-layout">
             <div>
               <div id="living-company-surface-wall" class="surface-wall"></div>
@@ -176,7 +185,7 @@
         <section class="card play-card" data-studio-view="company">
           <div class="section-header">
             <div>
-              <p class="eyebrow">Your Moves</p>
+              <p class="eyebrow">Next Move</p>
               <h2>Choose the next action</h2>
             </div>
           </div>
@@ -187,21 +196,11 @@
         <section class="card move-log-card" data-studio-view="company">
           <div class="section-header">
             <div>
-              <p class="eyebrow">Move Log</p>
+              <p class="eyebrow">What Changed</p>
               <h2>What happened after each decision</h2>
             </div>
           </div>
           <div id="move-log-panel" class="move-log"></div>
-        </section>
-
-        <section class="card worlds-card" data-studio-view="company">
-          <div class="section-header">
-            <div>
-              <p class="eyebrow">Other Companies</p>
-              <h2>Same engine, different industries</h2>
-            </div>
-          </div>
-          <div id="worlds-panel" class="briefing-grid"></div>
         </section>
 
         <!-- ========== TAB: CRISIS ========== -->
