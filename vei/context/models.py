@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Literal, Optional
 
 from pydantic import BaseModel, Field
 
-ContextProviderName = Literal["slack", "jira", "google", "okta"]
+ContextProviderName = Literal["slack", "jira", "google", "okta", "gmail", "teams"]
 
 
 class ContextProviderConfig(BaseModel):

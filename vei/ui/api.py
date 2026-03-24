@@ -4,7 +4,7 @@ import asyncio
 import json
 from pathlib import Path
 from threading import Thread
-from typing import Any
+from typing import Any, Mapping
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
@@ -103,6 +103,57 @@ class MissionStartRequest(BaseModel):
 
 class MissionBranchRequest(BaseModel):
     branch_name: str | None = None
+
+
+class ContextCaptureRequest(BaseModel):
+    providers: list[str]
+
+
+CONTEXT_PROVIDER_ENV_VARS = {
+    "slack": "VEI_SLACK_TOKEN",
+    "google": "VEI_GOOGLE_TOKEN",
+    "jira": "VEI_JIRA_TOKEN",
+    "okta": "VEI_OKTA_TOKEN",
+    "gmail": "VEI_GMAIL_TOKEN",
+    "teams": "VEI_TEAMS_TOKEN",
+}
+
+CONTEXT_PROVIDER_BASE_URL_ENV_VARS = {
+    "jira": "VEI_JIRA_URL",
+    "okta": "VEI_OKTA_ORG_URL",
+}
+
+
+def _build_context_provider_status(
+    provider: str,
+    env: Mapping[str, str],
+) -> dict[str, Any]:
+    token_env = CONTEXT_PROVIDER_ENV_VARS[provider]
+    if not env.get(token_env):
+        return {
+            "provider": provider,
+            "configured": False,
+            "env_var": token_env,
+        }
+
+    base_url_env = CONTEXT_PROVIDER_BASE_URL_ENV_VARS.get(provider)
+    if base_url_env and not env.get(base_url_env):
+        return {
+            "provider": provider,
+            "configured": False,
+            "env_var": base_url_env,
+        }
+
+    return {
+        "provider": provider,
+        "configured": True,
+        "env_var": token_env,
+    }
+
+
+def _context_capture_org_name(workspace_root: Path) -> str:
+    workspace = show_workspace(workspace_root)
+    return workspace.manifest.title or workspace.manifest.name or "Unknown"
 
 
 def create_ui_app(workspace_root: str | Path) -> FastAPI:
@@ -506,5 +557,85 @@ def create_ui_app(workspace_root: str | Path) -> FastAPI:
                 await asyncio.sleep(1.0)
 
         return StreamingResponse(event_iter(), media_type="text/event-stream")
+
+    # --- Context capture endpoints ---
+
+    @app.get("/api/context/status")
+    def api_context_status() -> JSONResponse:
+        import os
+
+        providers = [
+            _build_context_provider_status(name, os.environ)
+            for name in CONTEXT_PROVIDER_ENV_VARS
+        ]
+        return JSONResponse({"providers": providers})
+
+    @app.post("/api/context/capture")
+    def api_context_capture(req: ContextCaptureRequest) -> JSONResponse:
+        import os
+
+        from vei.context.api import capture_context
+        from vei.context.models import ContextProviderConfig
+
+        configs = []
+        for name in req.providers:
+            name = name.strip().lower()
+            token_env = CONTEXT_PROVIDER_ENV_VARS.get(name)
+            if not token_env or not os.environ.get(token_env):
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"provider {name}: missing token ({token_env})",
+                )
+            base_url_env = CONTEXT_PROVIDER_BASE_URL_ENV_VARS.get(name)
+            if base_url_env and not os.environ.get(base_url_env):
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"provider {name}: missing base URL ({base_url_env})",
+                )
+            base_url = os.environ.get(base_url_env) if base_url_env else None
+            configs.append(
+                ContextProviderConfig(
+                    provider=name,  # type: ignore[arg-type]
+                    token_env=token_env,
+                    base_url=base_url,
+                )
+            )
+
+        snapshot = capture_context(
+            configs,
+            organization_name=_context_capture_org_name(root),
+            organization_domain="",
+        )
+
+        out_path = root / "context_snapshot.json"
+        out_path.write_text(
+            snapshot.model_dump_json(indent=2),
+            encoding="utf-8",
+        )
+
+        ok_count = sum(1 for s in snapshot.sources if s.status == "ok")
+        err_count = sum(1 for s in snapshot.sources if s.status == "error")
+        errors = [
+            {"provider": s.provider, "error": s.error}
+            for s in snapshot.sources
+            if s.status == "error"
+        ]
+
+        return JSONResponse(
+            {
+                "captured": ok_count,
+                "errors": err_count,
+                "error_details": errors,
+                "snapshot_path": str(out_path),
+                "sources": [
+                    {
+                        "provider": s.provider,
+                        "status": s.status,
+                        "record_counts": s.record_counts,
+                    }
+                    for s in snapshot.sources
+                ],
+            }
+        )
 
     return app

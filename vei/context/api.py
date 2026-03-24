@@ -83,6 +83,29 @@ def ingest_slack_export(
     )
 
 
+def ingest_gmail_export(
+    mbox_path: Union[str, Path],
+    *,
+    organization_name: str,
+    organization_domain: str = "",
+    message_limit: int = 200,
+) -> ContextSnapshot:
+    """Ingest a Gmail Takeout MBOX file into a ContextSnapshot."""
+    from .providers.gmail import capture_from_mbox
+
+    result = capture_from_mbox(
+        mbox_path,
+        message_limit=message_limit,
+    )
+
+    return ContextSnapshot(
+        organization_name=organization_name,
+        organization_domain=organization_domain,
+        captured_at=iso_now(),
+        sources=[result],
+    )
+
+
 def diff_snapshots(
     before: ContextSnapshot,
     after: ContextSnapshot,

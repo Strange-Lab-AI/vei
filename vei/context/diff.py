@@ -14,6 +14,8 @@ def compute_diff(
     _diff_slack(before, after, entries)
     _diff_jira(before, after, entries)
     _diff_google(before, after, entries)
+    _diff_gmail(before, after, entries)
+    _diff_teams(before, after, entries)
     _diff_okta(before, after, entries)
 
     added = sum(1 for e in entries if e.kind == "added")
@@ -87,6 +89,42 @@ def _diff_google(
         "doc_id",
     )
     _diff_keyed("documents", b_docs, a_docs, entries)
+
+
+def _diff_gmail(
+    before: ContextSnapshot,
+    after: ContextSnapshot,
+    entries: list[ContextDiffEntry],
+) -> None:
+    b_source = before.source_for("gmail")
+    a_source = after.source_for("gmail")
+    b_threads = _keyed_list(
+        (b_source.data if b_source else {}).get("threads", []),
+        "thread_id",
+    )
+    a_threads = _keyed_list(
+        (a_source.data if a_source else {}).get("threads", []),
+        "thread_id",
+    )
+    _diff_keyed("mail_threads", b_threads, a_threads, entries)
+
+
+def _diff_teams(
+    before: ContextSnapshot,
+    after: ContextSnapshot,
+    entries: list[ContextDiffEntry],
+) -> None:
+    b_source = before.source_for("teams")
+    a_source = after.source_for("teams")
+    b_channels = _keyed_list(
+        (b_source.data if b_source else {}).get("channels", []),
+        "channel",
+    )
+    a_channels = _keyed_list(
+        (a_source.data if a_source else {}).get("channels", []),
+        "channel",
+    )
+    _diff_keyed("teams_channels", b_channels, a_channels, entries)
 
 
 def _diff_okta(

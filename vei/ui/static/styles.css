@@ -2718,3 +2718,110 @@ body.board-mode .compare-toggle {
   }
   .board-card { flex: 0 0 170px; }
 }
+
+/* ================================================================
+   Connect Panel
+   ================================================================ */
+
+.connect-panel {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 24px 28px;
+  margin: 12px 0;
+}
+
+.connect-header h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0 0 4px;
+}
+
+.connect-subtitle {
+  font-size: 0.82rem;
+  color: rgba(244, 248, 251, 0.5);
+  margin: 0 0 18px;
+}
+
+.connect-providers {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.connect-provider-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 16px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  transition: background 0.2s;
+}
+
+.connect-provider-row:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.connect-provider-row.connect-configured {
+  border-color: rgba(74, 222, 128, 0.2);
+}
+
+.connect-provider-row.connect-missing {
+  opacity: 0.6;
+}
+
+.connect-icon {
+  font-size: 1.4rem;
+  flex: 0 0 32px;
+  text-align: center;
+}
+
+.connect-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.connect-label {
+  font-weight: 500;
+  font-size: 0.92rem;
+}
+
+.connect-status-text {
+  font-size: 0.78rem;
+  color: rgba(244, 248, 251, 0.5);
+}
+
+.connect-configured .connect-status-text {
+  color: rgba(74, 222, 128, 0.8);
+}
+
+.connect-env-hint {
+  font-size: 0.72rem;
+  color: rgba(244, 248, 251, 0.3);
+  font-family: var(--font-mono);
+}
+
+.connect-capture-btn {
+  flex: 0 0 auto;
+  font-size: 0.78rem;
+  padding: 5px 12px;
+}
+
+.connect-status-bar {
+  margin-top: 14px;
+  font-size: 0.8rem;
+  color: rgba(244, 248, 251, 0.5);
+}
+
+.connect-error {
+  color: rgba(248, 113, 113, 0.8);
+  font-size: 0.85rem;
+}
+
+.connect-toggle {
+  border-color: rgba(74, 222, 128, 0.2);
+}

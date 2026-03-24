@@ -108,6 +108,7 @@
             <p class="eyebrow" id="shell-context-hint">Pick a crisis above, then watch every system react</p>
           </div>
           <div class="section-header-controls">
+            <button id="connect-toggle" type="button" class="ghost-button connect-toggle">Connect</button>
             <button id="board-toggle" type="button" class="ghost-button board-toggle">Board</button>
             <button id="compare-toggle" type="button" class="ghost-button compare-toggle">Compare</button>
             <button id="cinema-toggle" type="button" class="ghost-button cinema-toggle">Present</button>
@@ -139,6 +140,16 @@
           </div>
           <div id="board-action-cards" class="board-action-cards"></div>
           <div id="board-event-ticker" class="board-event-ticker"></div>
+        </section>
+
+        <!-- ========== CONNECT PANEL ========== -->
+        <section id="connect-panel" class="connect-panel" style="display:none">
+          <div class="connect-header">
+            <h3>Live Data Sources</h3>
+            <p class="connect-subtitle">Connect enterprise systems to capture real operational context</p>
+          </div>
+          <div id="connect-providers" class="connect-providers"></div>
+          <div id="connect-status-bar" class="connect-status-bar"></div>
         </section>
 
         <!-- ========== TAB: COMPANY ========== -->

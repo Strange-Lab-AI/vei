@@ -3232,6 +3232,103 @@ async function activateScenario(name) {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Connect panel
+// ---------------------------------------------------------------------------
+
+const PROVIDER_ICONS = {
+  slack: "\u{1F4AC}",
+  google: "\u{1F4E7}",
+  jira: "\u{1F4CB}",
+  okta: "\u{1F512}",
+  gmail: "\u2709\uFE0F",
+  teams: "\u{1F465}",
+};
+
+const PROVIDER_LABELS = {
+  slack: "Slack",
+  google: "Google Workspace",
+  jira: "Jira",
+  okta: "Okta",
+  gmail: "Gmail",
+  teams: "Microsoft Teams",
+};
+
+function toggleConnectPanel() {
+  const panel = document.getElementById("connect-panel");
+  const isVisible = panel.style.display !== "none";
+  panel.style.display = isVisible ? "none" : "block";
+  if (!isVisible) loadConnectStatus();
+}
+
+async function loadConnectStatus() {
+  const container = document.getElementById("connect-providers");
+  const statusBar = document.getElementById("connect-status-bar");
+  try {
+    const res = await fetch("/api/context/status");
+    const data = await res.json();
+    const providers = data.providers || [];
+    container.innerHTML = providers.map((p) => {
+      const icon = PROVIDER_ICONS[p.provider] || "\u26A1";
+      const label = PROVIDER_LABELS[p.provider] || p.provider;
+      const statusCls = p.configured ? "connect-configured" : "connect-missing";
+      const statusText = p.configured ? "Connected" : "Not configured";
+      const envHint = p.configured ? "" : `<span class="connect-env-hint">Set ${escapeHtml(p.env_var)}</span>`;
+      const captureBtn = p.configured
+        ? `<button type="button" class="ghost-button connect-capture-btn" data-provider="${escapeHtml(p.provider)}">Capture Now</button>`
+        : "";
+      return `
+        <div class="connect-provider-row ${statusCls}">
+          <span class="connect-icon">${icon}</span>
+          <div class="connect-info">
+            <span class="connect-label">${escapeHtml(label)}</span>
+            <span class="connect-status-text">${statusText}</span>
+            ${envHint}
+          </div>
+          ${captureBtn}
+        </div>
+      `;
+    }).join("");
+
+    container.querySelectorAll(".connect-capture-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        void captureProvider(btn.dataset.provider);
+      });
+    });
+
+    const configured = providers.filter((p) => p.configured).length;
+    statusBar.textContent = `${configured} of ${providers.length} sources configured`;
+  } catch (err) {
+    container.innerHTML = `<p class="connect-error">Failed to load provider status</p>`;
+    statusBar.textContent = "";
+  }
+}
+
+async function captureProvider(providerName) {
+  const statusBar = document.getElementById("connect-status-bar");
+  statusBar.textContent = `Capturing from ${PROVIDER_LABELS[providerName] || providerName}...`;
+  try {
+    const res = await fetch("/api/context/capture", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ providers: [providerName] }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      statusBar.textContent = `Error: ${data.detail || "capture failed"}`;
+      return;
+    }
+    const sources = data.sources || [];
+    const summary = sources.map((s) =>
+      `${s.provider}: ${Object.entries(s.record_counts || {}).map(([k,v]) => `${v} ${k}`).join(", ")}`
+    ).join("; ");
+    statusBar.textContent = `Captured: ${summary}`;
+    await loadConnectStatus();
+  } catch (err) {
+    statusBar.textContent = `Capture failed: ${err.message || err}`;
+  }
+}
+
 function bindControls() {
   document.getElementById("run-form").addEventListener("submit", startRun);
   document.getElementById("start-mission-button").addEventListener("click", () => {
@@ -3262,6 +3359,7 @@ function bindControls() {
   document.getElementById("cinema-toggle").addEventListener("click", toggleCinemaMode);
   document.getElementById("board-toggle").addEventListener("click", toggleBoardMode);
   document.getElementById("compare-toggle").addEventListener("click", toggleCompareMode);
+  document.getElementById("connect-toggle").addEventListener("click", toggleConnectPanel);
   document.getElementById("scenario-select").addEventListener("change", (event) => {
     void loadScenario(event.target.value);
   });

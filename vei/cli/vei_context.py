@@ -11,7 +11,10 @@ app = typer.Typer(add_completion=False)
 @app.command()
 def capture(
     provider: List[str] = typer.Option(
-        ..., "--provider", "-p", help="Provider name (slack, jira, google, okta)"
+        ...,
+        "--provider",
+        "-p",
+        help="Provider name (slack, jira, google, okta, gmail, teams)",
     ),
     org: str = typer.Option(..., "--org", help="Organization name"),
     domain: str = typer.Option("", "--domain", help="Organization domain"),
@@ -29,6 +32,8 @@ def capture(
         "jira": "VEI_JIRA_TOKEN",
         "google": "VEI_GOOGLE_TOKEN",
         "okta": "VEI_OKTA_TOKEN",
+        "gmail": "VEI_GMAIL_TOKEN",
+        "teams": "VEI_TEAMS_TOKEN",
     }
     url_map = {
         "jira": "VEI_JIRA_URL",
@@ -100,6 +105,42 @@ def ingest_slack(
         f"Ingested {counts.get('channels', 0)} channels, "
         f"{counts.get('messages', 0)} messages, "
         f"{counts.get('users', 0)} users -> {output}"
+    )
+
+
+@app.command("ingest-gmail")
+def ingest_gmail(
+    mbox_file: str = typer.Option(
+        ..., "--mbox", "-m", help="Path to Gmail Takeout MBOX file"
+    ),
+    org: str = typer.Option(..., "--org", help="Organization name"),
+    domain: str = typer.Option("", "--domain", help="Organization domain"),
+    output: str = typer.Option(
+        "context_snapshot.json", "--output", "-o", help="Output snapshot path"
+    ),
+    message_limit: int = typer.Option(200, "--limit", help="Max messages to parse"),
+) -> None:
+    """Ingest a Gmail Takeout MBOX file (offline, no API key needed)."""
+    from vei.context.api import ingest_gmail_export
+
+    path = Path(mbox_file)
+    if not path.exists():
+        raise typer.BadParameter(f"file not found: {mbox_file}")
+
+    snapshot = ingest_gmail_export(
+        path,
+        organization_name=org,
+        organization_domain=domain,
+        message_limit=message_limit,
+    )
+    text = snapshot.model_dump_json(indent=2)
+    Path(output).write_text(text, encoding="utf-8")
+
+    source = snapshot.source_for("gmail")
+    counts = source.record_counts if source else {}
+    typer.echo(
+        f"Ingested {counts.get('threads', 0)} threads, "
+        f"{counts.get('messages', 0)} messages -> {output}"
     )
 
 

@@ -17,14 +17,18 @@ def list_providers() -> list[str]:
 
 
 def _build_registry() -> Dict[str, ContextProvider]:
+    from .gmail import GmailContextProvider
     from .google import GoogleContextProvider
     from .jira import JiraContextProvider
     from .okta import OktaContextProvider
     from .slack import SlackContextProvider
+    from .teams import TeamsContextProvider
 
     return {
         "slack": SlackContextProvider(),
         "jira": JiraContextProvider(),
         "google": GoogleContextProvider(),
         "okta": OktaContextProvider(),
+        "gmail": GmailContextProvider(),
+        "teams": TeamsContextProvider(),
     }

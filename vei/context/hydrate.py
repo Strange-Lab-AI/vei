@@ -12,6 +12,8 @@ from vei.blueprint.models import (
     BlueprintIdentityGraphAsset,
     BlueprintIdentityGroupAsset,
     BlueprintIdentityUserAsset,
+    BlueprintMailMessageAsset,
+    BlueprintMailThreadAsset,
     BlueprintSlackChannelAsset,
     BlueprintSlackMessageAsset,
     BlueprintTicketAsset,
@@ -31,13 +33,28 @@ def hydrate_snapshot_to_blueprint(
     jira_source = snapshot.source_for("jira")
     google_source = snapshot.source_for("google")
     okta_source = snapshot.source_for("okta")
+    gmail_source = snapshot.source_for("gmail")
+    teams_source = snapshot.source_for("teams")
 
-    comm_graph = _build_comm_graph(slack_source)
+    comm_graph = _build_comm_graph(slack_source, teams_source)
+    mail_threads = _build_mail_from_gmail(gmail_source)
+    if comm_graph and mail_threads:
+        comm_graph.mail_threads = mail_threads
+    elif mail_threads:
+        comm_graph = BlueprintCommGraphAsset(mail_threads=mail_threads)
+
     doc_graph = _build_doc_graph(google_source)
     work_graph = _build_work_graph(jira_source)
     identity_graph = _build_identity_graph(okta_source, google_source)
 
-    facades = _infer_facades(slack_source, jira_source, google_source, okta_source)
+    facades = _infer_facades(
+        slack_source,
+        jira_source,
+        google_source,
+        okta_source,
+        gmail_source,
+        teams_source,
+    )
 
     return BlueprintAsset(
         name=f"{snapshot.organization_name.lower().replace(' ', '_')}.blueprint",
@@ -71,40 +88,108 @@ def hydrate_snapshot_to_blueprint(
 
 def _build_comm_graph(
     slack_source: Optional[ContextSourceResult],
+    teams_source: Optional[ContextSourceResult] = None,
 ) -> Optional[BlueprintCommGraphAsset]:
-    if not slack_source or slack_source.status == "error":
-        return None
-
-    channels_data = slack_source.data.get("channels", [])
-    if not channels_data:
-        return None
-
     channels: list[BlueprintSlackChannelAsset] = []
-    for ch in channels_data:
-        if not isinstance(ch, dict):
-            continue
-        messages = [
-            BlueprintSlackMessageAsset(
-                ts=str(m.get("ts", "")),
-                user=str(m.get("user", "unknown")),
-                text=str(m.get("text", "")),
-                thread_ts=m.get("thread_ts"),
+
+    if slack_source and slack_source.status != "error":
+        for ch in slack_source.data.get("channels", []):
+            if not isinstance(ch, dict):
+                continue
+            messages = [
+                BlueprintSlackMessageAsset(
+                    ts=str(m.get("ts", "")),
+                    user=str(m.get("user", "unknown")),
+                    text=str(m.get("text", "")),
+                    thread_ts=m.get("thread_ts"),
+                )
+                for m in ch.get("messages", [])
+                if isinstance(m, dict)
+            ]
+            channels.append(
+                BlueprintSlackChannelAsset(
+                    channel=str(ch.get("channel", "")),
+                    messages=messages,
+                    unread=int(ch.get("unread", 0) or 0),
+                )
             )
-            for m in ch.get("messages", [])
+
+    if teams_source and teams_source.status != "error":
+        for ch in teams_source.data.get("channels", []):
+            if not isinstance(ch, dict):
+                continue
+            messages = [
+                BlueprintSlackMessageAsset(
+                    ts=str(m.get("ts", "")),
+                    user=str(m.get("user", "unknown")),
+                    text=str(m.get("text", "")),
+                    thread_ts=m.get("thread_ts"),
+                )
+                for m in ch.get("messages", [])
+                if isinstance(m, dict)
+            ]
+            channels.append(
+                BlueprintSlackChannelAsset(
+                    channel=str(ch.get("channel", "")),
+                    messages=messages,
+                    unread=int(ch.get("unread", 0) or 0),
+                )
+            )
+
+    if not channels:
+        return None
+
+    return BlueprintCommGraphAsset(
+        slack_initial_message="Context captured from live workspace.",
+        slack_channels=channels,
+    )
+
+
+def _build_mail_from_gmail(
+    gmail_source: Optional[ContextSourceResult],
+) -> list[BlueprintMailThreadAsset]:
+    if not gmail_source or gmail_source.status == "error":
+        return []
+
+    threads_data = gmail_source.data.get("threads", [])
+    result: list[BlueprintMailThreadAsset] = []
+
+    for thread in threads_data:
+        if not isinstance(thread, dict):
+            continue
+        messages = thread.get("messages", [])
+        mail_messages = [
+            BlueprintMailMessageAsset(
+                from_address=str(m.get("from", "")),
+                to_address=str(m.get("to", "")),
+                subject=str(m.get("subject", "")),
+                body_text=str(m.get("snippet", "")),
+                unread=bool(m.get("unread", False)),
+            )
+            for m in messages
             if isinstance(m, dict)
         ]
-        channels.append(
-            BlueprintSlackChannelAsset(
-                channel=str(ch.get("channel", "")),
-                messages=messages,
-                unread=int(ch.get("unread", 0) or 0),
+        if not mail_messages:
+            continue
+        labels = []
+        if messages and isinstance(messages[0], dict):
+            labels = messages[0].get("labels", [])
+        category = "internal"
+        if any(lb in labels for lb in ["CATEGORY_PROMOTIONS", "CATEGORY_SOCIAL"]):
+            category = "external"
+        elif any(lb in labels for lb in ["IMPORTANT", "STARRED"]):
+            category = "important"
+
+        result.append(
+            BlueprintMailThreadAsset(
+                thread_id=str(thread.get("thread_id", "")),
+                title=str(thread.get("subject", "")),
+                category=category,
+                messages=mail_messages,
             )
         )
 
-    return BlueprintCommGraphAsset(
-        slack_initial_message="Context captured from live Slack workspace.",
-        slack_channels=channels,
-    )
+    return result
 
 
 def _build_doc_graph(
@@ -242,14 +327,22 @@ def _infer_facades(
     jira_source: Optional[ContextSourceResult],
     google_source: Optional[ContextSourceResult],
     okta_source: Optional[ContextSourceResult],
+    gmail_source: Optional[ContextSourceResult] = None,
+    teams_source: Optional[ContextSourceResult] = None,
 ) -> list[str]:
-    facades = []
+    facades: list[str] = []
     if slack_source and slack_source.status != "error":
         facades.append("slack")
+    if teams_source and teams_source.status != "error":
+        if "slack" not in facades:
+            facades.append("slack")
     if jira_source and jira_source.status != "error":
         facades.extend(["jira", "servicedesk"])
     if google_source and google_source.status != "error":
         facades.append("docs")
+    if gmail_source and gmail_source.status != "error":
+        if "mail" not in facades:
+            facades.append("mail")
     if okta_source and okta_source.status != "error":
         facades.append("identity")
     return facades

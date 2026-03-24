@@ -9,10 +9,12 @@ import pytest
 
 from vei.context.models import ContextProviderConfig
 from vei.context.providers import get_provider, list_providers
+from vei.context.providers.gmail import GmailContextProvider
 from vei.context.providers.google import GoogleContextProvider
 from vei.context.providers.jira import JiraContextProvider
 from vei.context.providers.okta import OktaContextProvider
 from vei.context.providers.slack import SlackContextProvider
+from vei.context.providers.teams import TeamsContextProvider
 
 
 def _mock_urlopen(payload: Any):
@@ -26,12 +28,10 @@ def _mock_urlopen(payload: Any):
     return resp
 
 
-def test_list_providers_returns_all_four() -> None:
+def test_list_providers_returns_all_six() -> None:
     names = list_providers()
-    assert "slack" in names
-    assert "jira" in names
-    assert "google" in names
-    assert "okta" in names
+    for expected in ("slack", "jira", "google", "okta", "gmail", "teams"):
+        assert expected in names
 
 
 def test_get_provider_unknown_raises() -> None:
@@ -366,3 +366,547 @@ def test_slack_export_api_integration(tmp_path: Path) -> None:
     assert source is not None
     assert source.status == "ok"
     assert source.record_counts["messages"] == 1
+
+
+# ---------------------------------------------------------------------------
+# Gmail provider (API-based)
+# ---------------------------------------------------------------------------
+
+
+def test_gmail_provider_captures_threads(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("VEI_GMAIL_TOKEN", "ya29.gmail-test")
+
+    threads_list = {
+        "threads": [{"id": "t1"}, {"id": "t2"}],
+    }
+    thread_detail = {
+        "id": "t1",
+        "messages": [
+            {
+                "id": "m1",
+                "labelIds": ["INBOX", "UNREAD"],
+                "snippet": "Hi there",
+                "payload": {
+                    "headers": [
+                        {"name": "From", "value": "alice@co.com"},
+                        {"name": "To", "value": "bob@co.com"},
+                        {"name": "Subject", "value": "Q4 Review"},
+                        {"name": "Date", "value": "Mon, 10 Mar 2025 10:00:00 +0000"},
+                    ],
+                },
+            },
+        ],
+    }
+    profile_resp = {
+        "emailAddress": "me@co.com",
+        "threadsTotal": 42,
+        "messagesTotal": 100,
+    }
+
+    call_count = {"n": 0}
+
+    def side_effect(*_a, **_kw):
+        call_count["n"] += 1
+        n = call_count["n"]
+        if n == 1:
+            return _mock_urlopen(threads_list)
+        if n <= 3:
+            return _mock_urlopen(thread_detail)
+        return _mock_urlopen(profile_resp)
+
+    with patch("vei.context.providers.base.urlopen", side_effect=side_effect):
+        provider = GmailContextProvider()
+        result = provider.capture(
+            ContextProviderConfig(provider="gmail", token_env="VEI_GMAIL_TOKEN")
+        )
+
+    assert result.status == "ok"
+    assert result.provider == "gmail"
+    assert result.record_counts["threads"] >= 1
+    assert result.data["threads"][0]["subject"] == "Q4 Review"
+    assert result.data["threads"][0]["messages"][0]["from"] == "alice@co.com"
+    assert result.data["threads"][0]["messages"][0]["unread"] is True
+
+
+# ---------------------------------------------------------------------------
+# Teams provider (API-based)
+# ---------------------------------------------------------------------------
+
+
+def test_teams_provider_captures_channels(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("VEI_TEAMS_TOKEN", "eyJ-teams-test")
+
+    teams_resp = {
+        "value": [
+            {"id": "team-1", "displayName": "Engineering"},
+        ],
+    }
+    channels_resp = {
+        "value": [
+            {"id": "ch-1", "displayName": "General"},
+        ],
+    }
+    messages_resp = {
+        "value": [
+            {
+                "id": "msg-1",
+                "messageType": "message",
+                "createdDateTime": "2025-03-10T10:00:00Z",
+                "from": {"user": {"displayName": "Alice"}},
+                "body": {"contentType": "text", "content": "Hello team!"},
+            },
+            {
+                "id": "msg-2",
+                "messageType": "systemEventMessage",
+                "createdDateTime": "2025-03-10T09:00:00Z",
+                "from": {},
+                "body": {"contentType": "html", "content": "<p>System event</p>"},
+            },
+        ],
+    }
+    me_resp = {"mail": "me@company.com", "displayName": "Me"}
+
+    call_count = {"n": 0}
+
+    def side_effect(*_a, **_kw):
+        call_count["n"] += 1
+        n = call_count["n"]
+        if n == 1:
+            return _mock_urlopen(teams_resp)
+        if n == 2:
+            return _mock_urlopen(channels_resp)
+        if n == 3:
+            return _mock_urlopen(messages_resp)
+        return _mock_urlopen(me_resp)
+
+    with patch("vei.context.providers.base.urlopen", side_effect=side_effect):
+        provider = TeamsContextProvider()
+        result = provider.capture(
+            ContextProviderConfig(provider="teams", token_env="VEI_TEAMS_TOKEN")
+        )
+
+    assert result.status == "ok"
+    assert result.provider == "teams"
+    assert result.record_counts["teams"] == 1
+    assert result.record_counts["channels"] == 1
+    assert result.record_counts["messages"] == 1
+    ch = result.data["channels"][0]
+    assert ch["channel"] == "#Engineering/General"
+    assert ch["messages"][0]["user"] == "Alice"
+    assert ch["messages"][0]["text"] == "Hello team!"
+
+
+# ---------------------------------------------------------------------------
+# Gmail MBOX offline ingestion
+# ---------------------------------------------------------------------------
+
+
+def _build_mbox_content(messages: list[dict[str, str]]) -> str:
+    """Build a minimal MBOX string from a list of message dicts."""
+    parts = []
+    for msg in messages:
+        from_line = (
+            f"From {msg.get('from', 'sender@example.com')} Mon Mar 10 10:00:00 2025"
+        )
+        headers = (
+            f"From: {msg.get('from', 'sender@example.com')}\n"
+            f"To: {msg.get('to', 'receiver@example.com')}\n"
+            f"Subject: {msg.get('subject', 'No subject')}\n"
+            f"Date: Mon, 10 Mar 2025 10:00:00 +0000\n"
+            f"Message-ID: {msg.get('message_id', '<test@example.com>')}\n"
+        )
+        if msg.get("in_reply_to"):
+            headers += f"In-Reply-To: {msg['in_reply_to']}\n"
+        if msg.get("references"):
+            headers += f"References: {msg['references']}\n"
+        body = msg.get("body", "Test body")
+        parts.append(f"{from_line}\n{headers}\n{body}\n")
+    return "\n".join(parts)
+
+
+def test_gmail_mbox_captures_threads(tmp_path: Path) -> None:
+    from vei.context.providers.gmail import capture_from_mbox
+
+    mbox_data = _build_mbox_content(
+        [
+            {
+                "from": "alice@co.com",
+                "to": "bob@co.com",
+                "subject": "Project Update",
+                "message_id": "<msg1@co.com>",
+                "body": "Here's the update.",
+            },
+            {
+                "from": "bob@co.com",
+                "to": "alice@co.com",
+                "subject": "Re: Project Update",
+                "message_id": "<msg2@co.com>",
+                "in_reply_to": "<msg1@co.com>",
+                "references": "<msg1@co.com>",
+                "body": "Thanks for the update!",
+            },
+            {
+                "from": "carol@co.com",
+                "to": "team@co.com",
+                "subject": "Separate topic",
+                "message_id": "<msg3@co.com>",
+                "body": "Unrelated message.",
+            },
+        ]
+    )
+    mbox_path = tmp_path / "All mail Including Spam and Trash.mbox"
+    mbox_path.write_text(mbox_data, encoding="utf-8")
+
+    result = capture_from_mbox(mbox_path)
+
+    assert result.status == "ok"
+    assert result.provider == "gmail"
+    assert result.record_counts["messages"] == 3
+    assert result.record_counts["threads"] == 2
+
+    thread_subjects = {t["subject"] for t in result.data["threads"]}
+    assert "Project Update" in thread_subjects
+    assert "Separate topic" in thread_subjects
+
+
+def test_gmail_mbox_missing_file(tmp_path: Path) -> None:
+    from vei.context.providers.gmail import capture_from_mbox
+
+    result = capture_from_mbox(tmp_path / "nonexistent.mbox")
+    assert result.status == "error"
+
+
+def test_gmail_mbox_api_integration(tmp_path: Path) -> None:
+    from vei.context.api import ingest_gmail_export
+
+    mbox_data = _build_mbox_content(
+        [
+            {
+                "from": "a@co.com",
+                "to": "b@co.com",
+                "subject": "Hello",
+                "message_id": "<x@co.com>",
+                "body": "Content here",
+            },
+        ]
+    )
+    mbox_path = tmp_path / "mail.mbox"
+    mbox_path.write_text(mbox_data, encoding="utf-8")
+
+    snap = ingest_gmail_export(mbox_path, organization_name="TestCo")
+
+    assert snap.organization_name == "TestCo"
+    source = snap.source_for("gmail")
+    assert source is not None
+    assert source.status == "ok"
+    assert source.record_counts["messages"] == 1
+
+
+# ---------------------------------------------------------------------------
+# Hydration: Gmail -> mail threads, Teams -> comm graph
+# ---------------------------------------------------------------------------
+
+
+def test_hydration_maps_gmail_to_mail_threads() -> None:
+    from vei.context.hydrate import hydrate_snapshot_to_blueprint
+    from vei.context.models import ContextSnapshot, ContextSourceResult
+
+    gmail_source = ContextSourceResult(
+        provider="gmail",
+        captured_at="2025-03-10T00:00:00Z",
+        status="ok",
+        record_counts={"threads": 1, "messages": 2},
+        data={
+            "threads": [
+                {
+                    "thread_id": "t1",
+                    "subject": "Budget Review",
+                    "messages": [
+                        {
+                            "from": "cfo@co.com",
+                            "to": "team@co.com",
+                            "subject": "Budget Review",
+                            "snippet": "Please review the attached budget.",
+                            "unread": True,
+                            "labels": ["IMPORTANT"],
+                        },
+                        {
+                            "from": "pm@co.com",
+                            "to": "cfo@co.com",
+                            "subject": "Re: Budget Review",
+                            "snippet": "Looks good.",
+                            "unread": False,
+                            "labels": [],
+                        },
+                    ],
+                },
+            ],
+            "profile": {},
+        },
+    )
+    snapshot = ContextSnapshot(
+        organization_name="TestCorp",
+        captured_at="2025-03-10T00:00:00Z",
+        sources=[gmail_source],
+    )
+
+    blueprint = hydrate_snapshot_to_blueprint(snapshot)
+
+    assert blueprint.capability_graphs is not None
+    comm = blueprint.capability_graphs.comm_graph
+    assert comm is not None
+    assert len(comm.mail_threads) == 1
+    thread = comm.mail_threads[0]
+    assert thread.thread_id == "t1"
+    assert thread.title == "Budget Review"
+    assert thread.category == "important"
+    assert len(thread.messages) == 2
+    assert thread.messages[0].from_address == "cfo@co.com"
+    assert thread.messages[0].unread is True
+    assert "mail" in blueprint.requested_facades
+
+
+def test_hydration_maps_teams_to_comm_graph() -> None:
+    from vei.context.hydrate import hydrate_snapshot_to_blueprint
+    from vei.context.models import ContextSnapshot, ContextSourceResult
+
+    teams_source = ContextSourceResult(
+        provider="teams",
+        captured_at="2025-03-10T00:00:00Z",
+        status="ok",
+        record_counts={"teams": 1, "channels": 1, "messages": 1},
+        data={
+            "channels": [
+                {
+                    "channel": "#Engineering/General",
+                    "channel_id": "ch-1",
+                    "team_id": "t-1",
+                    "team_name": "Engineering",
+                    "unread": 0,
+                    "messages": [
+                        {
+                            "ts": "2025-03-10T10:00:00Z",
+                            "user": "Alice",
+                            "text": "Sprint started",
+                        },
+                    ],
+                },
+            ],
+            "profile": {"email": "me@co.com"},
+        },
+    )
+    snapshot = ContextSnapshot(
+        organization_name="TeamsCorp",
+        captured_at="2025-03-10T00:00:00Z",
+        sources=[teams_source],
+    )
+
+    blueprint = hydrate_snapshot_to_blueprint(snapshot)
+
+    assert blueprint.capability_graphs is not None
+    comm = blueprint.capability_graphs.comm_graph
+    assert comm is not None
+    assert len(comm.slack_channels) == 1
+    ch = comm.slack_channels[0]
+    assert ch.channel == "#Engineering/General"
+    assert len(ch.messages) == 1
+    assert ch.messages[0].user == "Alice"
+    assert "slack" in blueprint.requested_facades
+
+
+def test_hydration_combines_slack_gmail_teams() -> None:
+    from vei.context.hydrate import hydrate_snapshot_to_blueprint
+    from vei.context.models import ContextSnapshot, ContextSourceResult
+
+    slack_source = ContextSourceResult(
+        provider="slack",
+        captured_at="2025-03-10T00:00:00Z",
+        status="ok",
+        data={
+            "channels": [
+                {
+                    "channel": "#general",
+                    "messages": [
+                        {"ts": "1", "user": "alice", "text": "hello"},
+                    ],
+                    "unread": 0,
+                },
+            ],
+        },
+    )
+    gmail_source = ContextSourceResult(
+        provider="gmail",
+        captured_at="2025-03-10T00:00:00Z",
+        status="ok",
+        data={
+            "threads": [
+                {
+                    "thread_id": "g1",
+                    "subject": "Invoice",
+                    "messages": [
+                        {
+                            "from": "vendor@ext.com",
+                            "to": "ap@co.com",
+                            "subject": "Invoice",
+                            "snippet": "Attached.",
+                            "unread": False,
+                            "labels": ["CATEGORY_PROMOTIONS"],
+                        },
+                    ],
+                },
+            ],
+        },
+    )
+    teams_source = ContextSourceResult(
+        provider="teams",
+        captured_at="2025-03-10T00:00:00Z",
+        status="ok",
+        data={
+            "channels": [
+                {
+                    "channel": "#Sales/Pipeline",
+                    "channel_id": "ch-s1",
+                    "unread": 0,
+                    "messages": [
+                        {"ts": "2", "user": "bob", "text": "deal closed"},
+                    ],
+                },
+            ],
+        },
+    )
+
+    snapshot = ContextSnapshot(
+        organization_name="MultiCorp",
+        captured_at="2025-03-10T00:00:00Z",
+        sources=[slack_source, gmail_source, teams_source],
+    )
+
+    bp = hydrate_snapshot_to_blueprint(snapshot)
+    comm = bp.capability_graphs.comm_graph
+    assert comm is not None
+    assert len(comm.slack_channels) == 2
+    assert len(comm.mail_threads) == 1
+    assert comm.mail_threads[0].category == "external"
+    assert "slack" in bp.requested_facades
+    assert "mail" in bp.requested_facades
+
+
+# ---------------------------------------------------------------------------
+# Context status API endpoint
+# ---------------------------------------------------------------------------
+
+
+def test_context_status_endpoint(monkeypatch: pytest.MonkeyPatch) -> None:
+    from fastapi.testclient import TestClient
+
+    from vei.ui.api import create_ui_app
+
+    monkeypatch.setenv("VEI_SLACK_TOKEN", "xoxb-test")
+    monkeypatch.delenv("VEI_GMAIL_TOKEN", raising=False)
+
+    app = create_ui_app("/tmp/nonexistent_workspace_for_test")
+    client = TestClient(app)
+
+    resp = client.get("/api/context/status")
+    assert resp.status_code == 200
+    data = resp.json()
+    providers = {p["provider"]: p for p in data["providers"]}
+    assert providers["slack"]["configured"] is True
+    assert providers["gmail"]["configured"] is False
+    assert providers["teams"]["configured"] is False
+    assert len(data["providers"]) == 6
+
+
+def test_context_status_requires_base_url_for_jira_and_okta(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from fastapi.testclient import TestClient
+
+    from vei.ui.api import create_ui_app
+
+    monkeypatch.setenv("VEI_JIRA_TOKEN", "jira-token")
+    monkeypatch.setenv("VEI_OKTA_TOKEN", "okta-token")
+    monkeypatch.delenv("VEI_JIRA_URL", raising=False)
+    monkeypatch.delenv("VEI_OKTA_ORG_URL", raising=False)
+
+    app = create_ui_app("/tmp/nonexistent_workspace_for_test")
+    client = TestClient(app)
+
+    resp = client.get("/api/context/status")
+    assert resp.status_code == 200
+    providers = {p["provider"]: p for p in resp.json()["providers"]}
+    assert providers["jira"]["configured"] is False
+    assert providers["jira"]["env_var"] == "VEI_JIRA_URL"
+    assert providers["okta"]["configured"] is False
+    assert providers["okta"]["env_var"] == "VEI_OKTA_ORG_URL"
+
+
+def test_context_capture_endpoint_accepts_json_body_and_writes_snapshot(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from fastapi.testclient import TestClient
+
+    from vei.context.models import ContextSnapshot, ContextSourceResult
+    from vei.ui.api import create_ui_app
+    from vei.workspace.api import create_workspace_from_template
+
+    root = tmp_path / "workspace"
+    manifest = create_workspace_from_template(
+        root=root,
+        source_kind="example",
+        source_ref="acquired_user_cutover",
+    )
+    monkeypatch.setenv("VEI_SLACK_TOKEN", "xoxb-test")
+
+    captured: dict[str, Any] = {}
+
+    def fake_capture_context(
+        configs: list[ContextProviderConfig],
+        *,
+        organization_name: str,
+        organization_domain: str,
+    ) -> ContextSnapshot:
+        captured["configs"] = configs
+        captured["organization_name"] = organization_name
+        captured["organization_domain"] = organization_domain
+        return ContextSnapshot(
+            organization_name=organization_name,
+            organization_domain=organization_domain,
+            captured_at="2025-03-10T00:00:00Z",
+            sources=[
+                ContextSourceResult(
+                    provider="slack",
+                    captured_at="2025-03-10T00:00:00Z",
+                    status="ok",
+                    record_counts={"channels": 1, "messages": 2},
+                    data={"channels": []},
+                )
+            ],
+        )
+
+    with patch("vei.context.api.capture_context", side_effect=fake_capture_context):
+        client = TestClient(create_ui_app(root))
+        openapi_resp = client.get("/openapi.json")
+        capture_resp = client.post(
+            "/api/context/capture", json={"providers": ["slack"]}
+        )
+
+    assert openapi_resp.status_code == 200
+    assert capture_resp.status_code == 200
+    assert captured["organization_name"] == manifest.title
+    assert captured["organization_domain"] == ""
+    assert [config.provider for config in captured["configs"]] == ["slack"]
+
+    payload = capture_resp.json()
+    assert payload["captured"] == 1
+    assert payload["errors"] == 0
+    assert payload["sources"][0]["provider"] == "slack"
+
+    snapshot_path = root / "context_snapshot.json"
+    assert snapshot_path.exists()
+    snapshot = ContextSnapshot.model_validate_json(
+        snapshot_path.read_text(encoding="utf-8")
+    )
+    assert snapshot.organization_name == manifest.title
+    assert snapshot.source_for("slack") is not None
