@@ -286,7 +286,7 @@ def _build_identity_graph(
             apps.append(
                 BlueprintIdentityApplicationAsset(
                     app_id=str(a.get("id", "")),
-                    name=str(a.get("label", a.get("name", ""))),
+                    label=str(a.get("label", a.get("name", ""))),
                     status=str(a.get("status", "active")),
                     assignments=a.get("assignments", []),
                 )

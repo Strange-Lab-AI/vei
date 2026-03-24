@@ -12,6 +12,7 @@ from vei.cli.vei_scenario import app as scenario_app
 from vei.cli.vei_showcase import app as showcase_app
 from vei.cli.vei_studio import app as studio_app
 from vei.cli.vei_synthesize import app as synthesize_app
+from vei.cli.vei_twin import app as twin_app
 from vei.cli.vei_ui import app as ui_app
 
 
@@ -29,6 +30,7 @@ app.add_typer(run_app, name="run")
 app.add_typer(inspect_app, name="inspect")
 app.add_typer(showcase_app, name="showcase")
 app.add_typer(studio_app, name="studio")
+app.add_typer(twin_app, name="twin")
 app.add_typer(synthesize_app, name="synthesize")
 app.add_typer(export_app, name="export")
 app.add_typer(ui_app, name="ui")

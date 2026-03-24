@@ -194,6 +194,40 @@ vei inspect fidelity --root _vei_out/playable/harbor_point
 vei export mission-run --root _vei_out/playable/harbor_point --run-id human_play_... --format rl
 ```
 
+### Customer-shaped agent twins
+
+VEI can now turn captured company context into a customer-shaped twin and expose provider-style routes that an external agent can talk to directly.
+
+Build a twin from a saved context snapshot:
+
+```bash
+vei twin build \
+  --root _vei_out/customer_twins/acme_cloud \
+  --snapshot _vei_out/context/acme_snapshot.json \
+  --organization-domain acme.ai
+```
+
+Serve the compatibility gateway:
+
+```bash
+vei twin serve \
+  --root _vei_out/customer_twins/acme_cloud \
+  --host 127.0.0.1 \
+  --port 3020
+```
+
+That workspace keeps the normal VEI run history, surfaces, scoring, and replay, while the gateway exposes provider-shaped routes for:
+- Slack-style chat
+- Jira-style issues
+- Microsoft Graph-style mail and calendar
+- Salesforce-style CRM
+
+The fastest way to inspect what was built is:
+
+```bash
+vei twin status --root _vei_out/customer_twins/acme_cloud
+```
+
 ### Grounded import flow
 
 VEI can now ingest realistic offline enterprise export packs and turn them into a runnable workspace. The import path is:
