@@ -3,9 +3,11 @@
 
 ![VEI Studio — Pinnacle Analytics](docs/assets/vei_studio_hero.png)
 
-VEI is a deterministic, MCP-native enterprise simulator for training, evaluating, and replaying agent behavior against synthetic business systems. Pick a company, pick a crisis, define what success looks like, and then play moves or let an agent play them — every tool, every person, every process reacts as one connected system.
+VEI is a programmable replica of an entire company's operational software stack. You give it a company description — or connect it to real Slack, Gmail, Jira, and Teams data — and it builds a fully functioning simulated copy with working channels, email threads, ticket queues, CRM pipelines, document stores, and identity systems that an agent or a human can operate inside.
 
-The stable boundary is the world kernel: a `WorldSession` owns world state, event queues, snapshots, branches, replay, injection, actor state, and receipts.
+Pick a company, pick a crisis, define what success looks like, then play moves or let an agent play them — every tool, every person, every process reacts as one connected system.
+
+**[Full overview: what this is, who it's for, and how to connect your own data →](docs/OVERVIEW.md)**
 
 ## What VEI Simulates
 
@@ -110,10 +112,10 @@ vei run start --root _vei_out/workspaces/acquired_cutover --runner workflow
 vei ui serve --root _vei_out/workspaces/acquired_cutover
 ```
 
-The standalone UI alias works too:
+Or equivalently:
 
 ```bash
-vei-ui serve --root _vei_out/workspaces/acquired_cutover
+vei ui serve --root _vei_out/workspaces/acquired_cutover
 ```
 
 The unified root CLI exposes the same lifecycle:
@@ -251,14 +253,14 @@ vei scenario generate --root _vei_out/workspaces/macrocompute_import
 vei scenario activate --root _vei_out/workspaces/macrocompute_import --scenario-name oversharing_remediation --bootstrap-contract
 vei run start --root _vei_out/workspaces/macrocompute_import --runner workflow --scenario-name oversharing_remediation
 vei inspect provenance --root _vei_out/workspaces/macrocompute_import --object-ref drive_share:DOC-ACQ-1
-vei-ui serve --root _vei_out/workspaces/macrocompute_import
+vei ui serve --root _vei_out/workspaces/macrocompute_import
 ```
 
 If you want the shortest end-to-end grounded identity flow, VEI now ships a single command that prepares the workspace, generates/activates the right scenario, bootstraps the contract, and can launch the baseline plus scripted comparison runs:
 
 ```bash
 vei project identity-demo --root _vei_out/workspaces/identity_demo --overwrite
-vei-ui serve --root _vei_out/workspaces/identity_demo
+vei ui serve --root _vei_out/workspaces/identity_demo
 ```
 
 Live source sync uses the same persisted import-package model. For the first connector-backed path, point VEI at a read-only Okta config JSON:
@@ -411,7 +413,7 @@ VEI_LLM_LIVE_BYPASS=1 make llm-live
 
 - Start here
   - `vei project|contract|scenario|run|inspect|showcase|ui`
-  - `vei ui serve` or `vei-ui serve`
+  - `vei ui serve`
   - `vei studio play` (mission-driven playable mode)
 - Context and synthesis
   - `vei context capture|hydrate|diff`
@@ -463,7 +465,7 @@ The default product-shaped loop is now:
 3. `vei contract validate` and `vei scenario preview`
 4. `vei run start --runner workflow|scripted|bc|llm`
 5. `vei inspect orient|graphs|events|snapshots|diff|receipts`
-6. `vei ui serve` or `vei-ui serve`
+6. `vei ui serve`
 
 The local UI stays intentionally lightweight and Python-first. It opens one workspace, shows compiled scenario and contract context, launches runs with scenario/runner/provider/model/task/max-step controls, and renders a playback control room with animated channel lanes, run scorecards, capability-graph summaries, orientation cards, snapshot diffs, and raw developer drawers over the same canonical run artifacts.
 
@@ -492,7 +494,7 @@ vei score --artifacts-dir _vei_out/llmtest --success-mode full
 Kernel-backed benchmark run:
 
 ```bash
-vei-eval benchmark \
+vei eval benchmark \
   --runner scripted \
   --scenario multi_channel \
   --artifacts-root _vei_out/benchmark \
@@ -502,7 +504,7 @@ vei-eval benchmark \
 Family-level benchmark run:
 
 ```bash
-vei-eval benchmark \
+vei eval benchmark \
   --runner workflow \
   --family security_containment \
   --artifacts-root _vei_out/benchmark \
@@ -512,7 +514,7 @@ vei-eval benchmark \
 Explicit workflow selection for a single scenario:
 
 ```bash
-vei-eval benchmark \
+vei eval benchmark \
   --runner workflow \
   --scenario oauth_app_containment \
   --workflow-name security_containment \
@@ -524,7 +526,7 @@ vei-eval benchmark \
 Scripted or LLM family runs stay on the same pipeline:
 
 ```bash
-vei-eval benchmark \
+vei eval benchmark \
   --runner scripted \
   --family security_containment \
   --artifacts-root _vei_out/benchmark \
@@ -545,7 +547,7 @@ That command runs the deterministic family workflow baseline plus a comparison r
 Complex-example showcase bundle:
 
 ```bash
-vei-eval showcase \
+vei eval showcase \
   --artifacts-root _vei_out/showcase \
   --run-id flagship_examples
 ```
@@ -585,15 +587,15 @@ That is why VEI can later become an RL environment, a continuous eval system, an
 Flagship blueprint-driven revenue/ops demo:
 
 ```bash
-vei-blueprint asset \
+vei blueprint asset \
   --family revenue_incident_mitigation \
   --workflow-variant revenue_ops_flightdeck
 
-vei-blueprint compile \
+vei blueprint compile \
   --family revenue_incident_mitigation \
   --workflow-variant revenue_ops_flightdeck
 
-vei-eval demo \
+vei eval demo \
   --family revenue_incident_mitigation \
   --artifacts-root _vei_out/demo \
   --run-id revenue_ops_demo
@@ -604,18 +606,18 @@ That flow shows the full engine shape: authored `BlueprintAsset`, compiled bluep
 Flagship environment-builder example for the identity/access-governance wedge:
 
 ```bash
-vei-blueprint examples
+vei blueprint examples
 
-vei-blueprint bundle \
+vei blueprint bundle \
   --example acquired_user_cutover
 
-vei-blueprint asset \
+vei blueprint asset \
   --example acquired_user_cutover
 
-vei-blueprint compile \
+vei blueprint compile \
   --example acquired_user_cutover
 
-vei-blueprint observe \
+vei blueprint observe \
   --example acquired_user_cutover \
   --focus slack
 ```
@@ -625,7 +627,7 @@ That flow shows the full builder ladder: raw grounding bundle, authored blueprin
 Agent-facing builder orientation:
 
 ```bash
-vei-blueprint orient \
+vei blueprint orient \
   --example acquired_user_cutover
 ```
 
@@ -634,7 +636,7 @@ That command renders the compiled blueprint, runtime capability graphs, and a co
 Canonical multi-family workflow suite:
 
 ```bash
-vei-eval suite \
+vei eval suite \
   --artifacts-root _vei_out/suite \
   --run-id nightly_suite
 ```
@@ -644,7 +646,7 @@ That command runs each family's primary workflow variant and writes stable `lead
 Frontier batch for one model:
 
 ```bash
-vei-eval-frontier run \
+vei eval-frontier run \
   --runner llm \
   --model gpt-5 \
   --scenario-set reasoning \
@@ -666,7 +668,7 @@ Artifacts from batch evaluation include:
 Render a report from any benchmark or frontier batch:
 
 ```bash
-vei-report generate \
+vei report generate \
   --root _vei_out/frontier_eval/<run-id> \
   --format markdown \
   --output LEADERBOARD.md
@@ -675,17 +677,17 @@ vei-report generate \
 ## Release Bundles
 
 ```bash
-vei-release dataset \
+vei release dataset \
   --input-path _vei_out/rollout.json \
   --label rollout \
   --version v20260310
 
-vei-release benchmark \
+vei release benchmark \
   --benchmark-dir _vei_out/benchmark/scripted_multi \
   --label scripted-benchmark \
   --version v20260310
 
-vei-release nightly \
+vei release nightly \
   --release-root _vei_out/releases \
   --workspace-root _vei_out/nightly \
   --version nightly-20260310 \
@@ -703,8 +705,9 @@ vei-release nightly \
 
 ## Docs
 
-- `docs/ARCHITECTURE.md`
-- `docs/BENCHMARKS.md`
+- `docs/OVERVIEW.md` — What VEI is, who it's for, how to connect your data, and strategic context
+- `docs/ARCHITECTURE.md` — Module structure and data flow
+- `docs/BENCHMARKS.md` — Benchmark families, difficulty tiers, and evaluation
 
 ## Contributor Notes
 
