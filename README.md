@@ -38,7 +38,7 @@ Each world pack supports multiple scenario variants and contract variants, so th
 
 ![VEI Studio — four companies, same engine](docs/assets/vei_studio_companies.png)
 
-![VEI Board Game — hex grid strategy view](docs/assets/vei_board_game.png)
+![VEI Timeline — causality view across enterprise surfaces](docs/assets/vei_timeline_view.png)
 
 ## Core Primitives
 

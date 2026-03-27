@@ -48,7 +48,7 @@ The twin gateway takes a `ContextSnapshot` plus a vertical archetype, merges the
 A single-page Studio interface with three views:
 
 - **Company view** — "Living company" panels showing every surface (Slack, Mail, Docs, Tickets, CRM, etc.) updating in real time as the simulation runs. A cascade replay system auto-plays changes panel by panel. Changed systems are highlighted.
-- **Board Game view** — A 2D hex-grid visualization where each hex represents an enterprise surface, action cards are your available moves, particle trails show causality flowing between systems, and a victory/game-over overlay appears at mission end. Compare mode overlays two different run paths on the same board.
+- **Timeline view** — A swim-lane causality grid showing how events propagate through enterprise surfaces (Slack, Email, Tickets, Docs, Approvals, Business Core) over time. Each column is a move/turn, each row is a surface. Click any event node for detailed payload inspection. Move column headers highlight to isolate causal chains. Compare mode stacks two run timelines for side-by-side analysis.
 - **Connect panel** — Shows which live data sources are configured with status indicators and one-click capture.
 
 A developer mode toggle exposes run forms, raw JSON, orientation data, capability graphs, snapshots, and timeline events.

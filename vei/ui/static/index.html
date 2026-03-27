@@ -52,7 +52,7 @@
                 <a id="pilot-console-link" href="/pilot" class="ghost-button pilot-console-link" target="_blank" rel="noreferrer">Operator Console</a>
                 <button id="developer-toggle" type="button" class="ghost-button developer-toggle">Systems Detail</button>
                 <button id="connect-toggle" type="button" class="ghost-button connect-toggle">Connections</button>
-                <button id="board-toggle" type="button" class="ghost-button board-toggle">Board View</button>
+                <button id="timeline-toggle" type="button" class="ghost-button timeline-toggle">Timeline</button>
                 <button id="compare-toggle" type="button" class="ghost-button compare-toggle">Compare Paths</button>
                 <button id="cinema-toggle" type="button" class="ghost-button cinema-toggle">Presentation</button>
                 <button id="branch-mission-button" type="button" class="ghost-button">Fork Reality</button>
@@ -130,19 +130,8 @@
 
       <main class="layout">
 
-        <!-- ========== BOARD GAME VIEW ========== -->
-        <section id="board-game-section" class="board-game-section" data-studio-view="company" style="display:none">
-          <div id="board-status-bar" class="board-status-bar"></div>
-          <div id="board-compare-bar" class="board-compare-bar" style="display:none"></div>
-          <div class="board-stage">
-            <div class="board-hex-area">
-              <svg id="board-flow-svg" class="board-flow-svg"></svg>
-              <div id="board-hex-grid" class="board-hex-grid"></div>
-              <div id="board-particles" class="board-particles"></div>
-            </div>
-          </div>
-          <div id="board-action-cards" class="board-action-cards"></div>
-          <div id="board-event-ticker" class="board-event-ticker"></div>
+        <!-- ========== TIMELINE / CAUSALITY VIEW ========== -->
+        <section id="timeline-section" class="timeline-section" data-studio-view="company" style="display:none">
         </section>
 
         <!-- ========== CONNECT PANEL ========== -->

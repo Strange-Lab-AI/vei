@@ -65,8 +65,7 @@ const state = {
   studioView: "company",
   developerMode: false,
   cinemaMode: false,
-  boardMode: false,
-  boardEventLog: [],
+  timelineMode: false,
   compareMode: false,
   compareRunA: null,
   compareRunB: null,
@@ -989,12 +988,12 @@ function playCascade(changedPanels, changedRefs) {
 function toggleCinemaMode() {
   closeToolbarMenus();
   state.cinemaMode = !state.cinemaMode;
-  if (state.cinemaMode && state.boardMode) {
-    state.boardMode = false;
-    document.body.classList.remove("board-mode");
-    const bBtn = document.getElementById("board-toggle");
-    if (bBtn) bBtn.textContent = "Board";
-    const section = document.getElementById("board-game-section");
+  if (state.cinemaMode && state.timelineMode) {
+    state.timelineMode = false;
+    document.body.classList.remove("timeline-mode");
+    const tBtn = document.getElementById("timeline-toggle");
+    if (tBtn) tBtn.textContent = "Timeline";
+    const section = document.getElementById("timeline-section");
     if (section) section.style.display = "none";
   }
   document.body.classList.toggle("cinema-mode", state.cinemaMode);
@@ -1069,8 +1068,8 @@ function toggleCinemaAutoAdvance() {
   } else {
     stopCinemaAutoAdvance();
   }
-  if (state.boardMode) {
-    renderBoardStatusBar();
+  if (state.timelineMode) {
+    renderTimelineView();
   } else {
     renderCinemaNarrative();
   }
@@ -1101,18 +1100,9 @@ function cinemaAutoStep() {
 }
 
 // ---------------------------------------------------------------------------
-// Board game view
+// Timeline / causality view
 // ---------------------------------------------------------------------------
-const HEX_ICONS = {
-  slack: "\u{1F4AC}",
-  mail: "\u{1F4E7}",
-  tickets: "\u{1F3AB}",
-  docs: "\u{1F4C4}",
-  approvals: "\u2705",
-  vertical_heartbeat: "\u{1F4C8}",
-};
-
-const HEX_ACCENT = {
+const SURFACE_ACCENT = {
   slack: "#36c5f0",
   mail: "#ffb454",
   tickets: "#ff6d5e",
@@ -1121,386 +1111,6 @@ const HEX_ACCENT = {
   vertical_heartbeat: "#1e6cf2",
 };
 
-function toggleBoardMode() {
-  closeToolbarMenus();
-  state.boardMode = !state.boardMode;
-  if (state.boardMode && state.cinemaMode) {
-    state.cinemaMode = false;
-    document.body.classList.remove("cinema-mode");
-    const cinBtn = document.getElementById("cinema-toggle");
-    if (cinBtn) cinBtn.textContent = "Present";
-    stopCinemaAutoAdvance();
-  }
-  document.body.classList.toggle("board-mode", state.boardMode);
-  const btn = document.getElementById("board-toggle");
-  if (btn) btn.textContent = state.boardMode ? "Exit Board" : "Board";
-  const section = document.getElementById("board-game-section");
-  if (section) section.style.display = state.boardMode ? "" : "none";
-  if (state.boardMode) {
-    setStudioView("company");
-    clearFlowLines();
-    renderBoardGame();
-    const hasMoves = (state.missionState?.available_moves || []).some(
-      (m) => !m.executed && m.availability !== "blocked"
-    );
-    if (hasMoves) {
-      state.cinemaAutoAdvance = true;
-      window.setTimeout(cinemaAutoStep, 1400);
-    }
-  } else {
-    stopCinemaAutoAdvance();
-    dismissBoardOverlay();
-  }
-}
-
-function renderBoardGame() {
-  renderBoardStatusBar();
-  renderHexGrid();
-  renderBoardActionCards();
-  renderBoardEventTicker();
-  if (state.missionState?.status === "completed") renderBoardVictory();
-}
-
-function renderBoardStatusBar() {
-  const bar = document.getElementById("board-status-bar");
-  if (!bar) return;
-  const ms = state.missionState;
-  const mission = ms?.mission || state.playableBundle?.mission || null;
-  const score = ms?.scorecard || {};
-  const moveCount = (ms?.executed_moves || []).length;
-  const budget = score.action_budget_remaining ?? "?";
-  const totalBudget = moveCount + (typeof budget === "number" ? budget : 0);
-  const company = state.surfaceState?.company_name
-    || state.workspace?.manifest?.title || "Company";
-  const scorePct = Math.min(100, Math.max(0, score.overall_score || 0));
-  const lastMove = moveCount ? ms.executed_moves[moveCount - 1] : null;
-
-  let narrative = "";
-  if (ms?.status === "completed") {
-    narrative = score.mission_success ? "Mission complete \u2014 all systems green." : "Mission closed with exposure.";
-  } else if (lastMove) {
-    narrative = `Turn ${moveCount}: ${lastMove.title}`;
-  } else if (mission) {
-    narrative = mission.briefing || mission.description || "";
-  }
-
-  bar.innerHTML = `
-    <div class="board-bar-left">
-      <span class="board-company">${escapeHtml(company)}</span>
-      <span class="board-narrative">${escapeHtml(narrative)}</span>
-    </div>
-    <div class="board-bar-right">
-      <div class="board-stat">
-        <span class="board-stat-label">Turn</span>
-        <span class="board-stat-value">${moveCount} / ${totalBudget || "?"}</span>
-      </div>
-      <div class="board-stat">
-        <span class="board-stat-label">Score</span>
-        <div class="board-score-gauge">
-          <div class="board-score-fill" style="width:${scorePct}%"></div>
-          <span class="board-score-num">${scorePct}</span>
-        </div>
-      </div>
-      <div class="board-stat">
-        <span class="board-stat-label">Risk</span>
-        <span class="board-stat-value board-risk-${score.business_risk || "unknown"}">${score.business_risk || "\u2014"}</span>
-      </div>
-      <button type="button" id="board-auto-toggle" class="ghost-button board-auto-btn">
-        ${state.cinemaAutoAdvance ? "\u23F8 Pause" : "\u25B6 Auto"}
-      </button>
-    </div>
-  `;
-  const autoBtn = document.getElementById("board-auto-toggle");
-  if (autoBtn) autoBtn.addEventListener("click", toggleCinemaAutoAdvance);
-}
-
-function renderHexGrid() {
-  const grid = document.getElementById("board-hex-grid");
-  if (!grid) return;
-  const panels = state.surfaceState?.panels || [];
-  const changedSet = new Set(state.surfaceHighlights?.panels || []);
-
-  if (!panels.length) {
-    grid.innerHTML = `<div class="board-hex-empty">Enter a world to see the board</div>`;
-    return;
-  }
-
-  grid.innerHTML = panels.map((p, i) => {
-    const icon = HEX_ICONS[p.surface] || "\u{1F3E2}";
-    const title = formatSurfaceTitle(p.surface);
-    const count = (p.items || []).length;
-    const stat = p.headline || `${count} item${count === 1 ? "" : "s"}`;
-    const changed = changedSet.has(p.surface);
-    const statusCls = `hex-status-${p.status || "ok"}`;
-    const pulseCls = changed ? "hex-pulse" : "";
-    return `
-      <div class="board-hex ${statusCls} ${pulseCls}" data-surface="${escapeHtml(p.surface)}" style="--hex-i:${i}" role="button" tabindex="0">
-        <div class="hex-shape">
-          <div class="hex-content">
-            <span class="hex-icon">${icon}</span>
-            <span class="hex-title">${escapeHtml(title)}</span>
-            <span class="hex-stat">${escapeHtml(stat)}</span>
-            ${changed ? '<span class="hex-changed-badge">UPDATED</span>' : ""}
-          </div>
-        </div>
-      </div>
-    `;
-  }).join("");
-
-  grid.querySelectorAll(".board-hex").forEach((hex) => {
-    hex.addEventListener("click", () => {
-      toggleHexDetail(hex.dataset.surface);
-    });
-  });
-}
-
-function toggleHexDetail(surface) {
-  const existing = document.getElementById("hex-detail-panel");
-  if (existing) {
-    if (existing.dataset.surface === surface) { existing.remove(); return; }
-    existing.remove();
-  }
-  const panel = state.surfaceState?.panels?.find((p) => p.surface === surface);
-  if (!panel) return;
-  const accent = HEX_ACCENT[surface] || "#7b5bff";
-  const items = (panel.items || []).slice(0, 6);
-  const el = document.createElement("div");
-  el.id = "hex-detail-panel";
-  el.className = "hex-detail-panel";
-  el.dataset.surface = surface;
-  el.style.setProperty("--hex-accent", accent);
-  el.innerHTML = `
-    <div class="hex-detail-header">
-      <span class="hex-detail-icon">${HEX_ICONS[surface] || "\u{1F3E2}"}</span>
-      <div>
-        <strong>${escapeHtml(formatSurfaceTitle(surface))}</strong>
-        <span class="hex-detail-status">${escapeHtml(panel.status || "ok")}</span>
-      </div>
-      <button type="button" class="hex-detail-close">\u2715</button>
-    </div>
-    <p class="hex-detail-headline">${escapeHtml(panel.headline || "")}</p>
-    <div class="hex-detail-items">
-      ${items.map((item) => `
-        <div class="hex-detail-item">
-          <strong>${escapeHtml(item.title)}</strong>
-          ${item.subtitle ? `<span class="hex-detail-sub">${escapeHtml(item.subtitle)}</span>` : ""}
-          ${item.body ? `<p>${escapeHtml(item.body).slice(0, 120)}</p>` : ""}
-        </div>
-      `).join("")}
-      ${(panel.items || []).length > 6 ? `<p class="hex-detail-more">+${(panel.items || []).length - 6} more</p>` : ""}
-    </div>
-  `;
-  el.querySelector(".hex-detail-close").addEventListener("click", () => el.remove());
-  const area = document.querySelector(".board-hex-area");
-  if (area) area.appendChild(el);
-}
-
-function renderBoardActionCards() {
-  const panel = document.getElementById("board-action-cards");
-  if (!panel) return;
-  const ms = state.missionState;
-  if (!ms || !Array.isArray(ms.available_moves) || !ms.available_moves.length) {
-    panel.innerHTML = `<div class="board-cards-empty">
-      <p class="eyebrow">Actions</p>
-      <p>Enter a world to get your hand of cards.</p>
-    </div>`;
-    return;
-  }
-
-  panel.innerHTML = `
-    <p class="eyebrow board-cards-title">Action Cards</p>
-    ${ms.available_moves.map((move) => {
-      const used = move.executed;
-      const blocked = move.availability === "blocked";
-      const risky = move.availability === "risky";
-      const recommended = move.availability === "recommended";
-      const availClass = risky ? "card-risky" : recommended ? "card-recommended" : "card-available";
-      const stateClass = used ? "card-used" : blocked ? "card-blocked" : "";
-      const targets = guessMoveTargets(move);
-      const targetDots = targets.map((s) =>
-        `<span class="card-target-dot" title="${escapeHtml(formatSurfaceTitle(s))}" style="background:${HEX_ACCENT[s] || "#7b5bff"}">${HEX_ICONS[s] || "\u25CF"}</span>`
-      ).join("");
-      return `
-        <div class="board-card ${availClass} ${stateClass}" data-move-id="${escapeHtml(move.move_id)}">
-          <div class="board-card-top">
-            <div class="board-card-badge">${used ? "played" : escapeHtml(move.availability)}</div>
-            ${targetDots ? `<div class="card-target-row">${targetDots}</div>` : ""}
-          </div>
-          <h4 class="board-card-title">${escapeHtml(move.title)}</h4>
-          ${!used && !blocked
-            ? `<button type="button" class="board-card-play" data-move-id="${escapeHtml(move.move_id)}">
-                ${risky ? "Risk it" : "Play"}
-              </button>`
-            : ""}
-        </div>
-      `;
-    }).join("")}
-  `;
-
-  panel.querySelectorAll(".board-card-play").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      void applyMissionMove(btn.dataset.moveId);
-    });
-  });
-}
-
-function renderBoardEventTicker() {
-  const ticker = document.getElementById("board-event-ticker");
-  if (!ticker) return;
-  const log = state.boardEventLog;
-  if (!log.length) {
-    ticker.innerHTML = `<span class="ticker-empty">Waiting for first move\u2026</span>`;
-    return;
-  }
-  ticker.innerHTML = log.map((entry) =>
-    `<span class="ticker-entry"><strong>Turn ${entry.turn}:</strong> ${escapeHtml(entry.title)} \u2192 ${entry.systems.map((s) => escapeHtml(formatSurfaceTitle(s))).join(", ")}</span>`
-  ).join('<span class="ticker-sep">\u00b7</span>');
-  ticker.scrollLeft = ticker.scrollWidth;
-}
-
-function recordBoardEvent(moveTitle, changedPanels) {
-  const turn = (state.missionState?.executed_moves || []).length;
-  state.boardEventLog.push({ turn, title: moveTitle, systems: changedPanels });
-}
-
-function animateHexRipple(changedPanels) {
-  if (!state.boardMode || !changedPanels.length) return;
-  changedPanels.forEach((surface) => {
-    const hex = document.querySelector(`.board-hex[data-surface="${surface}"]`);
-    if (!hex) return;
-    hex.classList.remove("hex-ripple");
-    void hex.offsetWidth;
-    hex.classList.add("hex-ripple");
-    window.setTimeout(() => hex.classList.remove("hex-ripple"), 1200);
-  });
-}
-
-function fireParticleTrail(cardEl, changedPanels) {
-  if (!state.boardMode || !cardEl || !changedPanels.length) return;
-  const container = document.getElementById("board-particles");
-  if (!container) return;
-  const boardRect = container.getBoundingClientRect();
-  const cardRect = cardEl.getBoundingClientRect();
-  const startX = cardRect.left - boardRect.left;
-  const startY = cardRect.top + cardRect.height / 2 - boardRect.top;
-
-  changedPanels.forEach((surface, idx) => {
-    const hex = document.querySelector(`.board-hex[data-surface="${surface}"]`);
-    if (!hex) return;
-    const hexRect = hex.getBoundingClientRect();
-    const endX = hexRect.left + hexRect.width / 2 - boardRect.left;
-    const endY = hexRect.top + hexRect.height / 2 - boardRect.top;
-    const dot = document.createElement("div");
-    dot.className = "board-particle";
-    dot.style.setProperty("--px-start", `${startX}px`);
-    dot.style.setProperty("--py-start", `${startY}px`);
-    dot.style.setProperty("--px-end", `${endX}px`);
-    dot.style.setProperty("--py-end", `${endY}px`);
-    dot.style.setProperty("--p-color", HEX_ACCENT[surface] || "#7b5bff");
-    dot.style.animationDelay = `${idx * 120}ms`;
-    container.appendChild(dot);
-    window.setTimeout(() => dot.remove(), 1000);
-  });
-}
-
-function hexCenterRelative(surface, areaRect) {
-  const hex = document.querySelector(`.board-hex[data-surface="${surface}"]`);
-  if (!hex) return null;
-  const r = hex.getBoundingClientRect();
-  return { x: r.left + r.width / 2 - areaRect.left, y: r.top + r.height / 2 - areaRect.top };
-}
-
-function drawFlowLines(changedPanels) {
-  const svg = document.getElementById("board-flow-svg");
-  if (!svg || !changedPanels.length) return;
-  const area = svg.parentElement;
-  if (!area) return;
-  const areaRect = area.getBoundingClientRect();
-
-  const pairs = [];
-  for (let i = 0; i < changedPanels.length; i++) {
-    for (let j = i + 1; j < changedPanels.length; j++) {
-      pairs.push([changedPanels[i], changedPanels[j]]);
-    }
-  }
-
-  pairs.forEach(([a, b]) => {
-    const pa = hexCenterRelative(a, areaRect);
-    const pb = hexCenterRelative(b, areaRect);
-    if (!pa || !pb) return;
-    const existingKey = `flow-${[a, b].sort().join("-")}`;
-    if (svg.querySelector(`[data-flow-key="${existingKey}"]`)) {
-      const existing = svg.querySelector(`[data-flow-key="${existingKey}"]`);
-      existing.classList.add("flow-line-active");
-      window.setTimeout(() => existing.classList.remove("flow-line-active"), 2000);
-      return;
-    }
-    const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
-    line.setAttribute("x1", pa.x);
-    line.setAttribute("y1", pa.y);
-    line.setAttribute("x2", pb.x);
-    line.setAttribute("y2", pb.y);
-    line.setAttribute("stroke", HEX_ACCENT[a] || "#7b5bff");
-    line.setAttribute("stroke-dasharray", "6 4");
-    line.setAttribute("data-flow-key", existingKey);
-    line.classList.add("flow-line", "flow-line-active");
-    svg.appendChild(line);
-    window.setTimeout(() => line.classList.remove("flow-line-active"), 2000);
-  });
-}
-
-function clearFlowLines() {
-  const svg = document.getElementById("board-flow-svg");
-  if (svg) svg.innerHTML = "";
-}
-
-function renderBoardVictory() {
-  if (document.getElementById("board-victory-overlay")) return;
-  const ms = state.missionState;
-  const score = ms?.scorecard || {};
-  const mission = ms?.mission || {};
-  const success = score.mission_success;
-  const overlay = document.createElement("div");
-  overlay.id = "board-victory-overlay";
-  overlay.className = `board-victory-overlay ${success ? "victory-success" : "victory-exposure"}`;
-  overlay.innerHTML = `
-    <div class="victory-card">
-      <div class="victory-icon">${success ? "\u{1F3C6}" : "\u26A0\uFE0F"}</div>
-      <h2 class="victory-title">${success ? "Mission Complete" : "Mission Closed"}</h2>
-      <p class="victory-subtitle">${success ? "All objectives met. Every system is green." : "Exposure remains. Some objectives were not met."}</p>
-      <div class="victory-stats">
-        <div class="victory-stat">
-          <span class="victory-stat-num">${score.overall_score || 0}</span>
-          <span class="victory-stat-label">Score</span>
-        </div>
-        <div class="victory-stat">
-          <span class="victory-stat-num">${score.move_count || 0}</span>
-          <span class="victory-stat-label">Moves</span>
-        </div>
-        <div class="victory-stat">
-          <span class="victory-stat-num">${score.success_assertions_passed || 0}/${score.success_assertions_total || 0}</span>
-          <span class="victory-stat-label">Assertions</span>
-        </div>
-        <div class="victory-stat">
-          <span class="victory-stat-num">${score.business_risk || "\u2014"}</span>
-          <span class="victory-stat-label">Final Risk</span>
-        </div>
-      </div>
-      <button type="button" class="victory-dismiss">Continue</button>
-    </div>
-  `;
-  overlay.querySelector(".victory-dismiss").addEventListener("click", dismissBoardOverlay);
-  overlay.addEventListener("click", (e) => { if (e.target === overlay) dismissBoardOverlay(); });
-  document.querySelector(".board-game-section")?.appendChild(overlay);
-}
-
-function dismissBoardOverlay() {
-  document.getElementById("board-victory-overlay")?.remove();
-}
-
-// ---------------------------------------------------------------------------
-// Compare mode — overlay two run timelines on the board
-// ---------------------------------------------------------------------------
 const TOOL_TO_SURFACE = {
   "slack.post_message": "slack", "slack.list_channels": "slack", "slack.read_channel": "slack",
   "mail.send": "mail", "mail.list": "mail", "mail.read_thread": "mail",
@@ -1529,27 +1139,249 @@ function timelineSurfaceHits(timeline) {
   return hits;
 }
 
+function toggleTimelineMode() {
+  closeToolbarMenus();
+  state.timelineMode = !state.timelineMode;
+  if (state.timelineMode && state.cinemaMode) {
+    state.cinemaMode = false;
+    document.body.classList.remove("cinema-mode");
+    const cinBtn = document.getElementById("cinema-toggle");
+    if (cinBtn) cinBtn.textContent = "Present";
+    stopCinemaAutoAdvance();
+  }
+  document.body.classList.toggle("timeline-mode", state.timelineMode);
+  const btn = document.getElementById("timeline-toggle");
+  if (btn) btn.textContent = state.timelineMode ? "Exit Timeline" : "Timeline";
+  const section = document.getElementById("timeline-section");
+  if (section) section.style.display = state.timelineMode ? "" : "none";
+  if (state.timelineMode) {
+    setStudioView("company");
+    renderTimelineView();
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Timeline rendering
+// ---------------------------------------------------------------------------
+
+function groupTimelineByMove(timeline, executedMoves) {
+  const moves = executedMoves || [];
+  const columns = [];
+  let evIdx = 0;
+  for (let mi = 0; mi < moves.length; mi++) {
+    const col = { move: moves[mi], turnNumber: mi + 1, events: [] };
+    const nextMs = mi + 1 < moves.length ? moves[mi + 1].time_ms : Infinity;
+    while (evIdx < timeline.length && timeline[evIdx].time_ms < nextMs) {
+      const ev = timeline[evIdx];
+      if (ev.kind === "trace_call" || ev.kind === "workflow_step") col.events.push(ev);
+      evIdx++;
+    }
+    columns.push(col);
+  }
+  if (evIdx < timeline.length) {
+    const tail = { move: null, turnNumber: moves.length + 1, events: [] };
+    while (evIdx < timeline.length) {
+      const ev = timeline[evIdx];
+      if (ev.kind === "trace_call" || ev.kind === "workflow_step") tail.events.push(ev);
+      evIdx++;
+    }
+    if (tail.events.length) columns.push(tail);
+  }
+  if (!columns.length && timeline.length) {
+    const col = { move: null, turnNumber: 1, events: [] };
+    for (const ev of timeline) {
+      if (ev.kind === "trace_call" || ev.kind === "workflow_step") col.events.push(ev);
+    }
+    columns.push(col);
+  }
+  return columns;
+}
+
+function discoverSurfaces(columns) {
+  const seen = new Set();
+  const ordered = [];
+  for (const col of columns) {
+    for (const ev of col.events) {
+      const s = toolToSurface(ev.tool || ev.resolved_tool);
+      if (s && !seen.has(s)) { seen.add(s); ordered.push(s); }
+    }
+  }
+  return ordered;
+}
+
+function surfaceLabel(s) {
+  const labels = { slack: "Slack", mail: "Email", tickets: "Tickets", docs: "Docs", approvals: "Approvals", vertical_heartbeat: "Business Core" };
+  return labels[s] || s;
+}
+
+function renderTimelineView() {
+  const section = document.getElementById("timeline-section");
+  if (!section) return;
+  const timeline = state.timeline || [];
+  const ms = state.missionState;
+  const moves = ms?.executed_moves || [];
+  const columns = groupTimelineByMove(timeline, moves);
+  const surfaces = discoverSurfaces(columns);
+  if (!surfaces.length) {
+    const panels = state.surfaceState?.panels || [];
+    panels.forEach((p) => { if (!surfaces.includes(p.surface)) surfaces.push(p.surface); });
+  }
+  if (!surfaces.length) surfaces.push("slack", "mail", "tickets", "docs", "approvals", "vertical_heartbeat");
+  const score = ms?.scorecard || {};
+  const completed = ms?.status === "completed";
+  const mission = ms?.mission || state.playableBundle?.mission || null;
+  const companyName = state.story?.manifest?.company_name || state.workspace?.manifest?.title || "";
+
+  let html = "";
+  html += `<div class="tl-status-bar">`;
+  html += `<span class="tl-company">${escapeHtml(companyName)}</span>`;
+  if (mission) html += `<span class="tl-crisis">${escapeHtml(mission.title || "")}</span>`;
+  html += `<span class="tl-stat">Score <strong>${score.overall_score ?? "\u2014"}</strong></span>`;
+  html += `<span class="tl-stat">Moves <strong>${moves.length}</strong></span>`;
+  html += `<span class="tl-stat">Risk <strong>${score.business_risk || "\u2014"}</strong></span>`;
+  if (completed) {
+    const cls = score.mission_success ? "tl-result-ok" : "tl-result-fail";
+    const label = score.mission_success ? "Mission Complete" : "Exposure Remains";
+    html += `<span class="tl-result ${cls}">${label} &mdash; ${score.success_assertions_passed || 0}/${score.success_assertions_total || 0} assertions</span>`;
+  }
+  html += `</div>`;
+
+  if (state.compareMode) {
+    html += renderCompareTimelines();
+    section.innerHTML = html;
+    return;
+  }
+
+  html += `<div class="tl-grid" style="--tl-cols:${Math.max(columns.length, 1)}">`;
+  html += `<div class="tl-lane-labels">`;
+  html += `<div class="tl-corner"></div>`;
+  for (const s of surfaces) {
+    html += `<div class="tl-lane-label" data-surface="${s}"><span class="tl-lane-dot" style="background:${SURFACE_ACCENT[s] || "#888"}"></span>${escapeHtml(surfaceLabel(s))}</div>`;
+  }
+  html += `</div>`;
+
+  for (const col of columns) {
+    const moveTitle = col.move?.title || `Turn ${col.turnNumber}`;
+    html += `<div class="tl-column" data-turn="${col.turnNumber}">`;
+    html += `<div class="tl-col-header" title="${escapeHtml(moveTitle)}">${escapeHtml(moveTitle)}</div>`;
+    for (const s of surfaces) {
+      const eventsInLane = col.events.filter((ev) => toolToSurface(ev.tool || ev.resolved_tool) === s);
+      html += `<div class="tl-cell" data-surface="${s}" data-turn="${col.turnNumber}">`;
+      for (const ev of eventsInLane) {
+        const toolName = ev.resolved_tool || ev.tool || ev.label || "";
+        const summary = ev.payload?.observation
+          || ev.payload?.result?.summary
+          || ev.label
+          || "";
+        const truncSummary = summary.length > 100 ? summary.slice(0, 100) + "\u2026" : summary;
+        html += `<div class="tl-node" style="border-color:${SURFACE_ACCENT[s] || "#888"}" data-event-index="${ev.index}" title="${escapeHtml(truncSummary)}">`;
+        html += `<span class="tl-node-tool">${escapeHtml(toolName.split(".").pop())}</span>`;
+        if (ev.object_refs?.length) html += `<span class="tl-node-refs">${ev.object_refs.slice(0, 2).map(escapeHtml).join(", ")}</span>`;
+        html += `</div>`;
+      }
+      if (!eventsInLane.length) html += `<div class="tl-cell-empty"></div>`;
+      html += `</div>`;
+    }
+    html += `</div>`;
+  }
+  html += `</div>`;
+
+  html += renderCausalArrowsSvg(columns, surfaces);
+
+  section.innerHTML = html;
+
+  section.querySelectorAll(".tl-node").forEach((node) => {
+    node.addEventListener("click", () => {
+      const idx = Number(node.dataset.eventIndex);
+      showTimelineDetail(idx);
+    });
+  });
+  section.querySelectorAll(".tl-col-header").forEach((hdr) => {
+    hdr.addEventListener("click", () => {
+      const col = hdr.closest(".tl-column");
+      const turn = col?.dataset.turn;
+      section.querySelectorAll(".tl-column").forEach((c) => c.classList.toggle("tl-col-dim", c.dataset.turn !== turn));
+      if (hdr.classList.contains("tl-col-active")) {
+        section.querySelectorAll(".tl-column").forEach((c) => c.classList.remove("tl-col-dim"));
+        section.querySelectorAll(".tl-col-header").forEach((h) => h.classList.remove("tl-col-active"));
+      } else {
+        section.querySelectorAll(".tl-col-header").forEach((h) => h.classList.remove("tl-col-active"));
+        hdr.classList.add("tl-col-active");
+      }
+    });
+  });
+}
+
+function renderCausalArrowsSvg(columns, surfaces) {
+  let arrows = "";
+  for (const col of columns) {
+    const surfacesHit = [];
+    for (const ev of col.events) {
+      const s = toolToSurface(ev.tool || ev.resolved_tool);
+      if (s && !surfacesHit.includes(s)) surfacesHit.push(s);
+    }
+    for (let i = 0; i < surfacesHit.length - 1; i++) {
+      const fromIdx = surfaces.indexOf(surfacesHit[i]);
+      const toIdx = surfaces.indexOf(surfacesHit[i + 1]);
+      if (fromIdx < 0 || toIdx < 0) continue;
+      const colIdx = columns.indexOf(col);
+      const x = colIdx;
+      arrows += `<line class="tl-arrow" data-from="${surfacesHit[i]}" data-to="${surfacesHit[i + 1]}" data-col="${colIdx}" x1="${x}" y1="${fromIdx}" x2="${x}" y2="${toIdx}" />`;
+    }
+  }
+  if (!arrows) return "";
+  return `<svg class="tl-arrows-svg" data-cols="${columns.length}" data-lanes="${surfaces.length}">${arrows}</svg>`;
+}
+
+function showTimelineDetail(eventIndex) {
+  const timeline = state.timeline || [];
+  const ev = timeline.find((e) => e.index === eventIndex);
+  if (!ev) return;
+  let existing = document.getElementById("tl-detail-panel");
+  if (!existing) {
+    existing = document.createElement("div");
+    existing.id = "tl-detail-panel";
+    existing.className = "tl-detail-panel";
+    document.getElementById("timeline-section")?.appendChild(existing);
+  }
+  const surface = toolToSurface(ev.tool || ev.resolved_tool);
+  const observation = ev.payload?.observation || ev.payload?.result?.observation || "";
+  const result = ev.payload?.result || {};
+  const summary = typeof result === "object" ? (result.summary || result.message || "") : String(result);
+  existing.innerHTML = `
+    <div class="tl-detail-header">
+      <span class="tl-detail-surface" style="border-color:${SURFACE_ACCENT[surface] || "#888"}">${escapeHtml(surfaceLabel(surface || ""))}</span>
+      <span class="tl-detail-tool">${escapeHtml(ev.resolved_tool || ev.tool || "")}</span>
+      <button type="button" class="tl-detail-close">\u2715</button>
+    </div>
+    <div class="tl-detail-label">${escapeHtml(ev.label)}</div>
+    ${ev.object_refs?.length ? `<div class="tl-detail-refs">Refs: ${ev.object_refs.map(escapeHtml).join(", ")}</div>` : ""}
+    ${observation ? `<div class="tl-detail-obs"><strong>Observation</strong><p>${escapeHtml(observation)}</p></div>` : ""}
+    ${summary ? `<div class="tl-detail-summary"><strong>Result</strong><p>${escapeHtml(summary)}</p></div>` : ""}
+    <div class="tl-detail-meta">Kind: ${ev.kind} &middot; Channel: ${ev.channel} &middot; Time: ${ev.time_ms}ms</div>
+  `;
+  existing.style.display = "";
+  existing.querySelector(".tl-detail-close")?.addEventListener("click", () => { existing.style.display = "none"; });
+}
+
 async function toggleCompareMode() {
   closeToolbarMenus();
   state.compareMode = !state.compareMode;
-  const bar = document.getElementById("board-compare-bar");
   const btn = document.getElementById("compare-toggle");
   if (!state.compareMode) {
-    if (bar) bar.style.display = "none";
     if (btn) btn.textContent = "Compare";
     state.compareRunA = null;
     state.compareRunB = null;
     state.compareTimelineA = [];
     state.compareTimelineB = [];
-    if (state.boardMode) renderBoardGame();
+    if (state.timelineMode) renderTimelineView();
     return;
   }
   if (btn) btn.textContent = "Exit Compare";
-  if (!state.boardMode) toggleBoardMode();
-
+  if (!state.timelineMode) toggleTimelineMode();
   const runs = state.runs || [];
   if (runs.length < 2) {
-    if (bar) { bar.style.display = "flex"; bar.innerHTML = "<span>Need at least 2 recorded paths to compare.</span>"; }
+    renderTimelineView();
     return;
   }
   state.compareRunA = runs[0];
@@ -1560,94 +1392,48 @@ async function toggleCompareMode() {
   ]);
   state.compareTimelineA = tlA;
   state.compareTimelineB = tlB;
-  renderCompareBar();
-  renderCompareHexOverlay();
+  renderTimelineView();
 }
 
-function renderCompareBar() {
-  const bar = document.getElementById("board-compare-bar");
-  if (!bar) return;
-  bar.style.display = "flex";
+function renderCompareTimelines() {
   const a = state.compareRunA;
   const b = state.compareRunB;
-  if (!a || !b) { bar.innerHTML = ""; return; }
-
+  if (!a || !b) return `<div class="tl-compare-empty">Need at least 2 recorded paths to compare.</div>`;
   const nameA = a.runner || a.run_id?.split("_").slice(0, 2).join("_") || "Path A";
   const nameB = b.runner || b.run_id?.split("_").slice(0, 2).join("_") || "Path B";
-  const stepsA = state.compareTimelineA.filter((e) => e.kind === "trace_call" || e.kind === "workflow_step").length;
-  const stepsB = state.compareTimelineB.filter((e) => e.kind === "trace_call" || e.kind === "workflow_step").length;
-
-  bar.innerHTML = `
-    <span class="compare-pill compare-pill-a"><span class="compare-dot"></span>${escapeHtml(nameA)} (${stepsA} steps)</span>
-    <span class="compare-pill compare-pill-b"><span class="compare-dot"></span>${escapeHtml(nameB)} (${stepsB} steps)</span>
-    <div class="compare-score-row">
-      <div class="compare-score"><span class="compare-score-val" style="color:#5ba0ff">${a.final_score ?? "?"}</span><span class="compare-score-label">${escapeHtml(nameA)}</span></div>
-      <span style="color:rgba(244,248,251,0.2);font-size:1.2rem;align-self:center">vs</span>
-      <div class="compare-score"><span class="compare-score-val" style="color:#ffb454">${b.final_score ?? "?"}</span><span class="compare-score-label">${escapeHtml(nameB)}</span></div>
-    </div>
-  `;
-}
-
-function renderCompareHexOverlay() {
   const hitsA = timelineSurfaceHits(state.compareTimelineA);
   const hitsB = timelineSurfaceHits(state.compareTimelineB);
-  const allSurfaces = new Set([...Object.keys(hitsA), ...Object.keys(hitsB)]);
+  const allSurfaces = [...new Set([...Object.keys(hitsA), ...Object.keys(hitsB)])];
+  const stepsA = Object.values(hitsA).reduce((s, v) => s + v, 0);
+  const stepsB = Object.values(hitsB).reduce((s, v) => s + v, 0);
 
-  document.querySelectorAll(".board-hex").forEach((hex) => {
-    hex.classList.remove("hex-ring-a", "hex-ring-b");
-    const s = hex.dataset.surface;
-    if (hitsA[s]) hex.classList.add("hex-ring-a");
-    if (hitsB[s]) hex.classList.add("hex-ring-b");
-
-    const existingStat = hex.querySelector(".hex-compare-stat");
-    if (existingStat) existingStat.remove();
-    if (hitsA[s] || hitsB[s]) {
-      const stat = document.createElement("div");
-      stat.className = "hex-compare-stat";
-      stat.innerHTML = `<span style="color:#5ba0ff">${hitsA[s] || 0}</span> / <span style="color:#ffb454">${hitsB[s] || 0}</span>`;
-      hex.querySelector(".hex-content")?.appendChild(stat);
-    }
-  });
-
-  clearFlowLines();
-  drawCompareFlowLines(state.compareTimelineA, "#5ba0ff");
-  drawCompareFlowLines(state.compareTimelineB, "#ffb454");
-}
-
-function drawCompareFlowLines(timeline, color) {
-  const svg = document.getElementById("board-flow-svg");
-  if (!svg) return;
-  const area = svg.parentElement;
-  if (!area) return;
-  const areaRect = area.getBoundingClientRect();
-
-  const surfaces = [];
-  for (const ev of timeline) {
-    if (ev.kind !== "trace_call" && ev.kind !== "workflow_step") continue;
-    const s = toolToSurface(ev.tool || ev.resolved_tool);
-    if (s && !surfaces.includes(s)) surfaces.push(s);
+  let html = `<div class="tl-compare-header">`;
+  html += `<span class="tl-compare-pill tl-pill-a">${escapeHtml(nameA)} (${stepsA} steps)</span>`;
+  html += `<span class="tl-compare-vs">vs</span>`;
+  html += `<span class="tl-compare-pill tl-pill-b">${escapeHtml(nameB)} (${stepsB} steps)</span>`;
+  html += `</div>`;
+  html += `<div class="tl-compare-grid">`;
+  html += `<div class="tl-compare-labels"><div class="tl-corner"></div>`;
+  for (const s of allSurfaces) {
+    html += `<div class="tl-lane-label"><span class="tl-lane-dot" style="background:${SURFACE_ACCENT[s] || "#888"}"></span>${escapeHtml(surfaceLabel(s))}</div>`;
   }
-  for (let i = 0; i < surfaces.length - 1; i++) {
-    const pa = hexCenterRelative(surfaces[i], areaRect);
-    const pb = hexCenterRelative(surfaces[i + 1], areaRect);
-    if (!pa || !pb) continue;
-    const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
-    line.setAttribute("x1", pa.x);
-    line.setAttribute("y1", pa.y);
-    line.setAttribute("x2", pb.x);
-    line.setAttribute("y2", pb.y);
-    line.setAttribute("stroke", color);
-    line.setAttribute("stroke-dasharray", "6 4");
-    line.classList.add("flow-line");
-    line.style.animation = "none";
-    line.style.opacity = "0.4";
-    svg.appendChild(line);
+  html += `</div>`;
+  html += `<div class="tl-compare-col tl-compare-a"><div class="tl-col-header">${escapeHtml(nameA)}</div>`;
+  for (const s of allSurfaces) {
+    html += `<div class="tl-cell"><div class="tl-compare-bar-fill" style="width:${Math.min(100, (hitsA[s] || 0) * 20)}%;background:${SURFACE_ACCENT[s] || "#888"}"></div><span>${hitsA[s] || 0}</span></div>`;
   }
+  html += `</div>`;
+  html += `<div class="tl-compare-col tl-compare-b"><div class="tl-col-header">${escapeHtml(nameB)}</div>`;
+  for (const s of allSurfaces) {
+    html += `<div class="tl-cell"><div class="tl-compare-bar-fill" style="width:${Math.min(100, (hitsB[s] || 0) * 20)}%;background:${SURFACE_ACCENT[s] || "#888"}"></div><span>${hitsB[s] || 0}</span></div>`;
+  }
+  html += `</div></div>`;
+  return html;
 }
 
 function renderLivingCompanyView() {
-  if (state.boardMode) {
-    renderBoardGame();
+  if (state.timelineMode) {
+    renderTimelineView();
     return;
   }
   renderLivingCompanyContext();
@@ -3332,7 +3118,6 @@ async function startMission() {
       await selectRun(payload.run_id, { previousSurfaceState: null });
     }
     state.missionState = payload;
-    state.boardEventLog = [];
     renderMissionPlay();
     status.textContent = `Mission ${payload.mission?.title || payload.run_id} is live.`;
     setStudioView("company");
@@ -3374,13 +3159,7 @@ async function applyMissionMove(moveId) {
     }
 
     if (impactPanels.length > 0) {
-      if (state.boardMode) {
-        const playedCard = document.querySelector(`.board-card[data-move-id="${moveId}"]`);
-        fireParticleTrail(playedCard, impactPanels);
-        recordBoardEvent(moveTitle, impactPanels);
-        animateHexRipple(impactPanels);
-        drawFlowLines(impactPanels);
-      } else {
+      if (!state.timelineMode) {
         state.cascadeActive = true;
         renderSurfaceWall();
         await playCascade(impactPanels, impact.refs || []);
@@ -3715,7 +3494,7 @@ function bindControls() {
   });
   document.getElementById("developer-toggle").addEventListener("click", toggleDeveloperMode);
   document.getElementById("cinema-toggle").addEventListener("click", toggleCinemaMode);
-  document.getElementById("board-toggle").addEventListener("click", toggleBoardMode);
+  document.getElementById("timeline-toggle").addEventListener("click", toggleTimelineMode);
   document.getElementById("compare-toggle").addEventListener("click", toggleCompareMode);
   document.getElementById("connect-toggle").addEventListener("click", toggleConnectPanel);
   document.getElementById("scenario-select").addEventListener("change", (event) => {
