@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 
 import typer.testing
-from vei.cli.vei_score import score as score_cmd
+from vei.cli.vei_score import app as score_cmd
 
 
 def run_score(artifacts_dir: Path) -> dict:

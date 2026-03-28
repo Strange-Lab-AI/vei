@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
-import re
 from dataclasses import asdict, dataclass
 from pathlib import Path
 import heapq
@@ -40,13 +40,9 @@ from .errors import MCPError
 from .tool_providers import ToolProvider
 from .servicedesk import ServiceDeskSim, ServiceDeskToolProvider
 from .tool_registry import ToolRegistry, ToolSpec
+from .sims import SlackSim, MailSim, BrowserVirtual
 
-
-def _safe_int(x: Any, default: int = 0) -> int:
-    try:
-        return int(x)
-    except Exception:
-        return default
+logger = logging.getLogger(__name__)
 
 
 class Observation(BaseModel):
@@ -359,452 +355,6 @@ def _reduce_policy_finding(state: Dict[str, Any], event: StateEvent) -> None:
         del findings[: len(findings) - 200]
 
 
-class SlackSim:
-    def __init__(self, bus: EventBus, scenario: Optional[Scenario] = None):
-        self.bus = bus
-        # Configurable behavior
-        if scenario and scenario.budget_cap_usd is not None:
-            self.budget_cap_usd = int(scenario.budget_cap_usd)
-        else:
-            self.budget_cap_usd = int(os.environ.get("VEI_BUDGET_CAP", "3500"))
-        try:
-            if scenario and scenario.derail_prob is not None:
-                self.derail_prob = float(scenario.derail_prob)
-            else:
-                self.derail_prob = float(os.environ.get("VEI_SLACK_DERAIL_PCT", "0.1"))
-        except ValueError:
-            self.derail_prob = 0.1
-
-        initial_text = (
-            scenario.slack_initial_message
-            if scenario and scenario.slack_initial_message is not None
-            else "Reminder: citations required for any request over $2k."
-        )
-        seeded_channels = (
-            dict(scenario.slack_channels)
-            if scenario and scenario.slack_channels
-            else {}
-        )
-        self.channels = {}
-        if seeded_channels:
-            for channel, payload in seeded_channels.items():
-                base = dict(payload or {})
-                messages = list(base.get("messages", []))
-                if not messages:
-                    messages = [
-                        {
-                            "ts": "1",
-                            "user": "itops",
-                            "text": initial_text,
-                            "thread_ts": None,
-                        }
-                    ]
-                self.channels[str(channel)] = {
-                    "messages": messages,
-                    "unread": int(base.get("unread", 0)),
-                }
-        else:
-            self.channels = {
-                "#procurement": {
-                    "messages": [
-                        {
-                            "ts": "1",
-                            "user": "itops",
-                            "text": initial_text,
-                            "thread_ts": None,
-                        }
-                    ],
-                    "unread": 0,
-                }
-            }
-
-    # MCP tools
-    def list_channels(self) -> List[str]:
-        return list(self.channels.keys())
-
-    def open_channel(self, channel: str) -> Dict[str, Any]:
-        ch = self.channels.get(channel)
-        if not ch:
-            raise MCPError("unknown_channel", f"Unknown Slack channel: {channel}")
-        return {"messages": ch["messages"], "unread_count": ch["unread"]}
-
-    def send_message(
-        self, channel: str, text: str, thread_ts: Optional[str] = None
-    ) -> Dict[str, Any]:
-        ch = self.channels.get(channel)
-        if not ch:
-            raise MCPError("unknown_channel", f"Unknown Slack channel: {channel}")
-        # Monotonic 1-based timestamps to avoid duplicate ids
-        ts = str(len(ch["messages"]) + 1)
-        msg = {"ts": ts, "user": "agent", "text": text, "thread_ts": thread_ts}
-        ch["messages"].append(msg)
-        lower = text.lower()
-        # Occasionally derail/off-topic before anything else
-        if self.bus.rng.next_float() < self.derail_prob:
-            self.bus.schedule(
-                dt_ms=7000,
-                target="slack",
-                payload={
-                    "channel": channel,
-                    "text": "Could someone update the Q3 KPI sheet?",
-                    "thread_ts": ts,
-                },
-            )
-        # Approval policy: must include a budget number and be <= budget cap
-        if "approve" in lower or "summary" in lower or "budget" in lower:
-            m = re.search(r"\$?([0-9]{3,6})", text.replace(",", ""))
-            if m:
-                amount = int(m.group(1))
-                if amount <= self.budget_cap_usd:
-                    self.bus.schedule(
-                        dt_ms=12000,
-                        target="slack",
-                        payload={
-                            "channel": channel,
-                            "text": ":white_check_mark: Approved",
-                            "thread_ts": ts,
-                        },
-                    )
-                else:
-                    self.bus.schedule(
-                        dt_ms=10000,
-                        target="slack",
-                        payload={
-                            "channel": channel,
-                            "text": "Need clearer budget justification (over cap).",
-                            "thread_ts": ts,
-                        },
-                    )
-            else:
-                self.bus.schedule(
-                    dt_ms=9000,
-                    target="slack",
-                    payload={
-                        "channel": channel,
-                        "text": "What is the budget amount?",
-                        "thread_ts": ts,
-                    },
-                )
-        return {"ts": ts}
-
-    def react(self, channel: str, ts: str, emoji: str) -> Dict[str, Any]:
-        ch = self.channels.get(channel)
-        if not ch:
-            raise MCPError("unknown_channel", f"Unknown Slack channel: {channel}")
-        for msg in ch["messages"]:
-            if msg.get("ts") == ts:
-                reactions = msg.setdefault("reactions", [])
-                for r in reactions:
-                    if r["name"] == emoji:
-                        r["count"] += 1
-                        return {"ok": True}
-                reactions.append({"name": emoji, "count": 1, "users": ["agent"]})
-                return {"ok": True}
-        return {"ok": True}
-
-    def fetch_thread(self, channel: str, thread_ts: str) -> Dict[str, Any]:
-        ch = self.channels.get(channel)
-        if not ch:
-            raise MCPError("unknown_channel", f"Unknown Slack channel: {channel}")
-        base = _safe_int(thread_ts, 0)
-        msgs = [
-            m
-            for m in ch["messages"]
-            if m.get("thread_ts") in (thread_ts, None)
-            and _safe_int(m.get("ts"), 0) >= base
-        ]
-        return {"messages": msgs}
-
-    # Event delivery
-    def deliver(self, event: Dict[str, Any]) -> Dict[str, Any]:
-        channel = event["channel"]
-        ch = self.channels.get(channel)
-        if not ch:
-            raise MCPError("unknown_channel")
-        ts = str(len(ch["messages"]) + 1)
-        ch["messages"].append(
-            {
-                "ts": ts,
-                "user": event.get("user", "cfo"),
-                "text": event["text"],
-                "thread_ts": event.get("thread_ts"),
-            }
-        )
-        ch["unread"] += 1
-        return {"ok": True}
-
-
-class MailSim:
-    def __init__(self, bus: EventBus, scenario: Optional[Scenario] = None):
-        self.bus = bus
-        self.messages: Dict[str, Dict[str, Any]] = {}
-        self.inbox: List[str] = []
-        self.counter = 1
-        self.local_domains = self._local_domains(scenario)
-        self.local_mailbox = "me@example"
-        self._variants_override = (
-            scenario.vendor_reply_variants
-            if scenario and scenario.vendor_reply_variants
-            else None
-        )
-        seeded_threads = (
-            list(scenario.mail_threads) if scenario and scenario.mail_threads else []
-        )
-        if seeded_threads:
-            seeded_inbox: List[tuple[int, str]] = []
-            for thread in seeded_threads:
-                thread_id = str(thread.get("thread_id") or f"thread-{self.counter}")
-                category = str(thread.get("category") or "external")
-                title = thread.get("title")
-                for index, message in enumerate(thread.get("messages", [])):
-                    mid = f"m{self.counter}"
-                    self.counter += 1
-                    time_ms = int(message.get("time_ms") or (self.bus.clock_ms + index))
-                    sender = str(message.get("from") or "unknown@example")
-                    recipient = str(message.get("to") or "me@example")
-                    if (
-                        self._is_local_recipient(recipient)
-                        and self.local_mailbox == "me@example"
-                    ):
-                        self.local_mailbox = recipient
-                    unread = bool(
-                        message.get("unread", self._is_local_recipient(recipient))
-                    )
-                    record = {
-                        "id": mid,
-                        "from": sender,
-                        "to": recipient,
-                        "subj": str(message.get("subj") or title or "Untitled thread"),
-                        "time": time_ms,
-                        "unread": unread,
-                        "headers": {
-                            "From": sender,
-                            "To": recipient,
-                            "Subject": str(
-                                message.get("subj") or title or "Untitled thread"
-                            ),
-                        },
-                        "body_text": str(message.get("body_text") or ""),
-                        "thread_id": thread_id,
-                        "category": category,
-                    }
-                    self.messages[mid] = record
-                    if self._is_local_recipient(recipient):
-                        seeded_inbox.append((time_ms, mid))
-            seeded_inbox.sort(key=lambda item: item[0], reverse=True)
-            self.inbox = [message_id for _, message_id in seeded_inbox]
-
-    def list(self, folder: str = "INBOX") -> List[Dict[str, Any]]:
-        return [self.messages[mid] for mid in self.inbox]
-
-    def open(self, id: str) -> Dict[str, Any]:
-        m = self.messages.get(id)
-        if not m:
-            raise MCPError("unknown_message", f"Unknown mail id: {id}")
-        m["unread"] = False
-        return {
-            "headers": m["headers"],
-            "body_text": m["body_text"],
-            "parts": m.get("parts", []),
-        }
-
-    def compose(
-        self,
-        to: str,
-        subj: str,
-        body_text: str,
-        attachments: Optional[List[str]] = None,
-    ) -> Dict[str, Any]:
-        mid = f"m{self.counter}"
-        self.counter += 1
-        self.messages[mid] = {
-            "id": mid,
-            "from": self.local_mailbox,
-            "to": to,
-            "subj": subj,
-            "time": self.bus.clock_ms,
-            "unread": False,
-            "headers": {"From": self.local_mailbox, "To": to, "Subject": subj},
-            "body_text": body_text,
-        }
-        # Schedule vendor reply with varied templates (scenario override if provided)
-        variants = self._variants_override or [
-            "Thanks — Price: $3199, ETA: 5-7 business days.",
-            "> On Mon, we received your request\nPRICE: USD 3,199\nEta: within 5-7 business days\n--\nBest, MacroCompute",
-            "quote attached (inline): total: $3,199.00, ETA: 5 business days. Regards, Sales",
-            "PRICE - $3199; eta: approx. 1 week\n\n\nJohn Doe\nSales Representative\nMacroCompute",
-        ]
-        idx = 0 if not variants else self.bus.rng.randint(0, max(0, len(variants) - 1))
-        body = variants[idx] if variants else ""
-
-        self.bus.schedule(
-            dt_ms=15000,
-            target="mail",
-            payload={
-                "in_reply_to": mid,
-                "from": to,
-                "subj": f"Re: {subj}",
-                "body_text": body,
-            },
-        )
-        return {"id": mid}
-
-    def reply(self, id: str, body_text: str) -> Dict[str, Any]:
-        message = self.messages.get(id)
-        if not message:
-            raise MCPError("unknown_message", f"Unknown mail id: {id}")
-        return self.compose(
-            to=message["from"], subj=f"Re: {message['subj']}", body_text=body_text
-        )
-
-    def deliver(self, event: Dict[str, Any]) -> Dict[str, Any]:
-        mid = f"m{self.counter}"
-        self.counter += 1
-        msg = {
-            "id": mid,
-            "from": event["from"],
-            "to": self.local_mailbox,
-            "subj": event["subj"],
-            "time": self.bus.clock_ms,
-            "unread": True,
-            "headers": {
-                "From": event["from"],
-                "To": self.local_mailbox,
-                "Subject": event["subj"],
-            },
-            "body_text": event["body_text"],
-        }
-        self.messages[mid] = msg
-        self.inbox.insert(0, mid)
-        return {"id": mid}
-
-    def _is_local_recipient(self, address: str) -> bool:
-        if address == "me@example":
-            return True
-        if "@" not in address:
-            return False
-        _, domain = address.rsplit("@", 1)
-        return domain.strip().lower() in self.local_domains
-
-    def _local_domains(self, scenario: Optional[Scenario]) -> set[str]:
-        metadata = dict(scenario.metadata or {}) if scenario is not None else {}
-        domain = str(metadata.get("builder_organization_domain", "")).strip().lower()
-        result = {"example", "example.com"}
-        if domain:
-            result.add(domain)
-        return result
-
-
-class BrowserVirtual:
-    def __init__(self, bus: EventBus, scenario: Optional[Scenario] = None):
-        self.bus = bus
-        # Very small virtual site with two pages and one affordance
-        default_nodes = {
-            "home": {
-                "url": "https://vweb.local/home",
-                "title": "MacroCompute — Home",
-                "excerpt": "Welcome to MacroCompute. Find laptops and specs.",
-                "affordances": [
-                    {
-                        "tool": "browser.click",
-                        "args": {"node_id": "CLICK:open_pdp#0"},
-                        "name": "Open product page",
-                    },
-                ],
-                "next": {"CLICK:open_pdp#0": "pdp"},
-            },
-            "pdp": {
-                "url": "https://vweb.local/pdp/macrobook-pro-16",
-                "title": "MacroBook Pro 16 — Product",
-                "excerpt": "Powerful 16-inch laptop. Price $3199. See specifications.",
-                "affordances": [
-                    {
-                        "tool": "browser.click",
-                        "args": {"node_id": "CLICK:open_specs#0"},
-                        "name": "See specifications",
-                    },
-                    {"tool": "browser.back", "args": {}, "name": "Back to home"},
-                ],
-                "next": {"CLICK:open_specs#0": "specs", "BACK": "home"},
-            },
-            "specs": {
-                "url": "https://vweb.local/pdp/macrobook-pro-16/specs",
-                "title": "MacroBook Pro 16 — Specifications",
-                "excerpt": "16-core CPU, 32GB RAM, 1TB SSD",
-                "affordances": [
-                    {"tool": "browser.back", "args": {}, "name": "Back to product"},
-                ],
-                "next": {"BACK": "pdp"},
-            },
-        }
-        self.nodes = (
-            scenario.browser_nodes
-            if scenario and scenario.browser_nodes
-            else default_nodes
-        )
-        self.state = "home"
-
-    def open(self, url: str) -> Dict[str, Any]:
-        if "pdp" in url:
-            self.state = "pdp"
-        else:
-            self.state = "home"
-        return {
-            "url": self.nodes[self.state]["url"],
-            "title": self.nodes[self.state]["title"],
-        }
-
-    def find(self, query: str, top_k: int = 10) -> Dict[str, Any]:
-        node = self.nodes[self.state]
-        hits = []
-        for a in node["affordances"]:
-            name = a.get("name") or a["args"].get("node_id", "")
-            # Only include affordances that have a concrete click target
-            args = a.get("args", {})
-            node_id = args.get("node_id")
-            if node_id is None:
-                # Skip generic affordances like browser.back that lack node_id
-                continue
-            hits.append(
-                {
-                    "node_id": node_id,
-                    "role": a.get("role", "button"),
-                    "name": name,
-                }
-            )
-        return {"hits": hits[:top_k]}
-
-    def click(self, node_id: str) -> Dict[str, Any]:
-        node = self.nodes[self.state]
-        nxt = node["next"].get(node_id)
-        if not nxt:
-            raise MCPError("invalid_action", f"Invalid click target: {node_id}")
-        self.state = nxt
-        return {"url": self.nodes[self.state]["url"]}
-
-    def type(self, node_id: str, text: str) -> Dict[str, Any]:
-        return {"ok": True}
-
-    def submit(self, form_id: str) -> Dict[str, Any]:
-        return {"url": self.nodes[self.state]["url"]}
-
-    def read(self) -> Dict[str, Any]:
-        node = self.nodes[self.state]
-        return {
-            "url": node["url"],
-            "title": node["title"],
-            "excerpt": node["excerpt"],
-        }
-
-    def back(self) -> Dict[str, Any]:
-        node = self.nodes[self.state]
-        nxt = node["next"].get("BACK")
-        if not nxt:
-            return {"url": node["url"]}
-        self.state = nxt
-        return {"url": self.nodes[self.state]["url"]}
-
-
 class Router:
     def __init__(
         self,
@@ -903,6 +453,9 @@ class Router:
                 adapter.prime()
                 self.replay_adapter = adapter
             except Exception:
+                logger.warning(
+                    "Failed to load replay dataset from %s", dataset_path, exc_info=True
+                )
                 self.replay_adapter = None
         else:
             self.replay_adapter = None
@@ -916,6 +469,7 @@ class Router:
 
             self.erp = ErpSim(self.bus, self.scenario)
         except Exception:
+            logger.warning("ERP twin failed to initialise", exc_info=True)
             self.erp = None  # type: ignore[attr-defined]
         # Optional CRM twin
         try:
@@ -923,6 +477,7 @@ class Router:
 
             self.crm = CrmSim(self.bus, self.scenario)
         except Exception:
+            logger.warning("CRM twin failed to initialise", exc_info=True)
             self.crm = None  # type: ignore[attr-defined]
 
         # Optional identity twin
@@ -933,6 +488,7 @@ class Router:
             self.okta = OktaSim(self.scenario)
             self.register_tool_provider(OktaToolProvider(self.okta))
         except Exception:
+            logger.warning("Okta twin failed to initialise", exc_info=True)
             self.okta = None  # type: ignore[attr-defined]
 
         # ServiceDesk twin
@@ -1013,6 +569,7 @@ class Router:
             if isinstance(findings, list):
                 self._policy_findings.extend(findings)
 
+        self._dispatch = self._build_dispatch_table()
         self._record_router_init(seed)
         self._sync_world_snapshot(label="router.init")
 
@@ -1229,6 +786,9 @@ class Router:
                     data = json.loads(line)
                     self._receipts.append(data)
         except Exception:
+            logger.warning(
+                "Failed to load receipts from %s", self._receipts_path, exc_info=True
+            )
             self._receipts = []
 
     def _write_receipt(self, receipt: Dict[str, Any]) -> None:
@@ -1238,7 +798,9 @@ class Router:
             with self._receipts_path.open("a", encoding="utf-8") as fh:
                 fh.write(json.dumps(receipt, sort_keys=True) + "\n")
         except Exception:
-            pass
+            logger.warning(
+                "Failed to persist receipt to %s", self._receipts_path, exc_info=True
+            )
 
     def state_snapshot(
         self,
@@ -1992,6 +1554,91 @@ class Router:
         self.trace.flush()
         return result
 
+    def _build_dispatch_table(self) -> Dict[str, Any]:
+        """Build a tool-name -> handler mapping for all built-in surface sims."""
+        # fmt: off
+        table: Dict[str, Any] = {
+            # Slack
+            "slack.list_channels":  lambda a: self.slack.list_channels(),
+            "slack.open_channel":   lambda a: self.slack.open_channel(**a),
+            "slack.send_message":   lambda a: self.slack.send_message(**a),
+            "slack.react":          lambda a: self.slack.react(**a),
+            "slack.fetch_thread":   lambda a: self.slack.fetch_thread(**a),
+            # Mail
+            "mail.list":            lambda a: self.mail.list(**a),
+            "mail.open":            lambda a: self.mail.open(**a),
+            "mail.compose":         lambda a: self.mail.compose(**a),
+            "mail.reply":           lambda a: self.mail.reply(**a),
+            # Browser
+            "browser.open":         lambda a: self.browser.open(**a),
+            "browser.find":         lambda a: self.browser.find(**a),
+            "browser.click":        lambda a: self.browser.click(**a),
+            "browser.type":         lambda a: self.browser.type(**a),
+            "browser.submit":       lambda a: self.browser.submit(**a),
+            "browser.read":         lambda a: self.browser.read(),
+            "browser.back":         lambda a: self.browser.back(),
+            # Docs
+            "docs.list":            lambda a: self.docs.list(**a),
+            "docs.read":            lambda a: self.docs.read(**a),
+            "docs.search":          lambda a: self.docs.search(**a),
+            "docs.create":          lambda a: self.docs.create(**a),
+            "docs.update":          lambda a: self.docs.update(**a),
+            # Calendar
+            "calendar.list_events":  lambda a: self.calendar.list_events(**a),
+            "calendar.create_event": lambda a: self.calendar.create_event(**a),
+            "calendar.accept":       lambda a: self.calendar.accept(**a),
+            "calendar.decline":      lambda a: self.calendar.decline(**a),
+            "calendar.update_event": lambda a: self.calendar.update_event(**a),
+            "calendar.cancel_event": lambda a: self.calendar.cancel_event(**a),
+            # Tickets
+            "tickets.list":         lambda a: self.tickets.list(**a),
+            "tickets.get":          lambda a: self.tickets.get(**a),
+            "tickets.create":       lambda a: self.tickets.create(**a),
+            "tickets.update":       lambda a: self.tickets.update(**a),
+            "tickets.transition":   lambda a: self.tickets.transition(**a),
+            "tickets.add_comment":  lambda a: self.tickets.add_comment(**a),
+        }
+        # fmt: on
+        if getattr(self, "erp", None):
+            erp = self.erp
+            table.update(
+                {
+                    "erp.create_po": lambda a: erp.create_po(**a),
+                    "erp.get_po": lambda a: erp.get_po(**a),
+                    "erp.list_pos": lambda a: erp.list_pos(**a),
+                    "erp.receive_goods": lambda a: erp.receive_goods(**a),
+                    "erp.submit_invoice": lambda a: erp.submit_invoice(**a),
+                    "erp.get_invoice": lambda a: erp.get_invoice(**a),
+                    "erp.list_invoices": lambda a: erp.list_invoices(**a),
+                    "erp.match_three_way": lambda a: erp.match_three_way(**a),
+                    "erp.post_payment": lambda a: erp.post_payment(**a),
+                }
+            )
+        if getattr(self, "crm", None):
+            crm = self.crm
+            table.update(
+                {
+                    "crm.create_contact": lambda a: crm.create_contact(**a),
+                    "crm.get_contact": lambda a: crm.get_contact(**a),
+                    "crm.list_contacts": lambda a: crm.list_contacts(**a),
+                    "crm.create_company": lambda a: crm.create_company(**a),
+                    "crm.get_company": lambda a: crm.get_company(**a),
+                    "crm.list_companies": lambda a: crm.list_companies(**a),
+                    "crm.associate_contact_company": lambda a: crm.associate_contact_company(
+                        **a
+                    ),
+                    "crm.create_deal": lambda a: crm.create_deal(**a),
+                    "crm.get_deal": lambda a: crm.get_deal(**a),
+                    "crm.list_deals": lambda a: crm.list_deals(**a),
+                    "crm.update_deal_stage": lambda a: crm.update_deal_stage(**a),
+                    "crm.reassign_deal_owner": lambda a: crm.reassign_deal_owner(**a),
+                    "crm.log_activity": lambda a: crm.log_activity(**a),
+                }
+            )
+        return table
+
+    _GUARDED_PREFIXES = {"erp.": "ERP", "crm.": "CRM"}
+
     def _execute(self, tool: str, args: Dict[str, Any]) -> Any:
         if tool == "vei.observe":
             focus = args.get("focus") if isinstance(args, dict) else None
@@ -2008,6 +1655,7 @@ class Router:
             return self.act_and_observe(target_tool, target_args)
         if tool == "vei.inject":
             return self.inject(**args)
+
         if not tool.startswith("vei."):
             self._maybe_fault(tool)
         tool = self.alias_map.get(tool, tool)
@@ -2024,141 +1672,16 @@ class Router:
                 )
             except ConnectorInvocationError as exc:
                 raise MCPError(exc.code, exc.message) from exc
-        if tool == "slack.list_channels":
-            return self.slack.list_channels()
-        if tool == "slack.open_channel":
-            return self.slack.open_channel(**args)
-        if tool == "slack.send_message":
-            return self.slack.send_message(**args)
-        if tool == "slack.react":
-            return self.slack.react(**args)
-        if tool == "slack.fetch_thread":
-            return self.slack.fetch_thread(**args)
 
-        if tool == "mail.list":
-            return self.mail.list(**args)
-        if tool == "mail.open":
-            return self.mail.open(**args)
-        if tool == "mail.compose":
-            return self.mail.compose(**args)
-        if tool == "mail.reply":
-            return self.mail.reply(**args)
+        handler = self._dispatch.get(tool)
+        if handler is not None:
+            return handler(args)
 
-        if tool == "browser.open":
-            return self.browser.open(**args)
-        if tool == "browser.find":
-            return self.browser.find(**args)
-        if tool == "browser.click":
-            return self.browser.click(**args)
-        if tool == "browser.type":
-            return self.browser.type(**args)
-        if tool == "browser.submit":
-            return self.browser.submit(**args)
-        if tool == "browser.read":
-            return self.browser.read()
-        if tool == "browser.back":
-            return self.browser.back()
-
-        if tool.startswith("docs."):
-            if tool == "docs.list":
-                return self.docs.list(**args)
-            if tool == "docs.read":
-                return self.docs.read(**args)
-            if tool == "docs.search":
-                return self.docs.search(**args)
-            if tool == "docs.create":
-                return self.docs.create(**args)
-            if tool == "docs.update":
-                return self.docs.update(**args)
-            raise MCPError("unknown_tool", f"No such tool: {tool}")
-
-        if tool.startswith("calendar."):
-            if tool == "calendar.list_events":
-                return self.calendar.list_events(**args)
-            if tool == "calendar.create_event":
-                return self.calendar.create_event(**args)
-            if tool == "calendar.accept":
-                return self.calendar.accept(**args)
-            if tool == "calendar.decline":
-                return self.calendar.decline(**args)
-            if tool == "calendar.update_event":
-                return self.calendar.update_event(**args)
-            if tool == "calendar.cancel_event":
-                return self.calendar.cancel_event(**args)
-            raise MCPError("unknown_tool", f"No such tool: {tool}")
-
-        if tool.startswith("tickets."):
-            if tool == "tickets.list":
-                return self.tickets.list(**args)
-            if tool == "tickets.get":
-                return self.tickets.get(**args)
-            if tool == "tickets.create":
-                return self.tickets.create(**args)
-            if tool == "tickets.update":
-                return self.tickets.update(**args)
-            if tool == "tickets.transition":
-                return self.tickets.transition(**args)
-            if tool == "tickets.add_comment":
-                return self.tickets.add_comment(**args)
-            raise MCPError("unknown_tool", f"No such tool: {tool}")
-
-        # ERP tools
-        if tool.startswith("erp."):
-            if not getattr(self, "erp", None):
-                raise MCPError("unsupported_tool", "ERP twin not available")
-            erp = getattr(self, "erp")
-            if tool == "erp.create_po":
-                return erp.create_po(**args)
-            if tool == "erp.get_po":
-                return erp.get_po(**args)
-            if tool == "erp.list_pos":
-                return erp.list_pos(**args)
-            if tool == "erp.receive_goods":
-                return erp.receive_goods(**args)
-            if tool == "erp.submit_invoice":
-                return erp.submit_invoice(**args)
-            if tool == "erp.get_invoice":
-                return erp.get_invoice(**args)
-            if tool == "erp.list_invoices":
-                return erp.list_invoices(**args)
-            if tool == "erp.match_three_way":
-                return erp.match_three_way(**args)
-            if tool == "erp.post_payment":
-                return erp.post_payment(**args)
-            raise MCPError("unknown_tool", f"No such tool: {tool}")
-
-        # CRM tools
-        if tool.startswith("crm."):
-            if not getattr(self, "crm", None):
-                raise MCPError("unsupported_tool", "CRM twin not available")
-            crm = getattr(self, "crm")
-            if tool == "crm.create_contact":
-                return crm.create_contact(**args)
-            if tool == "crm.get_contact":
-                return crm.get_contact(**args)
-            if tool == "crm.list_contacts":
-                return crm.list_contacts(**args)
-            if tool == "crm.create_company":
-                return crm.create_company(**args)
-            if tool == "crm.get_company":
-                return crm.get_company(**args)
-            if tool == "crm.list_companies":
-                return crm.list_companies(**args)
-            if tool == "crm.associate_contact_company":
-                return crm.associate_contact_company(**args)
-            if tool == "crm.create_deal":
-                return crm.create_deal(**args)
-            if tool == "crm.get_deal":
-                return crm.get_deal(**args)
-            if tool == "crm.list_deals":
-                return crm.list_deals(**args)
-            if tool == "crm.update_deal_stage":
-                return crm.update_deal_stage(**args)
-            if tool == "crm.reassign_deal_owner":
-                return crm.reassign_deal_owner(**args)
-            if tool == "crm.log_activity":
-                return crm.log_activity(**args)
-            raise MCPError("unknown_tool", f"No such tool: {tool}")
+        for prefix, label in self._GUARDED_PREFIXES.items():
+            if tool.startswith(prefix):
+                if not getattr(self, prefix.rstrip("."), None):
+                    raise MCPError("unsupported_tool", f"{label} twin not available")
+                raise MCPError("unknown_tool", f"No such tool: {tool}")
 
         for provider in self.tool_providers:
             if provider.handles(tool):

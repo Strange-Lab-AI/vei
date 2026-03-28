@@ -5,16 +5,23 @@ from pathlib import Path
 
 import typer.testing
 
-from vei.benchmark.api import list_benchmark_family_manifest
+from vei.benchmark.api import list_benchmark_family_manifest, run_benchmark_case
+from vei.benchmark.models import BenchmarkCaseSpec
 from vei.cli.vei_eval import app as eval_app
-from vei.cli.vei_eval import scripted, bc as eval_bc
 from vei.cli.vei_train import bc as train_bc
 from vei.data.rollout import rollout_procurement
 
 
 def test_vei_eval_scripted_creates_score(tmp_path: Path) -> None:
     artifacts = tmp_path / "eval"
-    scripted(seed=101, dataset=Path("-"), artifacts=artifacts)
+    spec = BenchmarkCaseSpec(
+        runner="scripted",
+        scenario_name="multi_channel",
+        seed=101,
+        artifacts_dir=artifacts,
+        score_mode="email",
+    )
+    run_benchmark_case(spec)
     score_path = artifacts / "score.json"
     assert score_path.exists()
     data = json.loads(score_path.read_text(encoding="utf-8"))
@@ -30,13 +37,18 @@ def test_vei_eval_bc(tmp_path: Path) -> None:
     train_bc(dataset=[str(dataset_path)], output=model_path)
 
     artifacts = tmp_path / "eval_bc"
-    eval_bc(
-        model=model_path,
+    spec = BenchmarkCaseSpec(
+        runner="bc",
+        scenario_name="multi_channel",
         seed=555,
-        dataset=dataset_path,
-        artifacts=artifacts,
+        artifacts_dir=artifacts,
+        dataset_path=dataset_path,
+        replay_mode="overlay",
+        score_mode="email",
+        bc_model_path=model_path,
         max_steps=10,
     )
+    run_benchmark_case(spec)
     score_path = artifacts / "score.json"
     assert score_path.exists()
 

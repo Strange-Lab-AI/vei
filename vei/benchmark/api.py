@@ -31,6 +31,8 @@ from vei.benchmark.models import (
     BenchmarkCaseSpec,
     BenchmarkDiagnostics,
     BenchmarkMetrics,
+    BenchmarkScore,
+    BenchmarkScoreDimensions,
     BenchmarkWorkflowVariantManifest,
 )
 from vei.blueprint.api import (
@@ -534,18 +536,17 @@ def _normalize_score(
     }
     composite = mean(dimensions.values()) if dimensions else 0.0
     costs = raw_score.get("costs", {})
-    return {
-        "success": bool(raw_score.get("success", False)),
-        "composite_score": composite,
-        "dimensions": dimensions,
-        "steps_taken": int(costs.get("actions", 0)),
-        "time_elapsed_ms": int(costs.get("time_ms", 0)),
-        "scenario_difficulty": "baseline",
-        "scenario": scenario_name,
-        "subgoals": subgoals,
-        "policy": policy,
-        "legacy": True,
-    }
+    return BenchmarkScore(
+        success=bool(raw_score.get("success", False)),
+        composite_score=composite,
+        dimensions=BenchmarkScoreDimensions(**dimensions),
+        steps_taken=int(costs.get("actions", 0)),
+        time_elapsed_ms=int(costs.get("time_ms", 0)),
+        scenario_difficulty="baseline",
+        scenario=scenario_name,
+        subgoals=subgoals,
+        policy=policy,
+    ).model_dump()
 
 
 def _resolve_workflow_contract(

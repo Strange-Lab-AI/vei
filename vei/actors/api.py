@@ -140,35 +140,3 @@ class ActorRegistry:
 
     def _normalize_key(self, value: str) -> str:
         return value.strip().lower()
-
-
-def create_actor_registry(
-    actors: list[dict[str, Any]] | list[ActorPersona] | None = None,
-    *,
-    llm_provider: str = "openai",
-    llm_model: str = "gpt-4o-mini",
-    max_tokens: int = 50000,
-    max_cost_usd: float = 1.0,
-) -> ActorRegistry:
-    """Create and configure an ActorRegistry from a list of actor specs."""
-    registry = ActorRegistry()
-
-    has_llm = False
-    for actor in actors or []:
-        if isinstance(actor, ActorPersona):
-            persona = actor
-        else:
-            persona = ActorPersona.model_validate(actor)
-        registry.register(persona)
-        if persona.backend == "llm":
-            has_llm = True
-
-    if has_llm:
-        registry.configure_llm(
-            provider=llm_provider,
-            model=llm_model,
-            max_tokens=max_tokens,
-            max_cost_usd=max_cost_usd,
-        )
-
-    return registry

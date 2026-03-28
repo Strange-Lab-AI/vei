@@ -8,7 +8,6 @@ from contextlib import contextmanager
 from pathlib import Path
 
 import typer
-from typer.models import OptionInfo
 
 from vei.benchmark.api import (
     FRONTIER_SCENARIO_SETS,
@@ -17,7 +16,6 @@ from vei.benchmark.api import (
     resolve_benchmark_workflow_name,
     resolve_scenarios,
     run_benchmark_batch,
-    run_benchmark_case,
 )
 from vei.benchmark.models import (
     BenchmarkCaseSpec,
@@ -43,10 +41,6 @@ from vei.cli.vei_report import (
 
 
 app = typer.Typer(add_completion=False)
-
-
-def _coerce_option(value: object, default: str) -> str:
-    return default if isinstance(value, OptionInfo) else str(value)
 
 
 @contextmanager
@@ -368,64 +362,6 @@ def _run_benchmark_suite(spec: BenchmarkSuiteSpec) -> BenchmarkSuiteResult:
         encoding="utf-8",
     )
     return result
-
-
-@app.command()
-def scripted(
-    seed: int = typer.Option(42042, help="Router seed"),
-    dataset: Path = typer.Option(Path("-"), help="Optional dataset JSON for replay"),
-    artifacts: Path = typer.Option(Path("_vei_out/eval"), help="Artifacts directory"),
-    scenario: str = typer.Option("multi_channel", help="Scenario name"),
-    score_success_mode: str = typer.Option(
-        "email", help="Score success criteria: email|full."
-    ),
-) -> None:
-    scenario = _coerce_option(scenario, "multi_channel")
-    score_success_mode = _coerce_option(score_success_mode, "email")
-    spec = BenchmarkCaseSpec(
-        runner="scripted",
-        scenario_name=scenario,
-        seed=seed,
-        artifacts_dir=artifacts,
-        dataset_path=None if dataset == Path("-") else dataset,
-        replay_mode="overlay" if dataset != Path("-") else None,
-        score_mode=score_success_mode.lower().strip(),
-    )
-    result = run_benchmark_case(spec)
-    typer.echo(json.dumps(result.raw_score, indent=2))
-
-
-@app.command()
-def bc(
-    model: Path = typer.Option(
-        ..., "--model", "-m", exists=True, readable=True, help="Trained BC policy"
-    ),
-    seed: int = typer.Option(42042, help="Router seed"),
-    dataset: Path = typer.Option(Path("-"), help="Optional dataset JSON for replay"),
-    artifacts: Path = typer.Option(
-        Path("_vei_out/eval_bc"), help="Artifacts directory"
-    ),
-    max_steps: int = typer.Option(12, help="Max policy steps"),
-    scenario: str = typer.Option("multi_channel", help="Scenario name"),
-    score_success_mode: str = typer.Option(
-        "email", help="Score success criteria: email|full."
-    ),
-) -> None:
-    scenario = _coerce_option(scenario, "multi_channel")
-    score_success_mode = _coerce_option(score_success_mode, "email")
-    spec = BenchmarkCaseSpec(
-        runner="bc",
-        scenario_name=scenario,
-        seed=seed,
-        artifacts_dir=artifacts,
-        dataset_path=None if dataset == Path("-") else dataset,
-        replay_mode="overlay" if dataset != Path("-") else None,
-        score_mode=score_success_mode.lower().strip(),
-        bc_model_path=model,
-        max_steps=max_steps,
-    )
-    result = run_benchmark_case(spec)
-    typer.echo(json.dumps(result.raw_score, indent=2))
 
 
 @app.command()
@@ -757,6 +693,65 @@ def showcase(
         )
     )
     typer.echo(json.dumps(result.model_dump(mode="json"), indent=2))
+
+
+@app.command(name="frontier-list")
+def frontier_list() -> None:
+    """List all available frontier scenarios."""
+    from vei.world.scenarios import list_scenarios
+
+    scenarios = list_scenarios()
+    frontier_scenarios = {k: v for k, v in scenarios.items() if k.startswith("f")}
+
+    typer.echo("Frontier Evaluation Scenarios")
+    typer.echo("=" * 70)
+    for name, scenario_obj in sorted(frontier_scenarios.items()):
+        metadata = getattr(scenario_obj, "metadata", {})
+        difficulty = metadata.get("difficulty", "unknown")
+        expected_steps = metadata.get("expected_steps", [0, 0])
+        typer.echo(f"\n{name}")
+        typer.echo(f"  Difficulty: {difficulty}")
+        typer.echo(f"  Expected steps: {expected_steps[0]}-{expected_steps[1]}")
+        if metadata.get("rubric"):
+            typer.echo(f"  Rubric dimensions: {', '.join(metadata['rubric'].keys())}")
+    typer.echo("\n" + "=" * 70)
+    typer.echo(f"\nTotal frontier scenarios: {len(frontier_scenarios)}")
+    typer.echo("\nScenario sets available:")
+    for set_name, scenarios_list in FRONTIER_SCENARIO_SETS.items():
+        typer.echo(f"  - {set_name}: {len(scenarios_list)} scenarios")
+
+
+@app.command(name="frontier-score")
+def frontier_score(
+    artifacts_dir: Path = typer.Option(..., help="Directory containing trace.jsonl"),
+    use_llm_judge: bool = typer.Option(
+        False, help="Use LLM-as-judge for quality scoring"
+    ),
+    output: Path | None = typer.Option(None, help="Output path for score JSON"),
+) -> None:
+    """Score an existing run with frontier scoring system."""
+    from vei.score_frontier import compute_frontier_score
+
+    if not artifacts_dir.exists():
+        typer.echo(f"Directory not found: {artifacts_dir}", err=True)
+        raise typer.Exit(1)
+    trace_path = artifacts_dir / "trace.jsonl"
+    if not trace_path.exists():
+        typer.echo(f"No trace.jsonl found in {artifacts_dir}", err=True)
+        raise typer.Exit(1)
+    try:
+        score_result = compute_frontier_score(
+            artifacts_dir, use_llm_judge=use_llm_judge
+        )
+        if output:
+            with open(output, "w", encoding="utf-8") as f:
+                json.dump(score_result, f, indent=2)
+            typer.echo(f"Score saved to: {output}")
+        else:
+            typer.echo(json.dumps(score_result, indent=2))
+    except Exception as e:
+        typer.echo(f"Scoring failed: {e}", err=True)
+        raise typer.Exit(1)
 
 
 if __name__ == "__main__":

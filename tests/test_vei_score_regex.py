@@ -3,13 +3,13 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from vei.cli.vei_score import score as score_cmd
+from vei.cli.vei_score import app as score_app
 import typer.testing
 
 
 def run_score(artifacts_dir: Path) -> dict:
     runner = typer.testing.CliRunner()
-    result = runner.invoke(score_cmd, ["--artifacts-dir", str(artifacts_dir)])
+    result = runner.invoke(score_app, ["--artifacts-dir", str(artifacts_dir)])
     assert result.exit_code == 0, result.output
     return json.loads(result.stdout)
 

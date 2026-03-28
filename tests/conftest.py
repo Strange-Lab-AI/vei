@@ -39,3 +39,82 @@ def pytest_configure(config):  # type: ignore[override]
 @pytest.fixture
 def anyio_backend():  # type: ignore[override]
     return "asyncio"
+
+
+@pytest.fixture
+def sample_snapshot():
+    """Minimal Acme Cloud ContextSnapshot shared across test files.
+
+    Tests that need richer data should extend this or build their own.
+    """
+    from vei.context.models import ContextSnapshot, ContextSourceResult
+
+    return ContextSnapshot(
+        organization_name="Acme Cloud",
+        organization_domain="acme.ai",
+        captured_at="2026-03-24T16:00:00+00:00",
+        sources=[
+            ContextSourceResult(
+                provider="slack",
+                captured_at="2026-03-24T16:00:00+00:00",
+                status="ok",
+                record_counts={"channels": 1, "messages": 1},
+                data={
+                    "channels": [
+                        {
+                            "channel": "#revops-war-room",
+                            "unread": 1,
+                            "messages": [
+                                {
+                                    "ts": "1710300000.000100",
+                                    "user": "maya.ops",
+                                    "text": "Renewal is exposed unless we land the onboarding fix today.",
+                                }
+                            ],
+                        }
+                    ]
+                },
+            ),
+            ContextSourceResult(
+                provider="jira",
+                captured_at="2026-03-24T16:00:00+00:00",
+                status="ok",
+                record_counts={"issues": 1},
+                data={
+                    "issues": [
+                        {
+                            "ticket_id": "ACME-101",
+                            "title": "Renewal blocker: onboarding API timing out",
+                            "status": "open",
+                            "assignee": "maya.ops",
+                            "description": "Customer onboarding export is timing out.",
+                        }
+                    ]
+                },
+            ),
+            ContextSourceResult(
+                provider="gmail",
+                captured_at="2026-03-24T16:00:00+00:00",
+                status="ok",
+                record_counts={"threads": 1, "messages": 1},
+                data={
+                    "threads": [
+                        {
+                            "thread_id": "thr-001",
+                            "subject": "Renewal risk review",
+                            "messages": [
+                                {
+                                    "from": "jordan@apexfinancial.example.com",
+                                    "to": "support@acme.ai",
+                                    "subject": "Renewal risk review",
+                                    "snippet": "Need a clear owner and a confirmed timeline.",
+                                    "labels": ["IMPORTANT"],
+                                    "unread": True,
+                                }
+                            ],
+                        }
+                    ]
+                },
+            ),
+        ],
+    )

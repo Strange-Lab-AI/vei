@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import heapq
 import json
+import logging
 from dataclasses import asdict, is_dataclass
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, TYPE_CHECKING
@@ -34,6 +35,8 @@ from vei.world.models import (
     WorldState,
 )
 from vei.world.replay import materialize_overlay_event
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from vei.router.core import Router
@@ -622,7 +625,9 @@ def restore_router_state(router: "Router", state: WorldState) -> None:
                 mode_value
             )
         except Exception:
-            pass
+            logger.warning(
+                "Failed to restore connector mode '%s'", mode_value, exc_info=True
+            )
     router.connector_runtime._receipts = [
         ConnectorReceipt.model_validate(receipt)
         for receipt in _jsonable(state.connector_runtime.get("receipts", []))

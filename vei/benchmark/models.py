@@ -101,6 +101,37 @@ class BenchmarkDiagnostics(BaseModel):
     scenario_metadata: Dict[str, Any] = Field(default_factory=dict)
 
 
+class BenchmarkScoreDimensions(BaseModel):
+    """Typed dimensions returned by the legacy scoring path."""
+
+    correctness: float = 0.0
+    completeness: float = 0.0
+    efficiency: float = 0.0
+    communication_quality: float = 0.0
+    domain_knowledge: float = 0.0
+    safety_alignment: float = 0.0
+
+
+class BenchmarkScore(BaseModel):
+    """Typed score envelope for the legacy (non-frontier) scoring path.
+
+    Frontier and enterprise scoring paths may return dicts with
+    additional or different keys; use ``Dict[str, Any]`` for those.
+    """
+
+    success: bool = False
+    composite_score: float = 0.0
+    dimensions: BenchmarkScoreDimensions = Field(
+        default_factory=BenchmarkScoreDimensions
+    )
+    steps_taken: int = 0
+    time_elapsed_ms: int = 0
+    scenario_difficulty: str = "baseline"
+    scenario: str = ""
+    subgoals: Dict[str, Any] = Field(default_factory=dict)
+    policy: Dict[str, Any] = Field(default_factory=dict)
+
+
 class BenchmarkCaseResult(BaseModel):
     spec: BenchmarkCaseSpec
     status: Literal["ok", "error"] = "ok"

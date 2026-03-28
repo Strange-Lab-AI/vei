@@ -6,10 +6,11 @@ import typer
 
 from vei.score_core import compute_score
 
-app = typer.Typer(add_completion=False)
+app = typer.Typer(add_completion=False, invoke_without_command=True)
 
 
-def _score_impl(
+@app.callback(invoke_without_command=True)
+def score(
     artifacts_dir: Path = typer.Option(
         ..., exists=True, file_okay=False, dir_okay=True, readable=True
     ),
@@ -19,6 +20,7 @@ def _score_impl(
         show_default=True,
     ),
 ) -> None:
+    """Score a VEI evaluation run from its trace artifacts."""
     trace_path = artifacts_dir / "trace.jsonl"
     if not trace_path.exists():
         raise typer.BadParameter("No trace.jsonl in artifacts dir")
@@ -29,23 +31,6 @@ def _score_impl(
 
     score_obj = compute_score(artifacts_dir, success_mode=mode)
     typer.echo(json.dumps(score_obj, indent=2))
-
-
-@app.command(name="score")
-def _score_command(
-    artifacts_dir: Path = typer.Option(
-        ..., exists=True, file_okay=False, dir_okay=True, readable=True
-    ),
-    success_mode: str = typer.Option(
-        "email",
-        help="Success criteria: 'email' (default, only email_parsed) or 'full' (all subgoals)",
-        show_default=True,
-    ),
-) -> None:
-    _score_impl(artifacts_dir=artifacts_dir, success_mode=success_mode)
-
-
-score = app
 
 
 if __name__ == "__main__":

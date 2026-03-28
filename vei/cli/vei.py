@@ -10,7 +10,6 @@ from vei.cli.vei_dataset import app as dataset_app
 from vei.cli.vei_demo import app as demo_app
 from vei.cli.vei_det_pipeline import app as det_app
 from vei.cli.vei_eval import app as eval_app
-from vei.cli.vei_eval_frontier import app as eval_frontier_app
 from vei.cli.vei_exercise import app as exercise_app
 from vei.cli.vei_export import app as export_app
 from vei.cli.vei_inspect import app as inspect_app
@@ -63,7 +62,6 @@ app.add_typer(blueprint_app, name="blueprint")
 app.add_typer(demo_app, name="demo")
 app.add_typer(det_app, name="det")
 app.add_typer(eval_app, name="eval")
-app.add_typer(eval_frontier_app, name="eval-frontier")
 app.add_typer(llm_test_app, name="llm-test")
 app.add_typer(pack_app, name="pack")
 app.add_typer(pilot_app, name="pilot")
