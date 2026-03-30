@@ -417,5 +417,5 @@ def _comparison_summary(
 def _default_contract_variant(workspace_root: Path) -> str:
     variants = list_workspace_contract_variants(workspace_root)
     if not variants:
-        raise ValueError("no contract variants are available for this workspace")
+        return ""
     return str(variants[0].get("name") or "")

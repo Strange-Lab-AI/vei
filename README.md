@@ -95,7 +95,7 @@ make setup
 make check
 make test
 make llm-live
-vei smoke --transport stdio --timeout-s 30
+vei smoke run --transport stdio --timeout-s 30
 ```
 
 `make llm-live` auto-loads `.env` when present and writes `summary.json`, `score.json`, `trace.jsonl`, `llm_metrics.json`, and transcript artifacts under `_vei_out/llm_live/latest`.

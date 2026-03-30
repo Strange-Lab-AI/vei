@@ -14,6 +14,21 @@ from vei.twin.models import CompatibilitySurfaceSpec
 from vei.workspace.api import create_workspace_from_template, preview_workspace_scenario
 
 
+def test_default_contract_variant_returns_empty_when_no_variants(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    """When no contract variants exist, _default_contract_variant returns ''
+    instead of raising ValueError."""
+    monkeypatch.setattr(
+        exercise_api,
+        "list_workspace_contract_variants",
+        lambda _root: [],
+    )
+    result = exercise_api._default_contract_variant(tmp_path)
+    assert result == ""
+
+
 def test_start_exercise_writes_manifest_and_comparison(
     tmp_path: Path,
     monkeypatch,

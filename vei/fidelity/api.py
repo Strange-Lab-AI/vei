@@ -568,7 +568,16 @@ def _check_vertical_surface(
         return _check_inventory_surface(session)
     if normalized == "b2b_saas":
         return _check_revenue_surface(session)
-    return _check_property_surface(session)
+    if normalized == "real_estate_management":
+        return _check_property_surface(session)
+    return TwinFidelityCase(
+        surface="property",
+        title="Vertical surface (skipped)",
+        boundary_contract="No vertical-specific fidelity check available for this workspace type.",
+        why_it_matters="Vertical fidelity checks are only defined for known vertical types.",
+        status="ok",
+        checks=[],
+    )
 
 
 def _check_revenue_surface(session: WorldSessionAPI) -> TwinFidelityCase:
