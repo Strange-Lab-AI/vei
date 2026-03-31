@@ -36,6 +36,7 @@ FLOW_TOOL_PREFIX_MAP: tuple[tuple[str, str], ...] = (
     ("datadog.", "World"),
     ("pagerduty.", "World"),
     ("feature_flags.", "World"),
+    ("service_ops.", "World"),
     ("spreadsheet.", "World"),
     ("vei.", "World"),
     ("help.", "Help"),
@@ -103,7 +104,14 @@ def flow_channel_from_focus(focus: str | None) -> str:
         return "Tickets"
     if normalized in {"crm", "salesforce"}:
         return "CRM"
-    if normalized in {"world", "router", "identity", "spreadsheet", "pagerduty"}:
+    if normalized in {
+        "world",
+        "router",
+        "identity",
+        "spreadsheet",
+        "pagerduty",
+        "service_ops",
+    }:
         return "World"
     if normalized == "help":
         return "Help"

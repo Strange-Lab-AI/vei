@@ -184,6 +184,7 @@ class Scenario:
     pagerduty: Optional[Dict[str, Any]] = None
     feature_flags: Optional[Dict[str, Any]] = None
     hris: Optional[Dict[str, Any]] = None
+    service_ops: Optional[Dict[str, Any]] = None
     property_graph: Optional[Dict[str, Any]] = None
     campaign_graph: Optional[Dict[str, Any]] = None
     inventory_graph: Optional[Dict[str, Any]] = None

@@ -127,6 +127,7 @@ def test_ui_api_serves_living_company_surfaces_for_vertical_runs(
         "real_estate_management",
         "digital_marketing_agency",
         "storage_solutions",
+        "service_ops",
     ):
         root = tmp_path / vertical_name
         create_workspace_from_template(

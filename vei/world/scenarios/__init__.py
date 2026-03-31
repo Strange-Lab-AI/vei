@@ -32,11 +32,13 @@ from ._identity import (
 )
 from ._verticals import (
     _b2b_saas_scenario,
+    _service_ops_scenario,
     scenario_acquired_sales_onboarding,
     scenario_checkout_spike_mitigation,
     scenario_tenant_opening_conflict,
     scenario_campaign_launch_guardrail,
     scenario_capacity_quote_commitment,
+    scenario_service_day_collision,
 )
 from ._frontier import (
     scenario_p0_easy,
@@ -69,6 +71,15 @@ _CATALOG: Dict[str, Scenario] = {
     "tenant_opening_conflict": scenario_tenant_opening_conflict(),
     "campaign_launch_guardrail": scenario_campaign_launch_guardrail(),
     "capacity_quote_commitment": scenario_capacity_quote_commitment(),
+    "service_day_collision": scenario_service_day_collision(),
+    "technician_no_show": _service_ops_scenario(
+        "technician_no_show",
+        "Clearwater dispatch recovery mission is live.",
+    ),
+    "billing_dispute_reopened": _service_ops_scenario(
+        "billing_dispute_reopened",
+        "Clearwater finance containment review is live.",
+    ),
     "enterprise_renewal_risk": _b2b_saas_scenario(
         "enterprise_renewal_risk",
         "Apex renewal war room is live.",

@@ -11,6 +11,7 @@ from vei.benchmark.workflow_models import (
     RealEstateManagementWorkflowParams,
     RevenueIncidentMitigationWorkflowParams,
     SecurityContainmentWorkflowParams,
+    ServiceOpsWorkflowParams,
     StorageSolutionsWorkflowParams,
     WorkflowParams,
 )
@@ -174,6 +175,23 @@ _PARAMETER_DESCRIPTIONS: Dict[str, Dict[str, str]] = {
         "slack_summary": "Slack summary posted after the save plan is executed.",
         "discount_pct": "Discount percentage offered to the customer.",
         "deadline_max_ms": "Virtual-time deadline for the renewal workflow.",
+    },
+    "service_ops": {
+        "request_id": "Approval request that advances the VIP service response.",
+        "work_order_id": "Service work order that must be stabilized.",
+        "appointment_id": "Field appointment that needs a valid dispatch assignment.",
+        "technician_id": "Backup technician selected for the dispatch recovery.",
+        "billing_case_id": "Billing case that should be held while the dispute is active.",
+        "exception_id": "Primary service exception that should be explicitly resolved.",
+        "ticket_id": "Tracker issue updated during the service-day recovery.",
+        "doc_id": "Handoff or runbook document updated with the clean operating trail.",
+        "slack_channel": "Slack channel used for dispatch and operations coordination.",
+        "dispatch_note": "Dispatch assignment note recorded on the work order.",
+        "billing_note": "Billing hold note recorded while the dispute remains active.",
+        "doc_update_note": "Document update written after dispatch and billing are brought back into alignment.",
+        "ticket_note": "Tracker note written after the service loop is stabilized.",
+        "slack_summary": "Slack summary posted once the same-day operating path is safe again.",
+        "deadline_max_ms": "Virtual-time deadline for the service-day recovery workflow.",
     },
 }
 
@@ -453,6 +471,30 @@ _VARIANT_CATALOG: Dict[str, Dict[str, _VariantDefinition]] = {
             ),
         ),
     },
+    "service_ops": {
+        "service_day_collision": _VariantDefinition(
+            name="service_day_collision",
+            scenario_name="service_day_collision",
+            parameters=ServiceOpsWorkflowParams(),
+        ),
+        "technician_no_show": _VariantDefinition(
+            name="technician_no_show",
+            scenario_name="technician_no_show",
+            parameters=ServiceOpsWorkflowParams(
+                billing_note="Billing remains stable while dispatch recovers the technician gap.",
+                slack_summary="Backup dispatch locked in and the SLA stays intact for Clearwater Medical.",
+            ),
+        ),
+        "billing_dispute_reopened": _VariantDefinition(
+            name="billing_dispute_reopened",
+            scenario_name="billing_dispute_reopened",
+            parameters=ServiceOpsWorkflowParams(
+                billing_note="Collections hold recorded immediately after the account dispute reopened.",
+                ticket_note="Billing dispute reopened, hold recorded, and dispatch state kept consistent across teams.",
+                slack_summary="Billing safely contained while the field response remains coherent for Clearwater Medical.",
+            ),
+        ),
+    },
 }
 
 _SCENARIO_TO_WORKFLOW = {
@@ -474,4 +516,7 @@ _SCENARIO_TO_WORKFLOW = {
     "enterprise_renewal_risk": "b2b_saas",
     "support_escalation_spiral": "b2b_saas",
     "pricing_negotiation_deadlock": "b2b_saas",
+    "service_day_collision": "service_ops",
+    "technician_no_show": "service_ops",
+    "billing_dispute_reopened": "service_ops",
 }

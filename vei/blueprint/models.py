@@ -339,6 +339,94 @@ class BlueprintAllocationAsset(BaseModel):
     status: str
 
 
+class BlueprintOpsFlagAsset(BaseModel):
+    flag_key: str
+    service: Optional[str] = None
+    env: Optional[str] = None
+    enabled: bool = False
+    rollout_pct: int = 0
+
+
+class BlueprintServiceCustomerAsset(BaseModel):
+    customer_id: str
+    name: str
+    tier: str = "standard"
+    account_status: str = "active"
+    vip: bool = False
+    dispute_open: bool = False
+
+
+class BlueprintServiceWorkOrderAsset(BaseModel):
+    work_order_id: str
+    service_request_id: str
+    customer_id: str
+    title: str
+    status: str
+    required_skill: Optional[str] = None
+    technician_id: Optional[str] = None
+    appointment_id: Optional[str] = None
+    estimated_amount_usd: float = 0.0
+
+
+class BlueprintTechnicianAsset(BaseModel):
+    technician_id: str
+    name: str
+    status: str = "available"
+    skills: List[str] = Field(default_factory=list)
+    current_appointment_id: Optional[str] = None
+    home_zone: Optional[str] = None
+
+
+class BlueprintDispatchAppointmentAsset(BaseModel):
+    appointment_id: str
+    service_request_id: str
+    customer_id: str
+    work_order_id: str
+    status: str
+    technician_id: Optional[str] = None
+    scheduled_for_ms: Optional[int] = None
+    dispatch_status: str = "pending"
+    reschedule_count: int = 0
+
+
+class BlueprintBillingCaseAsset(BaseModel):
+    billing_case_id: str
+    customer_id: str
+    invoice_id: Optional[str] = None
+    dispute_status: str = "clear"
+    hold: bool = False
+    amount_usd: float = 0.0
+
+
+class BlueprintServiceExceptionAsset(BaseModel):
+    exception_id: str
+    type: str
+    severity: str = "medium"
+    status: str = "open"
+    customer_id: Optional[str] = None
+    service_request_id: Optional[str] = None
+    work_order_id: Optional[str] = None
+
+
+class BlueprintServicePolicyAsset(BaseModel):
+    approval_threshold_usd: float = 1000.0
+    vip_priority_override: bool = True
+    billing_hold_on_dispute: bool = True
+    max_auto_reschedules: int = 2
+
+
+class BlueprintOpsGraphAsset(BaseModel):
+    flags: List[BlueprintOpsFlagAsset] = Field(default_factory=list)
+    customers: List[BlueprintServiceCustomerAsset] = Field(default_factory=list)
+    work_orders: List[BlueprintServiceWorkOrderAsset] = Field(default_factory=list)
+    technicians: List[BlueprintTechnicianAsset] = Field(default_factory=list)
+    appointments: List[BlueprintDispatchAppointmentAsset] = Field(default_factory=list)
+    billing_cases: List[BlueprintBillingCaseAsset] = Field(default_factory=list)
+    exceptions: List[BlueprintServiceExceptionAsset] = Field(default_factory=list)
+    policy: Optional[BlueprintServicePolicyAsset] = None
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+
+
 class BlueprintEnvironmentAsset(BaseModel):
     organization_name: str
     organization_domain: str
@@ -390,6 +478,9 @@ class BlueprintEnvironmentSummary(BaseModel):
     site_count: int = 0
     quote_count: int = 0
     order_count: int = 0
+    service_customer_count: int = 0
+    service_work_order_count: int = 0
+    technician_count: int = 0
     scenario_template_name: Optional[str] = None
 
 
@@ -479,6 +570,7 @@ class BlueprintCapabilityGraphsAsset(BaseModel):
     work_graph: Optional[BlueprintWorkGraphAsset] = None
     identity_graph: Optional[BlueprintIdentityGraphAsset] = None
     revenue_graph: Optional[BlueprintRevenueGraphAsset] = None
+    ops_graph: Optional[BlueprintOpsGraphAsset] = None
     property_graph: Optional[BlueprintPropertyGraphAsset] = None
     campaign_graph: Optional[BlueprintCampaignGraphAsset] = None
     inventory_graph: Optional[BlueprintInventoryGraphAsset] = None

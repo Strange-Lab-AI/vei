@@ -715,13 +715,16 @@ class WorldSession:
             "revenue_graph": "crm",
             "data_graph": "spreadsheet",
             "obs_graph": "pagerduty",
-            "ops_graph": "feature_flags",
             "property_graph": "property",
             "campaign_graph": "campaign",
             "inventory_graph": "inventory",
         }
         next_focuses = list(next_plan.next_focuses)
-        executed_focus = executed_focus_map.get(resolved.domain)
+        if resolved.domain == "ops_graph":
+            tool_prefix = (resolved.tool or "").split(".")[0]
+            executed_focus = tool_prefix if tool_prefix else "feature_flags"
+        else:
+            executed_focus = executed_focus_map.get(resolved.domain)
         if executed_focus and executed_focus not in next_focuses:
             next_focuses.insert(0, executed_focus)
         object_refs = infer_graph_action_object_refs(

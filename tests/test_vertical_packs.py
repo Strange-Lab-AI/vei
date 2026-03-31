@@ -33,6 +33,11 @@ from vei.workspace.api import create_workspace_from_template, preview_workspace_
             "inventory_graph",
             "inventory_graph.allocate_capacity",
         ),
+        (
+            "service_ops",
+            "ops_graph",
+            "ops_graph.assign_dispatch",
+        ),
     ],
 )
 def test_vertical_workspace_runs_and_exposes_domain_graphs(
@@ -84,6 +89,7 @@ def test_vertical_workspace_runs_and_exposes_domain_graphs(
         ("real_estate_management", "property_graph"),
         ("digital_marketing_agency", "campaign_graph"),
         ("storage_solutions", "inventory_graph"),
+        ("service_ops", "ops_graph"),
     ],
 )
 def test_vertical_workspace_ui_serves_vertical_graphs(
@@ -116,6 +122,7 @@ def test_vertical_workspace_ui_serves_vertical_graphs(
         "real_estate_management",
         "digital_marketing_agency",
         "storage_solutions",
+        "service_ops",
     ],
 )
 def test_vertical_packs_seed_dense_company_context(vertical_name: str) -> None:
@@ -145,6 +152,7 @@ def test_vertical_packs_seed_dense_company_context(vertical_name: str) -> None:
         "real_estate_management",
         "digital_marketing_agency",
         "storage_solutions",
+        "service_ops",
     ],
 )
 def test_vertical_runs_expose_living_surface_state(

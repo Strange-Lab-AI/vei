@@ -89,3 +89,6 @@ node_modules/
 # Dolt / beads local database state
 .dolt/
 *.db
+
+# Beads / Dolt files (added by bd init)
+.beads-credential-key

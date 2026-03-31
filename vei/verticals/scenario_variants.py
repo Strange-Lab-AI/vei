@@ -618,6 +618,122 @@ _VERTICAL_SCENARIO_VARIANTS: dict[str, dict[str, VerticalScenarioVariantSpec]] =
             ],
         ),
     },
+    "service_ops": {
+        "service_day_collision": VerticalScenarioVariantSpec(
+            vertical_name="service_ops",
+            name="service_day_collision",
+            title="Service Day Collision",
+            description=(
+                "A VIP outage, technician no-show, and billing dispute collide on the same service account before the morning stabilizes."
+            ),
+            scenario_name="service_day_collision",
+            workflow_variant="service_day_collision",
+            branch_labels=[
+                "Reassign dispatch, hold billing, and keep the customer whole",
+                "Let the morning fragment into dispatch drift and billing mistakes",
+            ],
+            rationale="This is the flagship Clearwater field-services story and the clearest proof of a service-ops pack.",
+            change_summary=[
+                "One VIP account now carries dispatch risk, billing risk, and SLA risk at the same time.",
+            ],
+        ),
+        "technician_no_show": VerticalScenarioVariantSpec(
+            vertical_name="service_ops",
+            name="technician_no_show",
+            title="Technician No-Show",
+            description=(
+                "Billing is stable, but the assigned technician drops out and the dispatch bench has to recover the day quickly."
+            ),
+            scenario_name="technician_no_show",
+            workflow_variant="technician_no_show",
+            workflow_parameter_overrides={
+                "billing_case_id": "BILL-CFS-100",
+                "billing_note": "Billing remains stable while dispatch recovers the technician gap.",
+                "slack_summary": "Backup dispatch locked in; Clearwater keeps the SLA without reopening billing risk.",
+            },
+            fault_overlays=[
+                FaultOverlaySpec(
+                    name="billing_clear",
+                    path="capability_graphs.ops_graph.billing_cases[billing_case_id=BILL-CFS-100].dispute_status",
+                    operation="set",
+                    value="clear",
+                    label="The disputed invoice has already been cleared.",
+                    rationale="This variant isolates dispatch recovery instead of billing risk.",
+                    visibility="visible",
+                ),
+                FaultOverlaySpec(
+                    name="billing_exception_resolved",
+                    path="capability_graphs.ops_graph.exceptions[exception_id=EXC-CFS-101].status",
+                    operation="set",
+                    value="resolved",
+                    label="Billing exception is no longer open.",
+                    rationale="The morning pressure is now concentrated on technician recovery and SLA protection.",
+                    visibility="visible",
+                ),
+            ],
+            branch_labels=[
+                "Recover the route with the right backup technician",
+                "Keep the work unassigned and let the SLA slip",
+            ],
+            rationale="Shows that the same service company can pivot into a dispatch-first mission without rebuilding the world.",
+            change_summary=[
+                "Billing risk is cleared out of the way.",
+                "Dispatch recovery becomes the dominant operating problem.",
+            ],
+        ),
+        "billing_dispute_reopened": VerticalScenarioVariantSpec(
+            vertical_name="service_ops",
+            name="billing_dispute_reopened",
+            title="Billing Dispute Reopened",
+            description=(
+                "Dispatch has a plausible recovery path, but finance reopens the account dispute and the customer trust problem gets worse."
+            ),
+            scenario_name="billing_dispute_reopened",
+            workflow_variant="billing_dispute_reopened",
+            workflow_parameter_overrides={
+                "billing_note": "Collections hold recorded and dispute escalation linked to the active field response.",
+                "slack_summary": "Billing safely contained while the field response stays on track for Clearwater Medical.",
+            },
+            fault_overlays=[
+                FaultOverlaySpec(
+                    name="backup_tech_preassigned",
+                    path="capability_graphs.ops_graph.appointments[appointment_id=APT-CFS-100].technician_id",
+                    operation="set",
+                    value="TECH-CFS-02",
+                    label="Backup technician is already in the slot.",
+                    rationale="This variant shifts focus away from dispatch uncertainty and toward account safety.",
+                    visibility="visible",
+                ),
+                FaultOverlaySpec(
+                    name="dispatch_stable",
+                    path="capability_graphs.ops_graph.appointments[appointment_id=APT-CFS-100].dispatch_status",
+                    operation="set",
+                    value="assigned",
+                    label="Dispatch no longer looks at risk.",
+                    rationale="The field plan is workable; the real pressure is now billing trust.",
+                    visibility="visible",
+                ),
+                FaultOverlaySpec(
+                    name="reopened_dispute",
+                    path="capability_graphs.ops_graph.billing_cases[billing_case_id=BILL-CFS-100].dispute_status",
+                    operation="set",
+                    value="reopened",
+                    label="The customer dispute is reopened mid-morning.",
+                    rationale="Finance risk gets worse right as the field team tries to recover the service day.",
+                    visibility="visible",
+                ),
+            ],
+            branch_labels=[
+                "Contain finance risk before the customer relationship degrades",
+                "Focus only on field completion and let billing damage keep spreading",
+            ],
+            rationale="Shows the same company world bending toward trust and revenue preservation instead of dispatch only.",
+            change_summary=[
+                "Dispatch is mostly stabilized.",
+                "Billing dispute risk becomes the primary operating problem.",
+            ],
+        ),
+    },
 }
 
 

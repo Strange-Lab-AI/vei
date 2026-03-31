@@ -46,16 +46,21 @@ def test_mission_catalog_contains_all_verticals() -> None:
     assert "real_estate_management" in catalog.included_worlds
     assert "digital_marketing_agency" in catalog.included_worlds
     assert "storage_solutions" in catalog.included_worlds
+    assert "service_ops" in catalog.included_worlds
 
 
 def test_list_and_get_playable_missions() -> None:
     all_missions = list_playable_missions()
-    assert len(all_missions) == 12
+    assert len(all_missions) == 15
 
     re_missions = list_playable_missions("real_estate_management")
     assert len(re_missions) == 5
     names = [m.mission_name for m in re_missions]
     assert "tenant_opening_conflict" in names
+
+    service_missions = list_playable_missions("service_ops")
+    assert len(service_missions) == 3
+    assert "service_day_collision" in [m.mission_name for m in service_missions]
 
     hero = get_playable_mission("real_estate_management", "tenant_opening_conflict")
     assert hero.hero is True

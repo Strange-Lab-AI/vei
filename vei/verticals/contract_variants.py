@@ -386,6 +386,83 @@ _VERTICAL_CONTRACT_VARIANTS: dict[str, dict[str, VerticalContractVariantSpec]] =
             ],
         ),
     },
+    "service_ops": {
+        "protect_sla": VerticalContractVariantSpec(
+            vertical_name="service_ops",
+            name="protect_sla",
+            title="Protect SLA",
+            description="Default business contract: recover dispatch fast enough to protect the VIP service window.",
+            objective_summary="Prioritize rapid, valid dispatch recovery so the service request reaches a credible field response on time.",
+            rationale="This is the default Clearwater business objective and the clearest service-ops baseline.",
+            policy_invariants=[
+                PolicyInvariantSpec(
+                    name="dispatch_before_breach",
+                    description="The service loop should restore a valid technician assignment before the SLA window is lost.",
+                    metadata={"origin": "simulated", "variant": "protect_sla"},
+                )
+            ],
+            reward_terms=[
+                RewardTermSpec(
+                    name="dispatch_recovery_bias",
+                    weight=2.3,
+                    description="Reward clean dispatch recovery that restores the field response without improvising unsafe state.",
+                    metadata={"origin": "simulated", "variant": "protect_sla"},
+                )
+            ],
+        ),
+        "protect_revenue": VerticalContractVariantSpec(
+            vertical_name="service_ops",
+            name="protect_revenue",
+            title="Protect Revenue",
+            description="Bias toward billing safety and account preservation when service and finance pressure collide.",
+            objective_summary="Prefer actions that prevent billing damage and preserve the customer relationship while the field response unfolds.",
+            rationale="Useful when the same service day should optimize for revenue preservation instead of raw dispatch speed.",
+            policy_invariants=[
+                PolicyInvariantSpec(
+                    name="billing_safety_first",
+                    description="Disputed accounts must not receive unsafe billing follow-through while the case is active.",
+                    metadata={"origin": "simulated", "variant": "protect_revenue"},
+                )
+            ],
+            reward_terms=[
+                RewardTermSpec(
+                    name="billing_hold_bias",
+                    weight=2.1,
+                    description="Reward holding or containing billing risk before it compounds customer churn pressure.",
+                    metadata={"origin": "simulated", "variant": "protect_revenue"},
+                )
+            ],
+        ),
+        "protect_customer_trust": VerticalContractVariantSpec(
+            vertical_name="service_ops",
+            name="protect_customer_trust",
+            title="Protect Customer Trust",
+            description="Bias toward one coherent customer story across dispatch, billing, and escalation surfaces.",
+            objective_summary="Keep the customer-facing truth clean: dispatch, billing, and manager escalation should all tell the same story.",
+            rationale="Shows the same service loop optimized around trust, coordination, and low managerial thrash.",
+            policy_invariants=[
+                PolicyInvariantSpec(
+                    name="single_customer_story",
+                    description="Customer-facing updates and internal billing posture must remain aligned through the incident.",
+                    metadata={
+                        "origin": "simulated",
+                        "variant": "protect_customer_trust",
+                    },
+                )
+            ],
+            reward_terms=[
+                RewardTermSpec(
+                    name="trust_preservation_bias",
+                    weight=2.0,
+                    description="Reward aligned dispatch, billing, and escalation trails that reduce customer confusion.",
+                    metadata={
+                        "origin": "simulated",
+                        "variant": "protect_customer_trust",
+                    },
+                )
+            ],
+        ),
+    },
 }
 
 

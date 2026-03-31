@@ -36,8 +36,15 @@ from .models import (
     ObsIncidentView,
     ObsMonitorView,
     ObsServiceView,
+    OpsAppointmentView,
+    OpsBillingCaseView,
+    OpsCustomerView,
+    OpsExceptionView,
     OpsFlagView,
     OpsGraphView,
+    OpsPolicyView,
+    OpsTechnicianView,
+    OpsWorkOrderView,
     OrderView,
     LeaseView,
     PropertyGraphView,
@@ -347,6 +354,12 @@ def infer_graph_action_object_refs(
     elif normalized_domain == "ops_graph":
         _add("feature_flag", "flag_key")
         _add("service", "service_id")
+        _add("service_customer", "customer_id")
+        _add("service_work_order", "work_order_id")
+        _add("service_technician", "technician_id")
+        _add("service_appointment", "appointment_id")
+        _add("billing_case", "billing_case_id")
+        _add("service_exception", "exception_id")
     elif normalized_domain == "property_graph":
         _add("property", "property_id")
         _add("work_order", "work_order_id")
@@ -648,6 +661,7 @@ def _build_obs_graph(components: Dict[str, Dict[str, Any]]) -> Optional[ObsGraph
 
 def _build_ops_graph(components: Dict[str, Dict[str, Any]]) -> Optional[OpsGraphView]:
     feature_flags = components.get("feature_flags", {})
+    service_ops = components.get("service_ops", {})
     flags = [
         OpsFlagView(
             flag_key=str(flag_key),
@@ -658,9 +672,122 @@ def _build_ops_graph(components: Dict[str, Dict[str, Any]]) -> Optional[OpsGraph
         )
         for flag_key, payload in sorted((feature_flags.get("flags") or {}).items())
     ]
-    if not flags:
+    customers = [
+        OpsCustomerView(
+            customer_id=str(item_id),
+            name=str(payload.get("name", item_id)),
+            tier=str(payload.get("tier", "standard")),
+            account_status=str(payload.get("account_status", "active")),
+            vip=bool(payload.get("vip", False)),
+            dispute_open=bool(payload.get("dispute_open", False)),
+        )
+        for item_id, payload in sorted((service_ops.get("customers") or {}).items())
+    ]
+    work_orders = [
+        OpsWorkOrderView(
+            work_order_id=str(item_id),
+            service_request_id=str(payload.get("service_request_id", "")),
+            customer_id=str(payload.get("customer_id", "")),
+            title=str(payload.get("title", item_id)),
+            status=str(payload.get("status", "unknown")),
+            required_skill=_optional_str(payload.get("required_skill")),
+            technician_id=_optional_str(payload.get("technician_id")),
+            appointment_id=_optional_str(payload.get("appointment_id")),
+            estimated_amount_usd=float(payload.get("estimated_amount_usd", 0.0) or 0.0),
+        )
+        for item_id, payload in sorted((service_ops.get("work_orders") or {}).items())
+    ]
+    technicians = [
+        OpsTechnicianView(
+            technician_id=str(item_id),
+            name=str(payload.get("name", item_id)),
+            status=str(payload.get("status", "available")),
+            skills=[str(skill) for skill in (payload.get("skills") or [])],
+            current_appointment_id=_optional_str(payload.get("current_appointment_id")),
+            home_zone=_optional_str(payload.get("home_zone")),
+        )
+        for item_id, payload in sorted((service_ops.get("technicians") or {}).items())
+    ]
+    appointments = [
+        OpsAppointmentView(
+            appointment_id=str(item_id),
+            service_request_id=str(payload.get("service_request_id", "")),
+            customer_id=str(payload.get("customer_id", "")),
+            work_order_id=str(payload.get("work_order_id", "")),
+            status=str(payload.get("status", "unknown")),
+            technician_id=_optional_str(payload.get("technician_id")),
+            scheduled_for_ms=(
+                int(payload.get("scheduled_for_ms"))
+                if payload.get("scheduled_for_ms") is not None
+                else None
+            ),
+            dispatch_status=str(payload.get("dispatch_status", "pending")),
+            reschedule_count=int(payload.get("reschedule_count", 0) or 0),
+        )
+        for item_id, payload in sorted((service_ops.get("appointments") or {}).items())
+    ]
+    billing_cases = [
+        OpsBillingCaseView(
+            billing_case_id=str(item_id),
+            customer_id=str(payload.get("customer_id", "")),
+            invoice_id=_optional_str(payload.get("invoice_id")),
+            dispute_status=str(payload.get("dispute_status", "clear")),
+            hold=bool(payload.get("hold", False)),
+            amount_usd=float(payload.get("amount_usd", 0.0) or 0.0),
+        )
+        for item_id, payload in sorted((service_ops.get("billing_cases") or {}).items())
+    ]
+    exceptions = [
+        OpsExceptionView(
+            exception_id=str(item_id),
+            type=str(payload.get("type", item_id)),
+            severity=str(payload.get("severity", "medium")),
+            status=str(payload.get("status", "open")),
+            customer_id=_optional_str(payload.get("customer_id")),
+            service_request_id=_optional_str(payload.get("service_request_id")),
+            work_order_id=_optional_str(payload.get("work_order_id")),
+        )
+        for item_id, payload in sorted((service_ops.get("exceptions") or {}).items())
+    ]
+    policy_payload = service_ops.get("policy") or {}
+    policy = (
+        OpsPolicyView(
+            approval_threshold_usd=float(
+                policy_payload.get("approval_threshold_usd", 1000.0) or 1000.0
+            ),
+            vip_priority_override=bool(
+                policy_payload.get("vip_priority_override", True)
+            ),
+            billing_hold_on_dispute=bool(
+                policy_payload.get("billing_hold_on_dispute", True)
+            ),
+            max_auto_reschedules=int(
+                policy_payload.get("max_auto_reschedules", 2) or 2
+            ),
+        )
+        if policy_payload
+        else None
+    )
+    if (
+        not flags
+        and not customers
+        and not work_orders
+        and not technicians
+        and not appointments
+        and not billing_cases
+        and not exceptions
+    ):
         return None
-    return OpsGraphView(flags=flags)
+    return OpsGraphView(
+        flags=flags,
+        customers=customers,
+        work_orders=work_orders,
+        technicians=technicians,
+        appointments=appointments,
+        billing_cases=billing_cases,
+        exceptions=exceptions,
+        policy=policy,
+    )
 
 
 def _build_property_graph(
@@ -1132,6 +1259,91 @@ def _ops_steps(
                     tags=["rollout", "blast_radius"],
                 )
             )
+    available_technicians = [
+        tech
+        for tech in graph.technicians
+        if tech.status.lower() in {"available", "standby"}
+    ]
+    for billing_case in graph.billing_cases:
+        if billing_case.dispute_status.lower() not in {"open", "reopened", "disputed"}:
+            continue
+        if billing_case.hold:
+            continue
+        steps.append(
+            _plan_step(
+                domain="ops_graph",
+                action="hold_billing",
+                title=f"Hold billing for {billing_case.billing_case_id}",
+                rationale="Disputed invoices should be held before any new billing action continues.",
+                priority="high",
+                tool="service_ops.hold_billing",
+                args={
+                    "billing_case_id": billing_case.billing_case_id,
+                    "reason": "Capability graph plan: hold disputed billing before customer trust erodes.",
+                },
+                target_id=billing_case.billing_case_id,
+                target_kind="billing_case",
+                tags=["billing", "customer_trust"],
+            )
+        )
+    work_order_map = {item.work_order_id: item for item in graph.work_orders}
+    for issue in graph.exceptions:
+        if issue.status.lower() in {"resolved", "mitigated"}:
+            continue
+        work_order = work_order_map.get(issue.work_order_id or "")
+        if (
+            issue.type.lower() in {"technician_unavailable", "sla_risk", "dispatch_gap"}
+            and work_order is not None
+        ):
+            required_skill = (work_order.required_skill or "").strip().lower()
+            matching_technician = next(
+                (
+                    tech
+                    for tech in available_technicians
+                    if not required_skill
+                    or required_skill
+                    in {skill.strip().lower() for skill in tech.skills}
+                ),
+                None,
+            )
+            if matching_technician is not None:
+                steps.append(
+                    _plan_step(
+                        domain="ops_graph",
+                        action="assign_dispatch",
+                        title=f"Dispatch backup tech for {work_order.work_order_id}",
+                        rationale="An open dispatch exception exists and a compatible technician is available.",
+                        priority="high",
+                        tool="service_ops.assign_dispatch",
+                        args={
+                            "work_order_id": work_order.work_order_id,
+                            "technician_id": matching_technician.technician_id,
+                            "appointment_id": work_order.appointment_id,
+                            "note": "Capability graph plan: dispatch backup technician to stabilize service day.",
+                        },
+                        target_id=work_order.work_order_id,
+                        target_kind="service_work_order",
+                        tags=["dispatch", "sla"],
+                    )
+                )
+                continue
+        steps.append(
+            _plan_step(
+                domain="ops_graph",
+                action="clear_exception",
+                title=f"Resolve {issue.exception_id}",
+                rationale="The open exception still needs an explicit resolution trail.",
+                priority="medium",
+                tool="service_ops.clear_exception",
+                args={
+                    "exception_id": issue.exception_id,
+                    "resolution_note": "Capability graph plan: explicitly resolve lingering service exception.",
+                },
+                target_id=issue.exception_id,
+                target_kind="service_exception",
+                tags=["exception", "follow_through"],
+            )
+        )
     return steps
 
 
@@ -2032,6 +2244,62 @@ _ACTION_SCHEMAS = [
         required_args=("flag_key", "rollout_pct"),
         optional_args=("env", "reason"),
         tags=("rollout", "blast_radius"),
+    ),
+    _schema(
+        domain="ops_graph",
+        action="assign_dispatch",
+        title="Assign dispatch",
+        description="Assign a compatible technician to the service work order.",
+        tool="service_ops.assign_dispatch",
+        required_args=("work_order_id", "technician_id"),
+        optional_args=("appointment_id", "scheduled_for_ms", "note"),
+        tags=("dispatch", "service"),
+    ),
+    _schema(
+        domain="ops_graph",
+        action="reschedule_dispatch",
+        title="Reschedule dispatch",
+        description="Reschedule a field appointment onto a different technician slot.",
+        tool="service_ops.reschedule_dispatch",
+        required_args=("appointment_id", "technician_id", "scheduled_for_ms"),
+        optional_args=("note",),
+        tags=("dispatch", "service"),
+    ),
+    _schema(
+        domain="ops_graph",
+        action="hold_billing",
+        title="Hold billing",
+        description="Pause billing activity for a disputed customer case.",
+        tool="service_ops.hold_billing",
+        required_args=("billing_case_id",),
+        optional_args=("reason", "hold"),
+        tags=("billing", "customer_trust"),
+    ),
+    _schema(
+        domain="ops_graph",
+        action="clear_exception",
+        title="Clear exception",
+        description="Resolve or mitigate a service operations exception.",
+        tool="service_ops.clear_exception",
+        required_args=("exception_id",),
+        optional_args=("resolution_note", "status"),
+        tags=("exception", "service"),
+    ),
+    _schema(
+        domain="ops_graph",
+        action="update_policy",
+        title="Update service policy",
+        description="Adjust service-ops policy knobs and rerun from the same snapshot.",
+        tool="service_ops.update_policy",
+        required_args=(),
+        optional_args=(
+            "approval_threshold_usd",
+            "vip_priority_override",
+            "billing_hold_on_dispute",
+            "max_auto_reschedules",
+            "reason",
+        ),
+        tags=("policy", "service"),
     ),
     _schema(
         domain="property_graph",

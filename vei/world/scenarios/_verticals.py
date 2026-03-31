@@ -468,3 +468,23 @@ def _b2b_saas_scenario(name: str, slack_msg: str) -> Scenario:
             "tags": ["saas", "renewal", "crm", "support", "enterprise"],
         },
     )
+
+
+def _service_ops_scenario(name: str, slack_msg: str) -> Scenario:
+    return Scenario(
+        slack_initial_message=slack_msg,
+        metadata={
+            "benchmark_family": "service_ops",
+            "scenario_type": "vertical_demo",
+            "difficulty": "hard",
+            "expected_steps": [8, 18],
+            "tags": ["service", "dispatch", "billing", "exceptions", name],
+        },
+    )
+
+
+def scenario_service_day_collision() -> Scenario:
+    return _service_ops_scenario(
+        "service_day_collision",
+        "Clearwater service-day collision is live.",
+    )

@@ -377,6 +377,8 @@ def _build_vertical_panel(
     vertical_name: str,
     components: Dict[str, Dict[str, Any]],
 ) -> LivingSurfacePanel | None:
+    if vertical_name == "service_ops":
+        return _build_service_ops_panel(components.get("service_ops", {}))
     if vertical_name == "real_estate_management":
         return _build_property_panel(components.get("property_ops", {}))
     if vertical_name == "digital_marketing_agency":
@@ -384,6 +386,108 @@ def _build_vertical_panel(
     if vertical_name == "storage_solutions":
         return _build_inventory_panel(components.get("inventory_ops", {}))
     return None
+
+
+def _build_service_ops_panel(
+    service_ops: Dict[str, Any],
+) -> LivingSurfacePanel | None:
+    if not isinstance(service_ops, dict) or not any(
+        service_ops.get(key)
+        for key in ("work_orders", "appointments", "billing_cases", "exceptions")
+    ):
+        return None
+
+    items: list[LivingSurfaceItem] = []
+    work_orders = _dict_records(service_ops, "work_orders")
+    appointments = _dict_records(service_ops, "appointments")
+    technicians = _dict_records(service_ops, "technicians")
+    billing_cases = _dict_records(service_ops, "billing_cases")
+    exceptions = _dict_records(service_ops, "exceptions")
+
+    for work_order_id, work_order in list(work_orders.items())[:2]:
+        if not isinstance(work_order, dict):
+            continue
+        appointment = appointments.get(str(work_order.get("appointment_id")))
+        technician = technicians.get(str(work_order.get("technician_id")))
+        subtitle = (
+            str(technician.get("name"))
+            if isinstance(technician, dict)
+            else "technician unassigned"
+        )
+        dispatch_status = (
+            str(appointment.get("dispatch_status", "pending"))
+            if isinstance(appointment, dict)
+            else "pending"
+        )
+        items.append(
+            LivingSurfaceItem(
+                item_id=f"service_work_order:{work_order_id}",
+                title=str(work_order.get("title", work_order_id)),
+                subtitle=subtitle,
+                body=_truncate(
+                    f"Dispatch {dispatch_status} · skill {work_order.get('required_skill', 'general')}",
+                    160,
+                ),
+                status=str(work_order.get("status", "")),
+                badges=_compact_badges(
+                    [str(work_order.get("status", "")), dispatch_status]
+                ),
+                highlight_ref=f"service_work_order:{work_order_id}",
+            )
+        )
+
+    for billing_case_id, billing_case in list(billing_cases.items())[:2]:
+        if not isinstance(billing_case, dict):
+            continue
+        hold_state = "hold" if billing_case.get("hold") else "live"
+        items.append(
+            LivingSurfaceItem(
+                item_id=f"billing_case:{billing_case_id}",
+                title=f"Billing {billing_case_id}",
+                subtitle=str(billing_case.get("invoice_id", "invoice")),
+                body=_truncate(
+                    f"Dispute {billing_case.get('dispute_status', 'clear')} · {hold_state}",
+                    150,
+                ),
+                status=("warning" if billing_case.get("hold") else "critical"),
+                badges=_compact_badges(
+                    [str(billing_case.get("dispute_status", "")), hold_state]
+                ),
+                highlight_ref=f"billing_case:{billing_case_id}",
+            )
+        )
+
+    for exception_id, issue in list(exceptions.items())[:2]:
+        if not isinstance(issue, dict):
+            continue
+        items.append(
+            LivingSurfaceItem(
+                item_id=f"service_exception:{exception_id}",
+                title=str(issue.get("type", exception_id)).replace("_", " ").title(),
+                subtitle=str(issue.get("work_order_id", "")),
+                body=_truncate(
+                    f"Severity {issue.get('severity', 'medium')} · status {issue.get('status', 'open')}",
+                    150,
+                ),
+                status=str(issue.get("status", "")),
+                badges=_compact_badges(
+                    [str(issue.get("severity", "")), str(issue.get("status", ""))]
+                ),
+                highlight_ref=f"service_exception:{exception_id}",
+            )
+        )
+
+    return _panel(
+        surface="vertical_heartbeat",
+        kind="vertical_heartbeat",
+        title="Service Loop",
+        accent="#1e6cf2",
+        headline=(
+            f"{len(work_orders)} work orders · {len(appointments)} appointments · "
+            f"{len(billing_cases)} billing cases"
+        ),
+        items=items[:6],
+    )
 
 
 def _build_property_panel(

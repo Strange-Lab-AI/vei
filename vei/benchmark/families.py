@@ -173,6 +173,32 @@ _FAMILY_CATALOG: Dict[str, BenchmarkFamilyManifest] = {
         ],
         tags=["vertical", "storage", "capacity", "quotes"],
     ),
+    "service_ops": BenchmarkFamilyManifest(
+        name="service_ops",
+        title="Service Operations",
+        description=(
+            "Recover a bad service morning by coordinating dispatch, billing safety, "
+            "and exception follow-through from one shared operating loop."
+        ),
+        workflow_name="service_ops",
+        primary_workflow_variant="service_day_collision",
+        workflow_variants=[
+            "service_day_collision",
+            "technician_no_show",
+            "billing_dispute_reopened",
+        ],
+        scenario_names=[
+            "service_day_collision",
+            "technician_no_show",
+            "billing_dispute_reopened",
+        ],
+        primary_dimensions=[
+            "dispatch_recovery",
+            "billing_safety",
+            "artifact_follow_through",
+        ],
+        tags=["vertical", "service", "dispatch", "billing"],
+    ),
 }
 
 

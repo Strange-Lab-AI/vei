@@ -535,6 +535,60 @@ def _check_inventory_surface(session: WorldSessionAPI) -> TwinFidelityCase:
     )
 
 
+def _check_service_ops_surface(session: WorldSessionAPI) -> TwinFidelityCase:
+    action = CapabilityGraphActionInput(
+        domain="ops_graph",
+        action="hold_billing",
+        args={
+            "billing_case_id": "BILL-CFS-100",
+            "reason": "Boundary fidelity hold.",
+        },
+    )
+    result = session.graph_action(action)
+    billing_case = next(
+        (
+            item
+            for item in result.graph.get("billing_cases", [])
+            if item.get("billing_case_id") == "BILL-CFS-100"
+        ),
+        {},
+    )
+    checks = [
+        TwinFidelityCheck(
+            name="resolved_tool",
+            status="ok" if result.tool.endswith("hold_billing") else "warning",
+            summary="Service-ops graph actions resolve to the concrete dispatch-and-billing twin.",
+            payload={"tool": result.tool},
+        ),
+        TwinFidelityCheck(
+            name="billing_hold_written",
+            status="ok" if billing_case.get("hold") is True else "error",
+            summary="Billing hold decisions become visible state in the shared service loop.",
+            payload={"billing_case": billing_case},
+        ),
+        TwinFidelityCheck(
+            name="object_refs",
+            status=(
+                "ok"
+                if "billing_case:BILL-CFS-100"
+                in result.metadata.get("affected_object_refs", [])
+                else "warning"
+            ),
+            summary="Service-ops actions record the affected customer/billing objects for replay and comparison.",
+            payload={"refs": result.metadata.get("affected_object_refs", [])},
+        ),
+    ]
+    return TwinFidelityCase(
+        surface="service_ops",
+        title="Service operations boundary",
+        boundary_contract="Service-ops actions should mutate shared dispatch or billing state in a way that is observable and replayable.",
+        why_it_matters="The Clearwater demo only feels real if dispatch and billing decisions leave a tangible business trail.",
+        resolved_tool=result.tool,
+        status=_combine_status(item.status for item in checks),
+        checks=checks,
+    )
+
+
 def _safe_tool_error(
     session: WorldSessionAPI, tool: str, args: dict[str, object]
 ) -> str:
@@ -562,6 +616,8 @@ def _check_vertical_surface(
     session: WorldSessionAPI, vertical_name: str
 ) -> TwinFidelityCase:
     normalized = vertical_name.strip().lower()
+    if normalized == "service_ops":
+        return _check_service_ops_surface(session)
     if normalized == "digital_marketing_agency":
         return _check_campaign_surface(session)
     if normalized == "storage_solutions":

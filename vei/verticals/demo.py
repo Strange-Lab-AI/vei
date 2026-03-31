@@ -1406,6 +1406,29 @@ def _curated_variant_matrix(
                 rationale="Fix the support and product issues before advancing the commercial conversation.",
             ),
         ],
+        "service_ops": [
+            VerticalVariantMatrixCombination(
+                name="protect_sla",
+                title="Protect SLA",
+                scenario_variant="service_day_collision",
+                contract_variant="protect_sla",
+                rationale="Flagship service-ops path: recover dispatch fast enough to keep the VIP morning intact.",
+            ),
+            VerticalVariantMatrixCombination(
+                name="protect_revenue",
+                title="Protect Revenue",
+                scenario_variant="billing_dispute_reopened",
+                contract_variant="protect_revenue",
+                rationale="Same company, different pressure: contain the reopened billing dispute before revenue and trust erode.",
+            ),
+            VerticalVariantMatrixCombination(
+                name="customer_trust",
+                title="Protect Customer Trust",
+                scenario_variant="technician_no_show",
+                contract_variant="protect_customer_trust",
+                rationale="Keep dispatch recovery and customer communication aligned when the technician path breaks.",
+            ),
+        ],
     }
     if vertical_name not in curated:
         raise KeyError(f"unknown vertical pack: {vertical_name}")

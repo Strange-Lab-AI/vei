@@ -220,6 +220,34 @@ class B2bSaasWorkflowParams(BaseModel):
     deadline_max_ms: int = 180_000
 
 
+class ServiceOpsWorkflowParams(BaseModel):
+    request_id: str = "SR-CFS-100"
+    work_order_id: str = "WO-CFS-100"
+    appointment_id: str = "APT-CFS-100"
+    technician_id: str = "TECH-CFS-02"
+    billing_case_id: str = "BILL-CFS-100"
+    exception_id: str = "EXC-CFS-101"
+    ticket_id: str = "JRA-CFS-10"
+    doc_id: str = "DOC-CFS-HANDOFF"
+    slack_channel: str = "#clearwater-dispatch"
+    dispatch_note: str = (
+        "Backup controls technician assigned and VIP appointment stabilized."
+    )
+    billing_note: str = (
+        "Disputed invoice remains on hold while the VIP service response is coordinated."
+    )
+    doc_update_note: str = (
+        "Backup dispatch assigned, billing hold linked to the dispute, and field-to-billing handoff aligned."
+    )
+    ticket_note: str = (
+        "VIP service loop stabilized: dispatch reassigned, billing held safely, and exceptions explicitly resolved."
+    )
+    slack_summary: str = (
+        "Clearwater Medical is stabilized: backup tech dispatched, billing held, and one coherent customer path restored."
+    )
+    deadline_max_ms: int = 180_000
+
+
 WorkflowParams = (
     SecurityContainmentWorkflowParams
     | EnterpriseOnboardingMigrationWorkflowParams
@@ -229,4 +257,5 @@ WorkflowParams = (
     | DigitalMarketingAgencyWorkflowParams
     | StorageSolutionsWorkflowParams
     | B2bSaasWorkflowParams
+    | ServiceOpsWorkflowParams
 )

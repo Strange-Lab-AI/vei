@@ -49,6 +49,8 @@ def score_enterprise_dimensions(
         dimensions = _score_digital_marketing_agency(calls, state)
     elif manifest.name == "storage_solutions":
         dimensions = _score_storage_solutions(calls, state)
+    elif manifest.name == "service_ops":
+        dimensions = _score_service_ops(calls, state)
     else:
         dimensions = {}
 
@@ -527,6 +529,60 @@ def _score_storage_solutions(
     return {
         "capacity_feasibility": _clamp(capacity_feasibility),
         "quote_accuracy": _clamp(quote_accuracy),
+        "artifact_follow_through": _clamp(artifact_follow_through),
+    }
+
+
+def _score_service_ops(
+    calls: List[Dict[str, Any]], state: WorldState | None
+) -> Dict[str, float]:
+    service_ops = state.components.get("service_ops", {}) if state else {}
+    docs = _component(state, "docs", "docs")
+    ticket_metadata = _component(state, "tickets", "metadata")
+    work_orders = service_ops.get("work_orders", {})
+    appointments = service_ops.get("appointments", {})
+    billing_cases = service_ops.get("billing_cases", {})
+
+    dispatch_recovery = 0.0
+    if any(
+        str(order.get("status", "")).lower() == "dispatched"
+        for order in work_orders.values()
+    ):
+        dispatch_recovery += 0.5
+    if any(
+        str(appointment.get("dispatch_status", "")).lower() == "assigned"
+        for appointment in appointments.values()
+    ):
+        dispatch_recovery += 0.5
+
+    disputed_cases = [
+        case
+        for case in billing_cases.values()
+        if str(case.get("dispute_status", "")).lower()
+        in {"open", "reopened", "disputed"}
+    ]
+    if disputed_cases:
+        billing_safety = _ratio(
+            disputed_cases, lambda case: bool(case.get("hold", False))
+        )
+    else:
+        billing_safety = 1.0
+
+    artifact_follow_through = 0.0
+    if any(
+        "billing hold linked" in str(doc.get("body", "")).lower()
+        or "backup dispatch assigned" in str(doc.get("body", "")).lower()
+        for doc in docs.values()
+    ):
+        artifact_follow_through += 0.4
+    if any(len(meta.get("comments", [])) > 0 for meta in ticket_metadata.values()):
+        artifact_follow_through += 0.3
+    if _count_prefix(calls, ("docs.", "tickets.", "slack.")) >= 3:
+        artifact_follow_through += 0.3
+
+    return {
+        "dispatch_recovery": _clamp(dispatch_recovery),
+        "billing_safety": _clamp(billing_safety),
         "artifact_follow_through": _clamp(artifact_follow_through),
     }
 

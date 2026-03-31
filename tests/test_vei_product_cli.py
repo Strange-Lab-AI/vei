@@ -586,7 +586,7 @@ def test_product_cli_vertical_variant_commands_and_matrix(tmp_path: Path) -> Non
     )
     assert matrix_result.exit_code == 0, matrix_result.output
     payload = json.loads(matrix_result.output)
-    assert len(payload["runs"]) == 12
+    assert len(payload["runs"]) == 15
     assert "same runtime kernel" in (
         matrix_root / "variant_showcase" / "vertical_variant_matrix_overview.md"
     ).read_text(encoding="utf-8")

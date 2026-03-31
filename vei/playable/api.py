@@ -82,6 +82,7 @@ def build_playable_mission_catalog() -> MissionCatalog:
             "digital_marketing_agency",
             "storage_solutions",
             "b2b_saas",
+            "service_ops",
         ],
         missions=_mission_specs(),
     )

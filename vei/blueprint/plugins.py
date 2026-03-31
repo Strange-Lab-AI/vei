@@ -184,6 +184,18 @@ def _inventory_provider_factory(component: Any) -> Any:
     return InventoryOpsToolProvider(component)
 
 
+def _service_ops_component_factory(router: Any, scenario: "Scenario") -> Any:
+    from vei.router.service_ops import ServiceOpsSim
+
+    return ServiceOpsSim(scenario)
+
+
+def _service_ops_provider_factory(component: Any) -> Any:
+    from vei.router.service_ops import ServiceOpsToolProvider
+
+    return ServiceOpsToolProvider(component)
+
+
 def _component_summary(router: Any, component: Any) -> str:
     return component.summary()
 
@@ -669,6 +681,35 @@ def _bootstrap_default_plugins() -> None:
             state_restore=_component_restore,
             component_factory=_inventory_component_factory,
             provider_factory=_inventory_provider_factory,
+        ),
+        FacadePlugin(
+            manifest=_manifest(
+                name="service_ops",
+                title="Service Operations",
+                domain="ops_graph",
+                router_module="vei.router.service_ops",
+                description="Dispatch, billing hold, technician, and exception management surface.",
+                surfaces=["mcp", "ui"],
+                primary_tools=[
+                    "service_ops.list_overview",
+                    "service_ops.assign_dispatch",
+                    "service_ops.hold_billing",
+                ],
+                state_roots=["components.service_ops"],
+                tags=["vertical", "service", "operations"],
+            ),
+            tool_families=("service_ops",),
+            tool_prefixes=("service_ops.",),
+            scenario_seed_fields=("service_ops",),
+            component_attr="service_ops",
+            focuses=("service_ops",),
+            event_targets=("service_ops",),
+            summary_builder=_component_summary,
+            action_menu_builder=_component_action_menu,
+            state_dump=_component_dump,
+            state_restore=_component_restore,
+            component_factory=_service_ops_component_factory,
+            provider_factory=_service_ops_provider_factory,
         ),
     ]
     for plugin in builtins:

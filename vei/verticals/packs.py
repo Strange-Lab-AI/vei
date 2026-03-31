@@ -9,6 +9,7 @@ from vei.blueprint.models import BlueprintAsset
 from .packs_marketing import build as _build_marketing_blueprint
 from .packs_real_estate import build as _build_real_estate_blueprint
 from .packs_saas import build as _build_saas_blueprint
+from .packs_service_ops import build as _build_service_ops_blueprint
 from .packs_storage import build as _build_storage_blueprint
 
 
@@ -165,6 +166,37 @@ _VERTICAL_PACKS: Dict[str, VerticalPackManifest] = {
             "Lead with the discount and hope the product issues don't kill the deal",
         ],
     ),
+    "service_ops": VerticalPackManifest(
+        name="service_ops",
+        title="Service Operations",
+        description="Dispatch, billing, and exception collision for a VIP service account under morning pressure.",
+        company_name="Clearwater Field Services",
+        company_briefing=(
+            "Clearwater Field Services coordinates field dispatch, account handling, billing follow-through, "
+            "and exception management across a high-volume service business."
+        ),
+        failure_impact=(
+            "If this scenario fails, Clearwater misses a VIP SLA, aggravates an open billing dispute, "
+            "and turns one bad morning into churn and manual cleanup."
+        ),
+        objective_focus=(
+            "Protect the service loop end to end: route the right technician, keep billing safe, "
+            "and resolve the morning with a credible cross-team trail."
+        ),
+        scenario_name="service_day_collision",
+        workflow_name="service_ops",
+        workflow_variant="service_day_collision",
+        key_surfaces=["ops_graph", "docs", "slack", "mail", "jira", "servicedesk"],
+        proves=[
+            "dispatch recovery",
+            "billing safety",
+            "policy-shaped service operations",
+        ],
+        what_if_branches=[
+            "Leave billing live while the dispute is still open",
+            "Change one policy threshold and rerun the same morning",
+        ],
+    ),
 }
 
 
@@ -173,4 +205,5 @@ _VERTICAL_BUILDERS = {
     "digital_marketing_agency": _build_marketing_blueprint,
     "storage_solutions": _build_storage_blueprint,
     "b2b_saas": _build_saas_blueprint,
+    "service_ops": _build_service_ops_blueprint,
 }

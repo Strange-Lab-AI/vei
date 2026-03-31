@@ -338,8 +338,83 @@ class OpsFlagView(BaseModel):
     rollout_pct: int = 0
 
 
+class OpsCustomerView(BaseModel):
+    customer_id: str
+    name: str
+    tier: str = "standard"
+    account_status: str = "active"
+    vip: bool = False
+    dispute_open: bool = False
+
+
+class OpsWorkOrderView(BaseModel):
+    work_order_id: str
+    service_request_id: str
+    customer_id: str
+    title: str
+    status: str
+    required_skill: Optional[str] = None
+    technician_id: Optional[str] = None
+    appointment_id: Optional[str] = None
+    estimated_amount_usd: float = 0.0
+
+
+class OpsTechnicianView(BaseModel):
+    technician_id: str
+    name: str
+    status: str = "available"
+    skills: List[str] = Field(default_factory=list)
+    current_appointment_id: Optional[str] = None
+    home_zone: Optional[str] = None
+
+
+class OpsAppointmentView(BaseModel):
+    appointment_id: str
+    service_request_id: str
+    customer_id: str
+    work_order_id: str
+    status: str
+    technician_id: Optional[str] = None
+    scheduled_for_ms: Optional[int] = None
+    dispatch_status: str = "pending"
+    reschedule_count: int = 0
+
+
+class OpsBillingCaseView(BaseModel):
+    billing_case_id: str
+    customer_id: str
+    invoice_id: Optional[str] = None
+    dispute_status: str = "clear"
+    hold: bool = False
+    amount_usd: float = 0.0
+
+
+class OpsExceptionView(BaseModel):
+    exception_id: str
+    type: str
+    severity: str = "medium"
+    status: str = "open"
+    customer_id: Optional[str] = None
+    service_request_id: Optional[str] = None
+    work_order_id: Optional[str] = None
+
+
+class OpsPolicyView(BaseModel):
+    approval_threshold_usd: float = 1000.0
+    vip_priority_override: bool = True
+    billing_hold_on_dispute: bool = True
+    max_auto_reschedules: int = 2
+
+
 class OpsGraphView(BaseModel):
     flags: List[OpsFlagView] = Field(default_factory=list)
+    customers: List[OpsCustomerView] = Field(default_factory=list)
+    work_orders: List[OpsWorkOrderView] = Field(default_factory=list)
+    technicians: List[OpsTechnicianView] = Field(default_factory=list)
+    appointments: List[OpsAppointmentView] = Field(default_factory=list)
+    billing_cases: List[OpsBillingCaseView] = Field(default_factory=list)
+    exceptions: List[OpsExceptionView] = Field(default_factory=list)
+    policy: Optional[OpsPolicyView] = None
 
 
 GraphActionPriority = Literal["high", "medium", "low"]
@@ -446,8 +521,15 @@ __all__ = [
     "ObsIncidentView",
     "ObsMonitorView",
     "ObsServiceView",
+    "OpsAppointmentView",
+    "OpsBillingCaseView",
+    "OpsCustomerView",
+    "OpsExceptionView",
     "OpsFlagView",
     "OpsGraphView",
+    "OpsPolicyView",
+    "OpsTechnicianView",
+    "OpsWorkOrderView",
     "OrderView",
     "PropertyGraphView",
     "PropertyView",

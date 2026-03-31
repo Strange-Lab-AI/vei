@@ -89,6 +89,7 @@ def build_blueprint_asset_for_family(
         "real_estate_management",
         "digital_marketing_agency",
         "storage_solutions",
+        "service_ops",
     }:
         asset = build_vertical_blueprint_asset(family_name)
         if variant_name:
@@ -445,6 +446,39 @@ def materialize_scenario_from_blueprint(asset: BlueprintAsset) -> Scenario:
         scenario.inventory_graph = asset.capability_graphs.inventory_graph.model_dump(
             mode="json"
         )
+    if asset.capability_graphs is not None and asset.capability_graphs.ops_graph:
+        ops_graph = asset.capability_graphs.ops_graph
+        if ops_graph.flags:
+            scenario.feature_flags = {
+                "flags": {
+                    item.flag_key: item.model_dump(mode="json")
+                    for item in ops_graph.flags
+                }
+            }
+        scenario.service_ops = {
+            "customers": [item.model_dump(mode="json") for item in ops_graph.customers],
+            "work_orders": [
+                item.model_dump(mode="json") for item in ops_graph.work_orders
+            ],
+            "technicians": [
+                item.model_dump(mode="json") for item in ops_graph.technicians
+            ],
+            "appointments": [
+                item.model_dump(mode="json") for item in ops_graph.appointments
+            ],
+            "billing_cases": [
+                item.model_dump(mode="json") for item in ops_graph.billing_cases
+            ],
+            "exceptions": [
+                item.model_dump(mode="json") for item in ops_graph.exceptions
+            ],
+            "policy": (
+                ops_graph.policy.model_dump(mode="json")
+                if ops_graph.policy is not None
+                else {}
+            ),
+            "metadata": dict(ops_graph.metadata),
+        }
 
     metadata: Dict[str, Any] = dict(scenario.metadata or {})
     metadata.update(
@@ -630,6 +664,21 @@ def _build_environment_summary(
             if asset.capability_graphs and asset.capability_graphs.inventory_graph
             else []
         ),
+        service_customer_count=len(
+            (asset.capability_graphs.ops_graph.customers)
+            if asset.capability_graphs and asset.capability_graphs.ops_graph
+            else []
+        ),
+        service_work_order_count=len(
+            (asset.capability_graphs.ops_graph.work_orders)
+            if asset.capability_graphs and asset.capability_graphs.ops_graph
+            else []
+        ),
+        technician_count=len(
+            (asset.capability_graphs.ops_graph.technicians)
+            if asset.capability_graphs and asset.capability_graphs.ops_graph
+            else []
+        ),
         scenario_template_name=asset.scenario_name,
     )
 
@@ -712,6 +761,28 @@ def _build_graph_summaries(asset: BlueprintAsset) -> List[CapabilityGraphSummary
                     "companies": len(graphs.revenue_graph.companies),
                     "contacts": len(graphs.revenue_graph.contacts),
                     "deals": len(graphs.revenue_graph.deals),
+                },
+            )
+        )
+    if graphs.ops_graph is not None:
+        summaries.append(
+            CapabilityGraphSummary(
+                domain="ops_graph",
+                entity_count=len(graphs.ops_graph.flags)
+                + len(graphs.ops_graph.customers)
+                + len(graphs.ops_graph.work_orders)
+                + len(graphs.ops_graph.technicians)
+                + len(graphs.ops_graph.appointments)
+                + len(graphs.ops_graph.billing_cases)
+                + len(graphs.ops_graph.exceptions),
+                facet_counts={
+                    "flags": len(graphs.ops_graph.flags),
+                    "customers": len(graphs.ops_graph.customers),
+                    "work_orders": len(graphs.ops_graph.work_orders),
+                    "technicians": len(graphs.ops_graph.technicians),
+                    "appointments": len(graphs.ops_graph.appointments),
+                    "billing_cases": len(graphs.ops_graph.billing_cases),
+                    "exceptions": len(graphs.ops_graph.exceptions),
                 },
             )
         )
