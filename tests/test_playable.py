@@ -32,6 +32,16 @@ def _make_workspace(tmp_path: Path) -> Path:
     return root
 
 
+def _make_service_ops_workspace(tmp_path: Path) -> Path:
+    root = tmp_path / "service_ops_playable"
+    create_workspace_from_template(
+        root=root,
+        source_kind="vertical",
+        source_ref="service_ops",
+    )
+    return root
+
+
 def _set_runs_dir(root: Path, runs_dir: str) -> None:
     project_path = root / "vei_project.json"
     payload = json.loads(project_path.read_text(encoding="utf-8"))
@@ -128,6 +138,32 @@ def test_apply_move_advances_state(tmp_path: Path) -> None:
     assert updated.turn_index >= 1
     assert len(updated.executed_moves) == 1
     assert updated.scorecard.move_count == 1
+
+
+def test_service_ops_partial_run_scores_differ_by_objective(tmp_path: Path) -> None:
+    root = _make_service_ops_workspace(tmp_path)
+
+    def _run_partial(objective: str) -> int:
+        state = start_workspace_mission_run(
+            root,
+            mission_name="service_day_collision",
+            objective_variant=objective,
+        )
+        for _ in range(2):
+            next_move = next(
+                move for move in state.available_moves if move.availability != "blocked"
+            )
+            state = apply_workspace_mission_move(
+                root,
+                run_id=state.run_id,
+                move_id=next_move.move_id,
+            )
+        return state.scorecard.overall_score
+
+    sla_score = _run_partial("protect_sla")
+    revenue_score = _run_partial("protect_revenue")
+
+    assert sla_score > revenue_score
 
 
 def test_playable_mission_move_updates_living_company_surfaces(tmp_path: Path) -> None:

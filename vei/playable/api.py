@@ -477,7 +477,11 @@ def apply_workspace_mission_move(
         resolved_tool=result.tool,
         object_refs=list(result.metadata.get("affected_object_refs") or []),
         time_ms=snapshot.time_ms,
-        payload={"result": result.result, "observation": observation},
+        payload={
+            "result": result.result,
+            "observation": observation,
+            "availability": move_state.availability,
+        },
     )
     state.executed_moves.append(executed)
     state.turn_index += 1
@@ -914,7 +918,24 @@ def _build_scorecard(
         contract_eval.forbidden_predicate_count
         - contract_eval.forbidden_predicates_failed,
     )
-    completion_ratio = passed_assertions / max(total_assertions, 1)
+
+    meta = contract_eval.metadata or {}
+    category_weights: dict[str, float] = meta.get("category_weights") or {}
+    predicate_categories: dict[str, str] = meta.get("predicate_categories") or {}
+    failed_names: set[str] = set(meta.get("failed_predicate_names") or [])
+
+    if category_weights and predicate_categories:
+        weighted_earned = 0.0
+        weighted_total = 0.0
+        for pred_name, category in predicate_categories.items():
+            w = category_weights.get(category, 1.0)
+            weighted_total += w
+            if pred_name not in failed_names:
+                weighted_earned += w
+        completion_ratio = weighted_earned / max(weighted_total, 1.0)
+    else:
+        completion_ratio = passed_assertions / max(total_assertions, 1)
+
     score = int(round(completion_ratio * 70))
     if contract_eval.ok:
         score += 20

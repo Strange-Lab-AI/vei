@@ -154,6 +154,13 @@ def test_ui_api_serves_living_company_surfaces_for_vertical_runs(
             "vertical_heartbeat",
         }
         assert panel_map["mail"]["items"]
+        if vertical_name == "service_ops":
+            assert panel_map["vertical_heartbeat"]["policy"] == {
+                "approval_threshold_usd": 1000.0,
+                "vip_priority_override": True,
+                "billing_hold_on_dispute": True,
+                "max_auto_reschedules": 2,
+            }
 
 
 def test_ui_api_serves_exercise_and_dataset_sidecar_payloads(

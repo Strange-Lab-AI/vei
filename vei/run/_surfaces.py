@@ -487,6 +487,7 @@ def _build_service_ops_panel(
             f"{len(billing_cases)} billing cases"
         ),
         items=items[:6],
+        policy=dict(service_ops.get("policy") or {}),
     )
 
 
@@ -774,6 +775,7 @@ def _panel(
     headline: str,
     items: list[LivingSurfaceItem],
     fallback_status: SurfacePanelStatus | str | None = None,
+    policy: dict[str, Any] | None = None,
 ) -> LivingSurfacePanel | None:
     if not items:
         return None
@@ -788,6 +790,7 @@ def _panel(
         highlight_refs=[
             item.highlight_ref for item in items if item.highlight_ref is not None
         ],
+        policy=dict(policy or {}),
     )
 
 

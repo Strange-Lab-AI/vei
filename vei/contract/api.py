@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any, Iterable, List
 
 from vei.scenario_engine.compiler import CompiledWorkflow
-from vei.scenario_engine.models import WorkflowScenarioSpec
+from vei.scenario_engine.models import AssertionSpec, WorkflowScenarioSpec
 
 from .assertions import evaluate_assertion_specs, infer_assertion_source
 from .models import (
@@ -27,6 +27,36 @@ _FORBIDDEN_ASSERTION_KINDS = {
     "time_max_ms",
 }
 
+_CATEGORY_PATTERNS = [
+    ("service_ops.work_orders", "dispatch"),
+    ("service_ops.appointments", "dispatch"),
+    ("service_ops.billing_cases", "billing"),
+    ("service_ops.exceptions", "billing"),
+    ("docs.", "communication"),
+    ("tickets.", "communication"),
+    ("slack.", "communication"),
+    ("mail.", "communication"),
+]
+
+_TERMINAL_EXCEPTION_STATUSES = {"resolved", "mitigated", "closed", "completed"}
+_ACTIVE_DISPUTE_STATUSES = {"open", "reopened", "disputed"}
+_DISPATCH_EXCEPTION_TYPES = {"technician_unavailable", "sla_risk", "schedule_collision"}
+_BILLING_EXCEPTION_TYPES = {
+    "billing_dispute_open",
+    "duplicate_bill_risk",
+    "overdue_balance_conflict",
+}
+
+
+def _infer_assertion_category(assertion: "AssertionSpec") -> str:
+    if assertion.kind == "time_max_ms":
+        return "sla_timing"
+    field = assertion.field or ""
+    for pattern, category in _CATEGORY_PATTERNS:
+        if pattern in field:
+            return category
+    return "general"
+
 
 def build_contract_from_workflow(
     workflow: CompiledWorkflow | WorkflowScenarioSpec,
@@ -44,6 +74,7 @@ def build_contract_from_workflow(
             source=infer_assertion_source(assertion),
             assertion=assertion,
             description=assertion.description,
+            metadata={"category": _infer_assertion_category(assertion)},
         )
         if assertion.kind in _FORBIDDEN_ASSERTION_KINDS:
             forbidden_predicates.append(predicate)
@@ -224,6 +255,11 @@ def evaluate_contract(
     )
     dynamic_issues.extend(success_failures)
     dynamic_issues.extend(forbidden_failures)
+    policy_failures = _evaluate_policy_invariants(
+        contract,
+        oracle_state=oracle_state,
+    )
+    dynamic_issues.extend(policy_failures)
 
     static_report = ContractValidationReport(
         ok=not any(issue.severity == "error" for issue in static_issues),
@@ -233,6 +269,17 @@ def evaluate_contract(
         ok=not any(issue.severity == "error" for issue in dynamic_issues),
         issues=dynamic_issues,
     )
+    failed_predicate_names = {
+        issue.predicate_name
+        for issue in success_failures + forbidden_failures
+        if issue.predicate_name
+    }
+    predicate_categories: dict[str, str] = {}
+    for pred in contract.success_predicates + contract.forbidden_predicates:
+        predicate_categories[pred.name] = pred.metadata.get("category", "general")
+
+    category_weights = dict(contract.metadata.get("category_weights") or {})
+
     return ContractEvaluationResult(
         ok=static_report.ok and dynamic_report.ok,
         contract_name=contract.name,
@@ -247,7 +294,7 @@ def evaluate_contract(
         forbidden_predicate_count=len(contract.forbidden_predicates),
         forbidden_predicates_failed=len(forbidden_failures),
         policy_invariant_count=len(contract.policy_invariants),
-        policy_invariants_failed=0,
+        policy_invariants_failed=len(policy_failures),
         metadata={
             "validation_mode": validation_mode,
             "scenario_name": contract.scenario_name,
@@ -257,8 +304,157 @@ def evaluate_contract(
             "reward_terms": [
                 item.model_dump(mode="json") for item in contract.reward_terms
             ],
+            "predicate_categories": predicate_categories,
+            "failed_predicate_names": sorted(failed_predicate_names),
+            "failed_policy_invariants": sorted(
+                issue.predicate_name
+                for issue in policy_failures
+                if issue.predicate_name
+            ),
+            "category_weights": category_weights,
         },
     )
+
+
+def _evaluate_policy_invariants(
+    contract: ContractSpec,
+    *,
+    oracle_state: dict[str, Any],
+) -> list[ContractValidationIssue]:
+    issues: list[ContractValidationIssue] = []
+    for invariant in contract.policy_invariants:
+        if not invariant.required:
+            continue
+        failure = _policy_invariant_failure(
+            invariant=invariant,
+            oracle_state=oracle_state,
+        )
+        if failure is None:
+            continue
+        issues.append(
+            ContractValidationIssue(
+                code="policy_invariant.failed",
+                message=failure,
+                predicate_name=invariant.name,
+                source="oracle_state",
+                metadata={"policy_invariant": invariant.name},
+            )
+        )
+    return issues
+
+
+def _policy_invariant_failure(
+    *,
+    invariant: PolicyInvariantSpec,
+    oracle_state: dict[str, Any],
+) -> str | None:
+    name = invariant.name.strip().lower()
+    if name.startswith("approval:"):
+        return None
+
+    components = oracle_state.get("components")
+    if not isinstance(components, dict):
+        return None
+
+    if name == "dispatch_before_breach":
+        return _dispatch_before_breach_failure(components)
+    if name == "billing_safety_first":
+        return _billing_safety_first_failure(components)
+    if name == "single_customer_story":
+        return _single_customer_story_failure(components)
+    return None
+
+
+def _dispatch_before_breach_failure(components: dict[str, Any]) -> str | None:
+    service_ops = _service_ops_state(components)
+    if not service_ops:
+        return None
+
+    work_orders = _records(service_ops, "work_orders")
+    appointments = _records(service_ops, "appointments")
+    exceptions = _records(service_ops, "exceptions")
+
+    for exception_id, issue in exceptions.items():
+        issue_type = str(issue.get("type") or "").lower()
+        status = str(issue.get("status") or "").lower()
+        if issue_type not in _DISPATCH_EXCEPTION_TYPES:
+            continue
+        if status in _TERMINAL_EXCEPTION_STATUSES:
+            continue
+        work_order_id = str(issue.get("work_order_id") or "")
+        work_order = work_orders.get(work_order_id, {})
+        appointment_id = str(work_order.get("appointment_id") or "")
+        appointment = appointments.get(appointment_id, {})
+        dispatch_status = str(appointment.get("dispatch_status") or "").lower()
+        technician_id = str(work_order.get("technician_id") or "")
+        if technician_id and dispatch_status == "assigned":
+            continue
+        return (
+            f"dispatch risk remains open on work order {work_order_id or exception_id}; "
+            "the backup route is not fully assigned"
+        )
+    return None
+
+
+def _billing_safety_first_failure(components: dict[str, Any]) -> str | None:
+    service_ops = _service_ops_state(components)
+    if not service_ops:
+        return None
+
+    billing_cases = _records(service_ops, "billing_cases")
+    for billing_case_id, billing_case in billing_cases.items():
+        dispute_status = str(billing_case.get("dispute_status") or "").lower()
+        if dispute_status not in _ACTIVE_DISPUTE_STATUSES:
+            continue
+        if bool(billing_case.get("hold")):
+            continue
+        return (
+            f"billing case {billing_case_id} is still live while the dispute is "
+            f"{dispute_status}"
+        )
+    return None
+
+
+def _single_customer_story_failure(components: dict[str, Any]) -> str | None:
+    service_ops = _service_ops_state(components)
+    if not service_ops:
+        return None
+
+    billing_failure = _billing_safety_first_failure(components)
+    if billing_failure is not None:
+        return billing_failure
+
+    exceptions = _records(service_ops, "exceptions")
+    for exception_id, issue in exceptions.items():
+        issue_type = str(issue.get("type") or "").lower()
+        status = str(issue.get("status") or "").lower()
+        if issue_type not in _BILLING_EXCEPTION_TYPES:
+            continue
+        if status in _TERMINAL_EXCEPTION_STATUSES:
+            continue
+        return (
+            f"billing exception {exception_id} is still {status}; the customer story "
+            "is not yet coherent"
+        )
+    return None
+
+
+def _service_ops_state(components: dict[str, Any]) -> dict[str, Any]:
+    service_ops = components.get("service_ops")
+    if isinstance(service_ops, dict):
+        return service_ops
+    return {}
+
+
+def _records(service_ops: dict[str, Any], key: str) -> dict[str, dict[str, Any]]:
+    records = service_ops.get(key)
+    if not isinstance(records, dict):
+        return {}
+    return {
+        str(record_id): payload
+        for record_id, payload in records.items()
+        if isinstance(payload, dict)
+    }
 
 
 def _evaluate_predicates(

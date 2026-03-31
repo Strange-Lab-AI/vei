@@ -24,6 +24,7 @@ class VerticalContractVariantSpec(BaseModel):
     forbidden_predicates: list[ContractPredicateSpec] = Field(default_factory=list)
     policy_invariants: list[PolicyInvariantSpec] = Field(default_factory=list)
     reward_terms: list[RewardTermSpec] = Field(default_factory=list)
+    category_weights: dict[str, float] = Field(default_factory=dict)
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 
@@ -79,6 +80,8 @@ def apply_vertical_contract_variant(
         "vertical_contract_rationale": variant.rationale,
         **dict(variant.metadata),
     }
+    if variant.category_weights:
+        payload["metadata"]["category_weights"] = dict(variant.category_weights)
     return ContractSpec.model_validate(payload)
 
 
@@ -394,6 +397,12 @@ _VERTICAL_CONTRACT_VARIANTS: dict[str, dict[str, VerticalContractVariantSpec]] =
             description="Default business contract: recover dispatch fast enough to protect the VIP service window.",
             objective_summary="Prioritize rapid, valid dispatch recovery so the service request reaches a credible field response on time.",
             rationale="This is the default Clearwater business objective and the clearest service-ops baseline.",
+            category_weights={
+                "dispatch": 3.0,
+                "billing": 1.0,
+                "communication": 1.0,
+                "sla_timing": 3.0,
+            },
             policy_invariants=[
                 PolicyInvariantSpec(
                     name="dispatch_before_breach",
@@ -417,6 +426,12 @@ _VERTICAL_CONTRACT_VARIANTS: dict[str, dict[str, VerticalContractVariantSpec]] =
             description="Bias toward billing safety and account preservation when service and finance pressure collide.",
             objective_summary="Prefer actions that prevent billing damage and preserve the customer relationship while the field response unfolds.",
             rationale="Useful when the same service day should optimize for revenue preservation instead of raw dispatch speed.",
+            category_weights={
+                "dispatch": 1.0,
+                "billing": 3.0,
+                "communication": 1.0,
+                "sla_timing": 1.0,
+            },
             policy_invariants=[
                 PolicyInvariantSpec(
                     name="billing_safety_first",
@@ -440,6 +455,12 @@ _VERTICAL_CONTRACT_VARIANTS: dict[str, dict[str, VerticalContractVariantSpec]] =
             description="Bias toward one coherent customer story across dispatch, billing, and escalation surfaces.",
             objective_summary="Keep the customer-facing truth clean: dispatch, billing, and manager escalation should all tell the same story.",
             rationale="Shows the same service loop optimized around trust, coordination, and low managerial thrash.",
+            category_weights={
+                "dispatch": 1.0,
+                "billing": 1.0,
+                "communication": 3.0,
+                "sla_timing": 1.0,
+            },
             policy_invariants=[
                 PolicyInvariantSpec(
                     name="single_customer_story",

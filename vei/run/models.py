@@ -102,6 +102,7 @@ class LivingSurfacePanel(BaseModel):
     headline: Optional[str] = None
     items: List[LivingSurfaceItem] = Field(default_factory=list)
     highlight_refs: List[str] = Field(default_factory=list)
+    policy: Dict[str, Any] = Field(default_factory=dict)
 
 
 class LivingSurfaceState(BaseModel):

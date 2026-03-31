@@ -3,6 +3,10 @@ from __future__ import annotations
 from vei.contract.api import build_contract_from_workflow, evaluate_contract
 from vei.scenario_engine.api import compile_workflow
 from vei.scenario_runner.api import run_workflow, validate_workflow_outcome
+from vei.verticals.contract_variants import (
+    apply_vertical_contract_variant,
+    get_vertical_contract_variant,
+)
 
 
 def test_build_contract_from_workflow_classifies_predicates_and_boundary() -> None:
@@ -170,3 +174,54 @@ def test_validate_workflow_outcome_returns_contract_backed_metadata() -> None:
     assert validation.metadata["observation_boundary"]["allowed_tools"] == [
         "google_admin.restrict_drive_share"
     ]
+
+
+def test_service_ops_policy_invariant_failure_affects_contract_result() -> None:
+    workflow = compile_workflow(
+        {
+            "name": "service-ops-policy-contract",
+            "objective": {
+                "statement": "Keep the service account safe.",
+                "success": ["case stays safe"],
+            },
+            "world": {"catalog": "service_day_collision"},
+            "steps": [],
+            "success_assertions": [
+                {
+                    "kind": "state_equals",
+                    "field": "components.service_ops.work_orders.WO-1.status",
+                    "equals": "open",
+                }
+            ],
+        },
+        seed=44,
+    )
+    contract = apply_vertical_contract_variant(
+        build_contract_from_workflow(workflow),
+        get_vertical_contract_variant("service_ops", "protect_revenue"),
+    )
+
+    validation = evaluate_contract(
+        contract,
+        oracle_state={
+            "components": {
+                "service_ops": {
+                    "work_orders": {"WO-1": {"status": "open"}},
+                    "billing_cases": {
+                        "BILL-1": {
+                            "billing_case_id": "BILL-1",
+                            "dispute_status": "open",
+                            "hold": False,
+                        }
+                    },
+                }
+            }
+        },
+        visible_observation={},
+        time_ms=0,
+    )
+
+    assert validation.ok is False
+    assert validation.success_predicates_failed == 0
+    assert validation.policy_invariants_failed == 1
+    assert validation.metadata["failed_policy_invariants"] == ["billing_safety_first"]

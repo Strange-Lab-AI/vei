@@ -71,6 +71,8 @@ const state = {
   compareRunB: null,
   compareTimelineA: [],
   compareTimelineB: [],
+  compareMissionA: null,
+  compareMissionB: null,
   cinemaAutoAdvance: false,
   cinemaAutoTimer: null,
   playbackTimer: null,
@@ -1374,6 +1376,8 @@ async function toggleCompareMode() {
     state.compareRunB = null;
     state.compareTimelineA = [];
     state.compareTimelineB = [];
+    state.compareMissionA = null;
+    state.compareMissionB = null;
     if (state.timelineMode) renderTimelineView();
     return;
   }
@@ -1386,12 +1390,20 @@ async function toggleCompareMode() {
   }
   state.compareRunA = runs[0];
   state.compareRunB = runs[1];
-  const [tlA, tlB] = await Promise.all([
+  const [tlA, tlB, contractA, contractB, missionA, missionB] = await Promise.all([
     getJson(`/api/runs/${runs[0].run_id}/timeline`),
     getJson(`/api/runs/${runs[1].run_id}/timeline`),
+    getJson(`/api/runs/${runs[0].run_id}/contract`).catch(() => null),
+    getJson(`/api/runs/${runs[1].run_id}/contract`).catch(() => null),
+    getJson(`/api/missions/state?run_id=${encodeURIComponent(runs[0].run_id)}`).catch(() => null),
+    getJson(`/api/missions/state?run_id=${encodeURIComponent(runs[1].run_id)}`).catch(() => null),
   ]);
   state.compareTimelineA = tlA;
   state.compareTimelineB = tlB;
+  state.compareContractA = contractA;
+  state.compareContractB = contractB;
+  state.compareMissionA = nonEmptyPayload(missionA);
+  state.compareMissionB = nonEmptyPayload(missionB);
   renderTimelineView();
 }
 
@@ -1407,7 +1419,105 @@ function renderCompareTimelines() {
   const stepsA = Object.values(hitsA).reduce((s, v) => s + v, 0);
   const stepsB = Object.values(hitsB).reduce((s, v) => s + v, 0);
 
-  let html = `<div class="tl-compare-header">`;
+  const cA = state.compareContractA;
+  const cB = state.compareContractB;
+  const mA = state.compareMissionA;
+  const mB = state.compareMissionB;
+  const branchLabels =
+    mA?.mission?.branch_labels
+    || mB?.mission?.branch_labels
+    || state.missionState?.mission?.branch_labels
+    || [];
+
+  let html = `<div class="compare-narrative">`;
+
+  if (branchLabels.length >= 2 || (cA && cB)) {
+    html += `<div class="compare-narrative-header"><h3>Path Comparison</h3></div>`;
+
+    if (branchLabels.length >= 2) {
+      html += `<div class="compare-branches">`;
+      html += `<div class="compare-branch compare-branch-a"><span class="compare-branch-dot dot-a"></span><span>${escapeHtml(branchLabels[0])}</span></div>`;
+      html += `<div class="compare-branch compare-branch-b"><span class="compare-branch-dot dot-b"></span><span>${escapeHtml(branchLabels[1])}</span></div>`;
+      html += `</div>`;
+    }
+
+    if ((mA && mB) || (cA && cB)) {
+      const scorecardA = mA?.scorecard || null;
+      const scorecardB = mB?.scorecard || null;
+      const objectiveA = mA?.objective_variant || "";
+      const objectiveB = mB?.objective_variant || "";
+      const overallScoreA = scorecardA?.overall_score;
+      const overallScoreB = scorecardB?.overall_score;
+      const assertionsA = cA ? `${cA.success_predicates_passed || 0}/${cA.success_predicate_count || 0}` : "—";
+      const assertionsB = cB ? `${cB.success_predicates_passed || 0}/${cB.success_predicate_count || 0}` : "—";
+      const okA = scorecardA?.mission_success ?? cA?.ok ?? false;
+      const okB = scorecardB?.mission_success ?? cB?.ok ?? false;
+      const delta = (typeof overallScoreA === "number" && typeof overallScoreB === "number")
+        ? overallScoreA - overallScoreB
+        : (cA?.success_predicates_passed || 0) - (cB?.success_predicates_passed || 0);
+      const deltaLabel = (typeof overallScoreA === "number" && typeof overallScoreB === "number")
+        ? `${delta > 0 ? "+" : ""}${delta} score`
+        : `${delta > 0 ? "+" : ""}${delta} assertions`;
+      const scoreLabelA = typeof overallScoreA === "number" ? String(overallScoreA) : assertionsA;
+      const scoreLabelB = typeof overallScoreB === "number" ? String(overallScoreB) : assertionsB;
+      const scoreCaptionA = typeof overallScoreA === "number" ? "overall score" : "assertions";
+      const scoreCaptionB = typeof overallScoreB === "number" ? "overall score" : "assertions";
+
+      html += `<div class="compare-scores">`;
+      html += `<div class="compare-score-cell ${okA ? "compare-pass" : "compare-fail"}">
+        <span class="compare-score-label">${escapeHtml(nameA)}</span>
+        <span class="compare-score-value">${escapeHtml(scoreLabelA)}</span>
+        <span class="compare-score-caption">${escapeHtml(scoreCaptionA)}</span>
+        ${objectiveA ? `<span class="compare-score-objective">${escapeHtml(objectiveA)}</span>` : ""}
+        ${cA ? `<span class="compare-score-assertions">${escapeHtml(assertionsA)} assertions</span>` : ""}
+        <span class="compare-score-verdict">${okA ? "contract passed" : "contract failed"}</span>
+      </div>`;
+      html += `<div class="compare-score-delta ${delta > 0 ? "delta-pos" : delta < 0 ? "delta-neg" : ""}">
+        ${escapeHtml(deltaLabel)}
+      </div>`;
+      html += `<div class="compare-score-cell ${okB ? "compare-pass" : "compare-fail"}">
+        <span class="compare-score-label">${escapeHtml(nameB)}</span>
+        <span class="compare-score-value">${escapeHtml(scoreLabelB)}</span>
+        <span class="compare-score-caption">${escapeHtml(scoreCaptionB)}</span>
+        ${objectiveB ? `<span class="compare-score-objective">${escapeHtml(objectiveB)}</span>` : ""}
+        ${cB ? `<span class="compare-score-assertions">${escapeHtml(assertionsB)} assertions</span>` : ""}
+        <span class="compare-score-verdict">${okB ? "contract passed" : "contract failed"}</span>
+      </div>`;
+      html += `</div>`;
+
+      const issuesA = [...(cA?.dynamic_validation?.issues || []), ...(cA?.static_validation?.issues || [])];
+      const issuesB = [...(cB?.dynamic_validation?.issues || []), ...(cB?.static_validation?.issues || [])];
+      const failedInA = new Set(issuesA.map((i) => i.predicate_name).filter(Boolean));
+      const failedInB = new Set(issuesB.map((i) => i.predicate_name).filter(Boolean));
+      const onlyFailedInA = [...failedInA].filter((n) => !failedInB.has(n));
+      const onlyFailedInB = [...failedInB].filter((n) => !failedInA.has(n));
+
+      if (onlyFailedInA.length || onlyFailedInB.length) {
+        html += `<div class="compare-divergence">`;
+        html += `<p class="eyebrow">Key divergence</p>`;
+        if (onlyFailedInA.length) {
+          html += `<div class="compare-div-group"><span class="compare-div-label">${escapeHtml(nameA)} missed:</span>`;
+          html += onlyFailedInA.map((n) => {
+            const issue = issuesA.find((i) => i.predicate_name === n);
+            return `<span class="compare-div-item">${escapeHtml(issue?.message || n)}</span>`;
+          }).join("");
+          html += `</div>`;
+        }
+        if (onlyFailedInB.length) {
+          html += `<div class="compare-div-group"><span class="compare-div-label">${escapeHtml(nameB)} missed:</span>`;
+          html += onlyFailedInB.map((n) => {
+            const issue = issuesB.find((i) => i.predicate_name === n);
+            return `<span class="compare-div-item">${escapeHtml(issue?.message || n)}</span>`;
+          }).join("");
+          html += `</div>`;
+        }
+        html += `</div>`;
+      }
+    }
+  }
+  html += `</div>`;
+
+  html += `<div class="tl-compare-header">`;
   html += `<span class="tl-compare-pill tl-pill-a">${escapeHtml(nameA)} (${stepsA} steps)</span>`;
   html += `<span class="tl-compare-vs">vs</span>`;
   html += `<span class="tl-compare-pill tl-pill-b">${escapeHtml(nameB)} (${stepsB} steps)</span>`;
@@ -1437,6 +1547,7 @@ function renderLivingCompanyView() {
     return;
   }
   renderLivingCompanyContext();
+  renderSituationRoom();
   renderLivingCompanyImpact();
   renderSurfaceWall();
   renderLivingCompanyRail();
@@ -1524,6 +1635,99 @@ function updateContextHint() {
   } else {
     hint.textContent = "Loading company world\u2026";
   }
+}
+
+function renderSituationRoom() {
+  const el = document.getElementById("situation-room-strip");
+  if (!el) return;
+  const ss = state.surfaceState;
+  const ms = state.missionState;
+  if (!ss || !Array.isArray(ss.panels) || !ss.panels.length) {
+    el.innerHTML = "";
+    return;
+  }
+
+  let attentionCount = 0;
+  let warningCount = 0;
+  let criticalCount = 0;
+  let totalSystems = ss.panels.length;
+  ss.panels.forEach((p) => {
+    const s = (p.status || "").toLowerCase();
+    if (s === "critical") criticalCount++;
+    else if (s === "warning") warningCount++;
+    else if (s === "attention") attentionCount++;
+  });
+
+  const servicePanel = ss.panels.find((p) => p.kind === "vertical_heartbeat" || p.surface === "service_ops");
+  let exceptionCount = 0;
+  let highSeverity = false;
+  let disputeAmount = "";
+  let pendingApprovals = 0;
+  if (servicePanel && Array.isArray(servicePanel.items)) {
+    servicePanel.items.forEach((item) => {
+      const badges = Array.isArray(item.badges) ? item.badges : [];
+      const isException = badges.some((b) => b === "high" || b === "mitigated" || b === "open" || b === "resolved");
+      const isBilling = (item.title || "").toLowerCase().includes("billing");
+      const isApproval = false;
+      if (isException && !isBilling) { exceptionCount++; if (badges.includes("high")) highSeverity = true; }
+      if (isBilling && badges.includes("open")) disputeAmount = "at risk";
+    });
+  }
+
+  const approvalPanel = ss.panels.find((p) => p.surface === "approvals");
+  if (approvalPanel && Array.isArray(approvalPanel.items)) {
+    pendingApprovals = approvalPanel.items.filter((item) => {
+      const s = (item.status || "").toLowerCase();
+      return s === "pending_approval" || s === "in_progress" || s === "review";
+    }).length;
+  }
+
+  const sc = ms?.scorecard;
+  const policyStatus = sc?.policy_correctness || "unknown";
+  const deadlineStatus = sc?.deadline_pressure || "unknown";
+  const riskLevel = sc?.business_risk || "unknown";
+
+  const healthClass = criticalCount > 0 ? "sit-danger" : warningCount > 0 ? "sit-warn" : "sit-ok";
+  const healthLabel = criticalCount > 0 ? `${criticalCount} critical` : warningCount > 0 ? `${warningCount} warning` : "all nominal";
+
+  const exClass = exceptionCount > 0 && highSeverity ? "sit-danger" : exceptionCount > 0 ? "sit-warn" : "sit-ok";
+  const policyClass = policyStatus === "drifting" ? "sit-danger" : policyStatus === "sound" ? "sit-ok" : "";
+  const deadlineClass = deadlineStatus === "critical" ? "sit-danger" : deadlineStatus === "compressed" ? "sit-warn" : "sit-ok";
+  const approvalClass = pendingApprovals > 0 ? "sit-warn" : "sit-ok";
+  const riskClass = riskLevel === "high" ? "sit-danger" : riskLevel === "moderate" ? "sit-warn" : "sit-ok";
+
+  el.innerHTML = `
+    <div class="sit-room-cell ${healthClass}">
+      <span class="sit-label">Systems</span>
+      <span class="sit-value">${totalSystems}</span>
+      <span class="sit-detail">${healthLabel}</span>
+    </div>
+    <div class="sit-room-cell ${exClass}">
+      <span class="sit-label">Exceptions</span>
+      <span class="sit-value">${exceptionCount}</span>
+      <span class="sit-detail">${highSeverity ? "high severity" : exceptionCount ? "active" : "clear"}</span>
+    </div>
+    <div class="sit-room-cell ${policyClass}">
+      <span class="sit-label">Policy</span>
+      <span class="sit-value">${policyStatus}</span>
+      <span class="sit-detail">${policyStatus === "sound" ? "no overrides" : policyStatus === "drifting" ? "rules changed" : ""}</span>
+    </div>
+    <div class="sit-room-cell ${approvalClass}">
+      <span class="sit-label">Approvals</span>
+      <span class="sit-value">${pendingApprovals}</span>
+      <span class="sit-detail">${pendingApprovals ? "pending" : "clear"}</span>
+    </div>
+    <div class="sit-room-cell ${deadlineClass}">
+      <span class="sit-label">Deadline</span>
+      <span class="sit-value">${deadlineStatus}</span>
+      <span class="sit-detail">${sc ? `budget: ${sc.action_budget_remaining}` : ""}</span>
+    </div>
+    <div class="sit-room-cell ${riskClass}">
+      <span class="sit-label">Risk</span>
+      <span class="sit-value">${riskLevel}</span>
+      <span class="sit-detail">${sc ? `score: ${sc.overall_score}` : ""}</span>
+    </div>
+  `;
 }
 
 function renderSurfaceWall() {
@@ -1895,7 +2099,7 @@ function renderMissionPlay() {
       (move) => `
         <div class="run-item ${move.availability === "recommended" ? "active" : ""}">
           <div class="chip-row">
-            ${chip(move.availability, statusClass(move.availability === "blocked" ? "error" : move.availability === "risky" ? "running" : "ok"))}
+            ${chip(move.availability, move.availability === "blocked" ? "chip-error" : move.availability === "risky" ? "chip-risky" : "chip-ok")}
             ${move.executed ? chip("used") : ""}
           </div>
           <h3>${escapeHtml(move.title)}</h3>
@@ -1914,7 +2118,13 @@ function renderMissionPlay() {
     .join("");
   panel.querySelectorAll(".play-move-button").forEach((node) => {
     node.addEventListener("click", () => {
-      void applyMissionMove(node.dataset.moveId);
+      const moveId = node.dataset.moveId;
+      const move = (state.missionState?.available_moves || []).find((m) => m.move_id === moveId);
+      if (move && move.availability === "risky") {
+        showPolicyChangeModal(move);
+      } else {
+        void applyMissionMove(moveId);
+      }
     });
   });
   status.textContent =
@@ -1946,14 +2156,16 @@ function renderMoveLog() {
       const obsSummary = obs.summary || obs.scenario_brief || "";
       const result = move.payload?.result || {};
       const resultKeys = Object.keys(result).slice(0, 4);
+      const isRisky = move.payload?.availability === "risky";
       return `
-        <div class="move-log-entry">
+        <div class="move-log-entry ${isRisky ? "decision-entry-risky" : ""}">
           <div class="move-log-number">${index + 1}</div>
           <div class="move-log-body">
             <div class="chip-row">
               ${move.resolved_tool ? chip(move.resolved_tool, "ok") : ""}
               ${domain ? chip(formatDomainTitle(domain)) : ""}
               ${move.time_ms ? chip(`t=${formatMs(move.time_ms)}`) : ""}
+              ${isRisky ? chip("policy override", "chip-risky") : ""}
             </div>
             <h3>${escapeHtml(move.title)}</h3>
             <p class="metric-detail">${escapeHtml(move.summary || "")}</p>
@@ -2524,6 +2736,15 @@ function renderRunSummary() {
         <p class="eyebrow">What changed</p>
         <h3>${escapeHtml(changedTitle)}</h3>
         <p class="metric-detail">${escapeHtml(changedDetail)}</p>
+        ${(() => {
+          const riskyPlayed = (state.missionState?.executed_moves || []).filter((m) => m.payload?.availability === "risky");
+          return riskyPlayed.length
+            ? `<div class="decision-policy-alert" style="margin-top:8px">
+                <span class="policy-modal-badge">Policy Override</span>
+                <span>${riskyPlayed.length} policy override${riskyPlayed.length === 1 ? "" : "s"}: ${riskyPlayed.map((m) => escapeHtml(m.title)).join(", ")}</span>
+              </div>`
+            : "";
+        })()}
         <div class="chip-row">${resolvedTools.slice(0, 5).map((item) => chip(item)).join("")}</div>
       </div>
       ${
@@ -2584,9 +2805,51 @@ function renderRunSummary() {
         </div>
       `;
   }
+  renderDecisionLog();
   renderExportsPanel();
   renderJson("run-panel", run);
   renderJson("contract-panel", contract || { note: "No run contract evaluation yet." });
+}
+
+function renderDecisionLog() {
+  const el = document.getElementById("decision-log");
+  if (!el) return;
+
+  const ms = state.missionState;
+  const executedMoves = ms?.executed_moves || [];
+  const riskyMoves = executedMoves.filter((m) => m.payload?.availability === "risky");
+
+  if (!executedMoves.length) {
+    el.innerHTML = "";
+    return;
+  }
+
+  const policyChanged = riskyMoves.length > 0;
+  let html = `<div class="decision-log-section">`;
+  html += `<p class="eyebrow">Decision audit trail</p>`;
+
+  if (policyChanged) {
+    html += `<div class="decision-policy-alert">
+      <span class="policy-modal-badge">Policy Override</span>
+      <span>Policy was modified at move ${riskyMoves.map((m) => String(executedMoves.indexOf(m) + 1)).join(", ")}</span>
+    </div>`;
+  }
+
+  html += `<div class="decision-log-entries">`;
+  executedMoves.forEach((move, idx) => {
+    const isRisky = move.payload?.availability === "risky";
+    html += `
+      <div class="decision-entry ${isRisky ? "decision-entry-risky" : ""}">
+        <span class="decision-entry-idx">${idx + 1}</span>
+        <div class="decision-entry-body">
+          <strong>${escapeHtml(move.title)}</strong>
+          ${isRisky ? `<span class="decision-risky-tag">policy override</span>` : ""}
+          <p class="metric-detail">${escapeHtml(move.branch_label || "")}</p>
+        </div>
+      </div>`;
+  });
+  html += `</div></div>`;
+  el.innerHTML = html;
 }
 
 function renderExportsPanel() {
@@ -3124,6 +3387,73 @@ async function startMission() {
   } catch (error) {
     status.textContent = `Mission start failed: ${error}`;
   }
+}
+
+function showPolicyChangeModal(move) {
+  let existing = document.getElementById("policy-change-modal");
+  if (existing) existing.remove();
+
+  const graphAction = move.graph_action || {};
+  const args = graphAction.args || {};
+  const currentPolicy = {};
+  const proposedPolicy = {};
+
+  const ss = state.surfaceState;
+  if (ss && Array.isArray(ss.panels)) {
+    const svcPanel = ss.panels.find((p) => p.kind === "vertical_heartbeat" || p.surface === "service_ops");
+    if (svcPanel && svcPanel.policy) {
+      Object.assign(currentPolicy, svcPanel.policy);
+    }
+  }
+
+  Object.entries(args).forEach(([key, value]) => {
+    if (key !== "note") {
+      currentPolicy[key] = currentPolicy[key] !== undefined ? currentPolicy[key] : "—";
+      proposedPolicy[key] = value;
+    }
+  });
+
+  const policyRows = Object.keys({ ...currentPolicy, ...proposedPolicy })
+    .filter((k) => proposedPolicy[k] !== undefined)
+    .map((key) => {
+      const cur = currentPolicy[key] !== undefined ? String(currentPolicy[key]) : "—";
+      const next = String(proposedPolicy[key]);
+      const changed = cur !== next;
+      return `<tr class="${changed ? "policy-row-changed" : ""}">
+        <td>${escapeHtml(key.replace(/_/g, " "))}</td>
+        <td>${escapeHtml(cur)}</td>
+        <td>${changed ? escapeHtml(next) : "—"}</td>
+      </tr>`;
+    })
+    .join("");
+
+  const modal = document.createElement("div");
+  modal.id = "policy-change-modal";
+  modal.className = "policy-modal-overlay";
+  modal.innerHTML = `
+    <div class="policy-modal">
+      <div class="policy-modal-header">
+        <span class="policy-modal-badge">Policy Override</span>
+        <h3>${escapeHtml(move.title)}</h3>
+      </div>
+      <p class="policy-modal-consequence">${escapeHtml(move.consequence_preview || move.summary || "")}</p>
+      <table class="policy-diff-table">
+        <thead><tr><th>Policy</th><th>Current</th><th>Proposed</th></tr></thead>
+        <tbody>${policyRows}</tbody>
+      </table>
+      <div class="policy-modal-actions">
+        <button type="button" class="ghost-button" id="policy-modal-cancel">Cancel</button>
+        <button type="button" class="ghost-button policy-modal-confirm" id="policy-modal-confirm">Confirm override</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  document.getElementById("policy-modal-cancel").addEventListener("click", () => modal.remove());
+  modal.addEventListener("click", (e) => { if (e.target === modal) modal.remove(); });
+  document.getElementById("policy-modal-confirm").addEventListener("click", () => {
+    modal.remove();
+    void applyMissionMove(move.move_id);
+  });
 }
 
 async function applyMissionMove(moveId) {
