@@ -6,7 +6,7 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, TYPE_CHECKING
 from .models import FacadeManifest
 
 if TYPE_CHECKING:
-    from vei.world.scenario import Scenario
+    from vei.world.api import Scenario
 
 
 SummaryBuilder = Callable[[Any, Any], str]
@@ -121,13 +121,13 @@ def _manifest(
 
 
 def _spreadsheet_component_factory(router: Any, scenario: "Scenario") -> Any:
-    from vei.router.spreadsheet import SpreadsheetSim
+    from vei.router import SpreadsheetSim
 
     return SpreadsheetSim(router.bus, scenario)
 
 
 def _spreadsheet_provider_factory(component: Any) -> Any:
-    from vei.router.spreadsheet import SpreadsheetToolProvider
+    from vei.router import SpreadsheetToolProvider
 
     return SpreadsheetToolProvider(component)
 
@@ -149,49 +149,49 @@ def _spreadsheet_restore(component: Any, state: Dict[str, Any]) -> None:
 
 
 def _property_component_factory(router: Any, scenario: "Scenario") -> Any:
-    from vei.router.property_ops import PropertyOpsSim
+    from vei.router import PropertyOpsSim
 
     return PropertyOpsSim(scenario)
 
 
 def _property_provider_factory(component: Any) -> Any:
-    from vei.router.property_ops import PropertyOpsToolProvider
+    from vei.router import PropertyOpsToolProvider
 
     return PropertyOpsToolProvider(component)
 
 
 def _campaign_component_factory(router: Any, scenario: "Scenario") -> Any:
-    from vei.router.campaign_ops import CampaignOpsSim
+    from vei.router import CampaignOpsSim
 
     return CampaignOpsSim(scenario)
 
 
 def _campaign_provider_factory(component: Any) -> Any:
-    from vei.router.campaign_ops import CampaignOpsToolProvider
+    from vei.router import CampaignOpsToolProvider
 
     return CampaignOpsToolProvider(component)
 
 
 def _inventory_component_factory(router: Any, scenario: "Scenario") -> Any:
-    from vei.router.inventory_ops import InventoryOpsSim
+    from vei.router import InventoryOpsSim
 
     return InventoryOpsSim(scenario)
 
 
 def _inventory_provider_factory(component: Any) -> Any:
-    from vei.router.inventory_ops import InventoryOpsToolProvider
+    from vei.router import InventoryOpsToolProvider
 
     return InventoryOpsToolProvider(component)
 
 
 def _service_ops_component_factory(router: Any, scenario: "Scenario") -> Any:
-    from vei.router.service_ops import ServiceOpsSim
+    from vei.router import ServiceOpsSim
 
     return ServiceOpsSim(scenario)
 
 
 def _service_ops_provider_factory(component: Any) -> Any:
-    from vei.router.service_ops import ServiceOpsToolProvider
+    from vei.router import ServiceOpsToolProvider
 
     return ServiceOpsToolProvider(component)
 

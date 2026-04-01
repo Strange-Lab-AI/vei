@@ -16,8 +16,8 @@ Exit 0 if clean, 1 if violations found.
 from __future__ import annotations
 
 import ast
-import sys
 from pathlib import Path
+import sys
 
 PACKAGE_ROOT = Path(__file__).resolve().parent.parent / "vei"
 
@@ -87,7 +87,6 @@ def check_file(path: Path, *, strict: bool = False) -> list[tuple[str, bool]]:
 
     return violations
 
-
 def main() -> int:
     strict = "--strict" in sys.argv
 
@@ -120,16 +119,8 @@ def main() -> int:
             "Cross-module imports must go through api.py. "
             "Use 'from vei.<module>.api import ...' instead."
         )
-        return 1
 
-    if type_violations:
-        print(
-            f"Import boundaries: OK ({len(type_violations)} type-only "
-            f"violations — allowed in non-strict mode)"
-        )
-    else:
-        print("Import boundaries: OK")
-    return 0
+    return 1 if total else 0
 
 
 if __name__ == "__main__":

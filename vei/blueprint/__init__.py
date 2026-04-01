@@ -11,11 +11,15 @@ __all__ = [
     "compile_blueprint",
     "create_world_session_from_blueprint",
     "get_facade_manifest",
+    "l1_response",
     "list_blueprint_builder_examples",
     "list_blueprint_specs",
+    "infer_tool_families_for_scenario",
     "list_facade_manifest",
+    "list_runtime_facade_plugins",
     "get_facade_plugin",
     "list_facade_plugins",
+    "register_facade_plugin",
     "BlueprintAsset",
     "BlueprintContractSummary",
     "BlueprintContractDefaults",
@@ -36,6 +40,8 @@ __all__ = [
     "CompiledBlueprint",
     "FacadeManifest",
     "FacadePlugin",
+    "L2Store",
+    "resolve_surface",
 ]
 
 
@@ -78,7 +84,17 @@ def __getattr__(name: str):  # pragma: no cover - thin import facade
     }:
         module = import_module("vei.blueprint.models")
         return getattr(module, name)
-    if name in {"FacadePlugin", "get_facade_plugin", "list_facade_plugins"}:
+    if name in {
+        "FacadePlugin",
+        "get_facade_plugin",
+        "infer_tool_families_for_scenario",
+        "list_facade_plugins",
+        "list_runtime_facade_plugins",
+        "register_facade_plugin",
+    }:
         module = import_module("vei.blueprint.plugins")
+        return getattr(module, name)
+    if name in {"L2Store", "l1_response", "resolve_surface"}:
+        module = import_module("vei.blueprint.fidelity")
         return getattr(module, name)
     raise AttributeError(name)

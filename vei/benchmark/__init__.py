@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from importlib import import_module
 from typing import Any
 
 from vei.benchmark.dimensions import score_enterprise_dimensions
@@ -15,6 +16,23 @@ from vei.benchmark.models import (
     BenchmarkCaseSpec,
     BenchmarkDiagnostics,
     BenchmarkMetrics,
+    BenchmarkShowcaseExample,
+    BenchmarkShowcaseExampleResult,
+    BenchmarkShowcaseResult,
+    BenchmarkWorkflowVariantManifest,
+)
+from vei.benchmark.showcase import (
+    get_showcase_example,
+    list_showcase_examples,
+    render_showcase_overview,
+    resolve_showcase_examples,
+)
+from vei.benchmark.workflows import (
+    get_benchmark_family_workflow_spec,
+    get_benchmark_family_workflow_variant,
+    list_benchmark_family_workflow_specs,
+    list_benchmark_family_workflow_variants,
+    resolve_benchmark_workflow_name,
 )
 
 
@@ -25,19 +43,8 @@ def __getattr__(name: str) -> Any:
         "run_benchmark_batch",
         "run_benchmark_case",
     }:
-        from vei.benchmark.api import (
-            FRONTIER_SCENARIO_SETS,
-            resolve_scenarios,
-            run_benchmark_batch,
-            run_benchmark_case,
-        )
-
-        return {
-            "FRONTIER_SCENARIO_SETS": FRONTIER_SCENARIO_SETS,
-            "resolve_scenarios": resolve_scenarios,
-            "run_benchmark_batch": run_benchmark_batch,
-            "run_benchmark_case": run_benchmark_case,
-        }[name]
+        module = import_module("vei.benchmark.api")
+        return getattr(module, name)
     raise AttributeError(name)
 
 
@@ -50,9 +57,22 @@ __all__ = [
     "BenchmarkCaseSpec",
     "BenchmarkDiagnostics",
     "BenchmarkMetrics",
+    "BenchmarkShowcaseExample",
+    "BenchmarkShowcaseExampleResult",
+    "BenchmarkShowcaseResult",
+    "BenchmarkWorkflowVariantManifest",
     "get_benchmark_family_manifest",
+    "get_benchmark_family_workflow_spec",
+    "get_benchmark_family_workflow_variant",
+    "get_showcase_example",
     "list_benchmark_family_manifest",
+    "list_benchmark_family_workflow_specs",
+    "list_benchmark_family_workflow_variants",
+    "list_showcase_examples",
+    "render_showcase_overview",
+    "resolve_benchmark_workflow_name",
     "resolve_scenarios",
+    "resolve_showcase_examples",
     "run_benchmark_batch",
     "run_benchmark_case",
     "score_enterprise_dimensions",

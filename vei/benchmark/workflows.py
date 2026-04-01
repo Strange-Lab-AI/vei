@@ -2177,7 +2177,7 @@ def _resolve_variant_metadata(
     if definition.title and definition.description:
         return definition.title, definition.description
     try:
-        from vei.verticals.scenario_variants import get_vertical_scenario_variant
+        from vei.verticals import get_vertical_scenario_variant
 
         vsv = get_vertical_scenario_variant(family_name, definition.name)
         title = definition.title or vsv.title

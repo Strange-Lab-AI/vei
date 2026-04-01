@@ -24,7 +24,7 @@ from vei.run.api import (
     load_run_manifest,
     write_run_manifest,
 )
-from vei.run.events import append_run_event
+from vei.run import append_run_event
 from vei.run.models import (
     RunArtifactIndex,
     RunContractSummary,

@@ -6,7 +6,7 @@ from contextlib import contextmanager
 from dataclasses import asdict
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Dict, Iterable, Literal, Optional, TypeVar
+from typing import Any, Dict, Iterable, Iterator, Literal, Optional, TypeVar
 
 from pydantic import BaseModel
 
@@ -18,17 +18,17 @@ from vei.blueprint.api import (
     materialize_scenario_from_blueprint,
 )
 from vei.blueprint.models import BlueprintAsset, CompiledBlueprint
-from vei.benchmark.workflows import get_benchmark_family_workflow_spec
+from vei.benchmark import get_benchmark_family_workflow_spec
 from vei.contract.api import build_contract_from_workflow, evaluate_contract
 from vei.contract.models import ContractEvaluationResult, ContractSpec
 from vei.grounding.api import compile_identity_governance_bundle
 from vei.grounding.models import IdentityGovernanceBundle
 from vei.imports.api import normalize_identity_import_package
-from vei.imports.connectors import (
+from vei.imports import (
+    bootstrap_contract_from_import_bundle,
     load_okta_connector_config,
     sync_okta_import_package,
 )
-from vei.imports.contracts import bootstrap_contract_from_import_bundle
 from vei.imports.models import (
     GeneratedScenarioCandidate,
     ImportReview,
@@ -48,9 +48,10 @@ from vei.verticals import (
     get_vertical_scenario_variant,
     list_vertical_contract_variants,
     list_vertical_scenario_variants,
+    apply_fault_overlays,
+    overlay_summaries,
 )
-from vei.verticals.faults import apply_fault_overlays, overlay_summaries
-from vei.world.manifest import build_scenario_manifest
+from vei.world import build_scenario_manifest
 
 from .models import (
     WorkspaceCompileRecord,
@@ -1066,7 +1067,7 @@ def load_or_bootstrap_contract(
 
 
 @contextmanager
-def temporary_env(name: str, value: str | None):
+def temporary_env(name: str, value: str | None) -> Iterator[None]:
     import os
 
     previous = os.environ.get(name)

@@ -391,6 +391,114 @@ def _build_vertical_panel(
     return builder(components.get(component_name, {}))
 
 
+def _revenue_stage_status(stage: str) -> SurfacePanelStatus:
+    normalized = stage.strip().lower()
+    if normalized in {"at_risk", "blocked", "closed_lost"}:
+        return "critical"
+    if normalized in {"negotiation", "stalled", "evaluation"}:
+        return "warning"
+    return "ok"
+
+
+def _build_revenue_panel(
+    crm: Dict[str, Any],
+) -> LivingSurfacePanel | None:
+    if not isinstance(crm, dict) or not any(
+        crm.get(key) for key in ("companies", "contacts", "deals")
+    ):
+        return None
+
+    companies = _dict_records(crm, "companies")
+    contacts = _dict_records(crm, "contacts")
+    deals = _dict_records(crm, "deals")
+    items: list[LivingSurfaceItem] = []
+
+    for deal_id, deal in list(deals.items())[:3]:
+        if not isinstance(deal, dict):
+            continue
+        company = companies.get(str(deal.get("company_id")))
+        contact = contacts.get(str(deal.get("contact_id")))
+        stage = str(deal.get("stage", "unknown"))
+        amount = float(deal.get("amount", 0) or 0)
+        owner = str(deal.get("owner", "unassigned"))
+        contact_name = ""
+        if isinstance(contact, dict):
+            first = str(contact.get("first_name", "")).strip()
+            last = str(contact.get("last_name", "")).strip()
+            contact_name = " ".join(part for part in (first, last) if part)
+        items.append(
+            LivingSurfaceItem(
+                item_id=f"revenue_deal:{deal_id}",
+                title=str(deal.get("name", deal_id)),
+                subtitle=(
+                    str(company.get("name"))
+                    if isinstance(company, dict)
+                    else str(deal.get("company_id", "account"))
+                ),
+                body=_truncate(
+                    f"Stage {stage} · ${amount:,.0f} · owner {owner}"
+                    + (f" · contact {contact_name}" if contact_name else ""),
+                    180,
+                ),
+                status=_revenue_stage_status(stage),
+                badges=_compact_badges([stage, f"${amount:,.0f}"]),
+                highlight_ref=f"revenue_deal:{deal_id}",
+            )
+        )
+
+    for contact_id, contact in list(contacts.items())[:2]:
+        if not isinstance(contact, dict):
+            continue
+        company = companies.get(str(contact.get("company_id")))
+        full_name = (
+            " ".join(
+                part
+                for part in (
+                    str(contact.get("first_name", "")).strip(),
+                    str(contact.get("last_name", "")).strip(),
+                )
+                if part
+            )
+            or contact_id
+        )
+        do_not_contact = bool(contact.get("do_not_contact"))
+        items.append(
+            LivingSurfaceItem(
+                item_id=f"revenue_contact:{contact_id}",
+                title=full_name,
+                subtitle=(
+                    str(company.get("name"))
+                    if isinstance(company, dict)
+                    else str(contact.get("company_id", "account"))
+                ),
+                body=_truncate(
+                    f"Email {contact.get('email', 'unknown')} · "
+                    f"{'do not contact' if do_not_contact else 'active stakeholder'}",
+                    180,
+                ),
+                status=("warning" if do_not_contact else "ok"),
+                badges=_compact_badges(
+                    [
+                        "do_not_contact" if do_not_contact else "active",
+                    ]
+                ),
+                highlight_ref=f"revenue_contact:{contact_id}",
+            )
+        )
+
+    return _panel(
+        surface="vertical_heartbeat",
+        kind="vertical_heartbeat",
+        title="Revenue Pulse",
+        accent="#d26a1b",
+        headline=(
+            f"{len(deals)} deals · {len(companies)} accounts · "
+            f"{len(contacts)} contacts"
+        ),
+        items=items[:6],
+    )
+
+
 def _build_service_ops_panel(
     service_ops: Dict[str, Any],
 ) -> LivingSurfacePanel | None:
@@ -768,6 +876,7 @@ _VERTICAL_PANEL_BUILDERS = {
     "campaign": _build_campaign_panel,
     "inventory": _build_inventory_panel,
     "property": _build_property_panel,
+    "revenue": _build_revenue_panel,
     "service_ops": _build_service_ops_panel,
 }
 

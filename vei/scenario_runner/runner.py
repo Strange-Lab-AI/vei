@@ -4,9 +4,9 @@ from pathlib import Path
 from typing import List, Optional
 
 from vei.contract.api import build_contract_from_workflow, evaluate_contract
-from vei.router.core import Router
-from vei.scenario_engine.compiler import CompiledWorkflow
-from vei.world.session import WorldSession
+from vei.router import Router
+from vei.scenario_engine.api import CompiledWorkflow
+from vei.world import WorldSession
 
 from .models import (
     ScenarioRunResult,

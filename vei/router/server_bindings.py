@@ -6,7 +6,7 @@ from typing import Any, Callable
 from mcp.server.fastmcp import server as fserver
 from pydantic import Field
 
-from vei.blueprint.plugins import list_runtime_facade_plugins
+from vei.blueprint import list_runtime_facade_plugins
 from vei.router.api import RouterServerAPI
 from vei.world.api import WorldSessionAPI
 

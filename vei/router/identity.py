@@ -10,7 +10,7 @@ from vei.identity.api import (
     groups_from_seeds,
     users_from_seeds,
 )
-from vei.world.scenario import (
+from vei.world import (
     IdentityApplicationSeed,
     IdentityGroupSeed,
     IdentityUserSeed,

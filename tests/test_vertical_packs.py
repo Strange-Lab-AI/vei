@@ -38,6 +38,11 @@ from vei.workspace.api import create_workspace_from_template, preview_workspace_
             "inventory_graph.allocate_capacity",
         ),
         (
+            "b2b_saas",
+            "revenue_graph",
+            "crm.update_deal_stage",
+        ),
+        (
             "service_ops",
             "ops_graph",
             "ops_graph.assign_dispatch",
@@ -93,6 +98,7 @@ def test_vertical_workspace_runs_and_exposes_domain_graphs(
         ("real_estate_management", "property_graph"),
         ("digital_marketing_agency", "campaign_graph"),
         ("storage_solutions", "inventory_graph"),
+        ("b2b_saas", "revenue_graph"),
         ("service_ops", "ops_graph"),
     ],
 )
@@ -126,6 +132,7 @@ def test_vertical_workspace_ui_serves_vertical_graphs(
         "real_estate_management",
         "digital_marketing_agency",
         "storage_solutions",
+        "b2b_saas",
         "service_ops",
     ],
 )
@@ -156,6 +163,7 @@ def test_vertical_packs_seed_dense_company_context(vertical_name: str) -> None:
         "real_estate_management",
         "digital_marketing_agency",
         "storage_solutions",
+        "b2b_saas",
         "service_ops",
     ],
 )
@@ -193,7 +201,7 @@ def test_vertical_runs_expose_living_surface_state(
         ("real_estate_management", "property_ops", "property"),
         ("digital_marketing_agency", "campaign_ops", "campaign"),
         ("storage_solutions", "inventory_ops", "inventory"),
-        ("b2b_saas", None, "revenue"),
+        ("b2b_saas", "crm", "revenue"),
         ("service_ops", "service_ops", "service_ops"),
     ],
 )

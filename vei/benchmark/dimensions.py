@@ -6,8 +6,8 @@ from statistics import mean
 from typing import Any, Dict, List
 
 from vei.benchmark.families import get_benchmark_family_manifest
+from vei.world import get_scenario
 from vei.world.models import WorldState
-from vei.world.scenarios import get_scenario
 
 
 def score_enterprise_dimensions(

@@ -4,7 +4,7 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
-from vei.blueprint.plugins import infer_tool_families_for_scenario
+from vei.blueprint import infer_tool_families_for_scenario
 
 from .scenario import Scenario
 from .scenarios import get_scenario, list_scenarios

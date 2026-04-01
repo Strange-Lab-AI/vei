@@ -204,7 +204,7 @@ _VERTICAL_PACKS: Dict[str, VerticalPackDefinition] = {
             scenario_name="enterprise_renewal_risk",
             workflow_name="b2b_saas",
             workflow_variant="enterprise_renewal_risk",
-            runtime_component=None,
+            runtime_component="crm",
             runtime_family="revenue",
             key_surfaces=[
                 "revenue_graph",

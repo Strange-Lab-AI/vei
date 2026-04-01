@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
 
-from vei.world.scenario import CalendarEvent, Scenario
+from vei.world import CalendarEvent, Scenario
 
 
 class CalendarSim:

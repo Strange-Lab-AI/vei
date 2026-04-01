@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Callable, Dict, List, Optional
 
-from vei.world.scenario import Scenario, ServiceDeskIncident, ServiceDeskRequest
+from vei.world import Scenario, ServiceDeskIncident, ServiceDeskRequest
 
 from .errors import MCPError
 from .tool_providers import PrefixToolProvider

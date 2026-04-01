@@ -5,6 +5,7 @@ import secrets
 from pathlib import Path
 from typing import Any, Iterable, Sequence, TypeVar
 
+from fastapi import FastAPI
 from pydantic import BaseModel
 
 from vei.blueprint.models import (
@@ -41,6 +42,7 @@ from .models import (
     TwinCrisisLevel,
     TwinDensityLevel,
     TwinGatewayConfig,
+    TwinMatrixBundle,
 )
 
 
@@ -227,7 +229,7 @@ def load_customer_twin(root: str | Path) -> CustomerTwinBundle:
     return _read_model(workspace_root / TWIN_MANIFEST_FILE, CustomerTwinBundle)
 
 
-def create_twin_gateway_app(root: str | Path):
+def create_twin_gateway_app(root: str | Path) -> FastAPI:
     from .gateway import create_twin_gateway_app as _create_twin_gateway_app
 
     return _create_twin_gateway_app(root)
@@ -262,7 +264,7 @@ def build_twin_matrix(
     )
 
 
-def load_twin_matrix(output_root: str | Path):
+def load_twin_matrix(output_root: str | Path) -> TwinMatrixBundle:
     from .matrix import load_twin_matrix as _load_twin_matrix
 
     return _load_twin_matrix(output_root)

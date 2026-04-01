@@ -8,10 +8,22 @@ snapshots land under ``snapshots/<index>.json``.
 from __future__ import annotations
 
 import json
+import logging
 import uuid
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable, Dict, Iterable, Iterator, List, MutableMapping, Optional
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Iterable,
+    Iterator,
+    List,
+    MutableMapping,
+    Optional,
+)
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True, slots=True)
@@ -51,7 +63,7 @@ class Event:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, object]) -> "Event":
+    def from_dict(cls, data: Dict[str, Any]) -> "Event":
         return cls(
             index=int(data["index"]),
             event_id=str(data["event_id"]),
@@ -188,6 +200,7 @@ class StateStore:
         return 0
 
     def _init_storage(self) -> None:
+        assert self.base_dir is not None
         branch_dir = self.base_dir / self._sanitize_branch(self.branch)
         branch_dir.mkdir(parents=True, exist_ok=True)
         snapshots_dir = branch_dir / "snapshots"
@@ -210,7 +223,9 @@ class StateStore:
                     evt = Event.from_dict(data)
                     self._events.append(evt)
         except Exception:
-            # Corrupted log is ignored; state will rebuild from in-memory events only.
+            logger.warning(
+                "corrupted event log at %s; starting fresh", self._events_path
+            )
             self._events = []
         self._replay_state()
 
@@ -221,8 +236,12 @@ class StateStore:
             with self._events_path.open("a", encoding="utf-8") as fh:
                 fh.write(json.dumps(event.to_dict(), sort_keys=True) + "\n")
         except Exception:
-            # Persistence best-effort; keep simulation running even if disk write fails.
-            pass
+            logger.warning(
+                "failed to persist event %d to %s",
+                event.index,
+                self._events_path,
+                exc_info=True,
+            )
 
     def _write_snapshot(self, snapshot: Snapshot) -> None:
         if not self._snapshots_dir:
@@ -231,7 +250,9 @@ class StateStore:
         try:
             path.write_text(snapshot.to_json(), encoding="utf-8")
         except Exception:
-            pass
+            logger.warning(
+                "failed to write snapshot %d to %s", snapshot.index, path, exc_info=True
+            )
 
     def _replay_state(self) -> None:
         base: Dict[str, object] = {}

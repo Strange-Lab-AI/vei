@@ -3,27 +3,27 @@ from __future__ import annotations
 import json
 import logging
 import os
-from dataclasses import asdict, dataclass
+from dataclasses import asdict
 from pathlib import Path
-import heapq
-import threading
-import queue
 from typing import Any, Dict, Iterable, List, Optional
-from urllib.parse import urlparse
 
 from pydantic import BaseModel
-from vei.blueprint.plugins import FacadePlugin, list_runtime_facade_plugins
+from vei.blueprint import FacadePlugin, list_runtime_facade_plugins
 from vei.connectors import (
     ConnectorInvocationError,
     create_default_runtime,
     parse_adapter_mode,
 )
-from vei.world.scenario import Scenario
-from vei.world.scenarios import load_from_env
-from vei.monitors.manager import MonitorManager
+from vei.monitors import MonitorManager
 from vei.policy import DEFAULT_RULES, PolicyEngine, PromoteMonitorRule
-from vei.world.drift import DriftEngine
-from vei.world.state import Event as StateEvent, StateStore
+from vei.world import (
+    DriftEngine,
+    Event as StateEvent,
+    ReplayAdapter,
+    Scenario,
+    StateStore,
+    load_from_env,
+)
 from .alias_packs import CRM_ALIAS_PACKS, ERP_ALIAS_PACKS
 from .calendar import CalendarSim
 from .datadog import DatadogSim, DatadogToolProvider
@@ -41,6 +41,18 @@ from .tool_providers import ToolProvider
 from .servicedesk import ServiceDeskSim, ServiceDeskToolProvider
 from .tool_registry import ToolRegistry, ToolSpec
 from .sims import SlackSim, MailSim, BrowserVirtual
+from ._event_bus import Event, EventBus, LinearCongruentialGenerator  # noqa: F401
+from ._trace import TraceLogger  # noqa: F401
+from ._reducers import (  # noqa: F401
+    FAULT_PROFILES,
+    _reduce_drift_delivered,
+    _reduce_drift_schedule,
+    _reduce_event_delivery,
+    _reduce_monitor_finding,
+    _reduce_policy_finding,
+    _reduce_router_init,
+    _reduce_tool_call,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -52,307 +64,6 @@ class Observation(BaseModel):
     screenshot_ref: Optional[str] = None
     action_menu: List[Dict[str, Any]]
     pending_events: Dict[str, int]
-
-
-@dataclass
-class Event:
-    t_due_ms: int
-    target: str
-    payload: Dict[str, Any]
-    event_id: str
-    source: str = "system"
-    actor_id: Optional[str] = None
-    kind: str = "scheduled"
-
-
-class LinearCongruentialGenerator:
-    def __init__(self, seed: int):
-        self.state = seed & 0xFFFFFFFF
-
-    def next_u32(self) -> int:
-        self.state = (1664525 * self.state + 1013904223) & 0xFFFFFFFF
-        return self.state
-
-    def next_float(self) -> float:
-        return self.next_u32() / 0x100000000
-
-    def randint(self, a: int, b: int) -> int:
-        return a + int(self.next_float() * (b - a + 1))
-
-
-class EventBus:
-    def __init__(self, seed: int):
-        self.rng = LinearCongruentialGenerator(seed)
-        self.clock_ms = 0
-        self._heap: list[tuple[int, int, Event]] = []
-        self._seq = 0
-
-    def schedule(
-        self,
-        dt_ms: int,
-        target: str,
-        payload: Dict[str, Any],
-        *,
-        event_id: Optional[str] = None,
-        source: str = "system",
-        actor_id: Optional[str] = None,
-        kind: str = "scheduled",
-    ) -> str:
-        self._seq += 1
-        evt = Event(
-            self.clock_ms + dt_ms,
-            target,
-            payload,
-            event_id=event_id or f"evt-{self._seq:08d}",
-            source=source,
-            actor_id=actor_id,
-            kind=kind,
-        )
-        heapq.heappush(self._heap, (evt.t_due_ms, self._seq, evt))
-        return evt.event_id
-
-    def next_if_due(self) -> Optional[Event]:
-        if self._heap and self._heap[0][0] <= self.clock_ms:
-            _, _, evt = heapq.heappop(self._heap)
-            return evt
-        return None
-
-    def advance(self, dt_ms: int) -> None:
-        self.clock_ms += dt_ms
-
-    def peek_due_time(self) -> Optional[int]:
-        return self._heap[0][0] if self._heap else None
-
-    def pending_count(self, target: Optional[str] = None) -> int:
-        if target is None:
-            return len(self._heap)
-        return sum(1 for _, _, e in self._heap if e.target == target)
-
-    def cancel(self, event_id: str) -> bool:
-        remaining = [
-            item
-            for item in self._heap
-            if getattr(item[2], "event_id", None) != event_id
-        ]
-        if len(remaining) == len(self._heap):
-            return False
-        self._heap = remaining
-        heapq.heapify(self._heap)
-        return True
-
-    def clear(self) -> None:
-        self._heap = []
-
-    def list_events(self) -> List[Event]:
-        return [event for _, _, event in sorted(self._heap)]
-
-
-class TraceLogger:
-    def __init__(self, out_dir: Optional[str]):
-        self.out_dir = out_dir
-        self.entries: List[Dict[str, Any]] = []
-        # Optional: stream each entry to an external collector
-        self.post_url: Optional[str] = self._validated_post_url(
-            os.environ.get("VEI_TRACE_POST_URL")
-        )
-        self._flush_idx = 0
-        self.append_mode = os.environ.get("VEI_TRACE_APPEND", "1") == "1"
-        # Background poster for streaming to avoid inline latency
-        self._q: queue.Queue[Dict[str, Any]] | None = None
-        self._poster_thread: threading.Thread | None = None
-        if self.post_url:
-            self._q = queue.Queue(maxsize=256)
-            self._poster_thread = threading.Thread(
-                target=self._poster_loop, name="vei-trace-poster", daemon=True
-            )
-            self._poster_thread.start()
-
-    @staticmethod
-    def _validated_post_url(raw: Optional[str]) -> Optional[str]:
-        """Allow https endpoints by default and localhost http for dev."""
-        if not raw:
-            return None
-        try:
-            parsed = urlparse(raw)
-        except Exception:
-            return None
-        host = (parsed.hostname or "").lower()
-        if parsed.scheme == "https":
-            return raw
-        if parsed.scheme == "http" and host in {"127.0.0.1", "localhost", "::1"}:
-            return raw
-        return None
-
-    def _try_stream(self, entry: Dict[str, Any]) -> None:
-        if not self._q:
-            return
-        try:
-            self._q.put_nowait(entry)
-        except queue.Full:
-            # Drop when saturated to preserve determinism and low latency
-            pass
-
-    def _poster_loop(self) -> None:
-        # Use stdlib to avoid extra deps
-        import urllib.request
-
-        while True:
-            try:
-                item = self._q.get(timeout=1.0) if self._q else None
-            except queue.Empty:
-                continue
-            if not item:
-                continue
-            try:
-                data = json.dumps(item).encode("utf-8")
-                req = urllib.request.Request(
-                    self.post_url,
-                    data=data,
-                    headers={"Content-Type": "application/json"},
-                    method="POST",
-                )
-                with urllib.request.urlopen(req, timeout=1.0) as _:  # nosec B310
-                    pass
-            except Exception:
-                # Best-effort only
-                pass
-
-    def record_call(
-        self, tool: str, args: Dict[str, Any], response: Any, time_ms: int
-    ) -> None:
-        entry = {
-            "trace_version": 1,
-            "type": "call",
-            "tool": tool,
-            "args": args,
-            "response": response,
-            "time_ms": time_ms,
-        }
-        self.entries.append(entry)
-        self._try_stream(entry)
-
-    def record_event(
-        self, target: str, payload: Dict[str, Any], emitted: Any, time_ms: int
-    ) -> None:
-        entry = {
-            "trace_version": 1,
-            "type": "event",
-            "target": target,
-            "payload": payload,
-            "emitted": emitted,
-            "time_ms": time_ms,
-        }
-        self.entries.append(entry)
-        self._try_stream(entry)
-
-    def flush(self) -> None:
-        # Allow late-binding of artifacts dir via environment during tests
-        if not self.out_dir:
-            env_dir = os.environ.get("VEI_ARTIFACTS_DIR")
-            if env_dir:
-                self.out_dir = env_dir
-            else:
-                return
-        os.makedirs(self.out_dir, exist_ok=True)
-        path = os.path.join(self.out_dir, "trace.jsonl")
-        if self.append_mode and os.path.exists(path):
-            mode = "a"
-        else:
-            mode = "w"
-            self._flush_idx = 0
-        with open(path, mode, encoding="utf-8") as f:
-            for entry in self.entries[self._flush_idx :]:
-                f.write(json.dumps(entry, separators=(",", ":")) + "\n")
-        self._flush_idx = len(self.entries)
-
-
-FAULT_PROFILES: Dict[str, Dict[str, float]] = {
-    "off": {},
-    "light": {
-        "mail.compose": 0.05,
-        "mail.reply": 0.04,
-        "slack.send_message": 0.02,
-        "calendar.create_event": 0.03,
-        "tickets.create": 0.03,
-    },
-    "spiky": {
-        "mail.compose": 0.12,
-        "mail.reply": 0.1,
-        "slack.send_message": 0.08,
-        "calendar.create_event": 0.1,
-        "tickets.create": 0.12,
-        "docs.update": 0.05,
-    },
-}
-
-
-def _reduce_router_init(state: Dict[str, Any], event: StateEvent) -> None:
-    meta = state.setdefault("meta", {})
-    meta.update(
-        {
-            "seed": event.payload.get("seed"),
-            "scenario": event.payload.get("scenario"),
-            "branch": event.payload.get("branch"),
-        }
-    )
-
-
-def _reduce_tool_call(state: Dict[str, Any], event: StateEvent) -> None:
-    calls = state.setdefault("tool_calls", [])
-    calls.append(
-        {
-            "index": event.index,
-            "tool": event.payload.get("tool"),
-            "time_ms": event.payload.get("time_ms"),
-        }
-    )
-    if len(calls) > 200:
-        del calls[: len(calls) - 200]
-
-
-def _reduce_event_delivery(state: Dict[str, Any], event: StateEvent) -> None:
-    deliveries = state.setdefault("deliveries", {})
-    target = str(event.payload.get("target"))
-    deliveries[target] = deliveries.get(target, 0) + 1
-
-
-def _reduce_drift_schedule(state: Dict[str, Any], event: StateEvent) -> None:
-    drift_state = state.setdefault("drift", {})
-    scheduled = drift_state.setdefault("scheduled", [])
-    scheduled.append(
-        {
-            "job": event.payload.get("job"),
-            "target": event.payload.get("target"),
-            "dt_ms": event.payload.get("dt_ms"),
-        }
-    )
-    if len(scheduled) > 100:
-        del scheduled[: len(scheduled) - 100]
-
-
-def _reduce_drift_delivered(state: Dict[str, Any], event: StateEvent) -> None:
-    drift_state = state.setdefault("drift", {})
-    delivered = drift_state.setdefault("delivered", {})
-    job = event.payload.get("job")
-    if job is None:
-        return
-    delivered[job] = delivered.get(job, 0) + 1
-
-
-def _reduce_monitor_finding(state: Dict[str, Any], event: StateEvent) -> None:
-    monitor_state = state.setdefault("monitors", {})
-    findings = monitor_state.setdefault("findings", [])
-    findings.append(event.payload)
-    if len(findings) > 100:
-        del findings[: len(findings) - 100]
-
-
-def _reduce_policy_finding(state: Dict[str, Any], event: StateEvent) -> None:
-    policy_state = state.setdefault("policy", {})
-    findings = policy_state.setdefault("findings", [])
-    findings.append(event.payload)
-    if len(findings) > 200:
-        del findings[: len(findings) - 200]
 
 
 class Router:
@@ -373,7 +84,7 @@ class Router:
             (v.level if hasattr(v, "level") else v.get("level")) == "L2"
             for v in self._surface_fidelity.values()
         ):
-            from vei.blueprint.fidelity import L2Store
+            from vei.blueprint import L2Store
 
             self._l2_store = L2Store()
         self.bus = EventBus(seed)
@@ -444,7 +155,6 @@ class Router:
         if dataset_path:
             try:
                 from vei.data.models import VEIDataset
-                from vei.world.replay import ReplayAdapter
                 import json
 
                 data = json.loads(Path(dataset_path).read_text(encoding="utf-8"))
@@ -1954,7 +1664,7 @@ class Router:
         """Return an intercepted response for L1/L2 surfaces, or None for L3."""
         if not self._surface_fidelity or tool.startswith("vei."):
             return None
-        from vei.blueprint.fidelity import resolve_surface
+        from vei.blueprint import resolve_surface
 
         surface = resolve_surface(tool)
         spec = self._surface_fidelity.get(surface)
@@ -1964,7 +1674,7 @@ class Router:
         if level == "L3":
             return None
         if level == "L1":
-            from vei.blueprint.fidelity import l1_response
+            from vei.blueprint import l1_response
 
             return l1_response(spec, tool)
         if level == "L2" and self._l2_store is not None:

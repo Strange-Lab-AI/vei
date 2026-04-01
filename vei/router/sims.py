@@ -10,7 +10,7 @@ import os
 import re
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
-from vei.world.scenario import Scenario
+from vei.world.api import Scenario
 
 from .errors import MCPError
 

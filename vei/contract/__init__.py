@@ -1,4 +1,8 @@
-from vei.contract.api import build_contract_from_workflow, evaluate_contract
+from vei.contract.api import (
+    build_contract_from_workflow,
+    evaluate_assertion_specs,
+    evaluate_contract,
+)
 from vei.contract.models import (
     ContractEvaluationResult,
     ContractPredicateSpec,
@@ -13,6 +17,7 @@ from vei.contract.models import (
 
 __all__ = [
     "build_contract_from_workflow",
+    "evaluate_assertion_specs",
     "evaluate_contract",
     "ContractEvaluationResult",
     "ContractPredicateSpec",

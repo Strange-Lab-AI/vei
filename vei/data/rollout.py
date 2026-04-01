@@ -5,8 +5,8 @@ from typing import Iterable, List
 from vei.behavior.policy import ScriptedProcurementPolicy
 from vei.data.models import BaseEvent, DatasetMetadata, VEIDataset
 from vei.router.api import RouterAPI
+from vei.world import get_scenario
 from vei.world.api import create_world_session
-from vei.world.scenarios import get_scenario
 
 
 def rollout_procurement(

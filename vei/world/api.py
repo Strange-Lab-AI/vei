@@ -186,6 +186,7 @@ def list_catalog_scenario_manifest() -> list[ScenarioManifest]:
 
 __all__ = [
     "ActorState",
+    "Scenario",
     "CapabilityGraphActionInput",
     "CapabilityGraphActionResult",
     "CapabilityGraphPlan",

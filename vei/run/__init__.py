@@ -16,6 +16,12 @@ from vei.run.api import (
     write_run_manifest,
     write_run_timeline,
 )
+from vei.run.events import (
+    append_run_event,
+    append_run_events,
+    load_run_events,
+    write_run_events,
+)
 from vei.run.models import (
     LivingSurfaceItem,
     LivingSurfacePanel,
@@ -43,6 +49,9 @@ __all__ = [
     "get_run_orientation",
     "get_run_surface_state",
     "launch_workspace_run",
+    "append_run_event",
+    "append_run_events",
+    "load_run_events",
     "load_run_events_for_run",
     "load_run_contract_evaluation",
     "list_run_manifests",
@@ -51,5 +60,6 @@ __all__ = [
     "load_run_timeline",
     "normalize_runner",
     "write_run_manifest",
+    "write_run_events",
     "write_run_timeline",
 ]

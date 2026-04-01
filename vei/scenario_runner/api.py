@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Iterable, Protocol
 
-from vei.scenario_engine.compiler import CompiledWorkflow
+from vei.scenario_engine.api import CompiledWorkflow
 
 from .models import ScenarioRunResult, ValidationReport, WorkflowOutcomeValidation
 from .runner import run_compiled_workflow, validate_compiled_workflow_outcome

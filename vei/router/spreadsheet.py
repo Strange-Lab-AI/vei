@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import asdict, is_dataclass
 from typing import Any, Callable, Dict, List, Optional
 
-from vei.world.scenario import Scenario, SpreadsheetSheet, SpreadsheetWorkbook
+from vei.world import Scenario, SpreadsheetSheet, SpreadsheetWorkbook
 
 from .errors import MCPError
 from .tool_providers import PrefixToolProvider

@@ -7,6 +7,8 @@ from pathlib import Path
 
 import typer
 
+from vei.twin.api import CustomerTwinBundle
+
 app = typer.Typer(
     add_completion=False,
     help="One-command demo: spin up a living simulated enterprise with Studio + Twin Gateway.",
@@ -201,7 +203,7 @@ def _ensure_twin_bundle(root: Path, world: str, gateway_port: int) -> None:
     manifest_path.write_text(json.dumps(bundle, indent=2), encoding="utf-8")
 
 
-def _load_twin_bundle(root: Path):
+def _load_twin_bundle(root: Path) -> CustomerTwinBundle | None:
     try:
         from vei.twin import load_customer_twin
 

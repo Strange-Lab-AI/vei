@@ -9,6 +9,7 @@ from .api import (
     managed_tool,
     parse_adapter_mode,
 )
+from .redaction import redact_payload
 from .models import (
     AdapterMode,
     ConnectorError,
@@ -42,4 +43,5 @@ __all__ = [
     "create_default_runtime",
     "managed_tool",
     "parse_adapter_mode",
+    "redact_payload",
 ]

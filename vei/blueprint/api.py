@@ -3,19 +3,16 @@ from __future__ import annotations
 from copy import deepcopy
 from typing import Any, Dict, List, Optional
 
-from vei.benchmark.families import (
+from vei.benchmark import (
     get_benchmark_family_manifest,
     list_benchmark_family_manifest,
-)
-from vei.benchmark.workflows import (
     get_benchmark_family_workflow_spec,
     get_benchmark_family_workflow_variant,
     resolve_benchmark_workflow_name,
 )
 from vei.contract.api import build_contract_from_workflow
 from vei.scenario_engine.api import compile_workflow
-from vei.world.manifest import build_scenario_manifest, get_scenario_manifest
-from vei.world.scenario import (
+from vei.world import (
     Document,
     IdentityApplicationSeed,
     IdentityGroupSeed,
@@ -23,8 +20,10 @@ from vei.world.scenario import (
     Scenario,
     ServiceDeskRequest,
     Ticket,
+    build_scenario_manifest,
+    get_scenario,
+    get_scenario_manifest,
 )
-from vei.world.scenarios import get_scenario
 from vei.verticals import build_vertical_blueprint_asset
 
 from .models import (

@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from vei.scenario_engine.models import WorkflowStepSpec
 
-from vei.benchmark.workflows import get_benchmark_family_workflow_spec
+from vei.benchmark import get_benchmark_family_workflow_spec
 from vei.blueprint.api import create_world_session_from_blueprint
 from vei.capability_graph.models import CapabilityGraphActionInput
 from vei.contract.models import ContractEvaluationResult
@@ -28,14 +28,14 @@ from vei.run.api import (
     load_run_snapshot_payload,
     write_run_manifest,
 )
-from vei.run.events import append_run_event
+from vei.run import append_run_event
 from vei.run.models import (
     RunArtifactIndex,
     RunContractSummary,
     RunManifest,
     RunTimelineEvent,
 )
-from vei.verticals.demo import (
+from vei.verticals import (
     load_workspace_story_manifest,
     prepare_vertical_story,
     VerticalDemoSpec,

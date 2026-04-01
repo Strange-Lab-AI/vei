@@ -51,9 +51,9 @@ from vei.scenario_runner.api import validate_workflow_outcome
 from vei.scenario_runner.models import ScenarioRunResult, WorkflowOutcomeValidation
 from vei.score_core import compute_score
 from vei.score_frontier import compute_frontier_score
+from vei.world import Scenario, get_scenario, list_scenarios
 from vei.world.api import create_world_session
 from vei.world.models import ActorState, WorldSnapshot, WorldState
-from vei.world.scenarios import get_scenario, list_scenarios
 
 
 FRONTIER_SCENARIO_SETS: Dict[str, List[str]] = {
@@ -1013,7 +1013,7 @@ def _load_case_blueprint_asset(spec: BenchmarkCaseSpec) -> BlueprintAsset | None
     )
 
 
-def _load_case_scenario(spec: BenchmarkCaseSpec):
+def _load_case_scenario(spec: BenchmarkCaseSpec) -> Scenario:
     asset = _load_case_blueprint_asset(spec)
     if asset is None:
         return get_scenario(spec.scenario_name)

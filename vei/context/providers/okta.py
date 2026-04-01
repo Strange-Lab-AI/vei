@@ -5,7 +5,7 @@ import tempfile
 from pathlib import Path
 
 from vei.context.models import ContextProviderConfig, ContextSourceResult
-from vei.imports.connectors import (
+from vei.imports import (
     OktaConnectorConfig,
     sync_okta_import_package,
 )

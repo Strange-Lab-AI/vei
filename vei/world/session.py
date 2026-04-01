@@ -7,7 +7,7 @@ from dataclasses import asdict, is_dataclass
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, TYPE_CHECKING
 
-from vei.blueprint.plugins import list_runtime_facade_plugins
+from vei.blueprint import list_runtime_facade_plugins
 from vei.capability_graph.api import (
     build_graph_action_plan,
     build_runtime_capability_graphs,
@@ -39,7 +39,7 @@ from vei.world.replay import materialize_overlay_event
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
-    from vei.router.core import Router
+    from vei.router import Router
 
 
 def _jsonable(value: Any) -> Any:
@@ -577,7 +577,7 @@ def restore_router_state(router: "Router", state: WorldState) -> None:
     router.bus._seq = int(state.queue_seq)
     heap: list[tuple[int, int, Any]] = []
     seq = 0
-    from vei.router.core import Event as RuntimeEvent
+    from vei.router import Event as RuntimeEvent
 
     for item in state.pending_events:
         seq += 1

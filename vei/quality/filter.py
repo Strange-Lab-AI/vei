@@ -5,8 +5,8 @@ import json
 from typing import Dict, Iterable, List, Set
 
 from vei.corpus.models import GeneratedWorkflowSpec
-from vei.scenario_engine.compiler import compile_workflow_spec
-from vei.scenario_runner.validator import static_validate_workflow
+from vei.scenario_engine.api import compile_workflow_spec
+from vei.scenario_runner import validate_workflow as static_validate_workflow
 
 from .models import QualityFilterReport, WorkflowQualityScore
 

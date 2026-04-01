@@ -4,7 +4,7 @@ from typing import Dict, Iterable, List, Optional
 
 from pydantic import BaseModel, Field
 
-from vei.world.scenario import (
+from vei.world import (
     IdentityApplicationSeed,
     IdentityGroupSeed,
     IdentityUserSeed,

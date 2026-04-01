@@ -50,7 +50,7 @@ from vei.blueprint.models import (
     CompiledBlueprint,
     FacadeManifest,
 )
-from vei.blueprint.plugins import (
+from vei.blueprint import (
     FacadePlugin,
     get_facade_plugin as _get_facade_plugin,
     list_facade_plugins as _list_facade_plugins,
@@ -64,12 +64,10 @@ from vei.benchmark.api import (
     list_benchmark_family_manifest,
 )
 from vei.contract.models import ContractSpec
-from vei.benchmark.showcase import (
+from vei.benchmark import (
     BenchmarkShowcaseExample,
     get_showcase_example as _get_showcase_example,
     list_showcase_examples as _list_showcase_examples,
-)
-from vei.benchmark.workflows import (
     get_benchmark_family_workflow_spec as _get_benchmark_family_workflow_spec,
     get_benchmark_family_workflow_variant as _get_benchmark_family_workflow_variant,
     list_benchmark_family_workflow_specs as _list_benchmark_family_workflow_specs,
@@ -87,7 +85,7 @@ from vei.release.api import (
 )
 from vei.router.api import RouterAPI, RouterToolProvider
 from vei.scenario_engine.api import compile_workflow
-from vei.scenario_engine.compiler import CompiledWorkflow
+from vei.scenario_engine.api import CompiledWorkflow
 from vei.scenario_engine.models import WorkflowScenarioSpec
 from vei.scenario_runner.api import run_workflow, validate_workflow
 from vei.scenario_runner.models import ScenarioRunResult, ValidationReport
@@ -108,7 +106,7 @@ from vei.imports.api import (
     scaffold_mapping_override as _scaffold_mapping_override,
     validate_import_package as _validate_import_package,
 )
-from vei.imports.connectors import (
+from vei.imports import (
     OktaConnectorConfig,
     load_okta_connector_config as _load_okta_connector_config,
 )
@@ -161,7 +159,7 @@ from vei.workspace.api import (
     sync_workspace_source as _sync_workspace_source,
     validate_workspace_contract as _validate_workspace_contract,
 )
-from vei.workspace.identity import (
+from vei.workspace import (
     build_identity_flow_summary as _build_identity_flow_summary,
     prepare_identity_workspace_flow as _prepare_identity_workspace_flow,
 )
@@ -184,8 +182,6 @@ from vei.verticals import (
     list_vertical_contract_variants as _list_vertical_contract_variants,
     list_vertical_pack_manifests as _list_vertical_pack_manifests,
     list_vertical_scenario_variants as _list_vertical_scenario_variants,
-)
-from vei.verticals.demo import (
     VerticalDemoResult,
     VerticalDemoSpec,
     VerticalShowcaseResult,
@@ -203,7 +199,7 @@ from vei.world.api import (
     get_catalog_scenario_manifest,
     list_catalog_scenario_manifest,
 )
-from vei.world.manifest import ScenarioManifest
+from vei.world import ScenarioManifest
 
 
 @dataclass(frozen=True)

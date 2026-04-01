@@ -48,11 +48,12 @@ from vei.run.api import (
     normalize_runner,
 )
 from vei import __version__ as vei_version
-from vei.verticals.demo import (
+from vei.verticals import (
     load_workspace_exports_preview,
     load_workspace_presentation,
     load_workspace_story_manifest,
 )
+from vei.workspace import build_identity_flow_summary
 from vei.workspace.api import (
     activate_workspace_contract_variant,
     activate_workspace_scenario,
@@ -70,7 +71,6 @@ from vei.workspace.api import (
     preview_workspace_scenario,
     show_workspace,
 )
-from vei.workspace.identity import build_identity_flow_summary
 
 
 class RunLaunchRequest(BaseModel):

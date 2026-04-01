@@ -29,7 +29,7 @@ from vei.blueprint.models import (
     BlueprintTicketAsset,
     BlueprintWorkGraphAsset,
 )
-from vei.connectors.redaction import redact_payload
+from vei.connectors import redact_payload
 from vei.grounding.models import (
     IdentityGovernanceBundle,
     IdentityGovernanceWorkflowSeed,

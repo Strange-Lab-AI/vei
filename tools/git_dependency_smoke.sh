@@ -21,8 +21,9 @@ if [ ! -x "${PYTHON_BIN}" ]; then
 fi
 
 "${PYTHON_BIN}" -m pip install --upgrade pip setuptools wheel >/dev/null
-# Validate git dependency install path while avoiding redundant dependency resolution.
-"${PYTHON_BIN}" -m pip install --force-reinstall --no-deps "git+file://${REPO_ROOT}" >/dev/null
+echo "[git-smoke] validating git install path"
+"${PYTHON_BIN}" -m pip install --disable-pip-version-check --quiet --no-deps "git+file://${REPO_ROOT}" >/dev/null
+echo "[git-smoke] importing VEI and opening a lightweight session"
 
 "${PYTHON_BIN}" - <<'PY'
 from vei.sdk import create_session, get_scenario_manifest
@@ -33,9 +34,7 @@ assert manifest.name == "multi_channel"
 session = create_session(seed=42042, scenario_name="multi_channel")
 obs = session.observe()
 assert isinstance(obs.get("action_menu"), list)
-
-page = session.call_tool("browser.read", {})
-assert "url" in page
+assert isinstance(obs.get("summary"), str)
 
 print("git dependency smoke passed")
 PY

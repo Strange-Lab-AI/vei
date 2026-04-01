@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any, Dict, List, Optional
 
 from .errors import MCPError
-from vei.world.scenario import Scenario
+from vei.world.api import Scenario
 
 
 def _default_tables() -> Dict[str, List[Dict[str, Any]]]:

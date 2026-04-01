@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
 
-from vei.world.scenario import Scenario
+from vei.world.api import Scenario
 from .errors import MCPError
 
 

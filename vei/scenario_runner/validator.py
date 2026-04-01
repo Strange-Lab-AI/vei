@@ -4,10 +4,8 @@ from typing import Any, Iterable, List, Optional
 
 from vei.capability_graph.models import CapabilityGraphActionInput
 from vei.capability_graph.api import validate_graph_action_input
-from vei.contract.assertions import (
-    evaluate_assertion_specs as evaluate_contract_assertions,
-)
-from vei.scenario_engine.compiler import CompiledStep, CompiledWorkflow
+from vei.contract import evaluate_assertion_specs as evaluate_contract_assertions
+from vei.scenario_engine.api import CompiledStep, CompiledWorkflow
 from vei.scenario_engine.models import AssertionSpec
 
 from .models import ValidationIssue, ValidationReport

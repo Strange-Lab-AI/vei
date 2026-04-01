@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, Optional, Protocol, Sequence
 
-from vei.world.scenario import Scenario
+from vei.world import Scenario
 
 
 class ObservationLike(Protocol):

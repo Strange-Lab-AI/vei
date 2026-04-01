@@ -34,8 +34,8 @@ check: $(SETUP_STAMP)
 	$(VENV_BIN)/python -m bandit -q -r vei -ll
 	@mkdir -p .artifacts
 	$(VENV_BIN)/detect-secrets scan $$(git ls-files) > .artifacts/detect-secrets.json
-	@echo "--- import boundary check (advisory) ---"
-	$(VENV_BIN)/python scripts/check_import_boundaries.py || true
+	@echo "--- import boundary check ---"
+	$(VENV_BIN)/python scripts/check_import_boundaries.py
 	@if [ -f .secrets.baseline ]; then \
 		$(VENV_BIN)/detect-secrets-hook --baseline .secrets.baseline $$(git ls-files); \
 	else \

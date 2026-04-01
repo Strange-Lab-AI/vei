@@ -4,6 +4,7 @@ import os
 import json
 import shlex
 import time
+import collections
 from contextlib import contextmanager
 from pathlib import Path
 
@@ -44,7 +45,7 @@ app = typer.Typer(add_completion=False)
 
 
 @contextmanager
-def _temporary_env_var(name: str, value: str | None):
+def _temporary_env_var(name: str, value: str | None) -> collections.abc.Iterator[None]:
     previous = os.environ.get(name)
     if value is None:
         os.environ.pop(name, None)
