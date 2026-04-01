@@ -2,8 +2,12 @@ name: ci
 
 on:
   push:
-    branches: ["main", "feat/**", "fix/**", "chore/**", "codex/**"]
+    branches: ["main"]
   pull_request:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   quality:
@@ -22,11 +26,11 @@ jobs:
       - name: Setup
         run: make setup
 
-      - name: Git Dependency Smoke
-        run: bash ./tools/git_dependency_smoke.sh "$GITHUB_WORKSPACE"
-
       - name: Check
         run: make check
+
+      - name: Git Dependency Smoke
+        run: bash ./tools/git_dependency_smoke.sh "$GITHUB_WORKSPACE"
 
       - name: Test
         run: make test
