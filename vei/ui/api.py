@@ -33,6 +33,7 @@ from vei.pilot import (
 )
 from vei.run.api import (
     build_run_timeline,
+    diff_cross_run_snapshots,
     diff_run_snapshots,
     generate_run_id,
     get_run_capability_graphs,
@@ -110,6 +111,7 @@ class MissionStartRequest(BaseModel):
 
 class MissionBranchRequest(BaseModel):
     branch_name: str | None = None
+    snapshot_id: int | None = None
 
 
 class ContextCaptureRequest(BaseModel):
@@ -190,6 +192,24 @@ def create_ui_app(workspace_root: str | Path) -> FastAPI:
     @app.get("/api/workspace")
     def api_workspace() -> JSONResponse:
         return JSONResponse(show_workspace(root).model_dump(mode="json"))
+
+    @app.get("/api/workspace/mirror")
+    def api_workspace_mirror() -> JSONResponse:
+        twin_path = root / "twin_manifest.json"
+        if not twin_path.exists():
+            return JSONResponse({})
+        try:
+            data = json.loads(twin_path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            return JSONResponse({})
+        mirror = data.get("metadata", {}).get("mirror", {})
+        all_manifests = [m.model_dump(mode="json") for m in list_run_manifests(root)]
+        for m in all_manifests:
+            run_mirror = m.get("metadata", {}).get("mirror", {})
+            if run_mirror.get("agents"):
+                mirror = run_mirror
+                break
+        return JSONResponse(mirror)
 
     @app.get("/api/story")
     def api_story() -> JSONResponse:
@@ -346,6 +366,7 @@ def create_ui_app(workspace_root: str | Path) -> FastAPI:
                 root,
                 run_id=run_id,
                 branch_name=request.branch_name,
+                snapshot_id=request.snapshot_id,
             )
         except (KeyError, ValueError) as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
@@ -597,6 +618,14 @@ def create_ui_app(workspace_root: str | Path) -> FastAPI:
     def api_run_diff(run_id: str, snapshot_from: int, snapshot_to: int) -> JSONResponse:
         return JSONResponse(
             diff_run_snapshots(root, run_id, snapshot_from, snapshot_to)
+        )
+
+    @app.get("/api/runs/diff-cross")
+    def api_runs_diff_cross(
+        run_a: str, snap_a: int, run_b: str, snap_b: int
+    ) -> JSONResponse:
+        return JSONResponse(
+            diff_cross_run_snapshots(root, run_a, snap_a, run_b, snap_b)
         )
 
     @app.get("/api/runs/{run_id}/stream")

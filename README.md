@@ -7,16 +7,16 @@ VEI builds believable company worlds and lets you run a control layer on top of 
 
 You can use it to turn a real or obfuscated company into a branchable enterprise twin, run policies and multi-step workflows against that twin, replay the same starting point with different rules, and show the outcome as a live demo, evaluation run, rollout, or training trace.
 
-In practice that means VEI sits in the middle of four jobs:
+The cleanest way to think about VEI is: **one kernel, four modes**.
 
-- build a realistic company world
-- act on that world through a control layer
-- compare outcomes from the same starting point
-- export the result for demos, benchmarks, rollouts, and RL environments
+- **Test / Eval** — prove an agent works before it touches a real company
+- **Mirror / Control** — watch real or demo agents act through VEI and govern risky writes
+- **Sandbox / What-if** — branch the same company world and compare alternate outcomes
+- **Train / Data** — generate rollouts, traces, and datasets for cloning or RL-style updates
 
 Pick a company, pick a crisis, define what success looks like, then play moves or let an agent play them. Every tool, every person, and every process reacts as one connected system.
 
-Today VEI is best thought of as the engine underneath a customer-facing control product: the repo contains the world model, policy and workflow runtime, replay and scoring loop, playable demo surfaces, and rollout or training hooks.
+Today VEI is best thought of as the engine underneath a customer-facing control product: the repo contains the world model, policy and workflow runtime, replay and scoring loop, mirror and gateway plumbing, playable demo surfaces, and rollout or training hooks.
 
 **[Full overview: what this is, who it's for, and how to connect your own data →](docs/OVERVIEW.md)**
 
@@ -241,6 +241,47 @@ That workspace keeps the normal VEI run history, surfaces, scoring, and replay, 
 - Jira-style issues
 - Microsoft Graph-style mail and calendar
 - Salesforce-style CRM
+
+Mirror mode now has two practical entry paths:
+
+- **Demo mode** — use staged built-in agents and timed activity on a simulated world so the control plane feels live without real credentials
+- **Live alpha** — run the twin in `live` connector mode so Slack-shaped traffic can pass through VEI, be governed, and still update the twin
+
+Mirror mode treats **proxy** and **ingest** as peers. If you control the agent, point it at VEI's compatibility routes. If you do not, register the agent and send typed events into the same run history instead.
+
+Try the demo-first path with the built-in service company:
+
+```bash
+vei twin build \
+  --root _vei_out/customer_twins/clearwater \
+  --snapshot _vei_out/context/acme_snapshot.json \
+  --organization-domain clearwater.example.com \
+  --archetype service_ops \
+  --mirror-demo
+
+vei twin serve --root _vei_out/customer_twins/clearwater
+```
+
+Or use the one-command path:
+
+```bash
+vei quickstart run --world service_ops --mirror-demo
+```
+
+**[Visual walkthrough of the service ops control plane with mirror mode →](docs/SERVICE_OPS_WALKTHROUGH.md)**
+
+For the first live slice, keep the same twin but flip the connector mode:
+
+```bash
+vei twin build \
+  --root _vei_out/customer_twins/clearwater_live \
+  --snapshot _vei_out/context/acme_snapshot.json \
+  --organization-domain clearwater.example.com \
+  --archetype service_ops \
+  --connector-mode live
+```
+
+Today VEI is authoritative for actions it directly proxies or ingests. Everything else is still a last-known-good world until the next sync. That is an intentional alpha limit.
 
 The fastest way to inspect what was built is:
 
@@ -806,6 +847,7 @@ For MCP-native agents, connect directly:
 - `docs/OVERVIEW.md` — What VEI is, who it's for, how to connect your data, and strategic context
 - `docs/ARCHITECTURE.md` — Module structure and data flow
 - `docs/BENCHMARKS.md` — Benchmark families, difficulty tiers, and evaluation
+- `docs/SERVICE_OPS_WALKTHROUGH.md` — Visual walkthrough of the service ops control plane with mirror mode
 
 ## Contributor Notes
 

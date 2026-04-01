@@ -23,6 +23,11 @@ from vei.blueprint.models import (
 )
 from vei.context.api import capture_context, hydrate_blueprint
 from vei.context.models import ContextProviderConfig, ContextSnapshot
+from vei.mirror import (
+    MirrorWorkspaceConfig,
+    default_mirror_workspace_config,
+    mirror_metadata_payload,
+)
 from vei.verticals import build_vertical_blueprint_asset
 from vei.workspace.api import (
     activate_workspace_contract_variant,
@@ -57,6 +62,7 @@ def build_customer_twin(
     organization_name: str | None = None,
     organization_domain: str = "",
     mold: ContextMoldConfig | None = None,
+    mirror_config: MirrorWorkspaceConfig | None = None,
     gateway_token: str | None = None,
     overwrite: bool = True,
 ) -> CustomerTwinBundle:
@@ -67,6 +73,9 @@ def build_customer_twin(
         raise ValueError("snapshot or provider_configs is required")
 
     resolved_mold = mold or ContextMoldConfig()
+    resolved_mirror = mirror_config or default_mirror_workspace_config(
+        hero_world=resolved_mold.archetype
+    )
     resolved_snapshot = snapshot
     if resolved_snapshot is None:
         if not organization_name:
@@ -108,6 +117,7 @@ def build_customer_twin(
             "organization_domain": resolved_domain,
             "mold": resolved_mold.model_dump(mode="json"),
         },
+        "mirror": mirror_metadata_payload(resolved_mirror),
     }
     write_workspace(workspace_root, manifest)
     compile_workspace(workspace_root)
@@ -155,6 +165,7 @@ def build_customer_twin(
         metadata={
             "preview": preview_workspace_scenario(workspace_root),
             "source_providers": [item.provider for item in resolved_snapshot.sources],
+            "mirror": mirror_metadata_payload(resolved_mirror),
         },
     )
     _write_json(workspace_root / TWIN_MANIFEST_FILE, bundle.model_dump(mode="json"))

@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 from vei.context.models import (
     ContextProviderConfig,
     ContextSnapshot,
@@ -150,6 +152,7 @@ def test_ensure_twin_bundle_preserves_provider_capture_path(
         organization_name: str | None = None,
         organization_domain: str = "",
         mold: ContextMoldConfig | None = None,
+        mirror_config=None,
         gateway_token: str | None = None,
         overwrite: bool = True,
     ) -> CustomerTwinBundle:
@@ -158,6 +161,7 @@ def test_ensure_twin_bundle_preserves_provider_capture_path(
         captured["organization_name"] = organization_name
         captured["organization_domain"] = organization_domain
         captured["mold"] = mold
+        captured["mirror_config"] = mirror_config
         return CustomerTwinBundle(
             workspace_root=Path(root),
             workspace_name="pilot",
@@ -193,6 +197,9 @@ def test_ensure_twin_bundle_preserves_provider_capture_path(
         archetype="b2b_saas",
         scenario_variant="renewal_save",
         contract_variant="customer_safe_recovery",
+        connector_mode="live",
+        mirror_demo=False,
+        mirror_demo_interval_ms=2500,
         gateway_token="pilot-token",
         rebuild=True,
     )
@@ -202,6 +209,42 @@ def test_ensure_twin_bundle_preserves_provider_capture_path(
     assert captured["provider_configs"] == provider_configs
     assert isinstance(captured["mold"], ContextMoldConfig)
     assert captured["mold"].archetype == "b2b_saas"
+    assert captured["mirror_config"].connector_mode == "live"
+    assert captured["mirror_config"].demo_mode is False
+
+
+def test_ensure_twin_bundle_rejects_live_demo_combo(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr(
+        pilot_api,
+        "build_customer_twin",
+        lambda *args, **kwargs: (_ for _ in ()).throw(
+            AssertionError("build_customer_twin should not run")
+        ),
+    )
+
+    with pytest.raises(
+        ValueError, match="mirror demo mode requires connector_mode='sim'"
+    ):
+        pilot_api._ensure_twin_bundle(
+            tmp_path / "provider_pilot",
+            snapshot=None,
+            provider_configs=[
+                ContextProviderConfig(provider="slack", token_env="VEI_SLACK_TOKEN")
+            ],
+            organization_name="Provider Company",
+            organization_domain="provider.example.com",
+            archetype="b2b_saas",
+            scenario_variant="renewal_save",
+            contract_variant="customer_safe_recovery",
+            connector_mode="live",
+            mirror_demo=True,
+            mirror_demo_interval_ms=2500,
+            gateway_token="pilot-token",
+            rebuild=True,
+        )
 
 
 def test_start_pilot_rebuild_stops_existing_services_first(

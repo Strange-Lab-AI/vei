@@ -1,7 +1,11 @@
 from __future__ import annotations
 
 import json
+import os
 import time
+from urllib import error as urlerror
+from urllib import parse as urlparse
+from urllib import request as urlrequest
 from typing import Any, Callable, Dict, Mapping, Optional
 
 from .api import AdapterTriplet, ConnectorAdapter
@@ -9,6 +13,7 @@ from .models import (
     ConnectorError,
     ConnectorRequest,
     ConnectorResult,
+    OperationClass,
     ServiceName,
 )
 
@@ -102,17 +107,35 @@ class LiveConnectorAdapter(ConnectorAdapter):
         self.delegate = delegate
 
     def execute(self, request: ConnectorRequest) -> ConnectorResult:
-        result = self.delegate.execute(request)
-        result.metadata = {
-            **result.metadata,
-            "adapter": "live",
-            "live_backend": "simulated",
-        }
-        result.raw = {
-            **result.raw,
-            "live_backend": "simulated",
-        }
-        return result
+        live_result = _execute_live_backend(request)
+        if live_result is None:
+            result = self.delegate.execute(request)
+            result.metadata = {
+                **result.metadata,
+                "adapter": "live",
+                "live_backend": "simulated",
+            }
+            result.raw = {
+                **result.raw,
+                "live_backend": "simulated",
+            }
+            return result
+
+        if live_result.ok and request.operation_class != OperationClass.READ:
+            mirrored = self.delegate.execute(
+                _mirrored_state_request(request, live_result)
+            )
+            if not mirrored.ok:
+                return _failed_live_mirror_result(
+                    request,
+                    live_result=live_result,
+                    mirrored_result=mirrored,
+                )
+            live_result.metadata = {
+                **live_result.metadata,
+                "mirrored_state": bool(mirrored.ok),
+            }
+        return live_result
 
 
 def build_default_adapter_triplets(
@@ -319,6 +342,320 @@ def _to_legacy_shape(request: ConnectorRequest, response: Any) -> Any:
     if isinstance(response, dict):
         return dict(response)
     return response
+
+
+def _execute_live_backend(request: ConnectorRequest) -> ConnectorResult | None:
+    if request.service == ServiceName.SLACK:
+        return _execute_live_slack(request)
+    return None
+
+
+def _execute_live_slack(request: ConnectorRequest) -> ConnectorResult | None:
+    token = os.environ.get("VEI_LIVE_SLACK_TOKEN", "").strip()
+    if not token:
+        return None
+    base_url = os.environ.get(
+        "VEI_LIVE_SLACK_BASE_URL", "https://slack.com/api"
+    ).rstrip("/")
+    started = time.perf_counter()
+    try:
+        if request.operation == "list_channels":
+            payload = _perform_live_http_json(
+                f"{base_url}/conversations.list",
+                token=token,
+                body={"limit": 200},
+            )
+            channels = [
+                f"#{str(channel.get('name', '')).lstrip('#')}"
+                for channel in payload.get("channels", [])
+                if channel.get("name")
+            ]
+            return _success_live_result(
+                data=channels,
+                raw=_slack_canonical(request, channels),
+                latency_ms=started,
+                live_backend="slack_http",
+            )
+        if request.operation in {
+            "open_channel",
+            "fetch_thread",
+            "send_message",
+            "react",
+        }:
+            channel_id = _resolve_live_slack_channel_id(
+                base_url=base_url,
+                token=token,
+                channel_ref=str(request.payload.get("channel", "")),
+            )
+            if request.operation == "open_channel":
+                payload = _perform_live_http_json(
+                    f"{base_url}/conversations.history",
+                    token=token,
+                    body={"channel": channel_id, "limit": 50},
+                )
+                messages = _normalize_live_slack_messages(payload.get("messages", []))
+                data = {"messages": messages, "unread_count": 0}
+                return _success_live_result(
+                    data=data,
+                    raw=_slack_canonical(request, data),
+                    latency_ms=started,
+                    live_backend="slack_http",
+                )
+            if request.operation == "fetch_thread":
+                payload = _perform_live_http_json(
+                    f"{base_url}/conversations.replies",
+                    token=token,
+                    body={
+                        "channel": channel_id,
+                        "ts": str(request.payload.get("thread_ts", "")),
+                    },
+                )
+                data = {
+                    "messages": _normalize_live_slack_messages(
+                        payload.get("messages", [])
+                    )
+                }
+                return _success_live_result(
+                    data=data,
+                    raw=_slack_canonical(request, data),
+                    latency_ms=started,
+                    live_backend="slack_http",
+                )
+            if request.operation == "send_message":
+                body = {
+                    "channel": channel_id,
+                    "text": str(request.payload.get("text", "")),
+                }
+                if request.payload.get("thread_ts") is not None:
+                    body["thread_ts"] = str(request.payload["thread_ts"])
+                payload = _perform_live_http_json(
+                    f"{base_url}/chat.postMessage",
+                    token=token,
+                    body=body,
+                )
+                data = {"ts": payload.get("ts")}
+                return _success_live_result(
+                    data=data,
+                    raw=_slack_canonical(request, data),
+                    latency_ms=started,
+                    live_backend="slack_http",
+                )
+            if request.operation == "react":
+                payload = _perform_live_http_json(
+                    f"{base_url}/reactions.add",
+                    token=token,
+                    body={
+                        "channel": channel_id,
+                        "timestamp": str(request.payload.get("ts", "")),
+                        "name": str(request.payload.get("emoji", "")).strip(":"),
+                    },
+                )
+                data = {"ok": bool(payload.get("ok", True))}
+                return _success_live_result(
+                    data=data,
+                    raw=_slack_canonical(request, data),
+                    latency_ms=started,
+                    live_backend="slack_http",
+                )
+    except urlerror.HTTPError as exc:
+        return _failed_live_result(
+            request,
+            code="slack.http_error",
+            message=f"Slack live backend returned HTTP {exc.code}",
+            status_code=exc.code,
+            retryable=exc.code >= 500,
+            latency_ms=started,
+        )
+    except urlerror.URLError as exc:
+        return _failed_live_result(
+            request,
+            code="slack.network_error",
+            message=str(exc.reason),
+            retryable=True,
+            latency_ms=started,
+        )
+    except RuntimeError as exc:
+        return _failed_live_result(
+            request,
+            code="slack.api_error",
+            message=str(exc),
+            latency_ms=started,
+        )
+    except json.JSONDecodeError as exc:
+        return _failed_live_result(
+            request,
+            code="slack.json_decode_error",
+            message=f"invalid JSON from Slack API: {exc}",
+            retryable=True,
+            latency_ms=started,
+        )
+    return None
+
+
+def _perform_live_http_json(
+    url: str,
+    *,
+    token: str,
+    body: Dict[str, Any],
+) -> Dict[str, Any]:
+    validated_url = _validate_live_http_url(url)
+    data = json.dumps(body).encode("utf-8")
+    req = urlrequest.Request(
+        validated_url,
+        data=data,
+        headers={
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json; charset=utf-8",
+        },
+        method="POST",
+    )
+    with urlrequest.urlopen(req, timeout=15) as response:  # nosec B310
+        payload = json.loads(response.read().decode("utf-8"))
+    if not payload.get("ok", False):
+        raise RuntimeError(str(payload.get("error", "unknown_slack_error")))
+    return payload
+
+
+def _validate_live_http_url(url: str) -> str:
+    parsed = urlparse.urlparse(url)
+    if parsed.scheme not in {"http", "https"}:
+        raise RuntimeError("live connector URL must use http or https")
+    if not parsed.netloc:
+        raise RuntimeError("live connector URL must include a host")
+    return parsed.geturl()
+
+
+def _resolve_live_slack_channel_id(
+    *,
+    base_url: str,
+    token: str,
+    channel_ref: str,
+) -> str:
+    normalized = channel_ref.strip()
+    if normalized.startswith(("C", "G", "D")) and normalized.upper() == normalized:
+        return normalized
+    payload = _perform_live_http_json(
+        f"{base_url}/conversations.list",
+        token=token,
+        body={"limit": 200},
+    )
+    target_name = normalized.lstrip("#")
+    for channel in payload.get("channels", []):
+        if str(channel.get("name", "")) == target_name:
+            return str(channel.get("id", normalized))
+    return normalized
+
+
+def _normalize_live_slack_messages(messages: Any) -> list[Dict[str, Any]]:
+    normalized: list[Dict[str, Any]] = []
+    for item in messages or []:
+        payload = dict(item)
+        normalized.append(
+            {
+                "ts": str(payload.get("ts", "")),
+                "user": str(
+                    payload.get("user")
+                    or payload.get("username")
+                    or payload.get("bot_id")
+                    or "live-agent"
+                ),
+                "text": str(payload.get("text", "")),
+                "thread_ts": payload.get("thread_ts"),
+            }
+        )
+    return normalized
+
+
+def _success_live_result(
+    *,
+    data: Any,
+    raw: Dict[str, Any],
+    latency_ms: float,
+    live_backend: str,
+) -> ConnectorResult:
+    return ConnectorResult(
+        ok=True,
+        status_code=200,
+        data=data,
+        raw={**raw, "live_backend": live_backend},
+        latency_ms=int((time.perf_counter() - latency_ms) * 1000),
+        metadata={"adapter": "live", "live_backend": live_backend},
+    )
+
+
+def _mirrored_state_request(
+    request: ConnectorRequest,
+    live_result: ConnectorResult,
+) -> ConnectorRequest:
+    if request.service != ServiceName.SLACK:
+        return request
+    if request.operation != "send_message":
+        return request
+    if not isinstance(live_result.data, dict):
+        return request
+
+    live_ts = live_result.data.get("ts")
+    if live_ts is None:
+        return request
+
+    payload = dict(request.payload)
+    payload["forced_ts"] = str(live_ts)
+    return request.model_copy(update={"payload": payload}, deep=True)
+
+
+def _failed_live_result(
+    request: ConnectorRequest,
+    *,
+    code: str,
+    message: str,
+    latency_ms: float,
+    status_code: int = 400,
+    retryable: bool = False,
+) -> ConnectorResult:
+    return ConnectorResult(
+        ok=False,
+        status_code=status_code,
+        error=ConnectorError(code=code, message=message, retryable=retryable),
+        raw={"service": request.service.value, "operation": request.operation},
+        latency_ms=int((time.perf_counter() - latency_ms) * 1000),
+        metadata={"adapter": "live", "live_backend": "slack_http"},
+    )
+
+
+def _failed_live_mirror_result(
+    request: ConnectorRequest,
+    *,
+    live_result: ConnectorResult,
+    mirrored_result: ConnectorResult,
+) -> ConnectorResult:
+    mirror_error = (
+        mirrored_result.error.model_dump(mode="json")
+        if mirrored_result.error is not None
+        else {
+            "code": "mirror_state_write_failed",
+            "message": "local VEI state could not be updated",
+        }
+    )
+    return ConnectorResult(
+        ok=False,
+        status_code=409,
+        data=live_result.data,
+        raw={
+            **live_result.raw,
+            "mirror_sync_failed": True,
+            "mirror_error": mirror_error,
+        },
+        error=ConnectorError(
+            code=f"{request.service.value}.mirror_sync_failed",
+            message="live write succeeded but VEI could not mirror the change locally",
+            detail={"mirror_error": mirror_error},
+        ),
+        latency_ms=live_result.latency_ms,
+        metadata={
+            **live_result.metadata,
+            "mirrored_state": False,
+        },
+    )
 
 
 def _slack_canonical(request: ConnectorRequest, response: Any) -> Dict[str, Any]:

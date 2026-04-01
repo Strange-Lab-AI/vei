@@ -249,6 +249,45 @@ def test_finish_branched_run(tmp_path: Path) -> None:
     assert finished.status == "completed"
 
 
+def test_branch_from_earlier_snapshot_rewinds_moves(tmp_path: Path) -> None:
+    root = _make_workspace(tmp_path)
+    state = start_workspace_mission_run(
+        root,
+        mission_name="tenant_opening_conflict",
+    )
+    initial_snapshot = state.last_snapshot_id
+    assert initial_snapshot is not None
+
+    move1 = state.available_moves[0].move_id
+    state = apply_workspace_mission_move(root, run_id=state.run_id, move_id=move1)
+    state_after_move1 = state.model_copy(deep=True)
+    snapshot_after_move1 = state.last_snapshot_id
+    assert snapshot_after_move1 is not None
+    assert len(state.executed_moves) == 1
+
+    usable = [m for m in state.available_moves if m.availability != "blocked"]
+    if usable:
+        state = apply_workspace_mission_move(
+            root, run_id=state.run_id, move_id=usable[0].move_id
+        )
+        assert len(state.executed_moves) == 2
+
+    branched = branch_workspace_mission_run(
+        root, run_id=state.run_id, snapshot_id=snapshot_after_move1
+    )
+    assert branched.run_id != state.run_id
+    assert branched.status == "running"
+    assert len(branched.executed_moves) == 1
+    assert branched.last_snapshot_id == snapshot_after_move1
+    assert branched.turn_index == 1
+    assert branched.scorecard.model_dump(
+        mode="json"
+    ) == state_after_move1.scorecard.model_dump(mode="json")
+    assert [(move.move_id, move.availability) for move in branched.available_moves] == [
+        (move.move_id, move.availability) for move in state_after_move1.available_moves
+    ]
+
+
 def test_render_playable_overview(tmp_path: Path) -> None:
     root = _make_workspace(tmp_path)
     state = start_workspace_mission_run(

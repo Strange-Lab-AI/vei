@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import pytest
 
+from vei.connectors import adapters as connector_adapters
 from vei.router.core import Router
 from vei.router.errors import MCPError
 
@@ -64,6 +65,104 @@ def test_live_mode_safe_write_allowed_when_enabled(
         {"to": "sales@example.com", "subj": "Quote", "body_text": "Need quote"},
     )
     assert result["id"].startswith("m")
+
+
+def test_live_slack_backend_forwards_and_keeps_local_state(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[tuple[str, dict[str, object]]] = []
+
+    def fake_live_http(
+        url: str, *, token: str, body: dict[str, object]
+    ) -> dict[str, object]:
+        calls.append((url, body))
+        if url.endswith("/conversations.list"):
+            return {
+                "ok": True,
+                "channels": [{"id": "C-PROC", "name": "procurement"}],
+            }
+        if url.endswith("/chat.postMessage"):
+            return {"ok": True, "ts": "1710301000.000100"}
+        if url.endswith("/reactions.add"):
+            return {"ok": True}
+        raise AssertionError(url)
+
+    monkeypatch.setenv("VEI_LIVE_ALLOW_WRITE_SAFE", "1")
+    monkeypatch.setenv("VEI_LIVE_SLACK_TOKEN", "xoxb-live-token")
+    monkeypatch.setattr(
+        connector_adapters,
+        "_perform_live_http_json",
+        fake_live_http,
+    )
+
+    router = Router(seed=654, artifacts_dir=None, connector_mode="live")
+    result = router.call_and_step(
+        "slack.send_message",
+        {"channel": "#procurement", "text": "Live path says the PO is approved."},
+    )
+    react = router.call_and_step(
+        "slack.react",
+        {"channel": "#procurement", "ts": result["ts"], "emoji": "eyes"},
+    )
+
+    assert result["ts"] == "1710301000.000100"
+    assert react["ok"] is True
+    assert any(url.endswith("/chat.postMessage") for url, _ in calls)
+    local_message = router.slack.channels["#procurement"]["messages"][-1]
+    assert local_message["text"] == "Live path says the PO is approved."
+    assert local_message["ts"] == result["ts"]
+    assert local_message["reactions"] == [
+        {"name": "eyes", "count": 1, "users": ["agent"]}
+    ]
+    receipt = router.state_snapshot(include_state=False, tool_tail=3)["connectors"][
+        "last_receipt"
+    ]
+    assert receipt["response_payload"]["live_backend"] == "slack_http"
+
+
+def test_live_slack_backend_fails_when_local_state_cannot_mirror(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def fake_live_http(
+        url: str, *, token: str, body: dict[str, object]
+    ) -> dict[str, object]:
+        if url.endswith("/chat.postMessage"):
+            return {"ok": True, "ts": "1710301000.000100"}
+        raise AssertionError(url)
+
+    monkeypatch.setenv("VEI_LIVE_ALLOW_WRITE_SAFE", "1")
+    monkeypatch.setenv("VEI_LIVE_SLACK_TOKEN", "xoxb-live-token")
+    monkeypatch.setattr(
+        connector_adapters,
+        "_perform_live_http_json",
+        fake_live_http,
+    )
+
+    router = Router(seed=654, artifacts_dir=None, connector_mode="live")
+    with pytest.raises(MCPError) as exc:
+        router.call_and_step(
+            "slack.send_message",
+            {"channel": "C123LIVE", "text": "Hello from the live channel id path."},
+        )
+
+    assert exc.value.code == "slack.mirror_sync_failed"
+    receipt = router.state_snapshot(include_state=False, tool_tail=3)["connectors"][
+        "last_receipt"
+    ]
+    assert receipt["ok"] is False
+    assert receipt["response_payload"]["mirror_sync_failed"] is True
+    assert receipt["response_payload"]["message"]["text"] == (
+        "Hello from the live channel id path."
+    )
+
+
+def test_live_http_json_rejects_non_http_urls() -> None:
+    with pytest.raises(RuntimeError, match="http or https"):
+        connector_adapters._perform_live_http_json(
+            "file:///tmp/not-allowed",
+            token="xoxb-live-token",
+            body={"text": "hello"},
+        )
 
 
 def test_db_connector_tools_support_query_and_upsert() -> None:

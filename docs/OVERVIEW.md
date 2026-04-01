@@ -1,10 +1,23 @@
 # VEI
 
-VEI is a programmable replica of an entire company's operational software stack. You give it a company description — or connect it to real Slack, Gmail, Jira, and Teams data — and it builds a fully functioning simulated copy of that company with working Slack channels, email threads, ticket queues, CRM pipelines, document stores, identity systems, and more. An agent or a human can then operate inside it: play crisis scenarios, train on the traces, and synthesize operational artifacts from what happened.
+VEI is a programmable replica of an entire company's operational software stack. You give it a company description — or connect it to real Slack, Gmail, Jira, and Teams data — and it builds a fully functioning simulated copy of that company with working Slack channels, email threads, ticket queues, CRM pipelines, document stores, identity systems, and more. An agent or a human can then operate inside it: play crisis scenarios, mirror live activity, train on the traces, and synthesize operational artifacts from what happened.
 
 It spans hundreds of Python files and tests, a single-page Studio UI, and one unified `vei` CLI for project setup, world simulation, benchmarking, release/export, and evaluation.
 
 Use the root `README.md` for install and operator quickstart. Use this document for product framing, personas, and the end-to-end story. Use `docs/ARCHITECTURE.md` for the technical map and `docs/BENCHMARKS.md` for the evaluation surface.
+
+## One Kernel, Four Modes
+
+VEI is best understood as **one kernel with four operating modes**, not as a pile of separate products.
+
+- **Test / Eval** — run a fixed company world, score an agent, and see whether it actually works
+- **Mirror / Control** — place VEI between agents and enterprise systems, or ingest their actions, so VEI can govern, record, and replay what happened
+- **Sandbox / What-if** — fork the same world, change policy or actions, and compare alternate futures
+- **Train / Data** — turn the same traces and trajectories into rollouts, demonstrations, and RL-friendly data
+
+Those four modes share the same world session, connector layer, event spine, replay model, and contract scoring. The world simulation is the substrate for all of them. Mirror mode is the special case with live edges: VEI still uses the same kernel, but some actions also flow to or from real systems.
+
+`llm-siem` fits beside VEI, not inside it. It is a useful companion for the thinking layer of agent operations — fleet posture, LLM-call observability, and later cross-agent correlation — while VEI owns the acting layer: enterprise actions, world state, contracts, and consequences.
 
 ## The Five Layers
 
@@ -14,12 +27,13 @@ Real enterprise data comes in. Six providers today: Slack, Gmail, Microsoft Team
 
 ### 2. Blueprint Compilation
 
-The snapshot gets hydrated into a `BlueprintAsset` — VEI's portable, declarative description of a company. This includes a communications graph (Slack channels, mail threads), a work graph (Jira-style tickets and workflows), a document graph, an identity graph (users, groups, app assignments, policies), and optionally revenue, ops, inventory, campaign, and property graphs. Four built-in vertical archetypes exist as ready-to-go blueprints:
+The snapshot gets hydrated into a `BlueprintAsset` — VEI's portable, declarative description of a company. This includes a communications graph (Slack channels, mail threads), a work graph (Jira-style tickets and workflows), a document graph, an identity graph (users, groups, app assignments, policies), and optionally revenue, ops, inventory, campaign, property graphs. Five built-in vertical archetypes exist as ready-to-go blueprints:
 
 - **Pinnacle Analytics** (B2B SaaS) — $480K renewal at risk, support escalation spirals, pricing deadlocks
 - **Harbor Point Management** (Real Estate) — Tenant openings, vendor no-shows, lease revisions, double-booked units
 - **Northstar Growth** (Marketing Agency) — Campaign launch guardrails, creative approvals, budget runaways
 - **Atlas Storage Systems** (Storage/Logistics) — Capacity quotes, vendor dispatch gaps, fragmented inventory
+- **Clearwater Field Services** (Service Operations) — VIP outage, technician no-show, and billing dispute colliding on the same account
 
 Two authoring tools lower the barrier to creating new verticals:
 
@@ -42,7 +56,7 @@ The contract system defines predicates (what must happen), invariants (what must
 
 A lightweight RL layer provides a Gymnasium-compatible `VEIEnv`, behavior cloning trainer, and BC policy wrapper for learning policies from demonstration traces.
 
-### 5. Synthesis and Twin Gateway
+### 5. Synthesis, Twin Gateway, and Mirror Mode
 
 Finished runs produce structured outputs:
 
@@ -51,6 +65,18 @@ Finished runs produce structured outputs:
 - **Agent configs** — system prompts, tool specs, guardrails, and success criteria for deploying agents
 
 The twin gateway takes a `ContextSnapshot` plus a vertical archetype, merges them into a "customer twin" — a workspace that mirrors the customer's actual company but runs on VEI's simulation. It exposes compatibility surface specs (Slack-shaped, Jira-shaped, Graph-shaped, Salesforce-shaped routes) so the twin can be addressed through familiar API shapes.
+
+Mirror mode builds on that gateway in two parallel ways:
+
+- **Proxy path** — for agents you control, point them at VEI's compatibility routes and let VEI govern and record live-shaped traffic
+- **Ingest path** — for third-party or already-deployed agents, register the agent and send typed external events into the same run history
+
+Today mirror mode ships in two maturity levels:
+
+- **Mirror demo mode** — built-in agent registry plus staged timed activity over simulated worlds, especially `service_ops`, so the control-plane story feels live without real credentials
+- **Mirror live alpha** — Slack-first live pass-through with policy gating and twin updates, while the rest of the company world remains last-known-good until the next sync
+
+That last point matters: VEI is authoritative for actions it directly proxies or ingests. Everything else is refreshed by capture or re-sync, not by claiming real-time convergence yet.
 
 ## The UI
 
@@ -64,7 +90,7 @@ A developer mode toggle exposes run forms, raw JSON, orientation data, capabilit
 
 ### Pilot Console
 
-The Pilot Console is a separate operator sidecar at `/pilot` that provides the fastest path for an outside agent (or a researcher) to connect. One command (`vei pilot up`) starts the twin gateway and Studio, writes a launch manifest with bearer token and curl snippets, and serves the Pilot Console where the operator can watch live agent activity, check outcome status, and reset or finalize runs.
+The Pilot Console is a separate operator sidecar at `/pilot` that provides the fastest path for an outside agent (or a researcher) to connect. One command (`vei pilot up`) starts the twin gateway and Studio, writes a launch manifest with bearer token and curl snippets, and serves the Pilot Console where the operator can watch live or demo agent activity, check outcome status, and reset or finalize runs.
 
 ![VEI Pilot Console](assets/vei_pilot_console.png)
 
@@ -126,7 +152,31 @@ vei twin build --root _vei_out/twins/acme --snapshot acme_snapshot.json --organi
 vei ui serve --root _vei_out/twins/acme
 ```
 
-The twin builder merges your captured data with the closest vertical archetype (it picks based on which data surfaces are present) and produces a workspace you can run scenarios against, play missions in, or generate training data from.
+The twin builder merges your captured data with the closest vertical archetype (it picks based on which data surfaces are present) and produces a workspace you can run scenarios against, play missions in, mirror into, or generate training data from.
+
+If you want the mirror experience without real credentials yet, build the same twin with staged demo activity:
+
+```bash
+vei twin build \
+  --root _vei_out/twins/clearwater_demo \
+  --snapshot acme_snapshot.json \
+  --organization-domain clearwater.example.com \
+  --archetype service_ops \
+  --mirror-demo
+
+vei twin serve --root _vei_out/twins/clearwater_demo
+```
+
+If you are testing the first live-control slice, flip the connector mode instead:
+
+```bash
+vei twin build \
+  --root _vei_out/twins/clearwater_live \
+  --snapshot acme_snapshot.json \
+  --organization-domain clearwater.example.com \
+  --archetype service_ops \
+  --connector-mode live
+```
 
 ### What each provider captures
 
@@ -257,7 +307,7 @@ This coherence is what makes the generated data useful for training, the benchma
 | Test coverage | Hundreds of pytest cases across kernel, CLI, UI, workspace, benchmark, and import flows |
 | CLI surface | One `vei` entry point with grouped commands for project, world, benchmark, release, UI, and data workflows |
 | Simulated surfaces | ~15 major enterprise surfaces (Slack, Mail, Browser, Docs, Tickets, CRM, ERP, Identity, ServiceDesk, SIEM, HRIS, PagerDuty, Feature Flags, Spreadsheet, Calendar) |
-| Built-in company verticals | 4 |
+| Built-in company verticals | 5 |
 | Scenario variants | ~25 |
 | Difficulty tiers | 4 (p0-easy → pX-adversarial) |
 | Frontier rubric scenarios | 9 |

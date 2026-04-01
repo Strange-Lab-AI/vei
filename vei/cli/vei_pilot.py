@@ -70,6 +70,18 @@ def up_command(
         None,
         help="Optional contract variant to activate after build",
     ),
+    connector_mode: str = typer.Option(
+        "sim",
+        help="Mirror connector mode: sim | live",
+    ),
+    mirror_demo: bool = typer.Option(
+        False,
+        help="Enable mirror demo mode with staged agent activity.",
+    ),
+    mirror_demo_interval_ms: int = typer.Option(
+        1500,
+        help="Autoplay interval for mirror demo steps in milliseconds.",
+    ),
     gateway_token: str | None = typer.Option(
         None,
         help="Optional bearer token override for the twin gateway",
@@ -95,6 +107,9 @@ def up_command(
             archetype=archetype,
             scenario_variant=scenario_variant,
             contract_variant=contract_variant,
+            connector_mode=connector_mode,
+            mirror_demo=mirror_demo,
+            mirror_demo_interval_ms=mirror_demo_interval_ms,
             gateway_token=gateway_token,
             host=host,
             gateway_port=gateway_port,

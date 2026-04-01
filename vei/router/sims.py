@@ -25,6 +25,28 @@ def _safe_int(x: Any, default: int = 0) -> int:
         return default
 
 
+def _next_slack_ts(channels: Dict[str, Dict[str, Any]]) -> str:
+    raw_values: list[str] = []
+    for payload in channels.values():
+        if not isinstance(payload, dict):
+            continue
+        for item in payload.get("messages", []):
+            if isinstance(item, dict):
+                raw_values.append(str(item.get("ts", "") or ""))
+    if not raw_values:
+        return "1"
+    if any("." in value for value in raw_values):
+        numeric = []
+        for value in raw_values:
+            try:
+                numeric.append(float(value))
+            except ValueError:
+                continue
+        baseline = max(numeric, default=0.0)
+        return f"{baseline + 0.000001:.6f}"
+    return str(max((_safe_int(value, 0) for value in raw_values), default=0) + 1)
+
+
 class SlackSim:
     def __init__(self, bus: "EventBus", scenario: Optional[Scenario] = None):
         self.bus = bus
@@ -93,12 +115,16 @@ class SlackSim:
         return {"messages": ch["messages"], "unread_count": ch["unread"]}
 
     def send_message(
-        self, channel: str, text: str, thread_ts: Optional[str] = None
+        self,
+        channel: str,
+        text: str,
+        thread_ts: Optional[str] = None,
+        forced_ts: Optional[str] = None,
     ) -> Dict[str, Any]:
         ch = self.channels.get(channel)
         if not ch:
             raise MCPError("unknown_channel", f"Unknown Slack channel: {channel}")
-        ts = str(len(ch["messages"]) + 1)
+        ts = str(forced_ts) if forced_ts else _next_slack_ts(self.channels)
         msg = {"ts": ts, "user": "agent", "text": text, "thread_ts": thread_ts}
         ch["messages"].append(msg)
         lower = text.lower()
@@ -181,7 +207,7 @@ class SlackSim:
         ch = self.channels.get(channel)
         if not ch:
             raise MCPError("unknown_channel")
-        ts = str(len(ch["messages"]) + 1)
+        ts = _next_slack_ts(self.channels)
         ch["messages"].append(
             {
                 "ts": ts,

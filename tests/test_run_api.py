@@ -7,6 +7,7 @@ from pathlib import Path
 from vei.imports.api import get_import_package_example_path
 from vei.run import api as run_api
 from vei.run.api import (
+    diff_cross_run_snapshots,
     generate_run_id,
     get_run_capability_graphs,
     get_run_orientation,
@@ -188,3 +189,32 @@ def test_workspace_run_respects_custom_runs_dir(tmp_path: Path) -> None:
     assert (root / "runtime_runs" / manifest.run_id / "run_manifest.json").exists()
     assert timeline
     assert events[0].kind == "run_started"
+
+
+def test_diff_cross_run_snapshots_detects_changes(tmp_path: Path) -> None:
+    root = tmp_path / "workspace"
+    create_workspace_from_template(
+        root=root,
+        source_kind="example",
+        source_ref="acquired_user_cutover",
+    )
+
+    run_a = launch_workspace_run(root, runner="workflow", run_id="cross-a")
+    run_b = launch_workspace_run(root, runner="workflow", run_id="cross-b")
+
+    snaps_a = list_run_snapshots(root, run_a.run_id)
+    snaps_b = list_run_snapshots(root, run_b.run_id)
+    assert snaps_a and snaps_b
+
+    diff = diff_cross_run_snapshots(
+        root,
+        run_a.run_id,
+        snaps_a[-1].snapshot_id,
+        run_b.run_id,
+        snaps_b[-1].snapshot_id,
+    )
+    assert diff["run_a"] == run_a.run_id
+    assert diff["run_b"] == run_b.run_id
+    assert isinstance(diff["added"], dict)
+    assert isinstance(diff["removed"], dict)
+    assert isinstance(diff["changed"], dict)

@@ -7,6 +7,7 @@ from pathlib import Path
 
 import typer
 
+from vei.mirror import default_mirror_workspace_config, mirror_metadata_payload
 from vei.twin.api import CustomerTwinBundle
 
 app = typer.Typer(
@@ -19,7 +20,7 @@ app = typer.Typer(
 def quickstart_command(
     world: str = typer.Option(
         "real_estate_management",
-        help="Built-in vertical: real_estate_management | digital_marketing_agency | storage_solutions",
+        help="Built-in vertical: real_estate_management | digital_marketing_agency | storage_solutions | b2b_saas | service_ops",
     ),
     mission: str | None = typer.Option(
         None, help="Mission slug (first available if omitted)"
@@ -31,6 +32,18 @@ def quickstart_command(
     studio_port: int = typer.Option(3011, help="Studio UI port"),
     gateway_port: int = typer.Option(3012, help="Twin Gateway port"),
     seed: int = typer.Option(42042, help="Seed for reproducibility"),
+    connector_mode: str = typer.Option(
+        "sim",
+        help="Mirror connector mode for the gateway: sim | live",
+    ),
+    mirror_demo: bool = typer.Option(
+        False,
+        help="Enable mirror demo mode with staged agent activity.",
+    ),
+    mirror_demo_interval_ms: int = typer.Option(
+        1500,
+        help="Autoplay interval for mirror demo steps in milliseconds.",
+    ),
     no_baseline: bool = typer.Option(
         False, "--no-baseline", help="Skip the scripted baseline run"
     ),
@@ -77,7 +90,13 @@ def quickstart_command(
 
     # --- 2. Build twin bundle for gateway ----------------------------------------
     console.print("[dim]Building twin gateway bundle...[/dim]")
-    _ensure_twin_bundle(root, world, gateway_port)
+    _ensure_twin_bundle(
+        root,
+        world,
+        connector_mode=connector_mode,
+        mirror_demo=mirror_demo,
+        mirror_demo_interval_ms=mirror_demo_interval_ms,
+    )
     console.print("  [green]Twin gateway bundle ready[/green]")
 
     # --- 3. Launch servers -------------------------------------------------------
@@ -150,7 +169,14 @@ def quickstart_command(
 # ---------------------------------------------------------------------------
 
 
-def _ensure_twin_bundle(root: Path, world: str, gateway_port: int) -> None:
+def _ensure_twin_bundle(
+    root: Path,
+    world: str,
+    *,
+    connector_mode: str,
+    mirror_demo: bool,
+    mirror_demo_interval_ms: int,
+) -> None:
     """Create a minimal twin bundle so the gateway can start."""
     import json
     import secrets
@@ -163,6 +189,13 @@ def _ensure_twin_bundle(root: Path, world: str, gateway_port: int) -> None:
         return
 
     ws = load_workspace(workspace_root)
+    mirror_config = default_mirror_workspace_config(
+        connector_mode=connector_mode,
+        demo_mode=mirror_demo,
+        autoplay=mirror_demo,
+        demo_interval_ms=mirror_demo_interval_ms,
+        hero_world=world,
+    )
     bundle = {
         "workspace_root": str(workspace_root),
         "workspace_name": ws.name,
@@ -173,7 +206,7 @@ def _ensure_twin_bundle(root: Path, world: str, gateway_port: int) -> None:
             "density_level": "medium",
             "named_team_expansion": "standard",
             "crisis_family": "operational",
-            "redaction_mode": "none",
+            "redaction_mode": "preserve",
             "synthetic_expansion_strength": "light",
             "included_surfaces": [],
         },
@@ -198,7 +231,7 @@ def _ensure_twin_bundle(root: Path, world: str, gateway_port: int) -> None:
             "ui_command": f"python -m vei.cli.vei ui serve --root {workspace_root} --port 3011",
         },
         "summary": f"Quickstart twin for {world}",
-        "metadata": {},
+        "metadata": {"mirror": mirror_metadata_payload(mirror_config)},
     }
     manifest_path.write_text(json.dumps(bundle, indent=2), encoding="utf-8")
 
@@ -221,7 +254,7 @@ def _serve_studio(root: Path, port: int, shutdown: threading.Event) -> None:
     config = uvicorn.Config(app, host="127.0.0.1", port=port, log_level="warning")
     server = uvicorn.Server(config)
 
-    thread = threading.Thread(target=server.serve, daemon=True)
+    thread = threading.Thread(target=server.run, daemon=True)
     thread.start()
     shutdown.wait()
     server.should_exit = True
@@ -240,7 +273,7 @@ def _serve_gateway(root: Path, port: int, shutdown: threading.Event) -> None:
     config = uvicorn.Config(app, host="127.0.0.1", port=port, log_level="warning")
     server = uvicorn.Server(config)
 
-    thread = threading.Thread(target=server.serve, daemon=True)
+    thread = threading.Thread(target=server.run, daemon=True)
     thread.start()
     shutdown.wait()
     server.should_exit = True

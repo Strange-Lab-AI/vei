@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+import threading
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 from pathlib import Path
@@ -14,6 +15,12 @@ from fastapi.responses import JSONResponse
 from vei.benchmark.models import BenchmarkMetrics
 from vei.blueprint.api import create_world_session_from_blueprint
 from vei.contract.models import ContractEvaluationResult
+from vei.mirror import (
+    MirrorAgentSpec,
+    MirrorIngestEvent,
+    MirrorRuntime,
+    load_mirror_workspace_config,
+)
 from vei.router.errors import MCPError
 from vei.run.api import (
     build_run_timeline,
@@ -41,7 +48,7 @@ from vei.workspace.api import (
     upsert_workspace_run,
 )
 from vei.workspace.models import WorkspaceRunEntry
-from vei.world.api import WorldSessionAPI
+from vei.world.api import ActorState, WorldSessionAPI
 
 from .api import load_customer_twin
 from .models import CustomerTwinBundle, ExternalAgentIdentity, TwinRuntimeStatus
@@ -51,6 +58,7 @@ class TwinRuntime:
     def __init__(self, workspace_root: Path, bundle: CustomerTwinBundle):
         self.workspace_root = workspace_root
         self.bundle = bundle
+        self.mirror_config = load_mirror_workspace_config(bundle.metadata)
         self.workspace_manifest = load_workspace(workspace_root)
         self.scenario = resolve_workspace_scenario(
             workspace_root, self.workspace_manifest
@@ -63,12 +71,14 @@ class TwinRuntime:
         self.state_dir = self.run_dir / "state"
         self.artifacts_dir = self.run_dir / "artifacts"
         self.started_at = _iso_now()
+        self._lock = threading.RLock()
         self.status = TwinRuntimeStatus(
             run_id=self.run_id,
             branch_name=self.branch_name,
             started_at=self.started_at,
             metadata={"organization_name": bundle.organization_name},
         )
+        self.mirror: MirrorRuntime | None = None
 
         self.state_dir.mkdir(parents=True, exist_ok=True)
         self.artifacts_dir.mkdir(parents=True, exist_ok=True)
@@ -97,10 +107,21 @@ class TwinRuntime:
             "gateway.start", snapshot.snapshot_id, snapshot.time_ms
         )
         self._append_contract_event(contract_eval, snapshot.time_ms)
+        self.mirror = MirrorRuntime(
+            metadata=bundle.metadata,
+            hero_world=bundle.mold.archetype,
+            target=self,
+        )
+        self._refresh_mirror_status()
+        self._write_manifest(
+            status="running", success=None, error=None, completed_at=None
+        )
 
     def finalize(self, *, error: str | None = None) -> None:
         if self.status.status != "running":
             return
+        if self.mirror is not None:
+            self.mirror.stop()
         completed_at = _iso_now()
         if error is not None:
             self.status.status = "error"
@@ -141,92 +162,97 @@ class TwinRuntime:
         focus_hint: str,
         agent: ExternalAgentIdentity | None = None,
     ) -> Any:
-        try:
-            result = self.session.call_tool(resolved_tool, args)
-            observation = self.session.observe(focus_hint)
-            snapshot = self.session.snapshot(f"gateway:{external_tool}")
-            contract_eval = self._evaluate(
-                snapshot,
-                visible_observation=observation,
-                result=result,
-            )
-            self.status.latest_snapshot_id = snapshot.snapshot_id
-            self.status.request_count += 1
-            self._record_agent_identity(agent)
-            self._update_contract_status(contract_eval)
-            self._write_contract_eval(contract_eval)
-            self._write_manifest(
-                status="running", success=None, error=None, completed_at=None
-            )
-            self._append_event(
-                kind="workflow_step",
-                label=external_tool,
-                channel=_channel_for_focus(focus_hint),
-                time_ms=snapshot.time_ms,
-                tool=external_tool,
-                resolved_tool=resolved_tool,
-                object_refs=_object_refs(args, result),
-                payload={
-                    "args": args,
-                    "result": result,
-                    "agent": (
-                        agent.model_dump(mode="json") if agent is not None else None
-                    ),
-                },
-            )
-            self._append_snapshot_event(
-                f"gateway:{external_tool}",
-                snapshot.snapshot_id,
-                snapshot.time_ms,
-            )
-            self._append_contract_event(contract_eval, snapshot.time_ms)
-            return result
-        except Exception as exc:  # noqa: BLE001
-            snapshot = self.session.snapshot(f"error:{external_tool}")
-            contract_eval = self._evaluate(
-                snapshot,
-                result={"error": _error_payload(exc)},
-            )
-            self.status.latest_snapshot_id = snapshot.snapshot_id
-            self.status.request_count += 1
-            self._record_agent_identity(agent)
-            self._update_contract_status(contract_eval)
-            self._write_contract_eval(contract_eval)
-            self._write_manifest(
-                status="running", success=None, error=None, completed_at=None
-            )
-            self._append_event(
-                kind="workflow_step",
-                label=external_tool,
-                channel=_channel_for_focus(focus_hint),
-                time_ms=snapshot.time_ms,
-                status="error",
-                tool=external_tool,
-                resolved_tool=resolved_tool,
-                object_refs=_object_refs(args, {}),
-                payload={
-                    "args": args,
-                    "error": _error_payload(exc),
-                    "agent": (
-                        agent.model_dump(mode="json") if agent is not None else None
-                    ),
-                },
-            )
-            self._append_snapshot_event(
-                f"error:{external_tool}",
-                snapshot.snapshot_id,
-                snapshot.time_ms,
-            )
-            self._append_contract_event(contract_eval, snapshot.time_ms)
-            raise
+        with self._lock:
+            try:
+                result = self.session.call_tool(resolved_tool, args)
+                observation = self.session.observe(focus_hint)
+                snapshot = self.session.snapshot(f"gateway:{external_tool}")
+                contract_eval = self._evaluate(
+                    snapshot,
+                    visible_observation=observation,
+                    result=result,
+                )
+                self.status.latest_snapshot_id = snapshot.snapshot_id
+                self.status.request_count += 1
+                self._record_agent_identity(agent)
+                self._update_contract_status(contract_eval)
+                self._write_contract_eval(contract_eval)
+                self._refresh_mirror_status()
+                self._write_manifest(
+                    status="running", success=None, error=None, completed_at=None
+                )
+                self._append_event(
+                    kind="workflow_step",
+                    label=external_tool,
+                    channel=_channel_for_focus(focus_hint),
+                    time_ms=snapshot.time_ms,
+                    tool=external_tool,
+                    resolved_tool=resolved_tool,
+                    object_refs=_object_refs(args, result),
+                    payload={
+                        "args": args,
+                        "result": result,
+                        "agent": (
+                            agent.model_dump(mode="json") if agent is not None else None
+                        ),
+                    },
+                )
+                self._append_snapshot_event(
+                    f"gateway:{external_tool}",
+                    snapshot.snapshot_id,
+                    snapshot.time_ms,
+                )
+                self._append_contract_event(contract_eval, snapshot.time_ms)
+                return result
+            except Exception as exc:  # noqa: BLE001
+                snapshot = self.session.snapshot(f"error:{external_tool}")
+                contract_eval = self._evaluate(
+                    snapshot,
+                    result={"error": _error_payload(exc)},
+                )
+                self.status.latest_snapshot_id = snapshot.snapshot_id
+                self.status.request_count += 1
+                self._record_agent_identity(agent)
+                self._update_contract_status(contract_eval)
+                self._write_contract_eval(contract_eval)
+                self._refresh_mirror_status()
+                self._write_manifest(
+                    status="running", success=None, error=None, completed_at=None
+                )
+                self._append_event(
+                    kind="workflow_step",
+                    label=external_tool,
+                    channel=_channel_for_focus(focus_hint),
+                    time_ms=snapshot.time_ms,
+                    status="error",
+                    tool=external_tool,
+                    resolved_tool=resolved_tool,
+                    object_refs=_object_refs(args, {}),
+                    payload={
+                        "args": args,
+                        "error": _error_payload(exc),
+                        "agent": (
+                            agent.model_dump(mode="json") if agent is not None else None
+                        ),
+                    },
+                )
+                self._append_snapshot_event(
+                    f"error:{external_tool}",
+                    snapshot.snapshot_id,
+                    snapshot.time_ms,
+                )
+                self._append_contract_event(contract_eval, snapshot.time_ms)
+                raise
 
     def peek(self, tool: str, args: dict[str, Any] | None = None) -> Any:
-        return self.session.call_tool(tool, args or {})
+        with self._lock:
+            return self.session.call_tool(tool, args or {})
 
     def status_payload(self) -> dict[str, Any]:
         return {
             "bundle": self.bundle.model_dump(mode="json"),
             "runtime": self.status.model_dump(mode="json"),
+            "mirror": self._mirror_snapshot_payload(),
             "manifest": load_run_manifest(
                 self.run_dir / "run_manifest.json"
             ).model_dump(mode="json"),
@@ -249,7 +275,7 @@ class TwinRuntime:
                 seed=42042,
                 artifacts_dir=str(self.artifacts_dir),
                 branch=self.branch_name,
-                connector_mode="sim",
+                connector_mode=self.mirror_config.connector_mode,
             )
 
     def _evaluate(
@@ -311,6 +337,7 @@ class TwinRuntime:
                 "surfaces": [item.name for item in self.bundle.gateway.surfaces],
                 "agents": list(self.status.metadata.get("agents", [])),
                 "last_agent": self.status.metadata.get("last_agent"),
+                "mirror": self._mirror_snapshot_payload(),
             },
         )
         write_run_manifest(self.workspace_root, manifest)
@@ -360,6 +387,34 @@ class TwinRuntime:
         metadata["agents"] = agents
         metadata["last_agent"] = payload
         self.status.metadata = metadata
+
+    def _refresh_mirror_status(self) -> None:
+        if self.mirror is None:
+            return
+        metadata = dict(self.status.metadata)
+        metadata["mirror"] = self._mirror_snapshot_payload()
+        self.status.metadata = metadata
+
+    def sync_mirror_runtime_state(self) -> None:
+        with self._lock:
+            self._refresh_mirror_status()
+            self._write_manifest(
+                status="running", success=None, error=None, completed_at=None
+            )
+
+    def _mirror_snapshot_payload(self) -> dict[str, Any]:
+        if self.mirror is None:
+            return {"config": self.mirror_config.model_dump(mode="json")}
+        return self.mirror.snapshot().model_dump(mode="json")
+
+    def start_mirror(self) -> None:
+        if self.mirror is None:
+            return
+        self.mirror.start()
+        self._refresh_mirror_status()
+        self._write_manifest(
+            status="running", success=None, error=None, completed_at=None
+        )
 
     def _append_event(
         self,
@@ -414,6 +469,194 @@ class TwinRuntime:
             ),
         )
 
+    def register_mirror_agent(self, agent: MirrorAgentSpec) -> None:
+        actor = ActorState(
+            actor_id=agent.agent_id,
+            mode="scripted",
+            status=agent.status,
+            metadata={
+                "name": agent.name,
+                "role": agent.role,
+                "team": agent.team,
+                "allowed_surfaces": list(agent.allowed_surfaces),
+                "policy_profile": agent.policy_profile,
+                "source": agent.source,
+            },
+        )
+        with self._lock:
+            self.session.register_actor(actor)
+            self._record_agent_identity(_identity_from_mirror_agent(agent))
+            self._refresh_mirror_status()
+            self._write_manifest(
+                status="running", success=None, error=None, completed_at=None
+            )
+
+    def _check_surface_access(
+        self, agent: MirrorAgentSpec, tool_or_target: str
+    ) -> str | None:
+        if not agent.allowed_surfaces:
+            return None
+        surface = tool_or_target.split(".")[0] if tool_or_target else ""
+        if surface in agent.allowed_surfaces:
+            return None
+        return (
+            f"agent '{agent.agent_id}' denied access to surface '{surface}' "
+            f"(allowed: {', '.join(agent.allowed_surfaces)})"
+        )
+
+    def _record_denial(
+        self,
+        event: MirrorIngestEvent,
+        agent: MirrorAgentSpec,
+        reason: str,
+    ) -> None:
+        time_ms = self._current_time_ms()
+        self._append_event(
+            kind="mirror_denied",
+            label=f"denied: {event.external_tool}",
+            channel=_channel_for_focus(str(event.focus_hint or "browser")),
+            time_ms=time_ms,
+            status="denied",
+            tool=event.external_tool,
+            resolved_tool=event.resolved_tool,
+            payload={
+                "agent_id": agent.agent_id,
+                "agent_name": agent.name,
+                "reason": reason,
+                "attempted_tool": event.resolved_tool or event.external_tool,
+            },
+        )
+
+    def _current_time_ms(self) -> int:
+        bus = getattr(getattr(self.session, "router", None), "bus", None)
+        if bus is None:
+            return 0
+        return int(getattr(bus, "clock_ms", 0) or 0)
+
+    def dispatch_mirror_tool(
+        self,
+        *,
+        event: MirrorIngestEvent,
+        agent: MirrorAgentSpec,
+    ) -> dict[str, Any]:
+        tool_name = str(event.resolved_tool or event.external_tool)
+        denial = self._check_surface_access(agent, tool_name)
+        if denial is not None:
+            self._record_denial(event, agent, denial)
+            return {"denied": True, "reason": denial}
+        result = self.dispatch(
+            external_tool=event.external_tool,
+            resolved_tool=str(event.resolved_tool or ""),
+            args=dict(event.args),
+            focus_hint=str(event.focus_hint or "browser"),
+            agent=_identity_from_mirror_agent(agent),
+        )
+        return {"result": result}
+
+    def inject_mirror_event(
+        self,
+        *,
+        event: MirrorIngestEvent,
+        agent: MirrorAgentSpec,
+    ) -> dict[str, Any]:
+        target = str(event.target or "")
+        if not target:
+            raise ValueError("mirror inject events require a target")
+        surface = event.focus_hint or target
+        denial = self._check_surface_access(agent, surface)
+        if denial is not None:
+            self._record_denial(event, agent, denial)
+            return {"denied": True, "reason": denial}
+        with self._lock:
+            injected = self.session.inject(
+                {
+                    "target": target,
+                    "payload": dict(event.payload),
+                    "source": "mirror_ingest",
+                    "actor_id": agent.agent_id,
+                }
+            )
+            ticked = self.session.call_tool("vei.tick", {"dt_ms": 0})
+            observation = self.session.observe(event.focus_hint or target)
+            snapshot = self.session.snapshot(f"mirror:{event.external_tool}")
+            contract_eval = self._evaluate(
+                snapshot,
+                visible_observation=observation,
+                result={"inject": injected, "tick": ticked},
+            )
+            self.status.latest_snapshot_id = snapshot.snapshot_id
+            self.status.request_count += 1
+            self._record_agent_identity(_identity_from_mirror_agent(agent))
+            self._update_contract_status(contract_eval)
+            self._write_contract_eval(contract_eval)
+            self._refresh_mirror_status()
+            self._write_manifest(
+                status="running", success=None, error=None, completed_at=None
+            )
+            self._append_event(
+                kind="workflow_step",
+                label=event.label or event.external_tool,
+                channel=_channel_for_focus(event.focus_hint or target),
+                time_ms=snapshot.time_ms,
+                tool=event.external_tool,
+                resolved_tool=f"inject:{target}",
+                object_refs=_object_refs(event.payload, {}),
+                payload={
+                    "payload": dict(event.payload),
+                    "inject": injected,
+                    "tick": ticked,
+                    "agent": _identity_from_mirror_agent(agent).model_dump(mode="json"),
+                },
+            )
+            self._append_snapshot_event(
+                f"mirror:{event.external_tool}",
+                snapshot.snapshot_id,
+                snapshot.time_ms,
+            )
+            self._append_contract_event(contract_eval, snapshot.time_ms)
+            return {"inject": injected, "tick": ticked}
+
+    def record_mirror_event(
+        self,
+        *,
+        event: MirrorIngestEvent,
+        agent: MirrorAgentSpec,
+    ) -> dict[str, Any]:
+        with self._lock:
+            snapshot = self.session.snapshot(f"mirror:{event.external_tool}")
+            contract_eval = self._evaluate(
+                snapshot,
+                result={"payload": dict(event.payload)},
+            )
+            self.status.latest_snapshot_id = snapshot.snapshot_id
+            self.status.request_count += 1
+            self._record_agent_identity(_identity_from_mirror_agent(agent))
+            self._update_contract_status(contract_eval)
+            self._write_contract_eval(contract_eval)
+            self._refresh_mirror_status()
+            self._write_manifest(
+                status="running", success=None, error=None, completed_at=None
+            )
+            self._append_event(
+                kind="trace_event",
+                label=event.label or event.external_tool,
+                channel=_channel_for_focus(event.focus_hint or "browser"),
+                time_ms=snapshot.time_ms,
+                tool=event.external_tool,
+                object_refs=_object_refs(event.payload, {}),
+                payload={
+                    "payload": dict(event.payload),
+                    "agent": _identity_from_mirror_agent(agent).model_dump(mode="json"),
+                },
+            )
+            self._append_snapshot_event(
+                f"mirror:{event.external_tool}",
+                snapshot.snapshot_id,
+                snapshot.time_ms,
+            )
+            self._append_contract_event(contract_eval, snapshot.time_ms)
+            return {"recorded": True}
+
     def _append_contract_event(
         self, contract_eval: ContractEvaluationResult, time_ms: int
     ) -> None:
@@ -446,6 +689,7 @@ def create_twin_gateway_app(root: str | Path) -> FastAPI:
     @asynccontextmanager
     async def _lifespan(_: FastAPI):
         try:
+            runtime.start_mirror()
             yield
         finally:
             runtime.finalize()
@@ -477,6 +721,49 @@ def create_twin_gateway_app(root: str | Path) -> FastAPI:
     @app.get("/api/twin")
     def api_twin() -> JSONResponse:
         return JSONResponse(runtime.status_payload())
+
+    @app.get("/api/mirror")
+    def api_mirror(request: Request) -> JSONResponse:
+        _require_bearer(request, bundle.gateway.auth_token)
+        return JSONResponse(runtime._mirror_snapshot_payload())
+
+    @app.get("/api/mirror/agents")
+    def api_mirror_agents(request: Request) -> JSONResponse:
+        _require_bearer(request, bundle.gateway.auth_token)
+        if runtime.mirror is None:
+            return JSONResponse({"agents": []})
+        agents = [item.model_dump(mode="json") for item in runtime.mirror.list_agents()]
+        return JSONResponse({"agents": agents})
+
+    @app.post("/api/mirror/agents")
+    async def api_mirror_register_agent(request: Request) -> JSONResponse:
+        _require_bearer(request, bundle.gateway.auth_token)
+        if runtime.mirror is None:
+            raise HTTPException(status_code=503, detail="mirror runtime unavailable")
+        body = await _request_payload(request)
+        agent = runtime.mirror.register_agent(MirrorAgentSpec.model_validate(body))
+        return JSONResponse(agent.model_dump(mode="json"), status_code=201)
+
+    @app.post("/api/mirror/events")
+    async def api_mirror_ingest_event(request: Request) -> JSONResponse:
+        _require_bearer(request, bundle.gateway.auth_token)
+        if runtime.mirror is None:
+            raise HTTPException(status_code=503, detail="mirror runtime unavailable")
+        body = await _request_payload(request)
+        result = runtime.mirror.ingest_event(MirrorIngestEvent.model_validate(body))
+        runtime._refresh_mirror_status()
+        return JSONResponse(result.model_dump(mode="json"), status_code=202)
+
+    @app.post("/api/mirror/demo/tick")
+    def api_mirror_demo_tick(request: Request) -> JSONResponse:
+        _require_bearer(request, bundle.gateway.auth_token)
+        if runtime.mirror is None:
+            raise HTTPException(status_code=503, detail="mirror runtime unavailable")
+        result = runtime.mirror.demo_tick()
+        runtime._refresh_mirror_status()
+        if result is None:
+            return JSONResponse({"ok": True, "remaining_demo_steps": 0})
+        return JSONResponse(result.model_dump(mode="json"))
 
     @app.get("/api/twin/history")
     def api_twin_history() -> JSONResponse:
@@ -1544,13 +1831,30 @@ def _dispatch_request(
 
 
 def _request_agent_identity(request: Request) -> ExternalAgentIdentity | None:
+    agent_id = request.headers.get("x-vei-agent-id") or None
     name = request.headers.get("x-vei-agent-name") or None
     role = request.headers.get("x-vei-agent-role") or None
     team = request.headers.get("x-vei-agent-team") or None
     source = request.headers.get("user-agent") or None
-    if not any([name, role, team, source]):
+    if not any([agent_id, name, role, team, source]):
         return None
-    return ExternalAgentIdentity(name=name, role=role, team=team, source=source)
+    return ExternalAgentIdentity(
+        agent_id=agent_id,
+        name=name,
+        role=role,
+        team=team,
+        source=source,
+    )
+
+
+def _identity_from_mirror_agent(agent: MirrorAgentSpec) -> ExternalAgentIdentity:
+    return ExternalAgentIdentity(
+        agent_id=agent.agent_id,
+        name=agent.name,
+        role=agent.role,
+        team=agent.team,
+        source=agent.source,
+    )
 
 
 def _iso_now() -> str:

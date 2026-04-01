@@ -519,24 +519,38 @@ def branch_workspace_mission_run(
     *,
     run_id: str,
     branch_name: str | None = None,
+    snapshot_id: int | None = None,
 ) -> MissionSessionState:
     workspace_root = Path(root).expanduser().resolve()
     state = load_workspace_mission_state(workspace_root, run_id)
     if state is None:
         raise ValueError(f"mission run not found: {run_id}")
-    if state.last_snapshot_id is None:
+    fork_snapshot = snapshot_id if snapshot_id is not None else state.last_snapshot_id
+    if fork_snapshot is None:
         raise ValueError("mission run has no snapshot to branch from")
 
     new_run_id = generate_run_id(prefix="human_branch")
     new_branch_name = branch_name or f"{state.branch_name}.branch"
-    snapshot_payload = _load_snapshot_payload(
-        workspace_root, run_id, state.last_snapshot_id
-    )
+    snapshot_payload = _load_snapshot_payload(workspace_root, run_id, fork_snapshot)
     _seed_branch_snapshot(
         workspace_root,
         new_run_id=new_run_id,
         branch_name=new_branch_name,
         payload=snapshot_payload,
+    )
+    rewound_moves = _rewound_executed_moves(
+        workspace_root,
+        run_id=run_id,
+        fork_snapshot=fork_snapshot,
+        executed_moves=state.executed_moves,
+    )
+    rewound_turn = len(rewound_moves)
+    action_budget_remaining = max(0, state.mission.action_budget - rewound_turn)
+    snapshot_time_ms = int(snapshot_payload.get("clock_ms", 0) or 0)
+    contract_eval = _evaluate_play_session(
+        workspace_root,
+        dict(snapshot_payload.get("data") or {}),
+        {"time_ms": snapshot_time_ms},
     )
     branched = MissionSessionState.model_validate(
         {
@@ -545,11 +559,29 @@ def branch_workspace_mission_run(
             "branch_name": new_branch_name,
             "selected_run_id": new_run_id,
             "status": "running",
+            "turn_index": rewound_turn,
+            "last_snapshot_id": fork_snapshot,
+            "executed_moves": [m.model_dump(mode="python") for m in rewound_moves],
+            "action_budget_remaining": action_budget_remaining,
         }
     )
+    branched.scorecard = _build_scorecard(
+        mission=branched.mission,
+        contract_eval=contract_eval,
+        move_count=rewound_turn,
+        action_budget_remaining=action_budget_remaining,
+    )
+    branched.available_moves = _build_move_states(
+        workspace_root,
+        mission=branched.mission,
+        executed_move_ids=[item.move_id for item in rewound_moves],
+        turn_index=rewound_turn,
+        action_budget_remaining=action_budget_remaining,
+    )
+    write_contract_evaluation(workspace_root, new_run_id, contract_eval)
+    branched.exports = build_mission_run_exports(workspace_root, branched)
     _write_mission_state(workspace_root, new_run_id, branched)
     _write_mission_exports(workspace_root, new_run_id, branched.exports)
-    contract_eval = _load_contract_eval_for_run(workspace_root, run_id)
     _write_human_run_manifest(
         workspace_root,
         branched,
@@ -1289,6 +1321,23 @@ def _write_human_step_events(
             },
         ),
     )
+
+
+def _rewound_executed_moves(
+    workspace_root: Path,
+    *,
+    run_id: str,
+    fork_snapshot: int,
+    executed_moves: list[PlayerMoveResult],
+) -> list[PlayerMoveResult]:
+    move_snapshots = [
+        snapshot
+        for snapshot in list_run_snapshots(workspace_root, run_id)
+        if snapshot.snapshot_id <= fork_snapshot
+        and snapshot.label is not None
+        and snapshot.label.startswith("move:")
+    ]
+    return executed_moves[: len(move_snapshots)]
 
 
 def _seed_branch_snapshot(

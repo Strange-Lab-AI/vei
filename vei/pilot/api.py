@@ -17,6 +17,7 @@ from vei.context.models import (
     ContextSnapshot,
     ContextSourceResult,
 )
+from vei.mirror import default_mirror_workspace_config
 from vei.twin.api import build_customer_twin, load_customer_twin
 from vei.twin.models import (
     ContextMoldConfig,
@@ -50,6 +51,9 @@ def start_pilot(
     archetype: TwinArchetype = "b2b_saas",
     scenario_variant: str | None = None,
     contract_variant: str | None = None,
+    connector_mode: str = "sim",
+    mirror_demo: bool = False,
+    mirror_demo_interval_ms: int = 1500,
     gateway_token: str | None = None,
     host: str = "127.0.0.1",
     gateway_port: int = 3020,
@@ -82,6 +86,9 @@ def start_pilot(
         archetype=archetype,
         scenario_variant=scenario_variant,
         contract_variant=contract_variant,
+        connector_mode=connector_mode,
+        mirror_demo=mirror_demo,
+        mirror_demo_interval_ms=mirror_demo_interval_ms,
         gateway_token=gateway_token,
         rebuild=rebuild,
     )
@@ -345,6 +352,9 @@ def _ensure_twin_bundle(
     archetype: TwinArchetype,
     scenario_variant: str | None,
     contract_variant: str | None,
+    connector_mode: str,
+    mirror_demo: bool,
+    mirror_demo_interval_ms: int,
     gateway_token: str | None,
     rebuild: bool,
 ) -> CustomerTwinBundle:
@@ -383,6 +393,13 @@ def _ensure_twin_bundle(
         organization_name=resolved_name,
         organization_domain=resolved_domain,
         mold=mold,
+        mirror_config=default_mirror_workspace_config(
+            connector_mode=connector_mode,
+            demo_mode=mirror_demo,
+            autoplay=mirror_demo,
+            demo_interval_ms=mirror_demo_interval_ms,
+            hero_world=archetype,
+        ),
         gateway_token=gateway_token,
         overwrite=True,
     )

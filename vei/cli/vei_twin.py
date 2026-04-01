@@ -7,6 +7,7 @@ import typer
 from pydantic import ValidationError
 
 from vei.context.models import ContextProviderConfig, ContextSnapshot
+from vei.mirror import default_mirror_workspace_config
 from vei.twin import (
     ContextMoldConfig,
     build_customer_twin,
@@ -55,6 +56,18 @@ def build_command(
         None,
         help="Optional contract variant to activate after build",
     ),
+    connector_mode: str = typer.Option(
+        "sim",
+        help="Mirror connector mode: sim | live",
+    ),
+    mirror_demo: bool = typer.Option(
+        False,
+        help="Enable mirror demo mode with staged agent activity.",
+    ),
+    mirror_demo_interval_ms: int = typer.Option(
+        1500,
+        help="Autoplay interval for mirror demo steps in milliseconds.",
+    ),
     gateway_token: str | None = typer.Option(
         None,
         help="Optional bearer token override for the compatibility gateway",
@@ -88,6 +101,13 @@ def build_command(
                 archetype=archetype,  # type: ignore[arg-type]
                 scenario_variant=scenario_variant,
                 contract_variant=contract_variant,
+            ),
+            mirror_config=default_mirror_workspace_config(
+                connector_mode=connector_mode,
+                demo_mode=mirror_demo,
+                autoplay=mirror_demo,
+                demo_interval_ms=mirror_demo_interval_ms,
+                hero_world=archetype,
             ),
             gateway_token=gateway_token,
             overwrite=overwrite,

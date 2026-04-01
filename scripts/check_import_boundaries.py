@@ -87,8 +87,20 @@ def check_file(path: Path, *, strict: bool = False) -> list[tuple[str, bool]]:
 
     return violations
 
+def _parse_max_violations() -> int | None:
+    for arg in sys.argv[1:]:
+        if arg.startswith("--max-violations"):
+            if "=" in arg:
+                return int(arg.split("=", 1)[1])
+            idx = sys.argv.index(arg)
+            if idx + 1 < len(sys.argv):
+                return int(sys.argv[idx + 1])
+    return None
+
+
 def main() -> int:
     strict = "--strict" in sys.argv
+    max_violations = _parse_max_violations()
 
     all_violations: list[tuple[str, bool]] = []
     for py_file in sorted(PACKAGE_ROOT.rglob("*.py")):
@@ -119,6 +131,15 @@ def main() -> int:
             "Cross-module imports must go through api.py. "
             "Use 'from vei.<module>.api import ...' instead."
         )
+
+    if max_violations is not None:
+        if total > max_violations:
+            print(
+                f"\nBoundary ratchet FAILED: {total} violations "
+                f"exceeds --max-violations {max_violations}"
+            )
+            return 1
+        return 0
 
     return 1 if total else 0
 

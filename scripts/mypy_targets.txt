@@ -13,6 +13,7 @@ vei/workspace/api.py
 vei/run/api.py
 vei/run/models.py
 vei/twin
+vei/mirror
 vei/ui/api.py
 vei/context
 vei/synthesis

@@ -1,11 +1,16 @@
 from __future__ import annotations
 
 from pathlib import Path
+from threading import Event, Thread
 
 from fastapi.testclient import TestClient
 
 from vei.context.models import ContextSnapshot, ContextSourceResult
+from vei.mirror import MirrorAgentSpec, default_mirror_workspace_config
+from vei.run.api import build_run_timeline
 from vei.twin import build_customer_twin, create_twin_gateway_app, load_customer_twin
+from vei.twin.models import ContextMoldConfig
+from vei.ui.api import create_ui_app
 from vei.workspace.api import load_workspace, load_workspace_blueprint_asset
 
 
@@ -150,6 +155,438 @@ def test_twin_gateway_routes_expose_company_state_and_record_external_actions(
         finalize_payload = finalize_response.json()
         assert finalize_payload["runtime"]["status"] == "completed"
         assert finalize_payload["manifest"]["status"] == "ok"
+
+
+def test_service_ops_twin_mirror_demo_exposes_agents_and_generates_activity(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "service_ops_twin"
+    bundle = build_customer_twin(
+        root,
+        snapshot=_sample_snapshot(),
+        organization_domain="clearwater.example.com",
+        mold=ContextMoldConfig(archetype="service_ops"),
+        mirror_config=default_mirror_workspace_config(
+            demo_mode=True,
+            autoplay=False,
+            hero_world="service_ops",
+        ),
+    )
+    auth_headers = {"Authorization": f"Bearer {bundle.gateway.auth_token}"}
+
+    with TestClient(create_twin_gateway_app(root)) as client:
+        mirror_response = client.get("/api/mirror", headers=auth_headers)
+        assert mirror_response.status_code == 200
+        mirror_payload = mirror_response.json()
+        assert mirror_payload["config"]["demo_mode"] is True
+        assert mirror_payload["pending_demo_steps"] >= 4
+
+        agents_response = client.get("/api/mirror/agents", headers=auth_headers)
+        assert agents_response.status_code == 200
+        agent_ids = {item["agent_id"] for item in agents_response.json()["agents"]}
+        assert {"dispatch-bot", "billing-bot"} <= agent_ids
+
+        tick_response = client.post("/api/mirror/demo/tick", headers=auth_headers)
+        assert tick_response.status_code == 200
+        tick_payload = tick_response.json()
+        assert tick_payload["handled_by"] == "dispatch"
+
+        history_payload = client.get("/api/twin/history").json()
+        assert any(
+            item["label"] == "slack.chat.postMessage" for item in history_payload
+        )
+
+        runtime_payload = client.get("/api/twin").json()
+        assert runtime_payload["runtime"]["request_count"] >= 1
+
+
+def test_mirror_ingest_event_updates_history_and_slack_surface(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "service_ops_ingest"
+    bundle = build_customer_twin(
+        root,
+        snapshot=_sample_snapshot(),
+        organization_domain="clearwater.example.com",
+        mold=ContextMoldConfig(archetype="service_ops"),
+        mirror_config=default_mirror_workspace_config(hero_world="service_ops"),
+    )
+    auth_headers = {"Authorization": f"Bearer {bundle.gateway.auth_token}"}
+
+    with TestClient(create_twin_gateway_app(root)) as client:
+        register_response = client.post(
+            "/api/mirror/agents",
+            headers=auth_headers,
+            json={
+                "agent_id": "vendor-bot",
+                "name": "Vendor Bot",
+                "mode": "ingest",
+                "role": "vendor_dispatch_partner",
+                "team": "partners",
+                "allowed_surfaces": ["slack"],
+            },
+        )
+        assert register_response.status_code == 201
+
+        ingest_response = client.post(
+            "/api/mirror/events",
+            headers=auth_headers,
+            json={
+                "agent_id": "vendor-bot",
+                "external_tool": "vendor.slack.message",
+                "focus_hint": "slack",
+                "target": "slack",
+                "payload": {
+                    "channel": "#clearwater-dispatch",
+                    "text": "Vendor Bot: backup crew is en route to Clearwater Medical.",
+                    "user": "vendor.bot",
+                },
+            },
+        )
+        assert ingest_response.status_code == 202
+        assert ingest_response.json()["handled_by"] == "inject"
+
+        history_payload = client.get("/api/twin/history").json()
+        assert any(item["label"] == "vendor.slack.message" for item in history_payload)
+
+        surfaces_payload = client.get("/api/twin/surfaces").json()
+        slack_panel = next(
+            panel for panel in surfaces_payload["panels"] if panel["surface"] == "slack"
+        )
+        assert any(
+            "backup crew is en route" in str(item.get("body", ""))
+            for item in slack_panel["items"]
+        )
+
+
+def test_workspace_mirror_state_reflects_live_activity(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "service_ops_ingest_ui"
+    bundle = build_customer_twin(
+        root,
+        snapshot=_sample_snapshot(),
+        organization_domain="clearwater.example.com",
+        mold=ContextMoldConfig(archetype="service_ops"),
+        mirror_config=default_mirror_workspace_config(hero_world="service_ops"),
+    )
+    auth_headers = {"Authorization": f"Bearer {bundle.gateway.auth_token}"}
+
+    with (
+        TestClient(create_twin_gateway_app(root)) as gateway_client,
+        TestClient(create_ui_app(root)) as ui_client,
+    ):
+        register_response = gateway_client.post(
+            "/api/mirror/agents",
+            headers=auth_headers,
+            json={
+                "agent_id": "vendor-bot",
+                "name": "Vendor Bot",
+                "mode": "ingest",
+                "allowed_surfaces": ["slack"],
+            },
+        )
+        assert register_response.status_code == 201
+
+        workspace_mirror = ui_client.get("/api/workspace/mirror").json()
+        agent_ids = {item["agent_id"] for item in workspace_mirror["agents"]}
+        assert "vendor-bot" in agent_ids
+
+        event_response = gateway_client.post(
+            "/api/mirror/events",
+            headers=auth_headers,
+            json={
+                "agent_id": "vendor-bot",
+                "external_tool": "slack.chat.postMessage",
+                "resolved_tool": "slack.send_message",
+                "focus_hint": "slack",
+                "args": {
+                    "channel": "#clearwater-dispatch",
+                    "text": "Vendor Bot: live mirror check-in.",
+                },
+            },
+        )
+        assert event_response.status_code == 202
+
+        denied_response = gateway_client.post(
+            "/api/mirror/events",
+            headers=auth_headers,
+            json={
+                "agent_id": "vendor-bot",
+                "external_tool": "service_ops.assign_dispatch",
+                "resolved_tool": "service_ops.assign_dispatch",
+                "focus_hint": "service_ops",
+                "args": {
+                    "work_order_id": "WO-CFS-100",
+                    "technician_id": "TECH-CFS-02",
+                },
+            },
+        )
+        assert denied_response.status_code == 202
+        assert denied_response.json()["handled_by"] == "denied"
+
+        workspace_mirror = ui_client.get("/api/workspace/mirror").json()
+        vendor_bot = next(
+            agent
+            for agent in workspace_mirror["agents"]
+            if agent["agent_id"] == "vendor-bot"
+        )
+        assert workspace_mirror["event_count"] == 2
+        assert vendor_bot["denied_count"] == 1
+        assert vendor_bot["last_action"] == "service_ops.assign_dispatch"
+        assert workspace_mirror["recent_events"][-1]["handled_by"] == "denied"
+
+
+def test_mirror_registration_does_not_deadlock_with_dispatch(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    root = tmp_path / "service_ops_deadlock"
+    build_customer_twin(
+        root,
+        snapshot=_sample_snapshot(),
+        organization_domain="clearwater.example.com",
+        mold=ContextMoldConfig(archetype="service_ops"),
+        mirror_config=default_mirror_workspace_config(hero_world="service_ops"),
+    )
+    app = create_twin_gateway_app(root)
+    runtime = app.state.runtime
+
+    dispatch_entered = Event()
+    release_dispatch = Event()
+    register_entered = Event()
+    errors: list[BaseException] = []
+    original_call_tool = runtime.session.call_tool
+    original_register = runtime.register_mirror_agent
+
+    def blocking_call_tool(tool: str, args=None):
+        if tool == "slack.list_channels":
+            dispatch_entered.set()
+            if not release_dispatch.wait(timeout=2.0):
+                raise AssertionError("dispatch release timed out")
+        return original_call_tool(tool, args)
+
+    def observed_register(agent: MirrorAgentSpec) -> None:
+        register_entered.set()
+        original_register(agent)
+
+    monkeypatch.setattr(runtime.session, "call_tool", blocking_call_tool)
+    monkeypatch.setattr(runtime, "register_mirror_agent", observed_register)
+
+    def dispatch_call() -> None:
+        try:
+            runtime.dispatch(
+                external_tool="slack.conversations.list",
+                resolved_tool="slack.list_channels",
+                args={},
+                focus_hint="slack",
+            )
+        except BaseException as exc:  # noqa: BLE001
+            errors.append(exc)
+
+    def register_call() -> None:
+        try:
+            runtime.mirror.register_agent(
+                MirrorAgentSpec(agent_id="vendor-bot", name="Vendor Bot")
+            )
+        except BaseException as exc:  # noqa: BLE001
+            errors.append(exc)
+
+    dispatch_thread = Thread(target=dispatch_call, daemon=True)
+    register_thread = Thread(target=register_call, daemon=True)
+
+    dispatch_thread.start()
+    assert dispatch_entered.wait(timeout=1.0)
+
+    register_thread.start()
+    assert register_entered.wait(timeout=1.0)
+
+    release_dispatch.set()
+
+    dispatch_thread.join(timeout=1.0)
+    register_thread.join(timeout=1.0)
+
+    assert not dispatch_thread.is_alive()
+    assert not register_thread.is_alive()
+    assert errors == []
+
+
+def test_mirror_surface_access_enforcement_denies_unauthorized_surfaces(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "service_ops_enforcement"
+    bundle = build_customer_twin(
+        root,
+        snapshot=_sample_snapshot(),
+        organization_domain="clearwater.example.com",
+        mold=ContextMoldConfig(archetype="service_ops"),
+        mirror_config=default_mirror_workspace_config(hero_world="service_ops"),
+    )
+    auth_headers = {"Authorization": f"Bearer {bundle.gateway.auth_token}"}
+
+    with TestClient(create_twin_gateway_app(root)) as client:
+        client.post(
+            "/api/mirror/agents",
+            headers=auth_headers,
+            json={
+                "agent_id": "restricted-bot",
+                "name": "Restricted Bot",
+                "mode": "ingest",
+                "allowed_surfaces": ["slack"],
+            },
+        )
+
+        allowed_response = client.post(
+            "/api/mirror/events",
+            headers=auth_headers,
+            json={
+                "agent_id": "restricted-bot",
+                "external_tool": "slack.chat.postMessage",
+                "resolved_tool": "slack.send_message",
+                "focus_hint": "slack",
+                "args": {
+                    "channel": "#clearwater-dispatch",
+                    "text": "Test allowed message",
+                },
+            },
+        )
+        assert allowed_response.status_code == 202
+        assert allowed_response.json()["handled_by"] == "dispatch"
+        assert allowed_response.json()["ok"] is True
+
+        denied_response = client.post(
+            "/api/mirror/events",
+            headers=auth_headers,
+            json={
+                "agent_id": "restricted-bot",
+                "external_tool": "service_ops.assign_dispatch",
+                "resolved_tool": "service_ops.assign_dispatch",
+                "focus_hint": "service_ops",
+                "args": {
+                    "work_order_id": "WO-CFS-100",
+                    "technician_id": "TECH-CFS-02",
+                },
+            },
+        )
+        assert denied_response.status_code == 202
+        assert denied_response.json()["handled_by"] == "denied"
+        assert denied_response.json()["ok"] is False
+
+        history = client.get("/api/twin/history").json()
+        denial_events = [e for e in history if e["kind"] == "mirror_denied"]
+        assert len(denial_events) >= 1
+        assert denial_events[0]["payload"]["agent_id"] == "restricted-bot"
+
+        mirror = client.get("/api/mirror", headers=auth_headers).json()
+        restricted = next(
+            a for a in mirror["agents"] if a["agent_id"] == "restricted-bot"
+        )
+        assert restricted["denied_count"] == 1
+        assert restricted["last_action"] is not None
+
+        timeline = build_run_timeline(root, client.app.state.runtime.run_id)
+        allowed_event = next(
+            event
+            for event in timeline
+            if event.kind == "workflow_step" and event.label == "slack.chat.postMessage"
+        )
+        denied_event = next(
+            event for event in timeline if event.kind == "mirror_denied"
+        )
+        assert denied_event.time_ms >= allowed_event.time_ms
+
+
+def test_mirror_unrestricted_agent_can_dispatch_any_surface(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "service_ops_unrestricted"
+    bundle = build_customer_twin(
+        root,
+        snapshot=_sample_snapshot(),
+        organization_domain="clearwater.example.com",
+        mold=ContextMoldConfig(archetype="service_ops"),
+        mirror_config=default_mirror_workspace_config(hero_world="service_ops"),
+    )
+    auth_headers = {"Authorization": f"Bearer {bundle.gateway.auth_token}"}
+
+    with TestClient(create_twin_gateway_app(root)) as client:
+        client.post(
+            "/api/mirror/agents",
+            headers=auth_headers,
+            json={
+                "agent_id": "open-bot",
+                "name": "Open Bot",
+                "mode": "ingest",
+                "allowed_surfaces": [],
+            },
+        )
+
+        response = client.post(
+            "/api/mirror/events",
+            headers=auth_headers,
+            json={
+                "agent_id": "open-bot",
+                "external_tool": "slack.chat.postMessage",
+                "resolved_tool": "slack.send_message",
+                "focus_hint": "slack",
+                "args": {
+                    "channel": "#clearwater-dispatch",
+                    "text": "Unrestricted agent message",
+                },
+            },
+        )
+        assert response.status_code == 202
+        assert response.json()["handled_by"] == "dispatch"
+        assert response.json()["ok"] is True
+
+        mirror = client.get("/api/mirror", headers=auth_headers).json()
+        open_bot = next(a for a in mirror["agents"] if a["agent_id"] == "open-bot")
+        assert open_bot["denied_count"] == 0
+
+
+def test_mirror_inject_denial_for_restricted_surface(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "service_ops_inject_deny"
+    bundle = build_customer_twin(
+        root,
+        snapshot=_sample_snapshot(),
+        organization_domain="clearwater.example.com",
+        mold=ContextMoldConfig(archetype="service_ops"),
+        mirror_config=default_mirror_workspace_config(hero_world="service_ops"),
+    )
+    auth_headers = {"Authorization": f"Bearer {bundle.gateway.auth_token}"}
+
+    with TestClient(create_twin_gateway_app(root)) as client:
+        client.post(
+            "/api/mirror/agents",
+            headers=auth_headers,
+            json={
+                "agent_id": "slack-only-bot",
+                "name": "Slack Only Bot",
+                "mode": "ingest",
+                "allowed_surfaces": ["slack"],
+            },
+        )
+
+        denied_inject = client.post(
+            "/api/mirror/events",
+            headers=auth_headers,
+            json={
+                "agent_id": "slack-only-bot",
+                "external_tool": "vendor.ticket.inject",
+                "focus_hint": "tickets",
+                "target": "tickets",
+                "payload": {"text": "should be blocked"},
+            },
+        )
+        assert denied_inject.status_code == 202
+        assert denied_inject.json()["handled_by"] == "denied"
+        assert denied_inject.json()["ok"] is False
+
+        mirror = client.get("/api/mirror", headers=auth_headers).json()
+        bot = next(a for a in mirror["agents"] if a["agent_id"] == "slack-only-bot")
+        assert bot["denied_count"] == 1
 
 
 def _sample_snapshot() -> ContextSnapshot:

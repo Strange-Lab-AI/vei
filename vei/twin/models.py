@@ -10,6 +10,7 @@ TwinArchetype = Literal[
     "digital_marketing_agency",
     "real_estate_management",
     "storage_solutions",
+    "service_ops",
 ]
 GatewaySurfaceName = Literal["slack", "jira", "graph", "salesforce"]
 TwinRuntimeStatusValue = Literal["running", "completed", "error"]
@@ -60,6 +61,7 @@ class TwinGatewayConfig(BaseModel):
 
 
 class ExternalAgentIdentity(BaseModel):
+    agent_id: str | None = None
     name: str | None = None
     role: str | None = None
     team: str | None = None
