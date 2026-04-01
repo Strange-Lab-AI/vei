@@ -120,6 +120,87 @@ def test_ui_api_start_run_returns_generated_run_id(tmp_path: Path, monkeypatch) 
     assert run_response.json()["status"] == "ok"
 
 
+def test_ui_api_serves_cross_run_diff_over_http(tmp_path: Path) -> None:
+    root = tmp_path / "workspace"
+    create_workspace_from_template(
+        root=root,
+        source_kind="example",
+        source_ref="acquired_user_cutover",
+    )
+    run_a = launch_workspace_run(root, runner="workflow", run_id="cross-a")
+    run_b = launch_workspace_run(root, runner="workflow", run_id="cross-b")
+
+    client = TestClient(ui_api.create_ui_app(root))
+    snapshots_a = client.get(f"/api/runs/{run_a.run_id}/snapshots").json()
+    snapshots_b = client.get(f"/api/runs/{run_b.run_id}/snapshots").json()
+
+    response = client.get(
+        "/api/runs/diff-cross",
+        params={
+            "run_a": run_a.run_id,
+            "snap_a": snapshots_a[-1]["snapshot_id"],
+            "run_b": run_b.run_id,
+            "snap_b": snapshots_b[-1]["snapshot_id"],
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["run_a"] == run_a.run_id
+    assert payload["run_b"] == run_b.run_id
+    assert isinstance(payload["added"], dict)
+    assert isinstance(payload["removed"], dict)
+    assert isinstance(payload["changed"], dict)
+
+
+def test_ui_api_returns_400_for_invalid_single_run_snapshot_diff(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "workspace"
+    create_workspace_from_template(
+        root=root,
+        source_kind="example",
+        source_ref="acquired_user_cutover",
+    )
+    manifest = launch_workspace_run(root, runner="workflow")
+
+    client = TestClient(ui_api.create_ui_app(root))
+    response = client.get(
+        f"/api/runs/{manifest.run_id}/diff",
+        params={"snapshot_from": 999999, "snapshot_to": 1},
+    )
+
+    assert response.status_code == 400
+    assert "snapshot not found" in response.json()["detail"]
+
+
+def test_ui_api_returns_400_for_invalid_cross_run_snapshot_diff(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "workspace"
+    create_workspace_from_template(
+        root=root,
+        source_kind="example",
+        source_ref="acquired_user_cutover",
+    )
+    run_a = launch_workspace_run(root, runner="workflow", run_id="cross-a")
+    run_b = launch_workspace_run(root, runner="workflow", run_id="cross-b")
+
+    client = TestClient(ui_api.create_ui_app(root))
+    response = client.get(
+        "/api/runs/diff-cross",
+        params={
+            "run_a": run_a.run_id,
+            "snap_a": 999999,
+            "run_b": run_b.run_id,
+            "snap_b": 1,
+        },
+    )
+
+    assert response.status_code == 400
+    assert "snapshot not found" in response.json()["detail"]
+
+
 def test_ui_api_serves_living_company_surfaces_for_vertical_runs(
     tmp_path: Path,
 ) -> None:

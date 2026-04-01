@@ -562,6 +562,16 @@ def create_ui_app(workspace_root: str | Path) -> FastAPI:
             {"ok": True, "run_id": resolved_run_id, "runner": normalized_runner}
         )
 
+    @app.get("/api/runs/diff-cross")
+    def api_runs_diff_cross(
+        run_a: str, snap_a: int, run_b: str, snap_b: int
+    ) -> JSONResponse:
+        try:
+            payload = diff_cross_run_snapshots(root, run_a, snap_a, run_b, snap_b)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        return JSONResponse(payload)
+
     @app.get("/api/runs/{run_id}")
     def api_run(run_id: str) -> JSONResponse:
         path = get_workspace_run_manifest_path(root, run_id)
@@ -622,17 +632,11 @@ def create_ui_app(workspace_root: str | Path) -> FastAPI:
 
     @app.get("/api/runs/{run_id}/diff")
     def api_run_diff(run_id: str, snapshot_from: int, snapshot_to: int) -> JSONResponse:
-        return JSONResponse(
-            diff_run_snapshots(root, run_id, snapshot_from, snapshot_to)
-        )
-
-    @app.get("/api/runs/diff-cross")
-    def api_runs_diff_cross(
-        run_a: str, snap_a: int, run_b: str, snap_b: int
-    ) -> JSONResponse:
-        return JSONResponse(
-            diff_cross_run_snapshots(root, run_a, snap_a, run_b, snap_b)
-        )
+        try:
+            payload = diff_run_snapshots(root, run_id, snapshot_from, snapshot_to)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        return JSONResponse(payload)
 
     @app.get("/api/runs/{run_id}/stream")
     async def api_run_stream(run_id: str) -> StreamingResponse:

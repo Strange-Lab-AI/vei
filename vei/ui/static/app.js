@@ -59,6 +59,7 @@ const state = {
   surfaceHighlightTimer: null,
   lastMoveImpact: null,
   snapshots: [],
+  snapshotForkError: null,
   selectedEventIndex: 0,
   selectedSnapshotFrom: null,
   selectedSnapshotTo: null,
@@ -117,6 +118,32 @@ async function fetchPlayableArtifacts() {
 
 function el(id) {
   return document.getElementById(id);
+}
+
+function currentSnapshotForkRunId() {
+  const missionRunId = state.missionState?.run_id || null;
+  if (!missionRunId || state.activeRunId !== missionRunId) {
+    return null;
+  }
+  return missionRunId;
+}
+
+async function requestMissionBranch(runId, snapshotId = null) {
+  const body = snapshotId === null ? {} : { snapshot_id: snapshotId };
+  return await getJson(`/api/missions/${encodeURIComponent(runId)}/branch`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
+async function activateMissionBranch(payload) {
+  const previousSurfaceState = state.surfaceState;
+  state.snapshotForkError = null;
+  state.missionState = payload;
+  await loadRuns({ selectActiveRun: false });
+  await selectRun(payload.run_id, { previousSurfaceState });
+  state.missionState = payload;
 }
 
 function renderJson(id, payload) {
@@ -3308,9 +3335,23 @@ function renderSnapshots() {
   const rail = document.getElementById("snapshots-panel");
   const fromSelect = document.getElementById("snapshot-from-select");
   const toSelect = document.getElementById("snapshot-to-select");
+  const forkRunId = currentSnapshotForkRunId();
   rail.innerHTML = "";
   fromSelect.innerHTML = "";
   toSelect.innerHTML = "";
+
+  if (state.snapshotForkError) {
+    rail.insertAdjacentHTML(
+      "beforeend",
+      `<p class="metric-detail">${escapeHtml(state.snapshotForkError)}</p>`
+    );
+  }
+  if (!forkRunId) {
+    rail.insertAdjacentHTML(
+      "beforeend",
+      `<p class="metric-detail">Forking is only available on the current playable mission run.</p>`
+    );
+  }
 
   for (const snapshot of snapshots) {
     const card = document.createElement("div");
@@ -3325,21 +3366,26 @@ function renderSnapshots() {
         ${chip(`id=${snapshot.snapshot_id}`)}
         ${chip(`t=${formatMs(snapshot.time_ms)}`)}
       </div>
-      <button class="fork-from-btn" data-snapshot-id="${snapshot.snapshot_id}">Fork from here</button>
+      ${
+        forkRunId
+          ? `<button class="fork-from-btn" data-snapshot-id="${snapshot.snapshot_id}">Fork from here</button>`
+          : ""
+      }
     `;
     rail.appendChild(card);
     card.querySelector(".fork-from-btn")?.addEventListener("click", async (e) => {
       e.stopPropagation();
       const snapId = parseInt(e.target.dataset.snapshotId, 10);
-      const runId = state.activeRunId || state.missionState?.run_id;
-      if (!runId) return;
       try {
-        const result = await postJson(`/api/missions/${encodeURIComponent(runId)}/branch`, { snapshot_id: snapId });
+        const result = await requestMissionBranch(forkRunId, snapId);
         if (result?.run_id) {
-          await loadWorkspace();
-          renderAll();
+          await activateMissionBranch(result);
         }
-      } catch (err) { /* branch may fail if no mission is active */ }
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        state.snapshotForkError = `Fork failed: ${message}`;
+        renderSnapshots();
+      }
     });
 
     for (const select of [fromSelect, toSelect]) {
@@ -3715,15 +3761,8 @@ async function branchMission() {
   status.textContent = "Creating branch...";
   state.lastMoveImpact = null;
   try {
-    const payload = await getJson(`/api/missions/${state.missionState.run_id}/branch`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({}),
-    });
-    state.missionState = payload;
-    await loadRuns({ selectActiveRun: false });
-    await selectRun(payload.run_id, { previousSurfaceState: state.surfaceState });
-    state.missionState = payload;
+    const payload = await requestMissionBranch(state.missionState.run_id);
+    await activateMissionBranch(payload);
     status.textContent = `Branch ${payload.branch_name} is live.`;
     setStudioView("outcome");
   } catch (error) {
@@ -3847,6 +3886,9 @@ function connectRunStream(runId) {
 }
 
 async function selectRun(runId, options = {}) {
+  if (state.activeRunId !== runId) {
+    state.snapshotForkError = null;
+  }
   state.activeRunId = runId;
   renderRuns();
   await refreshActiveRun(runId, { connectStream: true, ...options });
