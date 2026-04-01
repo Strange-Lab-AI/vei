@@ -337,6 +337,63 @@ def test_workspace_mirror_state_reflects_live_activity(
         assert workspace_mirror["recent_events"][-1]["handled_by"] == "denied"
 
 
+def test_registered_proxy_agent_updates_mirror_state_from_gateway_route(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "service_ops_proxy_ui"
+    bundle = build_customer_twin(
+        root,
+        snapshot=_sample_snapshot(),
+        organization_domain="clearwater.example.com",
+        mold=ContextMoldConfig(archetype="service_ops"),
+        mirror_config=default_mirror_workspace_config(hero_world="service_ops"),
+    )
+    auth_headers = {"Authorization": f"Bearer {bundle.gateway.auth_token}"}
+
+    with (
+        TestClient(create_twin_gateway_app(root)) as gateway_client,
+        TestClient(create_ui_app(root)) as ui_client,
+    ):
+        register_response = gateway_client.post(
+            "/api/mirror/agents",
+            headers=auth_headers,
+            json={
+                "agent_id": "proxy-bot",
+                "name": "Proxy Bot",
+                "mode": "proxy",
+                "allowed_surfaces": ["slack"],
+            },
+        )
+        assert register_response.status_code == 201
+
+        proxy_headers = {
+            **auth_headers,
+            "x-vei-agent-id": "proxy-bot",
+            "x-vei-agent-name": "Proxy Bot",
+        }
+        response = gateway_client.post(
+            "/slack/api/chat.postMessage",
+            headers=proxy_headers,
+            json={
+                "channel": "#clearwater-dispatch",
+                "text": "Proxy Bot: dispatch is confirmed.",
+            },
+        )
+        assert response.status_code == 200
+        assert response.json()["ok"] is True
+
+        workspace_mirror = ui_client.get("/api/workspace/mirror").json()
+        proxy_bot = next(
+            agent
+            for agent in workspace_mirror["agents"]
+            if agent["agent_id"] == "proxy-bot"
+        )
+        assert workspace_mirror["event_count"] == 1
+        assert proxy_bot["last_action"] == "slack.chat.postMessage"
+        assert proxy_bot["denied_count"] == 0
+        assert workspace_mirror["recent_events"][-1]["handled_by"] == "dispatch"
+
+
 def test_mirror_registration_does_not_deadlock_with_dispatch(
     tmp_path: Path,
     monkeypatch,
@@ -494,6 +551,59 @@ def test_mirror_surface_access_enforcement_denies_unauthorized_surfaces(
             event for event in timeline if event.kind == "mirror_denied"
         )
         assert denied_event.time_ms >= allowed_event.time_ms
+
+
+def test_registered_proxy_agent_cannot_bypass_surface_restrictions(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "service_ops_proxy_enforcement"
+    bundle = build_customer_twin(
+        root,
+        snapshot=_sample_snapshot(),
+        organization_domain="clearwater.example.com",
+        mold=ContextMoldConfig(archetype="service_ops"),
+        mirror_config=default_mirror_workspace_config(hero_world="service_ops"),
+    )
+    auth_headers = {"Authorization": f"Bearer {bundle.gateway.auth_token}"}
+
+    with TestClient(create_twin_gateway_app(root)) as client:
+        register_response = client.post(
+            "/api/mirror/agents",
+            headers=auth_headers,
+            json={
+                "agent_id": "slack-only",
+                "name": "Slack Only",
+                "mode": "proxy",
+                "allowed_surfaces": ["slack"],
+            },
+        )
+        assert register_response.status_code == 201
+
+        proxy_headers = {
+            **auth_headers,
+            "x-vei-agent-id": "slack-only",
+            "x-vei-agent-name": "Slack Only",
+        }
+        denied_response = client.post(
+            "/jira/rest/api/3/issue",
+            headers=proxy_headers,
+            json={"fields": {"summary": "This should be blocked."}},
+        )
+        assert denied_response.status_code == 400
+        assert denied_response.json()["detail"]["code"] == "mirror.surface_denied"
+
+        mirror = client.get("/api/mirror", headers=auth_headers).json()
+        proxy_agent = next(
+            agent for agent in mirror["agents"] if agent["agent_id"] == "slack-only"
+        )
+        assert mirror["event_count"] == 1
+        assert proxy_agent["denied_count"] == 1
+        assert proxy_agent["last_action"] == "jira.issue.create"
+
+        history = client.get("/api/twin/history").json()
+        denial_events = [event for event in history if event["kind"] == "mirror_denied"]
+        assert denial_events
+        assert denial_events[-1]["payload"]["agent_id"] == "slack-only"
 
 
 def test_mirror_unrestricted_agent_can_dispatch_any_surface(

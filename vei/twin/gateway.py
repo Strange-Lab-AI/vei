@@ -244,6 +244,47 @@ class TwinRuntime:
                 self._append_contract_event(contract_eval, snapshot.time_ms)
                 raise
 
+    def dispatch_proxy_request(
+        self,
+        *,
+        external_tool: str,
+        resolved_tool: str,
+        args: dict[str, Any],
+        focus_hint: str,
+        agent: ExternalAgentIdentity,
+    ) -> Any:
+        mirror_agent = self._mirror_agent(agent.agent_id)
+        if mirror_agent is None:
+            return self.dispatch(
+                external_tool=external_tool,
+                resolved_tool=resolved_tool,
+                args=args,
+                focus_hint=focus_hint,
+                agent=agent,
+            )
+        event = MirrorIngestEvent(
+            agent_id=mirror_agent.agent_id,
+            external_tool=external_tool,
+            resolved_tool=resolved_tool,
+            focus_hint=focus_hint,
+            args=dict(args),
+            label=external_tool,
+            source_mode="proxy",
+        )
+        result = self.mirror.ingest_event(event) if self.mirror is not None else None
+        if result is None:
+            return self.dispatch(
+                external_tool=external_tool,
+                resolved_tool=resolved_tool,
+                args=args,
+                focus_hint=focus_hint,
+                agent=agent,
+            )
+        if result.handled_by == "denied":
+            reason = str(result.result.get("reason", "mirror request denied"))
+            raise MCPError("mirror.surface_denied", reason)
+        return result.result.get("result")
+
     def peek(self, tool: str, args: dict[str, Any] | None = None) -> Any:
         with self._lock:
             return self.session.call_tool(tool, args or {})
@@ -394,6 +435,11 @@ class TwinRuntime:
         metadata = dict(self.status.metadata)
         metadata["mirror"] = self._mirror_snapshot_payload()
         self.status.metadata = metadata
+
+    def _mirror_agent(self, agent_id: str | None) -> MirrorAgentSpec | None:
+        if self.mirror is None or not agent_id:
+            return None
+        return self.mirror.get_agent(agent_id)
 
     def sync_mirror_runtime_state(self) -> None:
         with self._lock:
@@ -1821,12 +1867,21 @@ def _dispatch_request(
     args: dict[str, Any],
     focus_hint: str,
 ) -> Any:
+    agent = _request_agent_identity(request)
+    if agent is not None and agent.agent_id:
+        return runtime.dispatch_proxy_request(
+            external_tool=external_tool,
+            resolved_tool=resolved_tool,
+            args=args,
+            focus_hint=focus_hint,
+            agent=agent,
+        )
     return runtime.dispatch(
         external_tool=external_tool,
         resolved_tool=resolved_tool,
         args=args,
         focus_hint=focus_hint,
-        agent=_request_agent_identity(request),
+        agent=agent,
     )
 
 

@@ -223,6 +223,13 @@ class MirrorRuntime:
     def list_agents(self) -> list[MirrorAgentSpec]:
         return self.snapshot().agents
 
+    def get_agent(self, agent_id: str) -> MirrorAgentSpec | None:
+        with self._lock:
+            agent = self._agents.get(agent_id)
+            if agent is None:
+                return None
+            return agent.model_copy(deep=True)
+
     def register_agent(
         self, agent: MirrorAgentSpec | dict[str, Any]
     ) -> MirrorAgentSpec:
