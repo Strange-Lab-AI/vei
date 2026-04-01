@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any, Dict
 
 from vei.orientation.api import build_world_orientation
+from vei.verticals import get_vertical_pack_manifest
 from vei.world.models import WorldState
 from vei.workspace.api import load_workspace
 
@@ -377,15 +378,17 @@ def _build_vertical_panel(
     vertical_name: str,
     components: Dict[str, Dict[str, Any]],
 ) -> LivingSurfacePanel | None:
-    if vertical_name == "service_ops":
-        return _build_service_ops_panel(components.get("service_ops", {}))
-    if vertical_name == "real_estate_management":
-        return _build_property_panel(components.get("property_ops", {}))
-    if vertical_name == "digital_marketing_agency":
-        return _build_campaign_panel(components.get("campaign_ops", {}))
-    if vertical_name == "storage_solutions":
-        return _build_inventory_panel(components.get("inventory_ops", {}))
-    return None
+    try:
+        manifest = get_vertical_pack_manifest(vertical_name)
+    except KeyError:
+        return None
+
+    runtime_family = str(manifest.runtime_family or "").strip().lower()
+    component_name = str(manifest.runtime_component or "").strip()
+    builder = _VERTICAL_PANEL_BUILDERS.get(runtime_family)
+    if builder is None or not component_name:
+        return None
+    return builder(components.get(component_name, {}))
 
 
 def _build_service_ops_panel(
@@ -759,6 +762,14 @@ def _build_inventory_panel(
         headline=f"{len(quotes)} quotes · {len(pools)} pools · {len(orders)} orders",
         items=items[:6],
     )
+
+
+_VERTICAL_PANEL_BUILDERS = {
+    "campaign": _build_campaign_panel,
+    "inventory": _build_inventory_panel,
+    "property": _build_property_panel,
+    "service_ops": _build_service_ops_panel,
+}
 
 
 # ---------------------------------------------------------------------------

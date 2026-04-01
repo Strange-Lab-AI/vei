@@ -13,6 +13,7 @@ from vei.workspace.api import (
     resolve_workspace_scenario,
     temporary_env,
 )
+from vei.verticals import get_vertical_pack_manifest
 
 from .models import (
     FidelityStatus,
@@ -615,17 +616,17 @@ def _iso_now() -> str:
 def _check_vertical_surface(
     session: WorldSessionAPI, vertical_name: str
 ) -> TwinFidelityCase:
-    normalized = vertical_name.strip().lower()
-    if normalized == "service_ops":
-        return _check_service_ops_surface(session)
-    if normalized == "digital_marketing_agency":
-        return _check_campaign_surface(session)
-    if normalized == "storage_solutions":
-        return _check_inventory_surface(session)
-    if normalized == "b2b_saas":
-        return _check_revenue_surface(session)
-    if normalized == "real_estate_management":
-        return _check_property_surface(session)
+    try:
+        manifest = get_vertical_pack_manifest(vertical_name)
+    except KeyError:
+        manifest = None
+
+    runtime_family = (
+        str(manifest.runtime_family or "").strip().lower() if manifest else ""
+    )
+    checker = _VERTICAL_FIDELITY_CHECKERS.get(runtime_family)
+    if checker is not None:
+        return checker(session)
     return TwinFidelityCase(
         surface="property",
         title="Vertical surface (skipped)",
@@ -664,3 +665,12 @@ def _check_revenue_surface(session: WorldSessionAPI) -> TwinFidelityCase:
         status=_combine_status(item.status for item in checks),
         checks=checks,
     )
+
+
+_VERTICAL_FIDELITY_CHECKERS = {
+    "campaign": _check_campaign_surface,
+    "inventory": _check_inventory_surface,
+    "property": _check_property_surface,
+    "revenue": _check_revenue_surface,
+    "service_ops": _check_service_ops_surface,
+}

@@ -52,10 +52,21 @@ def _set_runs_dir(root: Path, runs_dir: str) -> None:
 
 def test_mission_catalog_contains_all_verticals() -> None:
     catalog = build_playable_mission_catalog()
-    assert catalog.hero_world == "real_estate_management"
+    mission_worlds: list[str] = []
+    for mission in catalog.missions:
+        if mission.vertical_name not in mission_worlds:
+            mission_worlds.append(mission.vertical_name)
+
+    expected_hero = next(
+        mission.vertical_name for mission in catalog.missions if mission.hero
+    )
+
+    assert catalog.included_worlds == mission_worlds
+    assert catalog.hero_world == expected_hero
     assert "real_estate_management" in catalog.included_worlds
     assert "digital_marketing_agency" in catalog.included_worlds
     assert "storage_solutions" in catalog.included_worlds
+    assert "b2b_saas" in catalog.included_worlds
     assert "service_ops" in catalog.included_worlds
 
 

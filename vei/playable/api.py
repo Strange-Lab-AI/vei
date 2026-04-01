@@ -75,16 +75,19 @@ PLAYABLE_OVERVIEW_FILE = "playable_overview.md"
 
 
 def build_playable_mission_catalog() -> MissionCatalog:
+    missions = _mission_specs()
+    included_worlds: list[str] = []
+    for mission in missions:
+        if mission.vertical_name not in included_worlds:
+            included_worlds.append(mission.vertical_name)
+    hero_world = next(
+        (mission.vertical_name for mission in missions if mission.hero),
+        included_worlds[0] if included_worlds else "",
+    )
     return MissionCatalog(
-        hero_world="real_estate_management",
-        included_worlds=[
-            "real_estate_management",
-            "digital_marketing_agency",
-            "storage_solutions",
-            "b2b_saas",
-            "service_ops",
-        ],
-        missions=_mission_specs(),
+        hero_world=hero_world,
+        included_worlds=included_worlds,
+        missions=missions,
     )
 
 

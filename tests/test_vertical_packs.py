@@ -11,7 +11,11 @@ from vei.run.api import (
     launch_workspace_run,
 )
 from vei.ui.api import create_ui_app
-from vei.verticals import build_vertical_blueprint_asset, get_vertical_pack_manifest
+from vei.verticals import (
+    build_vertical_blueprint_asset,
+    get_vertical_pack_manifest,
+    list_vertical_pack_names,
+)
 from vei.workspace.api import create_workspace_from_template, preview_workspace_scenario
 
 
@@ -181,3 +185,25 @@ def test_vertical_runs_expose_living_surface_state(
         "vertical_heartbeat",
     }
     assert all(panel.items for panel in panel_map.values())
+
+
+@pytest.mark.parametrize(
+    ("vertical_name", "runtime_component", "runtime_family"),
+    [
+        ("real_estate_management", "property_ops", "property"),
+        ("digital_marketing_agency", "campaign_ops", "campaign"),
+        ("storage_solutions", "inventory_ops", "inventory"),
+        ("b2b_saas", None, "revenue"),
+        ("service_ops", "service_ops", "service_ops"),
+    ],
+)
+def test_vertical_pack_registry_exposes_runtime_metadata(
+    vertical_name: str,
+    runtime_component: str | None,
+    runtime_family: str,
+) -> None:
+    manifest = get_vertical_pack_manifest(vertical_name)
+
+    assert manifest.runtime_component == runtime_component
+    assert manifest.runtime_family == runtime_family
+    assert vertical_name in list_vertical_pack_names()
