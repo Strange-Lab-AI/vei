@@ -5,7 +5,6 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
-
 TwinArchetype = Literal[
     "b2b_saas",
     "digital_marketing_agency",

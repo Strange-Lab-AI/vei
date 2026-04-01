@@ -18,7 +18,6 @@ import typer
 
 from vei.benchmark.families import get_benchmark_family_manifest
 
-
 app = typer.Typer(name="report", help="Generate evaluation reports and leaderboards")
 
 
@@ -713,7 +712,7 @@ def _dimension_label(name: str) -> str:
 
 
 def _attach_workflow_baseline_deltas(
-    results: List[Dict[str, Any]]
+    results: List[Dict[str, Any]],
 ) -> List[Dict[str, Any]]:
     baselines = _select_workflow_baselines(results)
     for result in results:

@@ -6,7 +6,6 @@ from typing import Any, List, Dict
 from mcp.client.session import ClientSession
 from openai import AsyncOpenAI
 
-
 SYSTEM_PROMPT_BASE = (
     "You are an assistant controlling tools via MCP in a synthetic enterprise world. "
     "Each step: first call 'vei.observe' to see the action_menu, then pick exactly one tool to call. "

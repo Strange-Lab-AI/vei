@@ -32,7 +32,6 @@ from .models import (
     ExerciseStatus,
 )
 
-
 EXERCISE_MANIFEST_FILE = "exercise_manifest.json"
 
 

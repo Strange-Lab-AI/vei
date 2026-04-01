@@ -6,7 +6,6 @@ from pydantic import BaseModel, Field
 
 from vei.scenario_engine.models import AssertionSpec
 
-
 ContractSurface = Literal[
     "oracle_state",
     "visible_observation",

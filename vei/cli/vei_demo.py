@@ -24,7 +24,6 @@ from mcp.client.sse import sse_client
 from mcp.client.stdio import StdioServerParameters, stdio_client
 from ._llm_loop import extract_plan  # robust JSON extraction (handles ```json blocks)
 
-
 app = typer.Typer(add_completion=False)
 
 

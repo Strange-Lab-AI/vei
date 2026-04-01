@@ -35,7 +35,6 @@ from .models import (
     PilotStatus,
 )
 
-
 PILOT_MANIFEST_FILE = "pilot_manifest.json"
 PILOT_GUIDE_FILE = "pilot_guide.md"
 PILOT_RUNTIME_FILE = "pilot_runtime.json"

@@ -17,7 +17,6 @@ from vei.run.api import (
 from vei.workspace.api import list_workspace_runs
 from vei.workspace.api import load_workspace_provenance
 
-
 app = typer.Typer(
     add_completion=False, help="Inspect run timelines, graphs, and snapshots."
 )

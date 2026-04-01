@@ -24,7 +24,6 @@ from vei.release.models import (
     ReleaseManifest,
 )
 
-
 DatasetKind = Literal["auto", "vei_dataset", "corpus", "quality_report"]
 
 

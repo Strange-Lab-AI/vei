@@ -12,7 +12,6 @@ from vei.orientation.api import build_world_orientation
 from vei.world.state import StateStore
 from vei.world.models import WorldState
 
-
 app = typer.Typer(
     add_completion=False,
     help="Inspect VEI world snapshots, branches, and receipts.",

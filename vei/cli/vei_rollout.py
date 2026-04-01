@@ -8,7 +8,6 @@ from typer.models import OptionInfo
 
 from vei.data.rollout import rollout_procurement
 
-
 app = typer.Typer(add_completion=False)
 
 

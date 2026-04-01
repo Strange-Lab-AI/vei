@@ -11,7 +11,6 @@ from .models import (
     GeneratedWorkflowSpec,
 )
 
-
 ORG_STEMS = [
     "MacroCompute",
     "Northwind",

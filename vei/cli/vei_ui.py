@@ -4,7 +4,6 @@ from pathlib import Path
 
 import typer
 
-
 app = typer.Typer(add_completion=False, help="Serve the local VEI playback UI.")
 
 

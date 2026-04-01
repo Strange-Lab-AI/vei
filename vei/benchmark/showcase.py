@@ -8,7 +8,6 @@ from vei.benchmark.models import (
     BenchmarkShowcaseResult,
 )
 
-
 _SHOWCASE_CATALOG: Dict[str, BenchmarkShowcaseExample] = {
     "oauth_incident_chain": BenchmarkShowcaseExample(
         name="oauth_incident_chain",

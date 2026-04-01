@@ -12,7 +12,6 @@ from typing import Any, Dict, List, Optional, Sequence
 
 from pydantic import BaseModel, Field, field_validator
 
-
 Number = int | float
 
 

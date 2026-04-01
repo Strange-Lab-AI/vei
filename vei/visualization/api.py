@@ -6,7 +6,6 @@ from typing import Any, Dict, Iterable
 
 from .models import FlowDataset, FlowStep
 
-
 FLOW_CHANNEL_LAYOUT: tuple[dict[str, object], ...] = (
     {"id": "Plan", "label": "Plan", "x": 80, "y": 240, "color": "#7B5BFF"},
     {"id": "Slack", "label": "Slack", "x": 260, "y": 150, "color": "#36C5F0"},

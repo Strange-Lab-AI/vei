@@ -17,7 +17,6 @@ from vei.workspace.api import (
     validate_workspace_contract,
 )
 
-
 app = typer.Typer(
     add_completion=False, help="Validate and inspect workspace contracts."
 )

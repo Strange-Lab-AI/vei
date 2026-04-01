@@ -12,7 +12,6 @@ from vei.release.api import (
     snapshot_benchmark_release,
 )
 
-
 app = typer.Typer(
     add_completion=False,
     help="Versioned release tooling for VEI datasets and benchmarks.",

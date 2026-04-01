@@ -6,7 +6,6 @@ from pydantic import BaseModel, Field
 
 from vei.grounding.models import IdentityGovernanceBundle
 
-
 ImportWedge = Literal["identity_access_governance"]
 ImportFileType = Literal["csv", "json"]
 ImportOrigin = Literal["imported", "derived", "simulated"]

@@ -15,7 +15,6 @@ from vei.exercise import (
 )
 from vei.twin.models import TwinArchetype
 
-
 app = typer.Typer(
     add_completion=False,
     help="Launch and operate VEI exercise mode for outside-agent testing.",

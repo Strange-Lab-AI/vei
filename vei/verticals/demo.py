@@ -31,7 +31,6 @@ from vei.workspace.api import (
     show_workspace,
 )
 
-
 VerticalCompareRunner = Literal["scripted", "bc", "llm"]
 
 

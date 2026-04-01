@@ -18,16 +18,14 @@ class MemoryStore:
 
     def _init(self) -> None:
         with self._conn:
-            self._conn.execute(
-                """
+            self._conn.execute("""
                 CREATE TABLE IF NOT EXISTS facts (
                     kind TEXT NOT NULL,
                     fact_key TEXT NOT NULL,
                     fact_value TEXT NOT NULL,
                     created_ms INTEGER NOT NULL
                 )
-                """
-            )
+                """)
             self._conn.execute(
                 "CREATE INDEX IF NOT EXISTS idx_facts_kind_key ON facts(kind, fact_key)"
             )

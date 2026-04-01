@@ -45,7 +45,6 @@ from .models import (
     TwinMatrixBundle,
 )
 
-
 TWIN_MANIFEST_FILE = "twin_manifest.json"
 _MODEL_T = TypeVar("_MODEL_T", bound=BaseModel)
 

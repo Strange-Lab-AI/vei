@@ -40,7 +40,6 @@ from vei.cli.vei_report import (
     load_all_results,
 )
 
-
 app = typer.Typer(add_completion=False)
 
 

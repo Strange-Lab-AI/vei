@@ -8,7 +8,6 @@ import typer
 from vei.fidelity import get_or_build_workspace_fidelity_report
 from vei.playable import prepare_playable_workspace
 
-
 app = typer.Typer(
     add_completion=False,
     help="Prepare and launch the playable VEI Studio mission experience.",

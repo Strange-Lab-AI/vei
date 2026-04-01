@@ -556,7 +556,7 @@ def _build_identity_graph(
 
 
 def _build_revenue_graph(
-    components: Dict[str, Dict[str, Any]]
+    components: Dict[str, Dict[str, Any]],
 ) -> Optional[RevenueGraphView]:
     crm = components.get("crm", {})
     companies = [
@@ -791,7 +791,7 @@ def _build_ops_graph(components: Dict[str, Dict[str, Any]]) -> Optional[OpsGraph
 
 
 def _build_property_graph(
-    components: Dict[str, Dict[str, Any]]
+    components: Dict[str, Dict[str, Any]],
 ) -> Optional[PropertyGraphView]:
     property_ops = components.get("property_ops", {})
     properties = [
@@ -861,7 +861,7 @@ def _build_property_graph(
 
 
 def _build_campaign_graph(
-    components: Dict[str, Dict[str, Any]]
+    components: Dict[str, Dict[str, Any]],
 ) -> Optional[CampaignGraphView]:
     campaign_ops = components.get("campaign_ops", {})
     clients = [
@@ -932,7 +932,7 @@ def _build_campaign_graph(
 
 
 def _build_inventory_graph(
-    components: Dict[str, Dict[str, Any]]
+    components: Dict[str, Dict[str, Any]],
 ) -> Optional[InventoryGraphView]:
     inventory_ops = components.get("inventory_ops", {})
     sites = [

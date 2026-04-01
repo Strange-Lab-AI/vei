@@ -55,7 +55,6 @@ from vei.world import Scenario, get_scenario, list_scenarios
 from vei.world.api import create_world_session
 from vei.world.models import ActorState, WorldSnapshot, WorldState
 
-
 FRONTIER_SCENARIO_SETS: Dict[str, List[str]] = {
     "all_frontier": [
         "f1_budget_reconciliation",

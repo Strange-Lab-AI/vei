@@ -24,7 +24,6 @@ from .models import (
     TwinVariantSpec,
 )
 
-
 TWIN_MATRIX_FILE = "twin_matrix.json"
 
 

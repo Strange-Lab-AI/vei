@@ -13,7 +13,6 @@ from vei.world.api import (
 from vei.world.compiler import compile_scene, load_scene_spec
 from vei.world.scenarios import get_scenario, list_scenarios
 
-
 app = typer.Typer(add_completion=False)
 
 

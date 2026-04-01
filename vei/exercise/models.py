@@ -7,7 +7,6 @@ from pydantic import BaseModel, Field
 
 from vei.pilot.models import PilotStatus
 
-
 ExerciseRunner = Literal["workflow", "scripted", "external"]
 
 

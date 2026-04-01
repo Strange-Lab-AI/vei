@@ -16,7 +16,6 @@ from vei.workspace.api import (
     preview_workspace_scenario,
 )
 
-
 app = typer.Typer(
     add_completion=False,
     help="Manage workspace scenarios derived from one environment.",

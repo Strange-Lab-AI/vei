@@ -11,7 +11,6 @@ from vei.twin.models import (
     TwinArchetype,
 )
 
-
 PilotServiceName = Literal["gateway", "studio"]
 PilotServiceState = Literal["running", "stopped", "error"]
 

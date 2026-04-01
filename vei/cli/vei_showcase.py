@@ -19,7 +19,6 @@ from vei.verticals.demo import (
     run_vertical_variant_matrix,
 )
 
-
 app = typer.Typer(
     add_completion=False,
     help="Run polished showcase bundles for VEI product demos.",

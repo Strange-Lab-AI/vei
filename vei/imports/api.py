@@ -56,7 +56,6 @@ from .scenarios import (
     generate_identity_scenario_candidates,
 )
 
-
 _FIXTURE_ROOT = Path(__file__).with_name("fixtures")
 
 

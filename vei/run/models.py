@@ -6,7 +6,6 @@ from pydantic import BaseModel, Field
 
 from vei.benchmark.models import BenchmarkDiagnostics, BenchmarkMetrics, BenchmarkRunner
 
-
 RunStatus = Literal["queued", "running", "ok", "error"]
 SurfacePanelKind = Literal[
     "chat",

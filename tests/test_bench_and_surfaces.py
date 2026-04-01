@@ -10,7 +10,6 @@ from vei.router.core import EventBus, MailSim, SlackSim
 from vei.world.api import create_world_session
 from vei.world.scenario import Scenario
 
-
 runner = CliRunner()
 
 

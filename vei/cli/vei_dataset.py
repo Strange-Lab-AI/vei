@@ -9,7 +9,6 @@ from pydantic import ValidationError
 from vei.dataset import build_dataset_bundle, load_dataset_bundle
 from vei.dataset.models import DatasetBuildSpec
 
-
 app = typer.Typer(
     add_completion=False,
     help="Build and inspect VEI dataset bundles from twin environments.",

@@ -10,7 +10,6 @@ from vei.scenario_runner import validate_workflow as static_validate_workflow
 
 from .models import QualityFilterReport, WorkflowQualityScore
 
-
 DEFAULT_REALISM_THRESHOLD = 0.55
 
 

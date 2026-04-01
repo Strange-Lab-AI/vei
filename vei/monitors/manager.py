@@ -6,7 +6,6 @@ from .api import ToolRegistryView
 from .models import MonitorFinding
 from .tool_aware import ToolAwareMonitor
 
-
 SUPPORTED_MONITORS = {
     "tool_aware": ToolAwareMonitor,
 }

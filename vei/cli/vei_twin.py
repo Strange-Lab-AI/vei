@@ -14,7 +14,6 @@ from vei.twin import (
     serve_customer_twin,
 )
 
-
 app = typer.Typer(
     add_completion=False,
     help="Build and serve customer-shaped agent twin environments.",

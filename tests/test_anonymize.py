@@ -13,7 +13,6 @@ from vei.anonymize.replacers import DeterministicReplacer
 from vei.anonymize.api import anonymize_snapshot, _salt_fingerprint
 from vei.context.models import ContextSnapshot, ContextSourceResult
 
-
 # -- detectors ---------------------------------------------------------------
 
 

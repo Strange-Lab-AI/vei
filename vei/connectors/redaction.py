@@ -3,7 +3,6 @@ from __future__ import annotations
 import re
 from typing import Any, Dict
 
-
 _EMAIL_RE = re.compile(r"\b[A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,}\b", re.IGNORECASE)
 _PHONE_RE = re.compile(r"\b(?:\+?1[-.\s]?)?(?:\(?\d{3}\)?[-.\s]?)\d{3}[-.\s]?\d{4}\b")
 _KEY_RE = re.compile(r"\b(?:sk|pk|api|token)[_\-]?[A-Za-z0-9]{8,}\b", re.IGNORECASE)

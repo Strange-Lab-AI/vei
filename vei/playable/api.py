@@ -67,7 +67,6 @@ from .models import (
     PlayableMissionSpec,
 )
 
-
 MISSION_STATE_FILE = "mission_state.json"
 MISSION_EXPORT_FILE = "mission_exports.json"
 PLAYABLE_BUNDLE_FILE = "playable_manifest.json"

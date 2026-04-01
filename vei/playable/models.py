@@ -7,7 +7,6 @@ from pydantic import BaseModel, Field
 
 from vei.capability_graph.models import CapabilityGraphActionInput
 
-
 MoveTier = Literal["recommended", "available", "risky"]
 MoveAvailability = Literal["recommended", "available", "risky", "blocked"]
 MissionStatus = Literal["ready", "running", "completed"]

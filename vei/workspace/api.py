@@ -64,7 +64,6 @@ from .models import (
     WorkspaceSummary,
 )
 
-
 WORKSPACE_MANIFEST = "vei_project.json"
 _MODEL_T = TypeVar("_MODEL_T", bound=BaseModel)
 
@@ -1317,7 +1316,7 @@ def _active_vertical_contract_variant_name(
 
 
 def _resolve_workspace_vertical_scenario_variant(
-    metadata: dict[str, Any]
+    metadata: dict[str, Any],
 ) -> Any | None:
     vertical_name = metadata.get("vertical")
     variant_name = metadata.get("vertical_scenario_variant")

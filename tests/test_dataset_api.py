@@ -259,8 +259,7 @@ def test_dataset_small_helpers_cover_split_reward_and_workspace_views(
 
 
 def _sample_snapshot() -> ContextSnapshot:
-    return ContextSnapshot.model_validate_json(
-        """
+    return ContextSnapshot.model_validate_json("""
         {
           "version": "1",
           "organization_name": "Acme Cloud",
@@ -337,5 +336,4 @@ def _sample_snapshot() -> ContextSnapshot:
             }
           ]
         }
-        """
-    )
+        """)

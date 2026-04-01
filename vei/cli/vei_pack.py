@@ -11,7 +11,6 @@ from vei.data.ingest.mail_dir import load_mail_dir
 from vei.data.ingest.tickets_dir import load_tickets
 from vei.data.ingest.docs_dir import load_docs
 
-
 app = typer.Typer(add_completion=False)
 
 

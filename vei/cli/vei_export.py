@@ -7,7 +7,6 @@ import typer
 
 from vei.playable import export_mission_run
 
-
 app = typer.Typer(
     add_completion=False,
     help="Export playable mission runs into downstream-ready preview bundles.",

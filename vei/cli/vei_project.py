@@ -24,7 +24,6 @@ from vei.imports.api import (
     validate_import_package,
 )
 
-
 app = typer.Typer(
     add_completion=False,
     help="Create, import, review, and compile VEI workspaces.",

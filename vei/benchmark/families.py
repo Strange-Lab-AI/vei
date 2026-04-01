@@ -4,7 +4,6 @@ from typing import Dict, List, Sequence
 
 from vei.benchmark.models import BenchmarkFamilyManifest
 
-
 _FAMILY_CATALOG: Dict[str, BenchmarkFamilyManifest] = {
     "security_containment": BenchmarkFamilyManifest(
         name="security_containment",

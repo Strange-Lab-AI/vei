@@ -18,7 +18,6 @@ from mcp.client.stdio import StdioServerParameters, stdio_client
 from vei.llm.providers import auto_provider_for_model, plan_once_with_usage
 from vei.score_core import compute_score
 
-
 _CLAUDE_NAME_PATTERN = re.compile(r"[^A-Za-z0-9_-]")
 
 

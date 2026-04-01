@@ -4,7 +4,6 @@ from typing import Any, Dict, List, Literal, Optional
 
 from pydantic import BaseModel, Field
 
-
 CapabilityDomain = Literal[
     "comm_graph",
     "doc_graph",

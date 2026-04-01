@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from vei.imports.models import MappingProfileSpec
 
-
 _PROFILES = {
     "okta_users_v1": MappingProfileSpec(
         name="okta_users_v1",

@@ -16,7 +16,6 @@ from vei.pilot import (
 )
 from vei.twin.models import TwinArchetype
 
-
 app = typer.Typer(
     add_completion=False,
     help="Launch and operate the additive VEI pilot stack.",

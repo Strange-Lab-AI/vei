@@ -7,7 +7,6 @@ import typer
 
 from vei.rl.train import BehaviorCloningTrainer
 
-
 app = typer.Typer(add_completion=False)
 
 

@@ -5,7 +5,6 @@ from typing import Any, Dict, List, Literal, Optional
 
 from pydantic import BaseModel, Field
 
-
 BenchmarkRunner = Literal["scripted", "bc", "llm", "workflow", "human", "external"]
 BenchmarkWorkflowValueType = Literal["str", "int", "float", "bool"]
 

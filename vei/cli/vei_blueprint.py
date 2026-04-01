@@ -22,7 +22,6 @@ from vei.grounding.api import (
     list_grounding_bundle_examples,
 )
 
-
 app = typer.Typer(add_completion=False, help="Inspect VEI blueprints and facades.")
 
 

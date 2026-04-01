@@ -14,7 +14,6 @@ from vei.run.api import (
 )
 from vei.workspace.api import list_workspace_runs
 
-
 app = typer.Typer(add_completion=False, help="Launch and inspect workspace runs.")
 
 
