@@ -958,6 +958,50 @@ def test_mirror_registration_does_not_deadlock_with_dispatch(
     assert errors == []
 
 
+def test_mirror_agent_removal_deletes_from_registry(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "service_ops_removal"
+    bundle = build_customer_twin(
+        root,
+        snapshot=_sample_snapshot(),
+        organization_domain="clearwater.example.com",
+        mold=ContextMoldConfig(archetype="service_ops"),
+        mirror_config=default_mirror_workspace_config(hero_world="service_ops"),
+    )
+    auth_headers = {"Authorization": f"Bearer {bundle.gateway.auth_token}"}
+
+    with TestClient(create_twin_gateway_app(root)) as client:
+        client.post(
+            "/api/mirror/agents",
+            headers=auth_headers,
+            json={
+                "agent_id": "ephemeral-bot",
+                "name": "Ephemeral Bot",
+                "mode": "ingest",
+                "allowed_surfaces": ["slack"],
+            },
+        )
+        listed = client.get("/api/mirror/agents", headers=auth_headers).json()
+        ids_before = {a["agent_id"] for a in listed["agents"]}
+        assert "ephemeral-bot" in ids_before
+
+        delete_resp = client.delete(
+            "/api/mirror/agents/ephemeral-bot", headers=auth_headers
+        )
+        assert delete_resp.status_code == 200
+        assert delete_resp.json()["agent_id"] == "ephemeral-bot"
+
+        listed_after = client.get("/api/mirror/agents", headers=auth_headers).json()
+        ids_after = {a["agent_id"] for a in listed_after["agents"]}
+        assert "ephemeral-bot" not in ids_after
+
+        not_found = client.delete(
+            "/api/mirror/agents/ephemeral-bot", headers=auth_headers
+        )
+        assert not_found.status_code == 404
+
+
 def test_mirror_surface_access_enforcement_denies_unauthorized_surfaces(
     tmp_path: Path,
 ) -> None:

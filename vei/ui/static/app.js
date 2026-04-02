@@ -123,7 +123,7 @@ function el(id) {
 }
 
 function currentSnapshotForkRunId() {
-  if (!state.activeRun?.run_id || state.activeRun?.runner !== "human") {
+  if (!state.activeRun?.run_id) {
     return null;
   }
   return state.activeRun.run_id;
@@ -161,6 +161,10 @@ async function mirrorPatch(path, payload) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload || {}),
   });
+}
+
+async function mirrorDelete(path) {
+  return await getJson(path, { method: "DELETE" });
 }
 
 async function refreshMirrorStatus() {
@@ -1626,7 +1630,10 @@ function renderCrossRunDiff(container, diff, runA, runB) {
         const h = _humanizeKey(item.key);
         const cls = `diff-entry diff-${item.type}`;
         if (item.type === "changed") {
-          html += `<div class="${cls}"><span class="diff-key" title="${escapeHtml(item.key)}">${escapeHtml(h.readable)}</span><span class="diff-val"><span class="diff-from">${escapeHtml(_formatDiffValue(item.from))}</span> <span class="diff-arrow">&rarr;</span> <span class="diff-to">${escapeHtml(_formatDiffValue(item.to))}</span></span></div>`;
+          const numDelta = (typeof item.from === "number" && typeof item.to === "number")
+            ? (() => { const d = item.to - item.from; return d > 0 ? ` (+${_formatDiffValue(d)})` : d < 0 ? ` (${_formatDiffValue(d)})` : ""; })()
+            : "";
+          html += `<div class="${cls}"><span class="diff-key" title="${escapeHtml(item.key)}">${escapeHtml(h.readable)}</span><span class="diff-val"><span class="diff-from">${escapeHtml(_formatDiffValue(item.from))}</span> <span class="diff-arrow">&rarr;</span> <span class="diff-to">${escapeHtml(_formatDiffValue(item.to))}</span>${numDelta ? `<span class="diff-delta">${escapeHtml(numDelta)}</span>` : ""}</span></div>`;
         } else {
           const prefix = item.type === "added" ? "+" : "-";
           html += `<div class="${cls}"><span class="diff-key" title="${escapeHtml(item.key)}">${prefix} ${escapeHtml(h.readable)}</span><span class="diff-val">${escapeHtml(_formatDiffValue(item.value))}</span></div>`;
@@ -2018,13 +2025,8 @@ function renderMirrorFleetPanel() {
 
   const connectorStrip = (Array.isArray(mirror.connector_status) ? mirror.connector_status : []).map((item) => {
     const statusClass = `connector-${item.availability || "healthy"} connector-${item.write_capability || "interactive"}`;
-    const label = item.surface === "jira"
-      ? "Jira"
-      : item.surface === "graph"
-        ? "Graph"
-        : item.surface === "salesforce"
-          ? "Salesforce"
-          : "Slack";
+    const _connectorLabels = { slack: "Slack", jira: "Jira", graph: "Graph", salesforce: "Salesforce", mail: "Mail", service_ops: "Service Ops" };
+    const label = _connectorLabels[item.surface] || (item.surface ? item.surface.charAt(0).toUpperCase() + item.surface.slice(1) : "Unknown");
     const detail = `${item.source_mode} ${String(item.write_capability || "").replace("_", " ")}`;
     return `
       <div class="connector-pill ${statusClass}" title="${escapeHtml(item.reason || detail)}">
@@ -2071,7 +2073,10 @@ function renderMirrorFleetPanel() {
           </select></label>
           <label class="agent-edit-surfaces"><span>Surfaces</span><input data-agent-surfaces="${escapeHtml(agent.agent_id)}" value="${escapeHtml(surfaces)}" /></label>
         </div>
-        <button type="button" class="ghost-button agent-save-btn" data-agent-save="${escapeHtml(agent.agent_id)}">Save agent</button>
+        <div class="agent-btn-row">
+          <button type="button" class="ghost-button agent-save-btn" data-agent-save="${escapeHtml(agent.agent_id)}">Save agent</button>
+          <button type="button" class="ghost-button agent-remove-btn" data-agent-remove="${escapeHtml(agent.agent_id)}">Remove</button>
+        </div>
       </div>
     `;
   }).join("");
@@ -2193,6 +2198,15 @@ function renderMirrorFleetPanel() {
         status,
         allowed_surfaces: surfaces.split(",").map((item) => item.trim()).filter(Boolean),
       }).catch(() => null);
+      await refreshAfterMirrorMutation();
+    });
+  });
+
+  el.querySelectorAll("[data-agent-remove]").forEach((node) => {
+    node.addEventListener("click", async () => {
+      const agentId = node.dataset.agentRemove;
+      if (!agentId) return;
+      await mirrorDelete(`/api/workspace/mirror/agents/${encodeURIComponent(agentId)}`).catch(() => null);
       await refreshAfterMirrorMutation();
     });
   });
@@ -3646,7 +3660,7 @@ function renderSnapshots() {
   if (!forkRunId) {
     rail.insertAdjacentHTML(
       "beforeend",
-      `<p class="metric-detail">Forking is available on human mission runs with snapshots.</p>`
+      `<p class="metric-detail">Forking is available when snapshots exist.</p>`
     );
   }
 

@@ -203,7 +203,7 @@ def default_service_ops_demo_agents() -> list[MirrorAgentSpec]:
             mode="demo",
             role="operations_approver",
             team="operations",
-            allowed_surfaces=["slack", "service_ops", "jira"],
+            allowed_surfaces=["slack", "service_ops", "jira", "salesforce"],
             policy_profile_id="approver",
             source="mirror-demo",
         ),
@@ -328,6 +328,16 @@ def default_service_ops_demo_steps() -> (
             label="Control lead checks Jira to confirm cross-surface visibility",
             source_mode="demo",
         ),
+        MirrorIngestEvent(
+            event_id="mirror-demo-009",
+            agent_id="control-lead",
+            external_tool="salesforce.opportunity.get",
+            resolved_tool="salesforce.opportunity.get",
+            focus_hint="crm",
+            args={"id": "OPP-CFS-100"},
+            label="Control lead pulls the Clearwater opportunity from Salesforce",
+            source_mode="demo",
+        ),
     ]
 
 
@@ -440,6 +450,14 @@ class MirrorRuntime:
             deep=True,
         )
         return self.register_agent(payload)
+
+    def remove_agent(self, agent_id: str) -> MirrorAgentSpec:
+        with self._lock:
+            removed = self._agents.pop(agent_id, None)
+        if removed is None:
+            raise ValueError(f"mirror agent not found: {agent_id}")
+        self._sync_runtime_state()
+        return removed
 
     def resolve_approval(
         self,

@@ -975,8 +975,19 @@ body.developer-mode .studio-nav-button.developer-only {
   grid-column: 1 / -1;
 }
 
+.agent-btn-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
 .agent-save-btn {
   align-self: flex-start;
+}
+
+.agent-remove-btn {
+  align-self: flex-start;
+  color: rgba(244, 248, 251, 0.45);
 }
 
 .mirror-agent-form {
@@ -3629,6 +3640,12 @@ body.timeline-mode .timeline-toggle {
 .diff-to {
   color: rgba(244, 248, 251, 0.85);
   font-weight: 600;
+}
+
+.diff-delta {
+  color: rgba(244, 248, 251, 0.4);
+  font-size: 0.85em;
+  margin-left: 4px;
 }
 
 .tl-compare-vs {

@@ -1172,6 +1172,17 @@ def create_twin_gateway_app(root: str | Path) -> FastAPI:
             raise HTTPException(status_code=404, detail=str(exc)) from exc
         return JSONResponse(agent.model_dump(mode="json"))
 
+    @app.delete("/api/mirror/agents/{agent_id}")
+    def api_mirror_remove_agent(agent_id: str, request: Request) -> JSONResponse:
+        _require_bearer(request, bundle.gateway.auth_token)
+        if runtime.mirror is None:
+            raise HTTPException(status_code=503, detail="mirror runtime unavailable")
+        try:
+            agent = runtime.mirror.remove_agent(agent_id)
+        except ValueError as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+        return JSONResponse(agent.model_dump(mode="json"))
+
     @app.get("/api/mirror/approvals")
     def api_mirror_approvals(request: Request) -> JSONResponse:
         _require_bearer(request, bundle.gateway.auth_token)
@@ -2226,8 +2237,14 @@ def _http_exception(exc: Exception) -> HTTPException:
             detail={"code": exc.code, "message": exc.message},
         )
     if isinstance(exc, ValueError):
-        return HTTPException(status_code=400, detail=str(exc))
-    return HTTPException(status_code=500, detail=str(exc))
+        return HTTPException(
+            status_code=400,
+            detail={"code": "invalid_args", "message": str(exc)},
+        )
+    return HTTPException(
+        status_code=500,
+        detail={"code": "operation_failed", "message": str(exc)},
+    )
 
 
 def _provider_error_code(exc: Exception) -> str:

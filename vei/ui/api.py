@@ -313,6 +313,15 @@ def create_ui_app(workspace_root: str | Path) -> FastAPI:
         )
         return JSONResponse(payload)
 
+    @app.delete("/api/workspace/mirror/agents/{agent_id}")
+    def api_workspace_mirror_remove_agent(agent_id: str) -> JSONResponse:
+        payload = _gateway_json_request(
+            root,
+            path=f"/api/mirror/agents/{agent_id}",
+            method="DELETE",
+        )
+        return JSONResponse(payload)
+
     @app.get("/api/workspace/mirror/approvals")
     def api_workspace_mirror_approvals() -> JSONResponse:
         payload = _gateway_json_request(root, path="/api/mirror/approvals")
