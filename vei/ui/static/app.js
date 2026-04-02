@@ -1103,8 +1103,18 @@ function renderCinemaNarrative() {
   const score = ms?.scorecard || {};
   const systemCount = (state.surfaceState?.panels || []).length;
 
+  const mirrorEvents = state.mirrorStatus?.recent_events || [];
+  const latestMirrorEvent = mirrorEvents.length ? mirrorEvents[mirrorEvents.length - 1] : null;
+
   let narrativeLine = "";
-  if (ms?.status === "completed") {
+  if (latestMirrorEvent && state.mirrorStatus?.autoplay_running) {
+    const lbl = latestMirrorEvent.label || latestMirrorEvent.tool || "event";
+    const handledBy = latestMirrorEvent.handled_by || "";
+    narrativeLine = `${lbl}`;
+    if (handledBy === "denied") narrativeLine += " \u2192 blocked";
+    else if (handledBy === "pending_approval") narrativeLine += " \u2192 held for approval";
+    else if (handledBy) narrativeLine += ` \u2192 ${handledBy}`;
+  } else if (ms?.status === "completed") {
     narrativeLine = score.mission_success
       ? "Mission resolved successfully."
       : "Mission closed with remaining exposure.";
@@ -2063,92 +2073,123 @@ function renderMirrorFleetPanel() {
           ${surfaces ? `<span>${escapeHtml(surfaces)}</span>` : ""}
         </div>
         ${agent.last_action ? `<span class="agent-last-action">${escapeHtml(agent.last_action)}</span>` : ""}
-        <div class="agent-edit-grid">
-          <label><span>Profile</span><select data-agent-profile="${escapeHtml(agent.agent_id)}">${profileSelect}</select></label>
-          <label><span>Status</span><select data-agent-status="${escapeHtml(agent.agent_id)}">
-            <option value="registered" ${agent.status === "registered" ? "selected" : ""}>registered</option>
-            <option value="active" ${agent.status === "active" ? "selected" : ""}>active</option>
-            <option value="idle" ${agent.status === "idle" ? "selected" : ""}>idle</option>
-            <option value="error" ${agent.status === "error" ? "selected" : ""}>error</option>
-          </select></label>
-          <label class="agent-edit-surfaces"><span>Surfaces</span><input data-agent-surfaces="${escapeHtml(agent.agent_id)}" value="${escapeHtml(surfaces)}" /></label>
-        </div>
-        <div class="agent-btn-row">
-          <button type="button" class="ghost-button agent-save-btn" data-agent-save="${escapeHtml(agent.agent_id)}">Save agent</button>
-          <button type="button" class="ghost-button agent-remove-btn" data-agent-remove="${escapeHtml(agent.agent_id)}">Remove</button>
-        </div>
+        <details class="agent-card-edit-disclosure">
+          <summary>Configure</summary>
+          <div class="agent-edit-grid">
+            <label><span>Profile</span><select data-agent-profile="${escapeHtml(agent.agent_id)}">${profileSelect}</select></label>
+            <label><span>Status</span><select data-agent-status="${escapeHtml(agent.agent_id)}">
+              <option value="registered" ${agent.status === "registered" ? "selected" : ""}>registered</option>
+              <option value="active" ${agent.status === "active" ? "selected" : ""}>active</option>
+              <option value="idle" ${agent.status === "idle" ? "selected" : ""}>idle</option>
+              <option value="error" ${agent.status === "error" ? "selected" : ""}>error</option>
+            </select></label>
+            <label class="agent-edit-surfaces"><span>Surfaces</span><input data-agent-surfaces="${escapeHtml(agent.agent_id)}" value="${escapeHtml(surfaces)}" /></label>
+          </div>
+          <div class="agent-btn-row">
+            <button type="button" class="ghost-button agent-save-btn" data-agent-save="${escapeHtml(agent.agent_id)}">Save agent</button>
+            <button type="button" class="ghost-button agent-remove-btn" data-agent-remove="${escapeHtml(agent.agent_id)}">Remove</button>
+          </div>
+        </details>
       </div>
     `;
   }).join("");
 
-  const approvalQueue = pending
-    ? mirror.pending_approvals
-        .filter((item) => item.status === "pending")
-        .map((item) => {
+  const allApprovals = mirror.pending_approvals || [];
+  const pendingApprovals = allApprovals.filter((item) => item.status === "pending");
+  const resolvedApprovals = allApprovals.filter((item) => item.status !== "pending");
+  const sortedApprovals = [...pendingApprovals, ...resolvedApprovals];
+
+  const approvalQueue = sortedApprovals.length
+    ? sortedApprovals.map((item) => {
+          const isPending = item.status === "pending";
+          const badgeMap = { approved: "approval-badge-approved", rejected: "approval-badge-rejected" };
+          const badgeClass = badgeMap[item.status] || "approval-badge-held";
+          const badgeLabel = item.status === "pending" ? "held" : item.status;
           const resolverOptions = approvers.map((agent) =>
             `<option value="${escapeHtml(agent.agent_id)}">${escapeHtml(agent.name || agent.agent_id)}</option>`
           ).join("");
           return `
-            <div class="approval-row">
+            <div class="approval-row${isPending ? "" : " approval-resolved"}">
               <div class="approval-copy">
                 <strong>${escapeHtml(item.resolved_tool)}</strong>
                 <span>${escapeHtml(item.agent_id)} · ${escapeHtml(item.surface)} · ${escapeHtml(item.reason || "approval required")}</span>
               </div>
-              <div class="approval-actions">
+              <span class="approval-badge ${badgeClass}">${badgeLabel}</span>
+              ${isPending ? `<div class="approval-actions">
                 <select data-approval-resolver="${escapeHtml(item.approval_id)}">${resolverOptions}</select>
                 <button type="button" class="ghost-button approval-approve-btn" data-approval-approve="${escapeHtml(item.approval_id)}">Approve</button>
                 <button type="button" class="ghost-button approval-reject-btn" data-approval-reject="${escapeHtml(item.approval_id)}">Reject</button>
-              </div>
+              </div>` : ""}
             </div>
           `;
         }).join("")
-    : `<p class="metric-detail">No pending approvals.</p>`;
+    : `<p class="metric-detail">No approvals yet.</p>`;
 
   const recentEvents = Array.isArray(mirror.recent_events) ? mirror.recent_events : [];
-  const eventFeedHtml = recentEvents.length
-    ? recentEvents.slice(-12).reverse().map((evt) => {
-        const denied = evt.handled_by === "denied";
-        const pendingApproval = evt.handled_by === "pending_approval";
-        const cls = denied
-          ? "mirror-feed-item mirror-feed-denied"
-          : pendingApproval
-            ? "mirror-feed-item mirror-feed-pending"
-            : "mirror-feed-item";
-        const label = evt.label || evt.tool || "event";
-        const reason = evt.reason
-          || ({
-            "mirror.surface_denied": "Surface not allowed",
-            "mirror.profile_denied": "Policy tier blocked the action",
-            "mirror.approval_required": "Held for approval",
-            "mirror.rate_limited": "Rate limited",
-            "mirror.connector_degraded": "Connector unavailable",
-            "mirror.unsupported_live_write": "Live write not supported",
-          }[evt.reason_code] || evt.reason_code || "");
-        const handledTag = pendingApproval
-          ? '<span class="feed-pending-tag">held</span>'
-          : denied
-            ? '<span class="feed-denied-tag">blocked</span>'
-            : `<span class="feed-handled-tag">${escapeHtml(evt.handled_by || "ok")}</span>`;
-        return `<div class="${cls}"><span class="feed-agent">${escapeHtml(evt.agent_id)}</span><span class="feed-label">${escapeHtml(label)}</span>${handledTag}${reason ? `<span class="feed-reason">${escapeHtml(reason)}</span>` : ""}</div>`;
-      }).join("")
+  const _feedTimeAgo = (ts) => {
+    if (!ts) return "";
+    const diff = Math.max(0, Math.floor((Date.now() - new Date(ts).getTime()) / 1000));
+    if (diff < 60) return `${diff}s ago`;
+    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+    return `${Math.floor(diff / 3600)}h ago`;
+  };
+  const _renderFeedItem = (evt) => {
+    const denied = evt.handled_by === "denied";
+    const pendingApproval = evt.handled_by === "pending_approval";
+    const cls = denied
+      ? "mirror-feed-item mirror-feed-denied"
+      : pendingApproval
+        ? "mirror-feed-item mirror-feed-pending"
+        : "mirror-feed-item";
+    const label = evt.label || evt.tool || "event";
+    const reason = evt.reason
+      || ({
+        "mirror.surface_denied": "Surface not allowed",
+        "mirror.profile_denied": "Policy tier blocked the action",
+        "mirror.approval_required": "Held for approval",
+        "mirror.rate_limited": "Rate limited",
+        "mirror.connector_degraded": "Connector unavailable",
+        "mirror.unsupported_live_write": "Live write not supported",
+      }[evt.reason_code] || evt.reason_code || "");
+    const handledTag = pendingApproval
+      ? '<span class="feed-pending-tag">held</span>'
+      : denied
+        ? '<span class="feed-denied-tag">blocked</span>'
+        : `<span class="feed-handled-tag">${escapeHtml(evt.handled_by || "ok")}</span>`;
+    const ts = _feedTimeAgo(evt.timestamp);
+    return `<div class="${cls}"><span class="feed-agent">${escapeHtml(evt.agent_id)}</span><span class="feed-label">${escapeHtml(label)}</span>${handledTag}${ts ? `<span class="feed-ts">${ts}</span>` : ""}${reason ? `<span class="feed-reason">${escapeHtml(reason)}</span>` : ""}</div>`;
+  };
+  const FEED_CAP = 20;
+  const reversed = recentEvents.slice().reverse();
+  const eventFeedHtml = reversed.length
+    ? (() => {
+        const visible = reversed.slice(0, FEED_CAP).map(_renderFeedItem).join("");
+        if (reversed.length > FEED_CAP) {
+          const rest = reversed.slice(FEED_CAP).map(_renderFeedItem).join("");
+          return visible + `<details class="feed-show-all"><summary>${reversed.length - FEED_CAP} older events</summary>${rest}</details>`;
+        }
+        return visible;
+      })()
     : `<p class="metric-detail">No governed actions yet.</p>`;
 
   const addAgentForm = `
-    <div class="mirror-agent-form">
-      <div class="mirror-feed-header">Register Agent</div>
-      <div class="agent-edit-grid">
-        <label><span>Agent ID</span><input id="mirror-new-agent-id" placeholder="control-lead" /></label>
-        <label><span>Name</span><input id="mirror-new-agent-name" placeholder="Control Lead" /></label>
-        <label><span>Mode</span><select id="mirror-new-agent-mode">
-          <option value="proxy">proxy</option>
-          <option value="ingest">ingest</option>
-          <option value="demo">demo</option>
-        </select></label>
-        <label><span>Profile</span><select id="mirror-new-agent-profile">${profileOptions.map((profile) => `<option value="${escapeHtml(profile.profile_id)}">${escapeHtml(profile.label)}</option>`).join("")}</select></label>
-        <label class="agent-edit-surfaces"><span>Surfaces</span><input id="mirror-new-agent-surfaces" placeholder="slack, service_ops" /></label>
+    <details class="mirror-agent-form-disclosure">
+      <summary class="mirror-feed-header">Register new agent</summary>
+      <div class="mirror-agent-form">
+        <div class="agent-edit-grid">
+          <label><span>Agent ID</span><input id="mirror-new-agent-id" placeholder="control-lead" /></label>
+          <label><span>Name</span><input id="mirror-new-agent-name" placeholder="Control Lead" /></label>
+          <label><span>Mode</span><select id="mirror-new-agent-mode">
+            <option value="proxy">proxy</option>
+            <option value="ingest">ingest</option>
+            <option value="demo">demo</option>
+          </select></label>
+          <label><span>Profile</span><select id="mirror-new-agent-profile">${profileOptions.map((profile) => `<option value="${escapeHtml(profile.profile_id)}">${escapeHtml(profile.label)}</option>`).join("")}</select></label>
+          <label class="agent-edit-surfaces"><span>Surfaces</span><input id="mirror-new-agent-surfaces" placeholder="slack, service_ops" /></label>
+        </div>
+        <button type="button" class="ghost-button" id="mirror-register-agent-btn">Add agent</button>
       </div>
-      <button type="button" class="ghost-button" id="mirror-register-agent-btn">Add agent</button>
-    </div>
+    </details>
   `;
 
   el.innerHTML = `
@@ -2244,14 +2285,17 @@ function renderSurfaceWall() {
   const surfaceState = state.surfaceState;
   if (!surfaceState || !Array.isArray(surfaceState.panels) || !surfaceState.panels.length) {
     const loadingRun = state.missionState?.run_id || state.activeRunId;
+    const companyName = state.workspace?.manifest?.title
+      || state.story?.manifest?.company_name
+      || "Your company";
     panel.innerHTML = `
       <div class="surface-placeholder">
         <p class="eyebrow">Living Company</p>
-        <h3>${loadingRun ? "Loading company systems" : "Enter a world to see its tools"}</h3>
+        <h3>${loadingRun ? "Loading company systems" : `${escapeHtml(companyName)} is ready`}</h3>
         <p class="metric-detail">${
           loadingRun
             ? "Loading the latest company state so the tools can appear here."
-            : "Slack, email, tickets, docs, approvals, and the vertical business system will appear here once a run is active."
+            : "Enter the world to see Slack, email, tickets, and the ops loop come alive."
         }</p>
       </div>
     `;
@@ -2410,7 +2454,23 @@ function renderLivingCompanyRail() {
         `
         : ""
     }
+    ${
+      state.snapshots?.length
+        ? `
+          <div class="story-card fork-rail-card">
+            <p class="eyebrow">World snapshot</p>
+            <h3>${escapeHtml(state.snapshots[state.snapshots.length - 1]?.label || `Snapshot #${state.snapshots.length}`)}</h3>
+            <p class="metric-detail">${state.snapshots.length} snapshot${state.snapshots.length === 1 ? "" : "s"} captured</p>
+            ${currentSnapshotForkRunId() ? `<button type="button" class="ghost-button rail-fork-btn" data-fork-from-rail="1">Fork from here</button>` : ""}
+          </div>
+        `
+        : ""
+    }
   `;
+
+  panel.querySelector("[data-fork-from-rail]")?.addEventListener("click", () => {
+    void branchMission();
+  });
 }
 
 function diffSurfaceState(before, after) {

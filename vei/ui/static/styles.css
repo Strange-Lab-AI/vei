@@ -133,7 +133,7 @@ body {
 .studio-topbar-controls,
 .studio-topbar-meta {
   display: grid;
-  gap: 14px;
+  gap: 10px;
   align-items: end;
 }
 
@@ -145,6 +145,11 @@ body {
 .studio-topbar-meta {
   grid-template-columns: auto 1fr;
   align-items: center;
+}
+
+.studio-topbar-meta:empty,
+.workspace-metrics-inline:empty {
+  display: none;
 }
 
 .studio-topbar-brand {
@@ -267,6 +272,12 @@ body {
 
 .toolbar-menu-actions-panel .ghost-button {
   width: 100%;
+}
+
+.menu-separator {
+  border: none;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  margin: 2px 0;
 }
 
 .toolbar-actions {
@@ -745,7 +756,7 @@ body.developer-mode .studio-nav-button.developer-only {
 
 .sit-room-cell .sit-detail {
   font-size: 0.72rem;
-  color: rgba(244, 248, 251, 0.44);
+  color: rgba(244, 248, 251, 0.56);
   margin-top: 1px;
 }
 
@@ -873,7 +884,7 @@ body.developer-mode .studio-nav-button.developer-only {
 }
 
 .connector-detail {
-  color: rgba(244, 248, 251, 0.56);
+  color: rgba(244, 248, 251, 0.65);
 }
 
 .mirror-agents-grid {
@@ -952,7 +963,7 @@ body.developer-mode .studio-nav-button.developer-only {
   flex-direction: column;
   gap: 4px;
   font-size: 0.68rem;
-  color: rgba(244, 248, 251, 0.62);
+  color: rgba(244, 248, 251, 0.72);
 }
 
 .agent-edit-grid label span {
@@ -966,8 +977,8 @@ body.developer-mode .studio-nav-button.developer-only {
 .policy-replay-input {
   padding: 8px 10px;
   border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(7, 14, 24, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(7, 14, 24, 0.5);
   color: inherit;
 }
 
@@ -987,7 +998,117 @@ body.developer-mode .studio-nav-button.developer-only {
 
 .agent-remove-btn {
   align-self: flex-start;
+  color: rgba(239, 83, 80, 0.7);
+}
+
+.agent-remove-btn:hover {
+  color: rgba(239, 83, 80, 0.9);
+}
+
+.agent-card-edit-disclosure {
+  border: none;
+  margin-top: 4px;
+}
+
+.agent-card-edit-disclosure summary {
+  cursor: pointer;
+  font-size: 0.66rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
   color: rgba(244, 248, 251, 0.45);
+  list-style: none;
+  user-select: none;
+}
+
+.agent-card-edit-disclosure summary::before {
+  content: "▸ ";
+}
+
+.agent-card-edit-disclosure[open] summary::before {
+  content: "▾ ";
+}
+
+.agent-card-edit-disclosure[open] {
+  margin-top: 6px;
+}
+
+.mirror-agent-form-disclosure {
+  border: none;
+}
+
+.mirror-agent-form-disclosure > summary {
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+
+.mirror-agent-form-disclosure > summary::before {
+  content: "＋ ";
+  font-size: 0.8em;
+}
+
+.mirror-agent-form-disclosure[open] > summary::before {
+  content: "－ ";
+  font-size: 0.8em;
+}
+
+.approval-badge {
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 2px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.approval-badge-held {
+  color: #ffb74d;
+  background: rgba(255, 183, 77, 0.15);
+  border: 1px solid rgba(255, 183, 77, 0.25);
+}
+
+.approval-badge-approved {
+  color: #66bb6a;
+  background: rgba(102, 187, 106, 0.15);
+  border: 1px solid rgba(102, 187, 106, 0.25);
+}
+
+.approval-badge-rejected {
+  color: #ef5350;
+  background: rgba(239, 83, 80, 0.15);
+  border: 1px solid rgba(239, 83, 80, 0.25);
+}
+
+.approval-resolved {
+  opacity: 0.7;
+}
+
+.feed-ts {
+  font-size: 0.62rem;
+  color: rgba(244, 248, 251, 0.38);
+  white-space: nowrap;
+}
+
+.feed-show-all {
+  border: none;
+  margin-top: 4px;
+}
+
+.feed-show-all summary {
+  cursor: pointer;
+  font-size: 0.66rem;
+  color: rgba(244, 248, 251, 0.45);
+  list-style: none;
+  user-select: none;
+}
+
+.feed-show-all summary::before {
+  content: "▸ ";
+}
+
+.feed-show-all[open] summary::before {
+  content: "▾ ";
 }
 
 .mirror-agent-form {
@@ -1050,7 +1171,7 @@ body.developer-mode .studio-nav-button.developer-only {
   font-size: 0.68rem;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: rgba(244, 248, 251, 0.5);
+  color: rgba(244, 248, 251, 0.62);
   font-weight: 600;
 }
 
@@ -1089,7 +1210,7 @@ body.developer-mode .studio-nav-button.developer-only {
 }
 
 .feed-label {
-  color: rgba(244, 248, 251, 0.5);
+  color: rgba(244, 248, 251, 0.62);
   flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1113,7 +1234,7 @@ body.developer-mode .studio-nav-button.developer-only {
 }
 
 .feed-reason {
-  color: rgba(244, 248, 251, 0.48);
+  color: rgba(244, 248, 251, 0.58);
   font-size: 0.68rem;
 }
 
@@ -1152,7 +1273,7 @@ body.developer-mode .studio-nav-button.developer-only {
 
 .feed-handled-tag {
   font-size: 0.62rem;
-  color: rgba(244, 248, 251, 0.3);
+  color: rgba(244, 248, 251, 0.5);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
@@ -1636,6 +1757,7 @@ body.developer-mode .studio-nav-button.developer-only {
   position: relative;
   padding: 18px;
   overflow: hidden;
+  min-height: 220px;
   box-shadow: 0 18px 40px rgba(2, 8, 16, 0.24);
   color: rgba(244, 248, 251, 0.88);
 }
@@ -2092,6 +2214,11 @@ body.developer-mode .studio-nav-button.developer-only {
   margin: 0 0 10px;
   font-size: 1.12rem;
   letter-spacing: -0.04em;
+}
+
+.fork-rail-card .ghost-button {
+  margin-top: 10px;
+  width: auto;
 }
 
 .presentation-step {
@@ -2768,7 +2895,14 @@ body.cinema-mode .detail-tile strong {
 }
 
 body.cinema-mode .living-company-context {
-  display: none;
+  display: block;
+  color: rgba(244, 248, 251, 0.85);
+}
+
+body.cinema-mode .context-mode-banner {
+  color: rgba(100, 170, 255, 0.9);
+  background: linear-gradient(135deg, rgba(30, 108, 242, 0.15), rgba(30, 108, 242, 0.08));
+  border-color: rgba(30, 108, 242, 0.3);
 }
 
 body.cinema-mode .context-strip {
@@ -2815,8 +2949,8 @@ body.cinema-mode .cinema-toggle {
 }
 
 body.cinema-mode .ghost-button {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.15);
   color: rgba(244, 248, 251, 0.8);
 }
 
@@ -3340,7 +3474,7 @@ body.timeline-mode .timeline-toggle {
 
 .tl-detail-meta {
   font-size: 0.62rem;
-  color: rgba(244, 248, 251, 0.3);
+  color: rgba(244, 248, 251, 0.45);
   border-top: 1px solid rgba(255, 255, 255, 0.06);
   padding-top: 8px;
   margin-top: 8px;
@@ -3558,7 +3692,7 @@ body.timeline-mode .timeline-toggle {
   display: flex;
   flex-direction: column;
   gap: 14px;
-  max-height: 420px;
+  max-height: 600px;
   overflow-y: auto;
   margin-top: 10px;
 }

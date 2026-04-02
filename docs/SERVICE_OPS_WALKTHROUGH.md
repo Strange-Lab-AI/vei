@@ -54,10 +54,11 @@ In the built-in service-ops demo, three mirror agents are pre-registered:
 
 The panel now does more than show raw activity:
 
-- **Agent cards** show the agent name, role, current status, allowed surfaces, last action, blocked count, throttled count, and a clear policy badge.
+- **Agent cards** show the agent name, role, current status, allowed surfaces, last action, blocked count, and throttled count at a glance. Each card has a policy badge. Edit controls (profile, status, surfaces, save, remove) are collapsed behind a "Configure" disclosure so the default view is a monitoring dashboard rather than a settings form.
 - **Connector strip** shows Slack, Jira, Graph, and Salesforce with readable status such as simulated interactive, live interactive, live read-only, or unsupported.
-- **Approval queue** shows held actions waiting on an approver.
-- **Activity log** shows allowed actions, blocked actions, held actions, and throttled actions in plain English.
+- **Approval queue** shows all approvals — pending items first with a gold "held" badge, then resolved items with green "approved" or red "rejected" badges — so you can see the full approval history, not just the current queue.
+- **Activity log** shows allowed actions, blocked actions, held actions, and throttled actions with relative timestamps (e.g. "2m ago"). The feed shows the 20 most recent events with a "Show all" disclosure for the rest.
+- **Register Agent form** is collapsed behind a "Register new agent" disclosure to keep the panel clean by default.
 - **Inline operator controls** let the human add an agent, change profile, update allowed surfaces, and set status without leaving Studio.
 
 This is the current control-plane moment: you can explain who is acting, what VEI allowed, what VEI blocked, and why.
@@ -170,9 +171,9 @@ This is intentionally narrow and believable. The feature is saying, “change a 
 
 Snapshot and compare behavior is broader now than the original demo:
 
-- **Fork from here** works from any run snapshot, not just the currently active mission
-- **Compare Paths** uses explicit run pickers and snapshot pickers for both sides
-- **Diff world state** compares the selected snapshot pair rather than always using the latest snapshot
+- **Fork from here** works from any run snapshot, not just the currently active mission. A compact fork card also appears in the Company rail when snapshots exist, so the operator can branch without switching tabs.
+- **Compare Paths** uses explicit run pickers and snapshot pickers for both sides. When entering compare mode, the current run and the most recent other run are auto-selected.
+- **Diff world state** compares the selected snapshot pair rather than always using the latest snapshot. The diff container is taller (600px) so more of the diff is visible without scrolling.
 
 This makes the sandbox story easier to explain:
 
