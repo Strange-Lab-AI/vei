@@ -106,7 +106,7 @@ function renderRunSummary() {
               </div>`
             : "";
         })()}
-        <div class="chip-row">${resolvedTools.slice(0, 5).map((item) => chip(item)).join("")}</div>
+        <div class="chip-row">${resolvedTools.slice(0, 5).map((item) => chip(humanize(item))).join("")}</div>
       </div>
       ${
         whatIfBranches.length
@@ -229,8 +229,8 @@ function renderExportsPanel() {
         .map(
           (item) => `
             <div class="story-card">
-              <p class="eyebrow">${escapeHtml(item.title || item.name)}</p>
-              <h3>${escapeHtml(item.name)}</h3>
+              <p class="eyebrow">${escapeHtml(item.title || humanize(item.name) || "Export")}</p>
+              <h3>${escapeHtml(item.title || humanize(item.name) || "Export")}</h3>
               <p class="metric-detail">${escapeHtml(item.summary || "")}</p>
               <div class="chip-row">
                 ${Object.entries(item.payload || {})

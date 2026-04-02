@@ -93,12 +93,12 @@ function renderBanner() {
   }
   banner.classList.remove("pilot-status-live", "pilot-status-waiting");
   if (!payload?.manifest) {
-    banner.textContent = "No operator stack is configured for this workspace yet.";
+    banner.textContent = "This workspace is not set up for external agents yet.";
     return;
   }
   if (payload.services_ready) {
     banner.classList.add("pilot-status-live");
-    banner.textContent = "The operator stack is live. Connect an outside agent, compare it against the baselines, and watch the company respond.";
+    banner.textContent = "All systems are live. Connect an outside agent, compare it against the baselines, and watch the company respond.";
     return;
   }
   banner.classList.add("pilot-status-waiting");
@@ -110,10 +110,10 @@ function renderHeader() {
   const manifest = pilot?.manifest;
   const title = manifest
     ? `${manifest.organization_name} — ${currentExerciseTitle()}`
-    : "Operator stack not configured";
+    : "Workspace not configured";
   const summary = manifest
     ? "Studio is the company view. This console connects agents, compares paths, and builds datasets."
-    : "Run `vei exercise up` or `vei pilot up` for this workspace to generate the launch details and live controls.";
+    : "This workspace has not been set up for external agents yet. Ask the team to configure it before running an exercise here.";
   document.getElementById("pilot-company-title").textContent = title;
   document.getElementById("pilot-summary").textContent = summary;
   const studioLink = document.getElementById("pilot-open-studio");
@@ -151,7 +151,7 @@ function renderLaunch() {
     return;
   }
   if (!manifest) {
-    launchGrid.innerHTML = metricTile("Operator stack", "Not configured");
+    launchGrid.innerHTML = metricTile("Workspace", "Not configured", "Set up this workspace before connecting outside agents.");
     surfaceList.innerHTML = "";
     snippetsPanel.innerHTML = "";
     return;

@@ -526,7 +526,7 @@ function renderSurfaceWall() {
               <h3>${escapeHtml(surfacePanel.title)}</h3>
             </div>
             <div class="surface-panel-meta">
-              ${surfacePanel.status ? chip(surfacePanel.status, statusClass(surfacePanel.status)) : ""}
+              ${surfacePanel.status ? chip(displayStatusTitle(surfacePanel.status), statusClass(surfacePanel.status)) : ""}
               ${changed ? `<span class="surface-updated-tag">updated</span>` : ""}
             </div>
           </header>
@@ -549,11 +549,11 @@ function renderSurfaceItem(surfacePanel, item, changedRefs) {
     <div class="surface-item ${changed ? "surface-item-changed" : ""}">
       <div class="surface-item-topline">
         <strong>${escapeHtml(item.title || item.item_id)}</strong>
-        ${item.status ? `<span class="surface-item-status ${statusClass(item.status)}">${escapeHtml(item.status)}</span>` : ""}
+        ${item.status ? `<span class="surface-item-status ${statusClass(item.status)}">${escapeHtml(displayStatusTitle(item.status))}</span>` : ""}
       </div>
       ${item.subtitle ? `<div class="surface-item-subtitle">${escapeHtml(item.subtitle)}</div>` : ""}
       ${item.body ? `<p class="surface-item-body">${escapeHtml(item.body)}</p>` : ""}
-      ${badges.length ? `<div class="chip-row">${badges.map((badgeValue) => chip(badgeValue)).join("")}</div>` : ""}
+      ${badges.length ? `<div class="chip-row">${badges.map((badgeValue) => chip(humanize(badgeValue))).join("")}</div>` : ""}
     </div>
   `;
 }
