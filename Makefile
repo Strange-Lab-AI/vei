@@ -75,9 +75,8 @@ all: check test llm-live deps-audit
 clean-workspace:
 	rm -rf .artifacts .coverage .coverage.* .mypy_cache .pytest_cache ".pytest_cache 2" .ruff_cache vei.egg-info pyvei.egg-info
 	find . -name '.DS_Store' -delete
-	@mkdir -p _vei_out/demo _vei_out/llm_live _vei_out/datasets
-	find _vei_out -mindepth 1 -maxdepth 1 ! -name demo ! -name llm_live ! -name datasets -exec rm -rf {} +
-	find _vei_out/demo -mindepth 1 -maxdepth 1 ! -name security_blueprint_demo -exec rm -rf {} +
+	@mkdir -p _vei_out/llm_live _vei_out/datasets
+	find _vei_out -mindepth 1 -maxdepth 1 ! -name llm_live ! -name datasets -exec rm -rf {} +
 	find _vei_out/llm_live -mindepth 1 -maxdepth 1 ! -name latest -exec rm -rf {} +
 
 clean:

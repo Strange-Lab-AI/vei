@@ -1,8 +1,6 @@
 ## VEI
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/strangeloopcanon/vei)
 
-![VEI Studio — header with trust strip, success criteria, and Company view](docs/assets/vei_studio_hero.png)
-
 VEI builds believable company worlds and lets you run a control layer on top of them.
 
 You can use it to turn a real or obfuscated company into a branchable enterprise twin, run policies and multi-step workflows against that twin, replay the same starting point with different rules, and show the outcome as a live demo, evaluation run, rollout, or training trace.
@@ -20,7 +18,7 @@ Today VEI is best thought of as the engine underneath a customer-facing control 
 
 **[Full overview: what this is, who it's for, and how to connect your own data →](docs/OVERVIEW.md)**
 
-Use this README for installation and operator quickstart. Use `docs/OVERVIEW.md` for product framing, `docs/ARCHITECTURE.md` for internals, and `docs/BENCHMARKS.md` for evaluation flows.
+Use this README for installation and operator quickstart. Use `docs/OVERVIEW.md` for product framing, `docs/ARCHITECTURE.md` for internals, and `docs/SERVICE_OPS_WALKTHROUGH.md` for the control-plane demo flow.
 
 ## What VEI Simulates
 
@@ -49,12 +47,6 @@ VEI simulates a complete enterprise environment — every software system, every
 6. The entire run is recorded as an append-only event spine — replayable, branchable, and gradeable
 
 Each world pack supports multiple scenario variants and contract variants, so the same company can be placed under different pressures with different success criteria. The same packs also ship as playable missions for human step-through.
-
-![VEI Studio — four companies, same engine](docs/assets/vei_studio_companies.png)
-
-![VEI Timeline — causality view across enterprise surfaces](docs/assets/vei_timeline_view.png)
-
-![VEI Studio — Outcome tab with timeline/compare shortcuts](docs/assets/vei_studio_outcome_tab.png)
 
 ## Core Primitives
 
@@ -323,8 +315,6 @@ That flow writes:
 
 The Pilot Console lives beside Studio on the same UI server and gives the operator one place to check launch details, copy connection snippets, follow external-agent activity, and reset or finalize the run.
 
-![VEI Pilot Console — live agent sidecar](docs/assets/vei_pilot_console.png)
-
 You can also use the bundled quick-start client:
 
 ```bash
@@ -456,10 +446,6 @@ Agent ──MCP──► VEI Router                       External Agent ──H
                   ├─ Mission play + sandbox forking
                   └─ Path comparison + policy replay + world-state diff
 ```
-
-## Historical Note
-
-The original forward-looking roadmap now lives as a short historical note in [docs/NEXT_PHASE_PLAN.md](docs/NEXT_PHASE_PLAN.md). Current product behavior is documented in this README plus [docs/OVERVIEW.md](docs/OVERVIEW.md), [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), and [docs/SERVICE_OPS_WALKTHROUGH.md](docs/SERVICE_OPS_WALKTHROUGH.md).
 
 ## Use It As A Library
 
@@ -597,8 +583,6 @@ The default product-shaped loop is now:
 The local UI stays intentionally lightweight and Python-first. It opens one workspace, shows compiled scenario and contract context, launches runs with scenario/runner/provider/model/task/max-step controls, and renders a playback control room with animated channel lanes, run scorecards, capability-graph summaries, orientation cards, snapshot diffs, and raw developer drawers over the same canonical run artifacts.
 
 Run playback is now driven by the canonical append-only event spine, so live and completed runs share the same source of truth for contract updates, snapshot markers, resolved tools, and graph-native intents like `identity_graph.assign_application` or `doc_graph.restrict_drive_share`.
-
-![VEI Studio — full page](docs/assets/vei_studio_full.png)
 
 The Studio front door is the Living Company view: Slack, email, tickets, docs, approvals, and the vertical business system displayed side by side as a software wall. Moves land visibly across all surfaces. The three-tab navigation (Company, Crisis, Outcome) keeps the audience focused.
 
@@ -792,6 +776,7 @@ Artifacts from batch evaluation include:
 - `benchmark_summary.json`
 - benchmark-family runs also write `contract.json`
 - demo runs also write `leaderboard.md`, `leaderboard.csv`, `leaderboard.json`, and `demo_result.json`
+- showcase runs also write `showcase_overview.md` and `showcase_result.json`
 - suite runs also write `leaderboard.md`, `leaderboard.csv`, `leaderboard.json`, and `suite_result.json`
 - family-level dimension scores such as evidence preservation, blast radius, least privilege, oversharing avoidance, deadline compliance, revenue impact handling, artifact follow-through, comms correctness, and safe rollback
 
@@ -880,7 +865,6 @@ For MCP-native agents, connect directly:
 
 - `docs/OVERVIEW.md` — What VEI is, who it's for, how to connect your data, and strategic context
 - `docs/ARCHITECTURE.md` — Module structure and data flow
-- `docs/BENCHMARKS.md` — Benchmark families, difficulty tiers, and evaluation
 - `docs/SERVICE_OPS_WALKTHROUGH.md` — Visual walkthrough of the service ops control plane, approval queue, connector status, policy replay, and path comparison flow
 
 ## Contributor Notes
@@ -899,7 +883,9 @@ The repo source of truth is:
 
 Local-only generated folders such as `_vei_out/`, `.artifacts/`, `.mypy_cache/`, `.pytest_cache/`, `.ruff_cache/`, and `vei.egg-info/` are disposable.
 
-To prune local clutter while keeping the current canonical demo, latest live artifact, reusable datasets, your virtualenv, local `bd` state, and local Codex state:
+As a rule, `_vei_out/` and `.artifacts/` are generated local state, not repo source of truth. Delete them whenever you want a fresh workspace.
+
+To prune local clutter while keeping the latest live artifact, reusable datasets, your virtualenv, local `bd` state, and local Codex state:
 
 ```bash
 make clean-workspace
