@@ -85,8 +85,30 @@ function renderHeader() {
     : "Run `vei exercise up` or `vei pilot up` for this workspace to generate the launch details and live controls.";
   document.getElementById("pilot-company-title").textContent = title;
   document.getElementById("pilot-summary").textContent = summary;
-  document.getElementById("pilot-open-studio").href = manifest?.studio_url || "/";
-  document.getElementById("pilot-open-gateway").href = manifest?.gateway_status_url || "#";
+  const studioLink = document.getElementById("pilot-open-studio");
+  const gatewayLink = document.getElementById("pilot-open-gateway");
+  if (studioLink) {
+    studioLink.href = manifest?.studio_url || "/";
+  }
+  if (gatewayLink) {
+    if (!manifest) {
+      gatewayLink.hidden = true;
+    } else {
+      gatewayLink.hidden = false;
+      const base = String(manifest.gateway_url || "").replace(/\/$/, "");
+      const statusUrl = manifest.gateway_status_url || (base ? `${base}/healthz` : "");
+      const target = statusUrl || base;
+      gatewayLink.href = target || "#";
+      gatewayLink.title = target
+        ? "Open gateway health or status (new tab)"
+        : "Gateway URL missing from manifest";
+      if (!target) {
+        gatewayLink.setAttribute("aria-disabled", "true");
+      } else {
+        gatewayLink.removeAttribute("aria-disabled");
+      }
+    }
+  }
 }
 
 function renderLaunch() {
@@ -162,12 +184,12 @@ function renderExercise() {
     <article class="pilot-note-card">
       <p class="eyebrow">Success criteria</p>
       <ul class="pilot-bullets">
-        ${manifest.success_criteria.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}
+        ${(manifest.success_criteria || []).map((item) => `<li>${escapeHtml(item)}</li>`).join("")}
       </ul>
     </article>
   `;
 
-  comparison.innerHTML = payload.comparison
+  comparison.innerHTML = (payload.comparison || [])
     .map((row) => `
       <article class="pilot-activity-card">
         <div class="pilot-activity-head">
@@ -185,6 +207,9 @@ function renderExercise() {
       </article>
     `)
     .join("");
+  if (!payload.comparison?.length) {
+    comparison.innerHTML = `<article class="pilot-note-card"><p class="metric-detail">No comparison runs recorded yet. Connect an agent, complete a path, and refresh to see baseline vs candidate side by side.</p></article>`;
+  }
 
   compatibility.innerHTML = manifest.supported_api_subset
     .map((surface) => `
@@ -297,14 +322,18 @@ function renderOutcome() {
     return;
   }
   if (!outcome) {
-    panel.innerHTML = metricTile("Outcome", "Unavailable");
+    panel.innerHTML = metricTile(
+      "Outcome",
+      "Not ready yet",
+      "Outcome metrics appear after the gateway has handled traffic and recorded a scored window. Connect an agent, run a few actions, then refresh this page."
+    );
     return;
   }
   panel.innerHTML = [
     metricTile("Twin status", pilot.twin_status || "stopped", outcome.summary),
     metricTile("Requests", String(pilot.request_count || 0), "External requests handled"),
     metricTile("Contract", outcome.contract_ok === true ? "healthy" : outcome.contract_ok === false ? "at risk" : "pending", `${outcome.issue_count || 0} open issues`),
-    metricTile("Current tension", outcome.current_tension || "No live tension summary", outcome.latest_tool || "No latest tool yet"),
+    metricTile("Active pressure", outcome.current_tension || "No live pressure summary", outcome.latest_tool || "No latest tool yet"),
   ].join("");
   if ((outcome.affected_surfaces || []).length) {
     panel.innerHTML += `

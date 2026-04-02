@@ -54,7 +54,7 @@ async function startRun(event) {
       await selectRun(created.run_id);
     }
   } catch (error) {
-    status.textContent = `Run launch failed: ${error}`;
+    status.textContent = `Run launch failed: ${error?.message || error}`;
   }
 }
 
@@ -70,7 +70,7 @@ async function activateScenario(name) {
     await loadWorkspace();
     status.textContent = `Scenario ${name} is now active.`;
   } catch (error) {
-    status.textContent = `Scenario activation failed: ${error}`;
+    status.textContent = `Scenario activation failed: ${error?.message || error}`;
   }
 }
 
@@ -78,13 +78,14 @@ async function activateScenario(name) {
 // Connect panel
 // ---------------------------------------------------------------------------
 
+/** Neutral markers (avoid emoji in enterprise procurement contexts). */
 const PROVIDER_ICONS = {
-  slack: "\u{1F4AC}",
-  google: "\u{1F4E7}",
-  jira: "\u{1F4CB}",
-  okta: "\u{1F512}",
-  gmail: "\u2709\uFE0F",
-  teams: "\u{1F465}",
+  slack: "\u25CF",
+  google: "\u25CF",
+  jira: "\u25CF",
+  okta: "\u25CF",
+  gmail: "\u25CF",
+  teams: "\u25CF",
 };
 
 const PROVIDER_LABELS = {
@@ -112,7 +113,7 @@ async function loadConnectStatus() {
     const data = await res.json();
     const providers = data.providers || [];
     container.innerHTML = providers.map((p) => {
-      const icon = PROVIDER_ICONS[p.provider] || "\u26A1";
+      const icon = PROVIDER_ICONS[p.provider] || "\u25CF";
       const label = PROVIDER_LABELS[p.provider] || p.provider;
       const statusCls = p.configured ? "connect-configured" : "connect-missing";
       const statusText = p.configured ? "Connected" : "Not configured";
@@ -203,6 +204,17 @@ function bindControls() {
   document.getElementById("timeline-toggle").addEventListener("click", toggleTimelineMode);
   document.getElementById("compare-toggle").addEventListener("click", toggleCompareMode);
   document.getElementById("outcome-compare-btn")?.addEventListener("click", toggleCompareMode);
+  document.getElementById("outcome-timeline-btn")?.addEventListener("click", async () => {
+    if (state.compareMode) {
+      await toggleCompareMode();
+    }
+    if (!state.timelineMode) {
+      toggleTimelineMode();
+    }
+    setStudioView("company");
+    renderTimelineView();
+    document.getElementById("timeline-section")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
   document.getElementById("outcome-policy-btn")?.addEventListener("click", () => {
     void onTryDifferentPolicyClick();
   });
@@ -238,5 +250,8 @@ loadWorkspace()
   .catch((error) => {
     renderJson("workspace-panel", { error: String(error) });
     renderJson("run-panel", { error: String(error) });
-    document.getElementById("workspace-subtitle").textContent = `Workspace load failed: ${error}`;
+    const msg = error?.message || String(error);
+    document.getElementById("workspace-subtitle").textContent =
+      `Could not load workspace. Check the server is running and the path is a valid VEI workspace. (${msg})`;
+    document.getElementById("workspace-subtitle").classList.remove("loading-pulse");
   });

@@ -31,7 +31,7 @@ function renderLivingCompanyContext() {
   const mirror = state.mirrorStatus;
   const mirrorActive = mirror && mirror.config && (Array.isArray(mirror.agents) ? mirror.agents.length > 0 : false || mirror.config.demo_mode);
   const modeBanner = mirrorActive
-    ? `<div class="context-mode-banner"><span class="context-mode-dot"></span>Mirror Mode &mdash; agents governed by control plane</div>`
+    ? `<div class="context-mode-banner"><span class="context-mode-dot"></span>Live mirror &mdash; agents run through the control plane</div>`
     : "";
 
   panel.innerHTML = `
@@ -89,14 +89,14 @@ function updateContextHint() {
   }
   const ms = state.missionState;
   if (ms?.status === "completed") {
-    hint.textContent = "Mission complete \u2014 branch the outcome or start a new crisis";
+    hint.textContent = "Run complete \u2014 review outcome or start a new situation";
   } else if (ms?.run_id) {
     const moveCount = (ms.executed_moves || []).length;
     hint.textContent = moveCount
-      ? `${moveCount} move${moveCount === 1 ? "" : "s"} played \u2014 pick the next action or finish`
-      : "You\u2019re in the world \u2014 play your first move below";
+      ? `${moveCount} move${moveCount === 1 ? "" : "s"} played \u2014 pick the next action or end the run`
+      : "You\u2019re in the scenario \u2014 play your first move below";
   } else if (state.missions.length) {
-    hint.textContent = "Pick a crisis above, then watch every system react";
+    hint.textContent = "Pick a situation above, then watch every system react";
   } else {
     hint.textContent = "Loading company world\u2026";
   }
@@ -584,7 +584,7 @@ function renderLivingCompanyRail() {
 
   panel.innerHTML = `
     <div class="story-card accent-card">
-      <p class="eyebrow">Current tension</p>
+      <p class="eyebrow">Active pressure</p>
       <h3>${escapeHtml(surfaceState?.company_name || state.story?.manifest?.company_name || state.workspace?.manifest?.title || "Company")}</h3>
       <p class="metric-detail">${escapeHtml(currentCrisisSummary())}</p>
     </div>
@@ -592,7 +592,7 @@ function renderLivingCompanyRail() {
       <p class="eyebrow">Situation</p>
       <h3>${escapeHtml(currentCrisisTitle())}</h3>
       <div class="detail-grid">
-        ${detailTile("Success means", objective)}
+        ${detailTile("Success criteria", objective)}
         ${detailTile("Branch", state.activeRun?.branch || missionState?.branch_name || "base")}
       </div>
       ${currentFailureImpact() ? `<p class="metric-detail">${escapeHtml(currentFailureImpact())}</p>` : ""}

@@ -24,7 +24,7 @@
           <div class="brand-copy">
             <p class="eyebrow">Company</p>
             <h1 id="workspace-title">Loading company&hellip;</h1>
-            <p id="workspace-subtitle" class="studio-topbar-subtitle loading-pulse">Loading current tension&hellip;</p>
+            <p id="workspace-subtitle" class="studio-topbar-subtitle loading-pulse">Loading scenario context&hellip;</p>
           </div>
         </div>
 
@@ -41,31 +41,32 @@
             <select id="mission-select"></select>
           </label>
           <label class="toolbar-field">
-            <span>Success means</span>
-            <select id="objective-select"></select>
+            <span>Success criteria</span>
+            <select id="objective-select" aria-label="Success criteria"></select>
           </label>
           <div class="toolbar-actions">
-            <button id="start-mission-button" type="button">Enter World</button>
+            <button id="start-mission-button" type="button">Start scenario</button>
             <details id="views-menu" class="toolbar-menu toolbar-menu-actions">
               <summary>Views</summary>
               <div class="toolbar-menu-panel toolbar-menu-actions-panel">
                 <a id="pilot-console-link" href="/pilot" class="ghost-button pilot-console-link" target="_blank" rel="noreferrer">Operator Console</a>
                 <hr class="menu-separator" />
-                <button id="timeline-toggle" type="button" class="ghost-button timeline-toggle">Timeline</button>
-                <button id="compare-toggle" type="button" class="ghost-button compare-toggle">Compare Paths</button>
+                <button id="timeline-toggle" type="button" class="ghost-button timeline-toggle">Event timeline</button>
+                <button id="compare-toggle" type="button" class="ghost-button compare-toggle">Compare paths</button>
                 <hr class="menu-separator" />
-                <button id="cinema-toggle" type="button" class="ghost-button cinema-toggle">Presentation</button>
-                <button id="developer-toggle" type="button" class="ghost-button developer-toggle">Systems Detail</button>
+                <button id="cinema-toggle" type="button" class="ghost-button cinema-toggle">Demo mode</button>
+                <button id="developer-toggle" type="button" class="ghost-button developer-toggle">Technical detail</button>
                 <button id="connect-toggle" type="button" class="ghost-button connect-toggle">Connections</button>
                 <hr class="menu-separator" />
-                <button id="branch-mission-button" type="button" class="ghost-button">Fork Reality</button>
-                <button id="finish-mission-button" type="button" class="ghost-button">Close Mission</button>
+                <button id="branch-mission-button" type="button" class="ghost-button">Branch from here</button>
+                <button id="finish-mission-button" type="button" class="ghost-button">End run</button>
               </div>
             </details>
           </div>
         </div>
 
         <div class="studio-topbar-meta">
+          <p id="workspace-trust-strip" class="workspace-trust-strip" aria-live="polite"></p>
           <div id="workspace-metrics" class="workspace-metrics-inline"></div>
           <p id="mission-form-status" class="form-status">
             Read the company state, then make the next move.
@@ -212,10 +213,15 @@
             <div>
               <p class="eyebrow">Outcome</p>
               <h2>Did this path help or hurt?</h2>
+              <p class="outcome-tools-hint metric-detail">
+                Use <strong>Event timeline</strong> for a causality view across systems, or <strong>Compare paths</strong> to diff two runs.
+                The same tools stay under <strong>Views</strong> in the header.
+              </p>
             </div>
-            <div class="outcome-actions">
+            <div class="outcome-actions outcome-actions-stack">
+              <button id="outcome-timeline-btn" type="button" class="outcome-compare-btn">Event timeline</button>
               <button id="outcome-policy-btn" type="button" class="outcome-compare-btn" style="display:none">Try Different Policy</button>
-              <button id="outcome-compare-btn" type="button" class="outcome-compare-btn">Compare Paths</button>
+              <button id="outcome-compare-btn" type="button" class="outcome-compare-btn">Compare paths</button>
             </div>
           </div>
           <div id="run-outcome-summary" class="contract-scorecard"></div>
@@ -288,7 +294,7 @@
         <section class="card graphs-card developer-only" data-studio-view="company">
           <div class="section-header">
             <div>
-              <p class="eyebrow">Capability Graphs</p>
+              <p class="eyebrow">Domain state</p>
               <h2>Shared domain state</h2>
             </div>
           </div>
@@ -298,7 +304,7 @@
         <section class="card import-card developer-only" data-studio-view="crisis">
           <div class="section-header">
             <div>
-              <p class="eyebrow">Grounded Import</p>
+              <p class="eyebrow">Data sources</p>
               <h2>Imported vs derived vs simulated</h2>
             </div>
           </div>

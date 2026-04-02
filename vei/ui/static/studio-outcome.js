@@ -275,7 +275,7 @@ function renderPlaybackStage() {
     : "t=0ms";
 
   if (!timeline.length) {
-    panel.innerHTML = `<div class="stack-card"><h3>No events yet</h3><p class="metric-detail">Launch or open a run to get a playback trace.</p></div>`;
+    panel.innerHTML = `<div class="stack-card"><h3>No events yet</h3><p class="metric-detail">Playback appears after you <strong>start a scenario</strong> and a run records tool calls. Open <strong>Run tools</strong> (technical detail) to launch a run, or pick an existing run from run history.</p></div>`;
     feed.innerHTML = "";
     return;
   }
@@ -630,7 +630,7 @@ async function loadWorkspace() {
     getJson("/api/workspace/mirror").catch(() => ({})),
   ]);
   state.workspace = workspace;
-  state.mirrorStatus = mirrorStatus;
+  state.mirrorStatus = nonEmptyPayload(mirrorStatus);
   state.story = nonEmptyPayload(storyArtifacts.story);
   state.exercise = nonEmptyPayload(exerciseArtifacts.exercise);
   state.exportsPreview = storyArtifacts.exportsPreview;
@@ -713,7 +713,7 @@ async function activateMission(name, objectiveVariant = null) {
     return;
   }
   const status = document.getElementById("mission-form-status");
-  status.textContent = `Activating mission ${name}...`;
+  status.textContent = `Loading scenario ${name}\u2026`;
   state.lastMoveImpact = null;
   try {
     await getJson("/api/missions/activate", {
@@ -725,10 +725,10 @@ async function activateMission(name, objectiveVariant = null) {
       }),
     });
     await loadWorkspace();
-    status.textContent = `Mission ${name} is ready.`;
+    status.textContent = `Scenario ${name} is ready.`;
     setStudioView("crisis");
   } catch (error) {
-    status.textContent = `Mission activation failed: ${error}`;
+    status.textContent = `Could not activate scenario: ${error?.message || error}`;
   }
 }
 
@@ -755,11 +755,11 @@ async function startMission() {
       status.textContent = "Company pressure updated.";
       setStudioView("company");
     } catch (error) {
-      status.textContent = `Crisis update failed: ${error}`;
+      status.textContent = `Could not update situation: ${error?.message || error}`;
     }
     return;
   }
-  status.textContent = "Entering world\u2026";
+  status.textContent = "Starting scenario\u2026";
   state.lastMoveImpact = null;
   try {
     const payload = await getJson("/api/missions/start", {
@@ -777,10 +777,10 @@ async function startMission() {
     }
     state.missionState = payload;
     renderMissionPlay();
-    status.textContent = `Mission ${payload.mission?.title || payload.run_id} is live.`;
+    status.textContent = `Scenario is live: ${payload.mission?.title || payload.run_id}.`;
     setStudioView("company");
   } catch (error) {
-    status.textContent = `Mission start failed: ${error}`;
+    status.textContent = `Could not start scenario: ${error?.message || error}`;
   }
 }
 
@@ -991,12 +991,12 @@ async function applyMissionMove(moveId) {
     renderMissionPlay();
 
     status.textContent = payload.status === "completed"
-      ? "Mission completed. Inspect the results or branch the run."
+      ? "Run completed. Review the Outcome tab or branch from a snapshot."
       : impact.summary
         ? `${moveTitle} \u2014 ${impact.summary}`
         : `${moveTitle} \u2014 ${impactPanels.length} system${impactPanels.length === 1 ? "" : "s"} hit.`;
   } catch (error) {
-    status.textContent = `Move failed: ${error}`;
+    status.textContent = `Move failed: ${error?.message || error}`;
   }
 }
 
@@ -1013,7 +1013,7 @@ async function branchMission() {
     status.textContent = `Branch ${payload.branch_name} is live.`;
     setStudioView("outcome");
   } catch (error) {
-    status.textContent = `Branch failed: ${error}`;
+    status.textContent = `Could not create branch: ${error?.message || error}`;
   }
 }
 
@@ -1022,7 +1022,7 @@ async function finishMission() {
     return;
   }
   const status = document.getElementById("mission-form-status");
-  status.textContent = "Finishing mission...";
+  status.textContent = "Ending run\u2026";
   state.lastMoveImpact = null;
   try {
     const payload = await getJson(`/api/missions/${state.missionState.run_id}/finish`, {
@@ -1033,11 +1033,11 @@ async function finishMission() {
     await selectRun(payload.run_id, { previousSurfaceState: state.surfaceState });
     state.missionState = payload;
     status.textContent = payload.scorecard?.mission_success
-      ? "Mission finished cleanly."
-      : "Mission finished with remaining risk.";
+      ? "Run ended successfully."
+      : "Run ended with remaining risk.";
     setStudioView("outcome");
   } catch (error) {
-    status.textContent = `Finish failed: ${error}`;
+    status.textContent = `Could not end run: ${error?.message || error}`;
   }
 }
 
@@ -1111,4 +1111,3 @@ async function refreshActiveRun(
     connectRunStream(runId);
   }
 }
-

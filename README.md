@@ -1,7 +1,7 @@
 ## VEI
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/strangeloopcanon/vei)
 
-![VEI Studio — Pinnacle Analytics](docs/assets/vei_studio_hero.png)
+![VEI Studio — header with trust strip, success criteria, and Company view](docs/assets/vei_studio_hero.png)
 
 VEI builds believable company worlds and lets you run a control layer on top of them.
 
@@ -53,6 +53,8 @@ Each world pack supports multiple scenario variants and contract variants, so th
 ![VEI Studio — four companies, same engine](docs/assets/vei_studio_companies.png)
 
 ![VEI Timeline — causality view across enterprise surfaces](docs/assets/vei_timeline_view.png)
+
+![VEI Studio — Outcome tab with timeline/compare shortcuts](docs/assets/vei_studio_outcome_tab.png)
 
 ## Core Primitives
 

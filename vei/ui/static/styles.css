@@ -3204,7 +3204,7 @@ body.timeline-mode .timeline-toggle {
 
 .tl-crisis {
   font-size: 0.85rem;
-  color: rgba(244, 248, 251, 0.6);
+  color: rgba(244, 248, 251, 0.72);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -3212,7 +3212,7 @@ body.timeline-mode .timeline-toggle {
 
 .tl-stat {
   font-size: 0.78rem;
-  color: rgba(244, 248, 251, 0.6);
+  color: rgba(244, 248, 251, 0.7);
 }
 
 .tl-stat strong {
@@ -4185,5 +4185,107 @@ body.timeline-mode .timeline-toggle {
   .pilot-snippet-head,
   .pilot-activity-head {
     flex-direction: column;
+  }
+}
+
+/* Trust strip (simulated vs mirror vs import sync) */
+.workspace-trust-strip {
+  grid-column: 1 / -1;
+  margin: 0 0 6px;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: rgba(244, 248, 251, 0.58);
+  max-width: 90ch;
+}
+
+.workspace-trust-strip:empty {
+  display: none;
+}
+
+/* Outcome tab: shortcuts + hint */
+.outcome-card .outcome-tools-hint {
+  margin: 10px 0 0;
+  max-width: 56ch;
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
+.outcome-card .outcome-tools-hint strong {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.outcome-actions-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
+
+@media (min-width: 900px) {
+  .outcome-card .section-header:has(.outcome-actions-stack) {
+    align-items: start;
+  }
+
+  .outcome-card .outcome-actions-stack {
+    align-items: flex-end;
+  }
+}
+
+a[aria-disabled="true"] {
+  pointer-events: none;
+  opacity: 0.45;
+}
+
+/* Connect row: neutral provider marker */
+.connect-icon {
+  font-size: 0.65rem;
+  color: rgba(244, 248, 251, 0.35);
+}
+
+/* Focus visibility (keyboard) */
+.toolbar-menu summary:focus-visible,
+.studio-nav-button:focus-visible,
+.ghost-button:focus-visible,
+.primary-button:focus-visible,
+.run-form button:focus-visible,
+.pilot-mode-button:focus-visible,
+details.secondary-disclosure summary:focus-visible {
+  outline: 2px solid rgba(30, 108, 242, 0.85);
+  outline-offset: 2px;
+}
+
+.toolbar-field select:focus-visible,
+.toolbar-field input:focus-visible {
+  outline: 2px solid rgba(100, 170, 255, 0.9);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .orb,
+  .loading-pulse,
+  .context-mode-dot,
+  .gradient-word,
+  .hero-copy,
+  .launch-panel,
+  .studio-shell-card,
+  .card[data-studio-view],
+  .surface-changed,
+  .surface-item-changed,
+  .cascade-reveal,
+  .cascade-toast-visible,
+  .tl-node {
+    animation: none !important;
+  }
+
+  .orb {
+    transform: none !important;
+  }
+
+  .surface-item,
+  .timeline-card,
+  .run-item,
+  .snapshot-item {
+    transition: none !important;
   }
 }

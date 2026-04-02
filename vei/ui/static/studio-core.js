@@ -182,6 +182,7 @@ async function refreshMirrorStatus() {
     await getJson("/api/workspace/mirror").catch(() => null)
   );
   renderLivingCompanyView();
+  renderTrustStrip();
 }
 
 async function ensureRunSnapshots(run) {
@@ -597,8 +598,8 @@ function toggleDeveloperMode() {
   document.body.classList.toggle("developer-mode", state.developerMode);
   closeToolbarMenus();
   document.getElementById("developer-toggle").textContent = state.developerMode
-    ? "Hide Systems Detail"
-    : "Systems Detail";
+    ? "Hide technical detail"
+    : "Technical detail";
 }
 
 function jumpToStudioView(view) {
@@ -782,7 +783,40 @@ function renderWorkspaceHero() {
   renderWorkspaceMetrics();
   renderStudioShell();
   renderWorldsPanel();
+  renderTrustStrip();
   renderJson("workspace-panel", workspace);
+}
+
+function renderTrustStrip() {
+  const el = document.getElementById("workspace-trust-strip");
+  if (!el) {
+    return;
+  }
+  const parts = [];
+  const mirror = state.mirrorStatus;
+  if (mirror && mirror.config && typeof mirror.config === "object") {
+    const cfg = mirror.config;
+    if (cfg.demo_mode) {
+      parts.push("Control plane: demo mirror (staged activity)");
+    } else if (cfg.connector_mode === "live") {
+      parts.push("Control plane: live connectors on governed paths");
+    } else {
+      parts.push("Control plane: simulated connectors (no live writes)");
+    }
+  } else {
+    parts.push("Company state: simulated workspace");
+  }
+  const syncs = Array.isArray(state.importSources?.syncs) ? state.importSources.syncs : [];
+  const okSyncs = syncs.filter((s) => s && s.status === "ok");
+  if (okSyncs.length) {
+    const latest = [...okSyncs].sort((a, b) =>
+      String(b.synced_at || "").localeCompare(String(a.synced_at || ""))
+    )[0];
+    if (latest?.synced_at) {
+      parts.push(`Last import sync: ${latest.synced_at}`);
+    }
+  }
+  el.textContent = parts.join(" \u00b7 ");
 }
 
 function renderWorldsPanel() {
@@ -894,7 +928,7 @@ function renderMissionSelector() {
     })
     .join("");
   if (startButton) {
-    startButton.textContent = "Enter World";
+    startButton.textContent = "Start scenario";
   }
 }
 
@@ -1080,13 +1114,13 @@ function toggleCinemaMode() {
     state.timelineMode = false;
     document.body.classList.remove("timeline-mode");
     const tBtn = document.getElementById("timeline-toggle");
-    if (tBtn) tBtn.textContent = "Timeline";
+    if (tBtn) tBtn.textContent = "Event timeline";
     const section = document.getElementById("timeline-section");
     if (section) section.style.display = "none";
   }
   document.body.classList.toggle("cinema-mode", state.cinemaMode);
   const btn = document.getElementById("cinema-toggle");
-  if (btn) btn.textContent = state.cinemaMode ? "Exit Presentation" : "Present";
+  if (btn) btn.textContent = state.cinemaMode ? "Exit demo mode" : "Demo mode";
   if (!state.cinemaMode) {
     stopCinemaAutoAdvance();
   } else {
@@ -1126,8 +1160,8 @@ function renderCinemaNarrative() {
     else if (handledBy) narrativeLine += ` \u2192 ${handledBy}`;
   } else if (ms?.status === "completed") {
     narrativeLine = score.mission_success
-      ? "Mission resolved successfully."
-      : "Mission closed with remaining exposure.";
+      ? "Scenario resolved successfully."
+      : "Scenario closed with remaining exposure.";
   } else if (lastMove) {
     const tool = lastMove.resolved_tool || "";
     const refs = (lastMove.object_refs || []).slice(0, 3).join(", ");
@@ -1135,7 +1169,7 @@ function renderCinemaNarrative() {
     if (tool) narrativeLine += ` \u2192 ${tool}`;
     if (refs) narrativeLine += ` \u2192 ${refs}`;
   } else if (mission) {
-    narrativeLine = mission.briefing || mission.description || "Entering the world\u2026";
+    narrativeLine = mission.briefing || mission.description || "Starting scenario\u2026";
   }
 
   const scorePct = Math.min(100, Math.max(0, score.overall_score || 0));
@@ -1244,12 +1278,12 @@ function toggleTimelineMode() {
     state.cinemaMode = false;
     document.body.classList.remove("cinema-mode");
     const cinBtn = document.getElementById("cinema-toggle");
-    if (cinBtn) cinBtn.textContent = "Present";
+    if (cinBtn) cinBtn.textContent = "Demo mode";
     stopCinemaAutoAdvance();
   }
   document.body.classList.toggle("timeline-mode", state.timelineMode);
   const btn = document.getElementById("timeline-toggle");
-  if (btn) btn.textContent = state.timelineMode ? "Exit Timeline" : "Timeline";
+  if (btn) btn.textContent = state.timelineMode ? "Close event timeline" : "Event timeline";
   const section = document.getElementById("timeline-section");
   if (section) section.style.display = state.timelineMode ? "" : "none";
   if (state.timelineMode) {
@@ -1509,7 +1543,7 @@ async function toggleCompareMode() {
   state.compareMode = !state.compareMode;
   const btn = document.getElementById("compare-toggle");
   if (!state.compareMode) {
-    if (btn) btn.textContent = "Compare";
+    if (btn) btn.textContent = "Compare paths";
     state.compareRunA = null;
     state.compareRunB = null;
     state.compareSnapshotA = null;
@@ -1521,7 +1555,7 @@ async function toggleCompareMode() {
     if (state.timelineMode) renderTimelineView();
     return;
   }
-  if (btn) btn.textContent = "Exit Compare";
+  if (btn) btn.textContent = "Close comparison";
   if (!state.timelineMode) toggleTimelineMode();
   const runs = state.runs || [];
   if (runs.length < 2) {
