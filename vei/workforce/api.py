@@ -119,6 +119,19 @@ def _build_summary(
         [item.created_at for item in snapshot.recent_activity]
         + [item.created_at for item in commands]
     )
+    steering_actions = {"comment_task", "approve", "reject", "request_revision", "pause", "resume"}
+    vei_action_count = sum(1 for c in commands if c.action in steering_actions)
+    downstream_response_count = _count_downstream_responses(commands, snapshot)
+    completed_task_count = sum(
+        1
+        for t in tasks
+        if (t.status or "").strip().lower() in {"done", "completed", "closed"}
+    )
+    approved_count = sum(
+        1
+        for a in approvals
+        if (a.status or "").strip().lower() in {"approved", "accepted"}
+    )
     return WorkforceControlSummary(
         provider=snapshot.provider,
         company_name=snapshot.summary.company_name,
@@ -151,6 +164,30 @@ def _build_summary(
         ),
         routeable_surface_count=len(capabilities.routeable_surfaces),
         latest_activity_at=latest_activity_at,
+        vei_action_count=vei_action_count,
+        downstream_response_count=downstream_response_count,
+        completed_task_count=completed_task_count,
+        approved_count=approved_count,
+    )
+
+
+def _count_downstream_responses(
+    commands: list[WorkforceCommandRecord],
+    snapshot: OrchestratorSnapshot,
+) -> int:
+    if not commands:
+        return 0
+    steering = {"comment_task", "approve", "reject", "request_revision", "pause", "resume"}
+    vei_times = sorted(
+        c.created_at for c in commands if c.action in steering and c.created_at
+    )
+    if not vei_times:
+        return 0
+    first_vei = vei_times[0]
+    return sum(
+        1
+        for a in (snapshot.recent_activity or [])
+        if a.created_at and a.created_at > first_vei
     )
 
 

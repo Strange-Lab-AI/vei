@@ -362,11 +362,14 @@ function renderOrchestrator() {
         <p class="metric-detail">${escapeHtml([task.priority, task.project_name, task.goal_name].filter(Boolean).join(" · ") || "No extra task metadata reported")}</p>
         ${task.summary ? `<p class="metric-detail">${escapeHtml(truncateText(task.summary, 220))}</p>` : ""}
         ${task.latest_comment_preview ? `<p class="metric-detail">${escapeHtml(`Latest note: ${truncateText(task.latest_comment_preview, 180)}`)}</p>` : `<p class="metric-detail">No task comments visible yet.</p>`}
-        <div class="chip-row">
-          <span class="badge">${escapeHtml(task.task_id)}</span>
-          ${task.assignee_agent_id ? `<span class="badge">${escapeHtml(task.assignee_agent_id)}</span>` : ""}
-          ${(task.linked_approval_ids || []).map((approvalId) => `<span class="badge">${escapeHtml(approvalId)}</span>`).join("")}
-        </div>
+        <details class="pilot-refs-disclosure">
+          <summary>IDs &amp; links</summary>
+          <div class="chip-row">
+            <span class="badge">${escapeHtml(task.task_id)}</span>
+            ${task.assignee_agent_id ? `<span class="badge">${escapeHtml(task.assignee_agent_id)}</span>` : ""}
+            ${(task.linked_approval_ids || []).map((approvalId) => `<span class="badge">${escapeHtml(approvalId)}</span>`).join("")}
+          </div>
+        </details>
         ${renderCommentThread(task.comments, "No task comments loaded yet.")}
         <div class="pilot-action-form">
           <label class="pilot-field-label" for="task-guidance-${escapeHtml(task.task_id)}">Guidance from VEI</label>
@@ -557,26 +560,33 @@ function renderActivity() {
   panel.innerHTML = activity
     .map((item) => {
       const actor = [item.agent_role, item.agent_name].filter(Boolean).join(" / ") || item.agent_source || "Unattributed client";
+      const isVei = (item.source_label || "").toLowerCase().includes("vei") || (item.channel || "").toLowerCase().includes("vei");
       return `
-        <article class="pilot-activity-card">
+        <article class="pilot-activity-card ${isVei ? "pilot-activity-vei" : ""}">
           <div class="pilot-activity-head">
             <strong>${escapeHtml(item.label)}</strong>
             <div class="chip-row">
               <span class="badge">${escapeHtml(item.channel)}</span>
-              ${item.source_label ? `<span class="badge">${escapeHtml(humanize(item.source_label))}</span>` : ""}
               ${item.timestamp ? `<span class="badge">${escapeHtml(formatTimestamp(item.timestamp))}</span>` : ""}
             </div>
           </div>
-          <p class="metric-detail">${escapeHtml(actor)}</p>
-          <p class="metric-detail">${escapeHtml(item.tool || "No resolved tool recorded")}</p>
+          <p class="metric-detail"><strong>${escapeHtml(actor)}</strong>${item.tool ? ` \u2014 ${escapeHtml(item.tool)}` : ""}</p>
           ${item.detail ? `<p class="metric-detail">${escapeHtml(truncateText(item.detail, 260))}</p>` : ""}
           ${(item.object_refs || []).length
-            ? `<div class="chip-row">${item.object_refs.map((ref) => `<span class="badge">${escapeHtml(ref)}</span>`).join("")}</div>`
+            ? `<details class="pilot-refs-disclosure"><summary>${item.object_refs.length} ref${item.object_refs.length !== 1 ? "s" : ""}</summary><div class="chip-row">${item.object_refs.map((ref) => `<span class="badge">${escapeHtml(ref)}</span>`).join("")}</div></details>`
             : ""}
         </article>
       `;
     })
     .join("");
+}
+
+function directionIndicator(direction) {
+  const arrows = { improving: "\u2197", declining: "\u2198", stable: "\u2192", unknown: "\u2014" };
+  const labels = { improving: "Improving", declining: "Declining", stable: "Stable", unknown: "Unknown" };
+  const classes = { improving: "direction-up", declining: "direction-down", stable: "direction-flat", unknown: "" };
+  const d = direction || "unknown";
+  return `<span class="direction-indicator ${classes[d] || ""}">${arrows[d] || "\u2014"} ${labels[d] || "Unknown"}</span>`;
 }
 
 function renderOutcome() {
@@ -594,12 +604,40 @@ function renderOutcome() {
     );
     return;
   }
-  panel.innerHTML = [
-    metricTile("Twin status", pilot.twin_status || "stopped", outcome.summary),
-    metricTile("Requests", String(pilot.request_count || 0), "External requests handled"),
+  const dirHtml = directionIndicator(outcome.direction);
+  panel.innerHTML = `
+    <article class="pilot-outcome-direction">
+      <p class="eyebrow">Company trajectory</p>
+      <div class="direction-row">
+        ${dirHtml}
+        <span class="direction-summary">${escapeHtml(outcome.summary)}</span>
+      </div>
+    </article>
+  `;
+  panel.innerHTML += [
+    metricTile("Twin status", pilot.twin_status || "stopped", `${pilot.request_count || 0} requests handled`),
     metricTile("Contract", outcome.contract_ok === true ? "healthy" : outcome.contract_ok === false ? "at risk" : "pending", `${outcome.issue_count || 0} open issues`),
-    metricTile("Active pressure", outcome.current_tension || "No live pressure summary", outcome.latest_tool || "No latest tool yet"),
   ].join("");
+  if (outcome.governance_active) {
+    panel.innerHTML += `
+      <article class="pilot-outcome-governance">
+        <p class="eyebrow">VEI governance loop</p>
+        <div class="governance-metrics-row">
+          <div class="governance-metric">
+            <span class="governance-metric-value">${outcome.vei_action_count || 0}</span>
+            <span class="governance-metric-label">VEI actions</span>
+          </div>
+          <div class="governance-metric">
+            <span class="governance-metric-value">${outcome.downstream_response_count || 0}</span>
+            <span class="governance-metric-label">downstream responses</span>
+          </div>
+        </div>
+      </article>
+    `;
+  }
+  if (outcome.current_tension) {
+    panel.innerHTML += metricTile("Active pressure", outcome.current_tension, outcome.latest_tool || "");
+  }
   if ((outcome.affected_surfaces || []).length) {
     panel.innerHTML += `
       <article class="pilot-outcome-callout">

@@ -8,7 +8,7 @@ import sys
 import time
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
@@ -37,6 +37,7 @@ from vei.twin.models import (
     TwinArchetype,
 )
 from vei.workforce.api import build_workforce_state, workforce_command_from_result
+from vei.workforce.models import WorkforceCommandRecord
 
 from .models import (
     PilotActivityItem,
@@ -323,6 +324,7 @@ def build_pilot_status(
         orchestrator_sync=orchestrator_sync,
         enabled=services_ready,
     )
+    workforce_commands = _fetch_workforce_commands(manifest)
     twin_activity = _build_activity(history_payload)
     if orchestrator_snapshot is not None:
         twin_activity = _attach_task_refs_to_activity(
@@ -333,7 +335,13 @@ def build_pilot_status(
         twin_activity,
         _build_orchestrator_activity(orchestrator_snapshot),
     )
-    outcome = _build_outcome(gateway_payload, surfaces_payload, activity)
+    outcome = _build_outcome(
+        gateway_payload,
+        surfaces_payload,
+        activity,
+        orchestrator_snapshot=orchestrator_snapshot,
+        workforce_commands=workforce_commands,
+    )
     active_agents = _parse_active_agents(gateway_payload)
     return PilotStatus(
         manifest=manifest,
@@ -925,6 +933,9 @@ def _build_outcome(
     gateway_payload: dict[str, Any] | None,
     surfaces_payload: dict[str, Any] | None,
     activity: list[PilotActivityItem],
+    *,
+    orchestrator_snapshot: OrchestratorSnapshot | None = None,
+    workforce_commands: list[Any] | None = None,
 ) -> PilotOutcomeSummary:
     if gateway_payload is None:
         return PilotOutcomeSummary(
@@ -950,15 +961,44 @@ def _build_outcome(
                     str(panel.get("title") or panel.get("surface"))
                 )
     latest_tool = activity[0].tool if activity else None
+
+    steering = {"comment_task", "approve", "reject", "request_revision", "pause", "resume"}
+    cmds = workforce_commands or []
+    vei_action_count = sum(1 for c in cmds if getattr(c, "action", None) in steering)
+    downstream_response_count = 0
+    if orchestrator_snapshot and vei_action_count:
+        vei_times = sorted(
+            c.created_at for c in cmds if getattr(c, "action", None) in steering and c.created_at
+        )
+        if vei_times:
+            downstream_response_count = sum(
+                1
+                for a in (orchestrator_snapshot.recent_activity or [])
+                if a.created_at and a.created_at > vei_times[0]
+            )
+    governance_active = vei_action_count > 0
+
+    direction: Literal["improving", "stable", "declining", "unknown"]
     if runtime.get("status") == "completed" and contract_ok:
+        direction = "improving"
         summary = "The current path is holding together and the company is in a healthier state."
     elif runtime.get("status") == "completed":
+        direction = "declining"
         summary = "The run is complete, but the company still has unresolved risk."
+    elif contract_ok and governance_active and downstream_response_count > 0:
+        direction = "improving"
+        summary = f"VEI steered {vei_action_count} action{'s' if vei_action_count != 1 else ''} and the outside team responded {downstream_response_count} time{'s' if downstream_response_count != 1 else ''}. The path is currently healthy."
     elif contract_ok:
+        direction = "stable"
         summary = "The live path is currently healthy, but it should still be reviewed."
+    elif issue_count and governance_active:
+        direction = "declining"
+        summary = f"VEI sent {vei_action_count} steering action{'s' if vei_action_count != 1 else ''} but {issue_count} issue{'s' if issue_count != 1 else ''} remain open."
     elif issue_count:
+        direction = "declining"
         summary = "The live path is still under pressure and needs another action."
     else:
+        direction = "unknown"
         summary = "The pilot is running and waiting for the next outside-agent action."
     return PilotOutcomeSummary(
         status=str(runtime.get("status", "stopped")),
@@ -968,6 +1008,10 @@ def _build_outcome(
         latest_tool=latest_tool,
         current_tension=current_tension,
         affected_surfaces=affected_surfaces[:4],
+        vei_action_count=vei_action_count,
+        downstream_response_count=downstream_response_count,
+        governance_active=governance_active,
+        direction=direction,
     )
 
 
@@ -1221,6 +1265,23 @@ def _sync_workforce_gateway(
         payload=payload,
         headers={"Authorization": f"Bearer {manifest.bearer_token}"},
     )
+
+
+def _fetch_workforce_commands(manifest: PilotManifest) -> list[WorkforceCommandRecord]:
+    raw = _fetch_json(f"{manifest.gateway_url}/api/workforce")
+    if not isinstance(raw, dict):
+        return []
+    items = raw.get("commands") or []
+    if not isinstance(items, list):
+        return []
+    result_list: list[WorkforceCommandRecord] = []
+    for entry in items:
+        if isinstance(entry, dict):
+            try:
+                result_list.append(WorkforceCommandRecord.model_validate(entry))
+            except Exception:
+                continue
+    return result_list
 
 
 def _record_workforce_command(

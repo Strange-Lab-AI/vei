@@ -671,6 +671,10 @@ def test_build_pilot_status_merges_orchestrator_snapshot_and_syncs_mirror_agents
         "pending_approval_count": 1,
         "routeable_surface_count": 3,
         "latest_activity_at": None,
+        "vei_action_count": 0,
+        "downstream_response_count": 0,
+        "completed_task_count": 0,
+        "approved_count": 0,
     }
     assert "paperclip:issue-1" in status.activity[0].object_refs
     assert status.activity[0].source_label == "VEI"

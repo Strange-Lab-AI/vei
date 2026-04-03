@@ -165,6 +165,17 @@ function renderSituationRoom() {
   const approvalClass = pendingApprovals > 0 ? "sit-warn" : "sit-ok";
   const riskClass = riskLevel === "high" ? "sit-danger" : riskLevel === "moderate" ? "sit-warn" : "sit-ok";
 
+  const workforce = state.workforceStatus;
+  const wfSummary = workforce?.summary || {};
+  const veiActions = wfSummary.vei_action_count || 0;
+  const downstreamResponses = wfSummary.downstream_response_count || 0;
+  const pendingDecisions = wfSummary.pending_approval_count || 0;
+  const govActive = veiActions > 0 || pendingDecisions > 0;
+  const govClass = pendingDecisions > 0 ? "sit-warn" : veiActions > 0 ? "sit-ok" : "";
+  const govDetail = veiActions
+    ? `${downstreamResponses} response${downstreamResponses !== 1 ? "s" : ""}`
+    : "no steering yet";
+
   el.innerHTML = `
     <div class="sit-room-cell ${healthClass}">
       <span class="sit-label">Systems</span>
@@ -176,6 +187,13 @@ function renderSituationRoom() {
       <span class="sit-value">${exceptionCount}</span>
       <span class="sit-detail">${highSeverity ? "high severity" : exceptionCount ? "active" : "clear"}</span>
     </div>
+    ${govActive ? `
+    <div class="sit-room-cell sit-governance ${govClass}">
+      <span class="sit-label">Governance</span>
+      <span class="sit-value">${veiActions} action${veiActions !== 1 ? "s" : ""}</span>
+      <span class="sit-detail">${escapeHtml(govDetail)}${pendingDecisions ? ` · ${pendingDecisions} pending` : ""}</span>
+    </div>
+    ` : ""}
     <div class="sit-room-cell ${policyClass}">
       <span class="sit-label">Policy</span>
       <span class="sit-value">${escapeHtml(humanize(policyStatus))}</span>
@@ -501,10 +519,16 @@ function renderWorkforceControlRoom(el, workforce) {
         <span class="agent-role">${escapeHtml(agent.role || agent.title || agent.provider || "outside agent")}</span>
         <span class="agent-status agent-status-${escapeHtml(status)}">${escapeHtml(status)}</span>
         <div class="agent-metrics">
-          <span>${escapeHtml(agent.policy_profile_id || "observer")}</span>
           <span>${(agent.task_ids || []).length} task(s)</span>
-          <span>${escapeHtml((agent.allowed_surfaces || []).join(", ") || "no surfaces reported")}</span>
         </div>
+        <details class="agent-id-disclosure">
+          <summary>IDs &amp; surfaces</summary>
+          <div class="agent-id-grid">
+            <span>${escapeHtml(agent.agent_id)}</span>
+            <span>${escapeHtml(agent.policy_profile_id || "observer")}</span>
+            <span>${escapeHtml((agent.allowed_surfaces || []).join(", ") || "no surfaces")}</span>
+          </div>
+        </details>
         <div class="agent-btn-row">
           <button type="button" class="ghost-button workforce-agent-action" data-agent-action="${escapeHtml(action)}" data-agent-id="${escapeHtml(agent.agent_id)}">${actionLabel}</button>
         </div>
@@ -520,9 +544,14 @@ function renderWorkforceControlRoom(el, workforce) {
       </div>
       <p class="metric-detail">${escapeHtml(task.summary || "No summary provided.")}</p>
       ${task.latest_comment_preview ? `<p class="metric-detail">${escapeHtml(`Latest note: ${truncate(task.latest_comment_preview, 180)}`)}</p>` : ""}
-      <div class="chip-row">
-        ${(task.linked_approval_ids || []).map((item) => `<span class="badge">${escapeHtml(item)}</span>`).join("")}
-      </div>
+      <details class="agent-id-disclosure">
+        <summary>IDs &amp; links</summary>
+        <div class="chip-row">
+          <span class="badge">${escapeHtml(task.task_id)}</span>
+          ${task.assignee_agent_id ? `<span class="badge">${escapeHtml(task.assignee_agent_id)}</span>` : ""}
+          ${(task.linked_approval_ids || []).map((item) => `<span class="badge">${escapeHtml(item)}</span>`).join("")}
+        </div>
+      </details>
       <label class="agent-role" for="workforce-guidance-${escapeHtml(task.task_id)}">Guidance from VEI</label>
       <textarea id="workforce-guidance-${escapeHtml(task.task_id)}" class="pilot-action-input workforce-guidance-input" data-guidance-input placeholder="Tell the team what to do next or what must change before this can proceed."></textarea>
       <div class="agent-btn-row">
@@ -539,9 +568,13 @@ function renderWorkforceControlRoom(el, workforce) {
       </div>
       <p class="metric-detail">${escapeHtml(approval.requested_by_name ? `Requested by ${approval.requested_by_name}` : "Requester not reported")}</p>
       ${approval.decision_note ? `<p class="metric-detail">${escapeHtml(`Decision note: ${truncate(approval.decision_note, 180)}`)}</p>` : ""}
-      <div class="chip-row">
-        ${(approval.task_ids || []).map((item) => `<span class="badge">${escapeHtml(item)}</span>`).join("")}
-      </div>
+      <details class="agent-id-disclosure">
+        <summary>IDs &amp; links</summary>
+        <div class="chip-row">
+          <span class="badge">${escapeHtml(approval.approval_id)}</span>
+          ${(approval.task_ids || []).map((item) => `<span class="badge">${escapeHtml(item)}</span>`).join("")}
+        </div>
+      </details>
       <label class="agent-role" for="workforce-approval-note-${escapeHtml(approval.approval_id)}">Decision note</label>
       <textarea id="workforce-approval-note-${escapeHtml(approval.approval_id)}" class="pilot-action-input workforce-approval-input" data-approval-note-input placeholder="Explain the board decision clearly."></textarea>
       <div class="agent-btn-row">
@@ -552,17 +585,7 @@ function renderWorkforceControlRoom(el, workforce) {
     </article>
   `).join("");
 
-  const feedEntries = buildWorkforceFeed(workforce)
-    .slice(0, 10)
-    .map((entry) => `
-      <div class="mirror-feed-item">
-        <span class="feed-agent">${escapeHtml(entry.actor)}</span>
-        <span class="feed-label">${escapeHtml(entry.label)}</span>
-        ${entry.when ? `<span class="feed-ts">${escapeHtml(entry.when)}</span>` : ""}
-        ${entry.detail ? `<span class="feed-reason">${escapeHtml(entry.detail)}</span>` : ""}
-      </div>
-    `)
-    .join("") || `<p class="metric-detail">No outside workforce activity yet.</p>`;
+  const interventionHtml = renderInterventionFeed(workforce);
 
   el.innerHTML = `
     <div class="mirror-fleet-header">
@@ -591,8 +614,8 @@ function renderWorkforceControlRoom(el, workforce) {
         <div class="pilot-task-grid">${taskCards || `<p class="metric-detail">No outside work items yet.</p>`}</div>
         <div class="mirror-feed-header">Board decisions</div>
         <div class="pilot-task-grid">${approvalCards || `<p class="metric-detail">No approvals waiting right now.</p>`}</div>
-        <div class="mirror-feed-header">Recent activity</div>
-        <div class="mirror-feed-list">${feedEntries}</div>
+        <div class="mirror-feed-header">Intervention story</div>
+        <div class="mirror-feed-list">${interventionHtml}</div>
       </div>
     </div>
   `;
@@ -655,6 +678,7 @@ function buildWorkforceFeed(workforce) {
       label: item.label || item.action || "activity",
       detail: item.detail || "",
       when: shortWhen(item.created_at),
+      isVei: false,
     });
   });
   commands.forEach((item) => {
@@ -664,9 +688,81 @@ function buildWorkforceFeed(workforce) {
       label: `VEI ${humanize(item.action || "action")}`,
       detail: item.message || item.decision_note || "",
       when: shortWhen(item.created_at),
+      isVei: true,
     });
   });
   return entries.sort((a, b) => String(b.at || "").localeCompare(String(a.at || "")));
+}
+
+function buildInterventionGroups(workforce) {
+  const feed = buildWorkforceFeed(workforce);
+  if (!feed.length) return [];
+  const groups = [];
+  let currentGroup = null;
+  const reversed = [...feed].reverse();
+  for (const entry of reversed) {
+    if (entry.isVei) {
+      if (currentGroup) groups.push(currentGroup);
+      currentGroup = { vei: entry, responses: [] };
+    } else if (currentGroup) {
+      currentGroup.responses.push(entry);
+    }
+  }
+  if (currentGroup) groups.push(currentGroup);
+  const ungrouped = reversed.filter(
+    (e) => !e.isVei && !groups.some((g) => g.responses.includes(e))
+  );
+  return { groups: groups.reverse(), ungrouped };
+}
+
+function renderInterventionFeed(workforce) {
+  const { groups, ungrouped } = buildInterventionGroups(workforce);
+  if (!groups.length && !(ungrouped || []).length) {
+    return `<p class="metric-detail">No outside workforce activity yet.</p>`;
+  }
+  let html = "";
+  if (groups.length) {
+    html += groups.map((g) => {
+      const responseHtml = g.responses.length
+        ? g.responses.map((r) => `
+            <div class="intervention-response">
+              <span class="feed-agent">${escapeHtml(r.actor)}</span>
+              <span class="feed-label">${escapeHtml(r.label)}</span>
+              ${r.when ? `<span class="feed-ts">${escapeHtml(r.when)}</span>` : ""}
+              ${r.detail ? `<span class="feed-reason">${escapeHtml(truncate(r.detail, 120))}</span>` : ""}
+            </div>
+          `).join("")
+        : `<p class="intervention-no-response">No downstream response yet</p>`;
+      return `
+        <div class="intervention-group">
+          <div class="intervention-vei-action">
+            <span class="intervention-vei-dot"></span>
+            <span class="feed-agent">${escapeHtml(g.vei.actor)}</span>
+            <span class="feed-label">${escapeHtml(g.vei.label)}</span>
+            ${g.vei.when ? `<span class="feed-ts">${escapeHtml(g.vei.when)}</span>` : ""}
+          </div>
+          ${g.vei.detail ? `<p class="intervention-vei-detail">${escapeHtml(truncate(g.vei.detail, 200))}</p>` : ""}
+          <div class="intervention-responses">
+            <span class="intervention-response-label">${g.responses.length} response${g.responses.length !== 1 ? "s" : ""}</span>
+            ${responseHtml}
+          </div>
+        </div>
+      `;
+    }).join("");
+  }
+  if ((ungrouped || []).length) {
+    html += `<div class="intervention-ungrouped">`;
+    html += ungrouped.slice(0, 5).map((entry) => `
+      <div class="mirror-feed-item">
+        <span class="feed-agent">${escapeHtml(entry.actor)}</span>
+        <span class="feed-label">${escapeHtml(entry.label)}</span>
+        ${entry.when ? `<span class="feed-ts">${escapeHtml(entry.when)}</span>` : ""}
+        ${entry.detail ? `<span class="feed-reason">${escapeHtml(truncate(entry.detail, 120))}</span>` : ""}
+      </div>
+    `).join("");
+    html += `</div>`;
+  }
+  return html;
 }
 
 function shortWhen(value) {

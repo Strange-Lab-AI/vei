@@ -44,6 +44,10 @@ class WorkforceControlSummary(BaseModel):
     pending_approval_count: int = 0
     routeable_surface_count: int = 0
     latest_activity_at: str | None = None
+    vei_action_count: int = 0
+    downstream_response_count: int = 0
+    completed_task_count: int = 0
+    approved_count: int = 0
 
 
 class WorkforceState(BaseModel):

@@ -316,6 +316,10 @@ def test_twin_gateway_workforce_sync_updates_control_room_world_state(
             "pending_approval_count": 1,
             "routeable_surface_count": 2,
             "latest_activity_at": None,
+            "vei_action_count": 0,
+            "downstream_response_count": 0,
+            "completed_task_count": 0,
+            "approved_count": 0,
         }
 
         surfaces_response = client.get("/api/twin/surfaces")

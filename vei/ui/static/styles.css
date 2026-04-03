@@ -1248,6 +1248,242 @@ body.developer-mode .studio-nav-button.developer-only {
   font-size: 0.68rem;
 }
 
+.feed-ts {
+  color: rgba(244, 248, 251, 0.4);
+  font-size: 0.66rem;
+  white-space: nowrap;
+}
+
+/* --- Governance tile in situation room --- */
+
+.sit-governance {
+  background: rgba(100, 181, 246, 0.08);
+  border-color: rgba(100, 181, 246, 0.35);
+}
+
+/* --- Intervention-outcome grouping --- */
+
+.intervention-group {
+  border-left: 3px solid rgba(100, 181, 246, 0.5);
+  padding: 8px 10px 8px 12px;
+  margin: 4px 0;
+  border-radius: 0 6px 6px 0;
+  background: rgba(100, 181, 246, 0.04);
+}
+
+.intervention-vei-action {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: rgba(244, 248, 251, 0.9);
+}
+
+.intervention-vei-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #64b5f6;
+  flex-shrink: 0;
+}
+
+.intervention-vei-detail {
+  font-size: 0.72rem;
+  color: rgba(244, 248, 251, 0.6);
+  margin: 4px 0 6px 16px;
+  line-height: 1.4;
+}
+
+.intervention-responses {
+  margin-left: 16px;
+  padding-top: 4px;
+}
+
+.intervention-response-label {
+  font-size: 0.64rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: rgba(244, 248, 251, 0.45);
+  font-weight: 600;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.intervention-response {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 0.72rem;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.03);
+  margin-bottom: 2px;
+}
+
+.intervention-no-response {
+  font-size: 0.7rem;
+  color: rgba(244, 248, 251, 0.35);
+  font-style: italic;
+  margin: 2px 0;
+}
+
+.intervention-ungrouped {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* --- Progressive disclosure for IDs --- */
+
+.agent-id-disclosure,
+.pilot-refs-disclosure {
+  margin-top: 4px;
+}
+
+.agent-id-disclosure summary,
+.pilot-refs-disclosure summary {
+  font-size: 0.68rem;
+  color: rgba(244, 248, 251, 0.4);
+  cursor: pointer;
+  user-select: none;
+}
+
+.agent-id-disclosure[open] summary,
+.pilot-refs-disclosure[open] summary {
+  color: rgba(244, 248, 251, 0.6);
+}
+
+.agent-id-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+  font-size: 0.68rem;
+  color: rgba(244, 248, 251, 0.5);
+}
+
+/* --- Direction indicator (pilot outcome) --- */
+
+.direction-indicator {
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+}
+
+.direction-up {
+  color: #66bb6a;
+}
+
+.direction-down {
+  color: #ef5350;
+}
+
+.direction-flat {
+  color: #ffb74d;
+}
+
+.direction-row {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.direction-summary {
+  font-size: 0.82rem;
+  color: rgba(244, 248, 251, 0.7);
+  line-height: 1.5;
+}
+
+.pilot-outcome-direction {
+  grid-column: 1 / -1;
+  padding: 14px 18px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.pilot-outcome-governance {
+  grid-column: 1 / -1;
+  padding: 12px 18px;
+  border-radius: 10px;
+  background: rgba(100, 181, 246, 0.06);
+  border: 1px solid rgba(100, 181, 246, 0.2);
+}
+
+.governance-metrics-row {
+  display: flex;
+  gap: 32px;
+  margin-top: 6px;
+}
+
+.governance-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.governance-metric-value {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: rgba(244, 248, 251, 0.9);
+}
+
+.governance-metric-label {
+  font-size: 0.68rem;
+  color: rgba(244, 248, 251, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* VEI activity highlight on pilot */
+
+.pilot-activity-vei {
+  border-left: 3px solid rgba(100, 181, 246, 0.5);
+  background: rgba(100, 181, 246, 0.04);
+}
+
+/* --- Pilot-console-specific overrides for light theme --- */
+
+.pilot-console-body .direction-summary {
+  color: rgba(30, 41, 59, 0.7);
+}
+
+.pilot-console-body .pilot-outcome-direction {
+  background: rgba(0, 0, 0, 0.03);
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+.pilot-console-body .pilot-outcome-governance {
+  background: rgba(59, 130, 246, 0.06);
+  border-color: rgba(59, 130, 246, 0.15);
+}
+
+.pilot-console-body .governance-metric-value {
+  color: rgba(30, 41, 59, 0.9);
+}
+
+.pilot-console-body .governance-metric-label {
+  color: rgba(30, 41, 59, 0.5);
+}
+
+.pilot-console-body .pilot-activity-vei {
+  border-left-color: rgba(59, 130, 246, 0.4);
+  background: rgba(59, 130, 246, 0.04);
+}
+
+.pilot-console-body .pilot-refs-disclosure summary,
+.pilot-console-body .agent-id-disclosure summary {
+  color: rgba(30, 41, 59, 0.4);
+}
+
+.pilot-console-body .pilot-refs-disclosure[open] summary,
+.pilot-console-body .agent-id-disclosure[open] summary {
+  color: rgba(30, 41, 59, 0.6);
+}
+
 .approval-queue {
   display: flex;
   flex-direction: column;

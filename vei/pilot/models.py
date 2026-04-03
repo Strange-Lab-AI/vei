@@ -89,6 +89,10 @@ class PilotOutcomeSummary(BaseModel):
     latest_tool: str | None = None
     current_tension: str = ""
     affected_surfaces: list[str] = Field(default_factory=list)
+    vei_action_count: int = 0
+    downstream_response_count: int = 0
+    governance_active: bool = False
+    direction: Literal["improving", "stable", "declining", "unknown"] = "unknown"
 
 
 class PilotStatus(BaseModel):
