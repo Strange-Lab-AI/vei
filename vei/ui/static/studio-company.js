@@ -696,7 +696,9 @@ function buildWorkforceFeed(workforce) {
 
 function buildInterventionGroups(workforce) {
   const feed = buildWorkforceFeed(workforce);
-  if (!feed.length) return [];
+  if (!feed.length) {
+    return { groups: [], ungrouped: [] };
+  }
   const groups = [];
   let currentGroup = null;
   const reversed = [...feed].reverse();

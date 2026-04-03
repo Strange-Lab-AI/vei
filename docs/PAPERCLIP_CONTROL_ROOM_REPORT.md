@@ -47,6 +47,16 @@ From the Company view Control Room, VEI posted this instruction on `VEI-1`:
 
 VEI recorded that action as a control command, and Paperclip showed it as a new task comment.
 
+On the refreshed visual pass, VEI also posted a follow-up board note on `VEI-4` from the Operator Console:
+
+> VEI board note: turn the completed feature work into a one-paragraph operator proof with user impact, test evidence, and the next safest move.
+
+That refreshed run now shows the full sequence in the Operator Console activity feed:
+
+- VEI records `Guided task`
+- Paperclip records the new `Issue Comment Added`
+- the CEO heartbeat is visible right after the VEI note
+
 ### 2. VEI made the board decision from inside VEI
 
 From the same VEI control surface, VEI approved the hire request with this decision note:
@@ -101,14 +111,19 @@ That means this run demonstrates strong visibility and real steering, but not fu
 
 Open these files locally for the visual proof:
 
-- Company view after the VEI-guided Paperclip run:
-  - `/Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/output/playwright/control-room-final.png`
-- Operator Console after the VEI-guided Paperclip run:
-  - `/Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/output/playwright/pilot-final.png`
-- Earlier Company capture before the final proof state:
-  - `/Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/output/playwright/control-room-before.png`
-- Earlier Company capture after the first steering pass:
-  - `/Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/output/playwright/control-room-after.png`
+- Refreshed Company Control Room full capture:
+  - `/Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/output/playwright/control-room-refresh-20260403.png`
+- Refreshed Operator Console full capture:
+  - `/Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/output/playwright/pilot-operator-refresh-20260403.png`
+- Demo GIF:
+  - `/Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/output/playwright/vei-paperclip-demo.gif`
+- Demo MP4:
+  - `/Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/output/playwright/vei-paperclip-demo.mp4`
+- Tight demo stills used for the GIF:
+  - `/Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/output/playwright/demo-frame-01-pilot-top.png`
+  - `/Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/output/playwright/demo-frame-02-pilot-activity.png`
+  - `/Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/output/playwright/demo-frame-03-control-room.png`
+  - `/Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/output/playwright/demo-frame-04-intervention-story.png`
 
 ## Bottom line
 

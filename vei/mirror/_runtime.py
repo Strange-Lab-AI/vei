@@ -115,7 +115,7 @@ class MirrorRuntime:
                 throttled_event_count=self._throttled_event_count,
                 pending_demo_steps=len(self._demo_steps),
                 last_event_at=self._last_event_at,
-                autoplay_running=self._autoplay_running,
+                autoplay_running=self._autoplay_running and bool(self._demo_steps),
                 pending_approvals=[
                     approval.model_copy(deep=True)
                     for approval in self._pending_approvals

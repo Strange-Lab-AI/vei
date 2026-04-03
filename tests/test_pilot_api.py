@@ -823,6 +823,112 @@ def test_build_pilot_status_uses_cached_orchestrator_snapshot_when_refresh_fails
     assert status.orchestrator_sync.cache_used is True
 
 
+def test_build_pilot_status_merges_vei_workforce_commands_into_activity(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    root = tmp_path / "pilot_workforce_activity"
+    root.mkdir(parents=True, exist_ok=True)
+    manifest = pilot_api.PilotManifest(
+        workspace_root=root,
+        workspace_name="pilot",
+        organization_name="Pinnacle Analytics",
+        organization_domain="pinnacle.example.com",
+        archetype="service_ops",
+        crisis_name="VIP outage",
+        studio_url="http://127.0.0.1:3011",
+        pilot_console_url="http://127.0.0.1:3011/pilot",
+        gateway_url="http://127.0.0.1:3020",
+        gateway_status_url="http://127.0.0.1:3020/api/twin",
+        bearer_token="pilot-token",
+        recommended_first_exercise="Keep the customer safe.",
+        sample_client_path="/tmp/pilot_client.py",
+    )
+    runtime = pilot_api.PilotRuntime(
+        workspace_root=root,
+        services=[
+            pilot_api.PilotServiceRecord(
+                name="gateway",
+                host="127.0.0.1",
+                port=3020,
+                url="http://127.0.0.1:3020",
+                pid=4101,
+                state="running",
+            ),
+            pilot_api.PilotServiceRecord(
+                name="studio",
+                host="127.0.0.1",
+                port=3011,
+                url="http://127.0.0.1:3011",
+                pid=4102,
+                state="running",
+            ),
+        ],
+    )
+    (root / pilot_api.PILOT_MANIFEST_FILE).write_text(
+        manifest.model_dump_json(indent=2),
+        encoding="utf-8",
+    )
+    (root / pilot_api.PILOT_RUNTIME_FILE).write_text(
+        runtime.model_dump_json(indent=2),
+        encoding="utf-8",
+    )
+
+    captured_request_headers: list[dict[str, str] | None] = []
+
+    def fake_fetch(url: str):
+        if url.endswith("/api/twin"):
+            return {"runtime": {"run_id": "external_run", "status": "running"}}
+        if url.endswith("/api/twin/history"):
+            return []
+        if url.endswith("/api/twin/surfaces"):
+            return {"current_tension": "", "panels": []}
+        return None
+
+    def fake_request_json(
+        url: str,
+        *,
+        method: str = "GET",
+        payload: dict[str, object] | None = None,
+        headers=None,
+        timeout_s: float = 4.0,
+    ):
+        del method, payload, timeout_s
+        if url.endswith("/api/workforce"):
+            captured_request_headers.append(headers)
+            return {
+                "commands": [
+                    {
+                        "provider": "paperclip",
+                        "action": "comment_task",
+                        "created_at": "2026-04-03T18:20:00+00:00",
+                        "message": "Guidance posted.",
+                        "task_id": "paperclip:issue-7",
+                        "external_task_id": "issue-7",
+                        "decision_note": "Ask for a budget check before moving ahead.",
+                    }
+                ]
+            }
+        return None
+
+    monkeypatch.setattr(pilot_api, "_fetch_json", fake_fetch)
+    monkeypatch.setattr(pilot_api, "_request_json", fake_request_json)
+    monkeypatch.setattr(pilot_api, "_service_alive", lambda _service: True)
+
+    status = pilot_api.build_pilot_status(root)
+
+    assert captured_request_headers == [{"Authorization": "Bearer pilot-token"}]
+    assert status.activity[0].source_label == "VEI"
+    assert status.activity[0].channel == "VEI"
+    assert status.activity[0].label == "Guided task"
+    assert status.activity[0].agent_name == "VEI operator"
+    assert status.activity[0].tool == "paperclip.comment_on_task"
+    assert status.activity[0].detail == (
+        "Guidance posted. Ask for a budget check before moving ahead."
+    )
+    assert status.activity[0].object_refs == ["paperclip:issue-7", "issue-7"]
+
+
 def test_comment_on_pilot_orchestrator_task_posts_guidance_and_refreshes(
     tmp_path: Path,
     monkeypatch,

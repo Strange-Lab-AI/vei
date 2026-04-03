@@ -119,7 +119,14 @@ def _build_summary(
         [item.created_at for item in snapshot.recent_activity]
         + [item.created_at for item in commands]
     )
-    steering_actions = {"comment_task", "approve", "reject", "request_revision", "pause", "resume"}
+    steering_actions = {
+        "comment_task",
+        "approve",
+        "reject",
+        "request_revision",
+        "pause",
+        "resume",
+    }
     vei_action_count = sum(1 for c in commands if c.action in steering_actions)
     downstream_response_count = _count_downstream_responses(commands, snapshot)
     completed_task_count = sum(
@@ -177,7 +184,14 @@ def _count_downstream_responses(
 ) -> int:
     if not commands:
         return 0
-    steering = {"comment_task", "approve", "reject", "request_revision", "pause", "resume"}
+    steering = {
+        "comment_task",
+        "approve",
+        "reject",
+        "request_revision",
+        "pause",
+        "resume",
+    }
     vei_times = sorted(
         c.created_at for c in commands if c.action in steering and c.created_at
     )

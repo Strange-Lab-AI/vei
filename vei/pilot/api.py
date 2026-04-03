@@ -334,6 +334,7 @@ def build_pilot_status(
     activity = _merge_activity(
         twin_activity,
         _build_orchestrator_activity(orchestrator_snapshot),
+        _build_workforce_command_activity(workforce_commands),
     )
     outcome = _build_outcome(
         gateway_payload,
@@ -870,6 +871,32 @@ def _build_orchestrator_activity(
     ]
 
 
+def _build_workforce_command_activity(
+    workforce_commands: list[WorkforceCommandRecord],
+) -> list[PilotActivityItem]:
+    if not workforce_commands:
+        return []
+    items: list[PilotActivityItem] = []
+    for command in workforce_commands[-8:]:
+        object_refs = _workforce_command_refs(command)
+        items.append(
+            PilotActivityItem(
+                label=_workforce_command_label(command.action),
+                channel="VEI",
+                tool=_workforce_command_tool(command),
+                status="issued",
+                timestamp=command.created_at or None,
+                detail=_workforce_command_detail(command),
+                source_label="VEI",
+                agent_id=command.agent_id,
+                object_refs=object_refs,
+                agent_name="VEI operator",
+                agent_source="VEI",
+            )
+        )
+    return list(reversed(items))
+
+
 def _attach_task_refs_to_activity(
     activity: list[PilotActivityItem],
     *,
@@ -898,13 +925,75 @@ def _attach_task_refs_to_activity(
 def _merge_activity(
     twin_activity: list[PilotActivityItem],
     orchestrator_activity: list[PilotActivityItem],
+    workforce_command_activity: list[PilotActivityItem],
 ) -> list[PilotActivityItem]:
-    combined = [*orchestrator_activity, *twin_activity]
+    combined = [
+        *workforce_command_activity,
+        *orchestrator_activity,
+        *twin_activity,
+    ]
     combined.sort(
         key=lambda item: item.timestamp or "",
         reverse=True,
     )
     return combined[:12]
+
+
+def _workforce_command_label(action: str) -> str:
+    labels = {
+        "sync": "Synced workforce",
+        "pause": "Paused agent",
+        "resume": "Resumed agent",
+        "comment_task": "Guided task",
+        "approve": "Approved request",
+        "reject": "Rejected request",
+        "request_revision": "Requested changes",
+    }
+    return labels.get(action, action.replace("_", " ").title())
+
+
+def _workforce_command_tool(command: WorkforceCommandRecord) -> str | None:
+    action = command.action
+    if action == "comment_task":
+        return f"{command.provider}.comment_on_task"
+    if action in {"approve", "reject", "request_revision"}:
+        return f"{command.provider}.manage_approval"
+    if action in {"pause", "resume"}:
+        return f"{command.provider}.{action}_agent"
+    if action == "sync":
+        return f"{command.provider}.sync"
+    return command.provider
+
+
+def _workforce_command_detail(command: WorkforceCommandRecord) -> str | None:
+    detail_parts = [
+        str(item).strip()
+        for item in (command.message, command.decision_note)
+        if str(item or "").strip()
+    ]
+    if not detail_parts:
+        return None
+    if len(detail_parts) == 1:
+        return detail_parts[0]
+    return " ".join(detail_parts)
+
+
+def _workforce_command_refs(command: WorkforceCommandRecord) -> list[str]:
+    refs: list[str] = []
+    for value in (
+        command.task_id,
+        command.external_task_id,
+        command.approval_id,
+        command.external_approval_id,
+        command.agent_id,
+        command.external_agent_id,
+        command.comment_id,
+    ):
+        ref = str(value or "").strip()
+        if not ref or ref in refs:
+            continue
+        refs.append(ref)
+    return refs
 
 
 def _parse_active_agents(
@@ -962,13 +1051,22 @@ def _build_outcome(
                 )
     latest_tool = activity[0].tool if activity else None
 
-    steering = {"comment_task", "approve", "reject", "request_revision", "pause", "resume"}
+    steering = {
+        "comment_task",
+        "approve",
+        "reject",
+        "request_revision",
+        "pause",
+        "resume",
+    }
     cmds = workforce_commands or []
     vei_action_count = sum(1 for c in cmds if getattr(c, "action", None) in steering)
     downstream_response_count = 0
     if orchestrator_snapshot and vei_action_count:
         vei_times = sorted(
-            c.created_at for c in cmds if getattr(c, "action", None) in steering and c.created_at
+            c.created_at
+            for c in cmds
+            if getattr(c, "action", None) in steering and c.created_at
         )
         if vei_times:
             downstream_response_count = sum(
@@ -1268,7 +1366,13 @@ def _sync_workforce_gateway(
 
 
 def _fetch_workforce_commands(manifest: PilotManifest) -> list[WorkforceCommandRecord]:
-    raw = _fetch_json(f"{manifest.gateway_url}/api/workforce")
+    raw = _request_json(
+        f"{manifest.gateway_url}/api/workforce",
+        headers={"Authorization": f"Bearer {manifest.bearer_token}"},
+        timeout_s=2.0,
+    )
+    if raw is None:
+        raw = _fetch_json(f"{manifest.gateway_url}/api/workforce")
     if not isinstance(raw, dict):
         return []
     items = raw.get("commands") or []

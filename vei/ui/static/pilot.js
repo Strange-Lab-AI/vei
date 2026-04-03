@@ -221,15 +221,33 @@ function renderLaunch() {
     return;
   }
   const activeAgents = state.pilot?.active_agents || [];
+  const orchestratorAgents = orchestrator?.agents || [];
   const surfaces = manifest.supported_surfaces || [];
   const snippets = manifest.snippets || [];
   const statusValue = state.pilot?.services_ready ? "Live" : "Waiting";
   const statusDetail = state.pilot?.services_ready
     ? "Studio, gateway, and the exercise controls are ready."
     : "The launch details exist, but the stack is not fully running right now.";
+  const fleetCount = orchestratorAgents.length || activeAgents.length;
+  const runningFleetCount = orchestratorAgents.filter((agent) => {
+    const status = String(agent?.status || "").trim().toLowerCase();
+    return status === "running" || status === "active" || status === "busy";
+  }).length;
+  const fleetLabel = manifest.orchestrator ? "Observed fleet" : "Agents seen";
+  const fleetDetail = manifest.orchestrator
+    ? (
+      fleetCount
+        ? `${runningFleetCount} running in the outside workforce`
+        : "No outside workers are visible yet"
+    )
+    : (
+      activeAgents.length
+        ? "Names are shown in the activity stream"
+        : "No external agent has connected yet"
+    );
   launchGrid.innerHTML = [
     metricTile("Status", statusValue, statusDetail),
-    metricTile("Agents seen", String(activeAgents.length), activeAgents.length ? "Names are shown in the activity stream" : "No external agent has connected yet"),
+    metricTile(fleetLabel, String(fleetCount), fleetDetail),
     metricTile("Recommended first exercise", currentExerciseTitle(), manifest.recommended_first_exercise || "Start small and stay customer-safe."),
     metricTile("Supported surfaces", String(surfaces.length), surfaces.length ? "These systems are available to the outside agent." : "No surfaces are registered for this workspace."),
     metricTile(
@@ -322,6 +340,8 @@ function renderOrchestrator() {
       const latestAction = latestGovernedAction(agent.agent_id);
       const canPause = sync?.status !== "disabled";
       const isPaused = String(agent.status || "").toLowerCase() === "paused";
+      const surfaces = agent.allowed_surfaces || [];
+      const taskIds = agent.task_ids || [];
       return `
         <article class="pilot-activity-card">
           <div class="pilot-activity-head">
@@ -335,8 +355,14 @@ function renderOrchestrator() {
           <div class="pilot-agent-meta">
             <p class="metric-detail">${escapeHtml([agent.title, agent.role, agent.team].filter(Boolean).join(" · ") || "No role details reported")}</p>
             <p class="metric-detail">${escapeHtml(latestAction ? `Latest governed action: ${latestAction.label}` : "No VEI-governed action recorded yet")}</p>
-            ${(agent.allowed_surfaces || []).length ? `<div class="chip-row">${agent.allowed_surfaces.map((surface) => `<span class="badge">${escapeHtml(humanize(surface))}</span>`).join("")}</div>` : `<p class="metric-detail">No explicit surface allowlist reported.</p>`}
-            ${(agent.task_ids || []).length ? `<div class="chip-row">${agent.task_ids.map((taskId) => `<span class="badge">${escapeHtml(taskId)}</span>`).join("")}</div>` : `<p class="metric-detail">No task ownership reported yet.</p>`}
+            <details class="pilot-refs-disclosure">
+              <summary>IDs &amp; surfaces</summary>
+              <div class="chip-row">
+                <span class="badge">${escapeHtml(agent.agent_id)}</span>
+                ${surfaces.length ? surfaces.map((surface) => `<span class="badge">${escapeHtml(humanize(surface))}</span>`).join("") : '<span class="badge">No surface allowlist</span>'}
+                ${taskIds.length ? taskIds.map((taskId) => `<span class="badge">${escapeHtml(taskId)}</span>`).join("") : '<span class="badge">No task ownership</span>'}
+              </div>
+            </details>
             ${agent.monthly_spend_cents != null ? `<p class="metric-detail">Spend $${escapeHtml((agent.monthly_spend_cents / 100).toFixed(2))}${agent.monthly_budget_cents != null ? ` of $${escapeHtml((agent.monthly_budget_cents / 100).toFixed(2))}` : ""}</p>` : ""}
           </div>
           <div class="pilot-action-row">
@@ -398,10 +424,13 @@ function renderOrchestrator() {
       </div>
       <p class="metric-detail">${escapeHtml(approval.requested_by_name ? `Requested by ${approval.requested_by_name}` : "No requester details reported")}</p>
       ${approval.decision_note ? `<p class="metric-detail">${escapeHtml(`Decision note: ${truncateText(approval.decision_note, 180)}`)}</p>` : ""}
-      <div class="chip-row">
-        <span class="badge">${escapeHtml(approval.approval_id)}</span>
-        ${(approval.task_ids || []).map((taskId) => `<span class="badge">${escapeHtml(taskId)}</span>`).join("")}
-      </div>
+      <details class="pilot-refs-disclosure">
+        <summary>IDs &amp; links</summary>
+        <div class="chip-row">
+          <span class="badge">${escapeHtml(approval.approval_id)}</span>
+          ${(approval.task_ids || []).map((taskId) => `<span class="badge">${escapeHtml(taskId)}</span>`).join("")}
+        </div>
+      </details>
       ${renderCommentThread(approval.comments, "No approval comments loaded yet.")}
       <div class="pilot-action-form">
         <label class="pilot-field-label" for="approval-note-${escapeHtml(approval.approval_id)}">Decision note</label>

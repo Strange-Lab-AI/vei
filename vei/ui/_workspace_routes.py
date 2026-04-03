@@ -32,7 +32,11 @@ def register_workspace_routes(app: FastAPI, root: Path, *, deps: Any) -> None:
 
     @app.get("/api/workspace/mirror")
     def api_workspace_mirror() -> JSONResponse:
-        return JSONResponse(load_workspace_mirror_payload(root))
+        try:
+            payload = gateway_json_request(root, path="/api/mirror")
+        except HTTPException:
+            payload = load_workspace_mirror_payload(root)
+        return JSONResponse(payload or {})
 
     @app.get("/api/workforce")
     def api_workforce() -> JSONResponse:

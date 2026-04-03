@@ -144,6 +144,13 @@ def load_workspace_mirror_payload(root: Path) -> dict[str, Any]:
         except (json.JSONDecodeError, OSError):
             data = {}
         fallback = dict(data.get("metadata", {}).get("mirror", {}) or {})
+    if isinstance(fallback, dict) and (
+        "config" in fallback
+        or "agents" in fallback
+        or "pending_approvals" in fallback
+        or "pending_demo_steps" in fallback
+    ):
+        return fallback
 
     completed_mirror: dict[str, Any] | None = None
     for manifest in list_run_manifests(root):
