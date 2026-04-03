@@ -8,10 +8,20 @@ from fastapi.testclient import TestClient
 
 from vei.context.models import ContextSnapshot, ContextSourceResult
 from vei.mirror import MirrorAgentSpec, default_mirror_workspace_config
+from vei.orchestrators.api import (
+    OrchestratorAgent,
+    OrchestratorApproval,
+    OrchestratorSnapshot,
+    OrchestratorSummary,
+    OrchestratorSyncCapabilities,
+    OrchestratorSyncHealth,
+    OrchestratorTask,
+)
 from vei.run.api import build_run_timeline
 from vei.twin import build_customer_twin, create_twin_gateway_app, load_customer_twin
 from vei.twin.models import ContextMoldConfig
 from vei.ui.api import create_ui_app
+from vei.workforce.api import WorkforceCommandRecord, build_workforce_state
 from vei.workspace.api import load_workspace, load_workspace_blueprint_asset
 
 
@@ -184,6 +194,173 @@ def test_twin_gateway_routes_expose_company_state_and_record_external_actions(
         finalize_payload = finalize_response.json()
         assert finalize_payload["runtime"]["status"] == "completed"
         assert finalize_payload["manifest"]["status"] == "ok"
+
+
+def test_twin_gateway_workforce_sync_updates_control_room_world_state(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "workforce_twin"
+    bundle = build_customer_twin(
+        root,
+        snapshot=_sample_snapshot(),
+        organization_domain="acme.ai",
+        mold=ContextMoldConfig(archetype="service_ops"),
+    )
+    auth_headers = {"Authorization": f"Bearer {bundle.gateway.auth_token}"}
+    workforce_state = build_workforce_state(
+        snapshot=OrchestratorSnapshot(
+            provider="paperclip",
+            company_id="company-1",
+            fetched_at="2026-04-03T08:00:00+00:00",
+            summary=OrchestratorSummary(
+                provider="paperclip",
+                company_id="company-1",
+                company_name="VEI Service Ops Lab",
+            ),
+            capabilities=OrchestratorSyncCapabilities(
+                can_pause_agents=True,
+                can_resume_agents=True,
+                can_comment_on_tasks=True,
+                can_manage_approvals=True,
+                routeable_surfaces=["slack", "service_ops"],
+            ),
+            agents=[
+                OrchestratorAgent(
+                    provider="paperclip",
+                    agent_id="paperclip:ceo",
+                    external_agent_id="ceo",
+                    name="CEO",
+                    role="chief executive officer",
+                    status="running",
+                    integration_mode="proxy",
+                    allowed_surfaces=["slack", "service_ops"],
+                    policy_profile_id="approver",
+                    task_ids=["paperclip:issue-1"],
+                ),
+                OrchestratorAgent(
+                    provider="vendorx",
+                    agent_id="vendorx:watcher",
+                    external_agent_id="watcher",
+                    name="Watcher",
+                    role="observer",
+                    status="paused",
+                    integration_mode="observe",
+                ),
+            ],
+            tasks=[
+                OrchestratorTask(
+                    provider="paperclip",
+                    task_id="paperclip:issue-1",
+                    external_task_id="issue-1",
+                    title="Protect the customer",
+                    identifier="LAB-1",
+                    status="in_progress",
+                    latest_comment_preview="Need a customer-safe plan before moving.",
+                    linked_approval_ids=["paperclip:approval-1"],
+                )
+            ],
+            approvals=[
+                OrchestratorApproval(
+                    provider="paperclip",
+                    approval_id="paperclip:approval-1",
+                    external_approval_id="approval-1",
+                    approval_type="hire_agent",
+                    status="pending",
+                    requested_by_name="CEO",
+                    summary="Hire a recovery engineer",
+                    task_ids=["paperclip:issue-1"],
+                )
+            ],
+        ),
+        sync=OrchestratorSyncHealth(
+            provider="paperclip",
+            status="healthy",
+            last_success_at="2026-04-03T08:00:00+00:00",
+            synced_agent_count=1,
+        ),
+    )
+    command = WorkforceCommandRecord(
+        provider="paperclip",
+        action="request_revision",
+        created_at="2026-04-03T08:05:00+00:00",
+        approval_id="paperclip:approval-1",
+        task_id="paperclip:issue-1",
+        decision_note="Need a safer staffing plan before approving this.",
+    )
+
+    with TestClient(create_twin_gateway_app(root)) as client:
+        first_sync = client.post(
+            "/api/workforce/sync",
+            headers=auth_headers,
+            json=workforce_state.model_dump(mode="json"),
+        )
+        assert first_sync.status_code == 200
+        second_sync = client.post(
+            "/api/workforce/sync",
+            headers=auth_headers,
+            json=workforce_state.model_dump(mode="json"),
+        )
+        assert second_sync.status_code == 200
+
+        workforce_response = client.get("/api/workforce", headers=auth_headers)
+        assert workforce_response.status_code == 200
+        assert workforce_response.json()["summary"] == {
+            "provider": "paperclip",
+            "company_name": "VEI Service Ops Lab",
+            "sync_status": "healthy",
+            "observed_agent_count": 2,
+            "governable_agent_count": 1,
+            "steerable_agent_count": 2,
+            "active_agent_count": 1,
+            "task_count": 1,
+            "pending_approval_count": 1,
+            "routeable_surface_count": 2,
+            "latest_activity_at": None,
+            "vei_action_count": 0,
+            "downstream_response_count": 0,
+            "completed_task_count": 0,
+            "approved_count": 0,
+        }
+
+        surfaces_response = client.get("/api/twin/surfaces")
+        assert surfaces_response.status_code == 200
+        panel_map = {
+            panel["surface"]: panel for panel in surfaces_response.json()["panels"]
+        }
+        assert panel_map["workforce"]["title"] == "Control Room"
+        assert (
+            panel_map["workforce"]["headline"]
+            == "2 agents · 1 tasks · 1 waiting decisions"
+        )
+
+        history_after_sync = client.get("/api/twin/history").json()
+        assert (
+            sum(1 for item in history_after_sync if item["kind"] == "workforce_sync")
+            == 1
+        )
+
+        command_response = client.post(
+            "/api/workforce/commands",
+            headers=auth_headers,
+            json=command.model_dump(mode="json"),
+        )
+        assert command_response.status_code == 200
+        assert command_response.json()["commands"][0]["decision_note"].startswith(
+            "Need a safer staffing plan"
+        )
+
+        history_after_command = client.get("/api/twin/history").json()
+        assert any(
+            item["kind"] == "workforce_control"
+            and item["payload"]["action"] == "request_revision"
+            for item in history_after_command
+        )
+
+        twin_payload = client.get("/api/twin").json()
+        assert (
+            twin_payload["manifest"]["metadata"]["workforce"]["commands"][0]["action"]
+            == "request_revision"
+        )
 
 
 def test_service_ops_twin_mirror_demo_exposes_agents_and_generates_activity(

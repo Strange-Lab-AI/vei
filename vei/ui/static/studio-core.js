@@ -38,6 +38,7 @@ const state = {
   missionState: null,
   fidelityReport: null,
   exportsPreview: [],
+  workforceStatus: null,
   scenarios: [],
   scenarioPreview: null,
   scenarioContract: null,
@@ -178,9 +179,12 @@ async function mirrorDelete(path) {
 }
 
 async function refreshMirrorStatus() {
-  state.mirrorStatus = nonEmptyPayload(
-    await getJson("/api/workspace/mirror").catch(() => null)
-  );
+  const [mirrorStatus, workforceStatus] = await Promise.all([
+    getJson("/api/workspace/mirror").catch(() => null),
+    getJson("/api/workforce").catch(() => null),
+  ]);
+  state.mirrorStatus = nonEmptyPayload(mirrorStatus);
+  state.workforceStatus = nonEmptyPayload(workforceStatus);
   renderLivingCompanyView();
   renderTrustStrip();
 }

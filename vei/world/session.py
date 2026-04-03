@@ -331,6 +331,9 @@ def _component_state(router: "Router") -> Dict[str, Dict[str, Any]]:
         ):
             continue
         components[plugin.manifest.name] = plugin.state_dump(component)
+    workforce_state = getattr(router, "workforce", None)
+    if isinstance(workforce_state, dict) and workforce_state:
+        components["workforce"] = _jsonable(workforce_state)
     return components
 
 
@@ -515,6 +518,11 @@ def restore_router_state(router: "Router", state: WorldState) -> None:
         router.google_admin.drive_shares = _jsonable(
             google_admin_state.get("drive_shares", {})
         )
+
+    workforce_state = components.get("workforce", {})
+    router.workforce = (
+        _jsonable(workforce_state) if isinstance(workforce_state, dict) else {}
+    )
 
     siem_state = components.get("siem", {})
     if getattr(router, "siem", None) and siem_state.get("available", True):

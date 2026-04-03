@@ -93,6 +93,22 @@ def up_command(
         False,
         help="Rebuild the twin workspace before launching",
     ),
+    orchestrator: str | None = typer.Option(
+        None,
+        help="Optional orchestrator provider to bridge into the pilot console",
+    ),
+    orchestrator_url: str | None = typer.Option(
+        None,
+        help="Base URL for the orchestrator API",
+    ),
+    orchestrator_company_id: str | None = typer.Option(
+        None,
+        help="Company ID used by the orchestrator bridge",
+    ),
+    orchestrator_api_key_env: str | None = typer.Option(
+        None,
+        help="Environment variable that holds the orchestrator API key",
+    ),
     indent: int = typer.Option(2, help="Pretty indent"),
 ) -> None:
     """Build or load a twin and start the local pilot stack."""
@@ -115,6 +131,10 @@ def up_command(
             gateway_port=gateway_port,
             studio_port=studio_port,
             rebuild=rebuild,
+            orchestrator=orchestrator,
+            orchestrator_url=orchestrator_url,
+            orchestrator_company_id=orchestrator_company_id,
+            orchestrator_api_key_env=orchestrator_api_key_env,
         )
     except (ValidationError, ValueError, RuntimeError) as exc:
         raise typer.BadParameter(str(exc)) from exc

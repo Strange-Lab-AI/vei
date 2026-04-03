@@ -5,6 +5,42 @@ VEI builds believable company worlds and lets you run a control layer on top of 
 
 You can use it to turn a real or obfuscated company into a branchable enterprise twin, run policies and multi-step workflows against that twin, replay the same starting point with different rules, and show the outcome as a live demo, evaluation run, rollout, or training trace.
 
+In plain English: **VEI gives you a company-shaped world plus a control room for outside agents.** You can watch agents work, steer them, hold risky moves, and see the effect on the company across chat, tickets, CRM, docs, approvals, and other systems.
+
+## What This Looks Like
+
+The screenshots below come from a real local VEI run connected to a real local Paperclip company. VEI is not just showing logs here. It is posting guidance into outside work, recording its own intervention, and showing the downstream response inside the same company view.
+
+![VEI + Paperclip control room demo](docs/assets/paperclip-control-room/vei-paperclip-demo.gif)
+
+[Download the MP4 version](docs/assets/paperclip-control-room/vei-paperclip-demo.mp4)
+
+### 1. Operator Console
+
+This is the outside-workforce view: who exists, what they own, and whether VEI can steer the work.
+
+![VEI operator console](docs/assets/paperclip-control-room/demo-frame-01-pilot-top.png)
+
+### 2. VEI Intervention
+
+This is the important proof point. VEI's own action appears as `Guided task`, followed by the downstream Paperclip update. That makes the cause-and-effect chain visible instead of hiding VEI inside generic activity noise.
+
+![VEI intervention in the operator feed](docs/assets/paperclip-control-room/demo-frame-02-pilot-activity.png)
+
+### 3. Company Control Room
+
+The outside workforce is also visible inside the company world itself, not only in a side dashboard. That means tasks, approvals, interventions, and responses become part of the world state VEI can replay, compare, and branch.
+
+![VEI company control room](docs/assets/paperclip-control-room/demo-frame-03-control-room.png)
+
+### 4. Intervention Story
+
+This is the same idea inside the company view: VEI intervention first, outside response second, all inside one operating picture.
+
+![VEI intervention story in the company view](docs/assets/paperclip-control-room/demo-frame-04-intervention-story.png)
+
+If you want the fuller write-up for this run, including what VEI actually did and what happened afterward in Paperclip, start here: [Paperclip Control Room Report](docs/PAPERCLIP_CONTROL_ROOM_REPORT.md).
+
 The cleanest way to think about VEI is: **one kernel, four modes**.
 
 - **Test / Eval** — prove an agent works before it touches a real company. Run deterministic benchmarks, grade outcomes against typed contracts, and compare scripted vs LLM vs workflow runners over the same starting state.
@@ -308,12 +344,23 @@ vei pilot up --root _vei_out/pilots/pinnacle
 vei pilot status --root _vei_out/pilots/pinnacle
 ```
 
+You can optionally bridge in an outside orchestrator without changing VEI's mirror core. The first adapter is Paperclip, wired as a vendor-neutral bridge above the pilot stack:
+
+```bash
+vei pilot up \
+  --root _vei_out/pilots/pinnacle \
+  --orchestrator paperclip \
+  --orchestrator-url http://127.0.0.1:3100 \
+  --orchestrator-company-id company-1 \
+  --orchestrator-api-key-env PAPERCLIP_API_KEY
+```
+
 That flow writes:
 - `pilot_manifest.json`
 - `pilot_guide.md`
 - `pilot_runtime.json`
 
-The Pilot Console lives beside Studio on the same UI server and gives the operator one place to check launch details, copy connection snippets, follow external-agent activity, and reset or finalize the run.
+The Pilot Console lives beside Studio on the same UI server and gives the operator one place to check launch details, copy connection snippets, follow external-agent activity, inspect outside-fleet status, sync routeable workers into VEI mirror registration, and reset or finalize the run.
 
 You can also use the bundled quick-start client:
 

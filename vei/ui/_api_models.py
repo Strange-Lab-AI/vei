@@ -80,6 +80,14 @@ class ExerciseActivateRequest(BaseModel):
     contract_variant: str | None = None
 
 
+class OrchestratorTaskCommentRequest(BaseModel):
+    body: str
+
+
+class OrchestratorApprovalDecisionRequest(BaseModel):
+    decision_note: str | None = None
+
+
 CONTEXT_PROVIDER_ENV_VARS = {
     "slack": "VEI_SLACK_TOKEN",
     "google": "VEI_GOOGLE_TOKEN",
@@ -136,6 +144,13 @@ def load_workspace_mirror_payload(root: Path) -> dict[str, Any]:
         except (json.JSONDecodeError, OSError):
             data = {}
         fallback = dict(data.get("metadata", {}).get("mirror", {}) or {})
+    if isinstance(fallback, dict) and (
+        "config" in fallback
+        or "agents" in fallback
+        or "pending_approvals" in fallback
+        or "pending_demo_steps" in fallback
+    ):
+        return fallback
 
     completed_mirror: dict[str, Any] | None = None
     for manifest in list_run_manifests(root):
@@ -149,6 +164,21 @@ def load_workspace_mirror_payload(root: Path) -> dict[str, Any]:
         if completed_mirror is None and manifest.status == "completed":
             completed_mirror = dict(mirror)
     return completed_mirror if completed_mirror is not None else fallback
+
+
+def load_workspace_workforce_payload(root: Path) -> dict[str, Any]:
+    completed_workforce: dict[str, Any] | None = None
+    for manifest in list_run_manifests(root):
+        if manifest.runner != "external":
+            continue
+        workforce = manifest.metadata.get("workforce", {})
+        if not isinstance(workforce, dict):
+            continue
+        if manifest.status == "running":
+            return dict(workforce)
+        if completed_workforce is None and manifest.status == "completed":
+            completed_workforce = dict(workforce)
+    return completed_workforce or {}
 
 
 def gateway_json_request(

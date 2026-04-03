@@ -63,6 +63,25 @@
           <div id="exercise-catalog" class="pilot-catalog-grid"></div>
         </section>
 
+        <section class="card pilot-card">
+          <div class="section-header">
+            <div>
+              <p class="eyebrow">Fleet</p>
+              <h2>Who is working, what they own, and whether VEI can govern it</h2>
+            </div>
+          </div>
+          <div id="pilot-orchestrator-grid" class="pilot-launch-grid"></div>
+          <div id="pilot-orchestrator-agents" class="pilot-agent-grid"></div>
+          <div id="pilot-orchestrator-tasks" class="pilot-task-grid"></div>
+          <div class="section-header pilot-subsection-header">
+            <div>
+              <p class="eyebrow">Approvals</p>
+              <h2>What is waiting for a board decision</h2>
+            </div>
+          </div>
+          <div id="pilot-orchestrator-approvals" class="pilot-task-grid"></div>
+        </section>
+
         <section class="card pilot-card" data-operator-mode-panel="generate" hidden>
           <div class="section-header">
             <div>
@@ -99,14 +118,15 @@
           <div class="section-header">
             <div>
               <p class="eyebrow">Controls</p>
-              <h2>Reset or close the run</h2>
+              <h2>Refresh, reset, or close the run</h2>
             </div>
           </div>
           <div class="pilot-control-row">
+            <button id="pilot-sync-button" type="button" class="ghost-button">Sync orchestrator</button>
             <button id="pilot-reset-button" type="button">Reset twin</button>
             <button id="pilot-finalize-button" type="button" class="ghost-button">Finalize run</button>
           </div>
-          <p id="pilot-action-status" class="form-status">Use reset to start again from baseline, or finalize to close the current run.</p>
+          <p id="pilot-action-status" class="form-status">Use sync to refresh the outside fleet view, reset to start again from baseline, or finalize to close the current run.</p>
         </section>
       </main>
     </div>

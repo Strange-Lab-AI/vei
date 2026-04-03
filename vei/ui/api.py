@@ -12,7 +12,18 @@ from vei import __version__ as vei_version
 from vei.dataset import load_workspace_dataset_bundle
 from vei.exercise import activate_exercise, build_exercise_status
 from vei.fidelity import get_or_build_workspace_fidelity_report
-from vei.pilot import build_pilot_status, finalize_pilot_run, reset_pilot_gateway
+from vei.pilot import (
+    approve_pilot_orchestrator_approval,
+    build_pilot_status,
+    comment_on_pilot_orchestrator_task,
+    finalize_pilot_run,
+    pause_pilot_orchestrator_agent,
+    reject_pilot_orchestrator_approval,
+    reset_pilot_gateway,
+    request_revision_pilot_orchestrator_approval,
+    resume_pilot_orchestrator_agent,
+    sync_pilot_orchestrator,
+)
 
 from ._api_models import (
     ContextCaptureRequest,
@@ -23,6 +34,8 @@ from ._api_models import (
     MissionStartRequest,
     MirrorAgentUpdateRequest,
     MirrorApprovalResolveRequest,
+    OrchestratorApprovalDecisionRequest,
+    OrchestratorTaskCommentRequest,
     RunLaunchRequest,
     ScenarioActivateRequest,
     ServiceOpsPolicyReplayRequest,
@@ -40,9 +53,16 @@ _PATCHABLE_ROUTE_DEPS = (
     activate_exercise,
     build_exercise_status,
     get_or_build_workspace_fidelity_report,
+    approve_pilot_orchestrator_approval,
     build_pilot_status,
+    comment_on_pilot_orchestrator_task,
     finalize_pilot_run,
+    pause_pilot_orchestrator_agent,
+    reject_pilot_orchestrator_approval,
     reset_pilot_gateway,
+    request_revision_pilot_orchestrator_approval,
+    resume_pilot_orchestrator_agent,
+    sync_pilot_orchestrator,
 )
 
 __all__ = [
@@ -54,6 +74,8 @@ __all__ = [
     "MissionStartRequest",
     "MirrorAgentUpdateRequest",
     "MirrorApprovalResolveRequest",
+    "OrchestratorApprovalDecisionRequest",
+    "OrchestratorTaskCommentRequest",
     "RunLaunchRequest",
     "ScenarioActivateRequest",
     "ServiceOpsPolicyReplayRequest",

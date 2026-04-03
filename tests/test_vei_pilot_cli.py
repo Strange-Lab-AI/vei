@@ -56,6 +56,42 @@ def test_pilot_cli_commands_are_wired_into_root_app(
     assert down_payload["services_ready"] is False
 
 
+def test_pilot_up_forwards_orchestrator_options(tmp_path: Path, monkeypatch) -> None:
+    runner = CliRunner()
+    root = tmp_path / "pilot"
+    captured: dict[str, object] = {}
+
+    def fake_start_pilot(*args, **kwargs):
+        captured.update(kwargs)
+        return _sample_status(root)
+
+    monkeypatch.setattr(vei_pilot, "start_pilot", fake_start_pilot)
+
+    result = runner.invoke(
+        app,
+        [
+            "pilot",
+            "up",
+            "--root",
+            str(root),
+            "--orchestrator",
+            "paperclip",
+            "--orchestrator-url",
+            "http://paperclip.local",
+            "--orchestrator-company-id",
+            "company-1",
+            "--orchestrator-api-key-env",
+            "PAPERCLIP_TEST_KEY",
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    assert captured["orchestrator"] == "paperclip"
+    assert captured["orchestrator_url"] == "http://paperclip.local"
+    assert captured["orchestrator_company_id"] == "company-1"
+    assert captured["orchestrator_api_key_env"] == "PAPERCLIP_TEST_KEY"
+
+
 def _sample_status(root: Path, *, services_ready: bool = True) -> PilotStatus:
     manifest = PilotManifest(
         workspace_root=root,

@@ -63,6 +63,10 @@ from .models import (
     WorkOrderGraphView,
     WorkItemView,
     CreativeView,
+    WorkforceAgentView,
+    WorkforceApprovalView,
+    WorkforceCommandView,
+    WorkforceTaskView,
 )
 
 
@@ -432,6 +436,12 @@ def _build_doc_graph(components: Dict[str, Dict[str, Any]]) -> Optional[DocGraph
 def _build_work_graph(components: Dict[str, Dict[str, Any]]) -> Optional[WorkGraphView]:
     tickets_component = components.get("tickets", {})
     servicedesk = components.get("servicedesk", {})
+    workforce = components.get("workforce", {})
+    workforce_snapshot = (
+        workforce.get("snapshot")
+        if isinstance(workforce, dict) and isinstance(workforce.get("snapshot"), dict)
+        else {}
+    )
     tickets = [
         WorkItemView(
             item_id=str(ticket_id),
@@ -468,10 +478,86 @@ def _build_work_graph(components: Dict[str, Dict[str, Any]]) -> Optional[WorkGra
         )
         for incident_id, payload in sorted((servicedesk.get("incidents") or {}).items())
     ]
-    if not tickets and not service_requests and not incidents:
+    workforce_agents = [
+        WorkforceAgentView(
+            agent_id=str(payload.get("agent_id", "")),
+            provider=str(payload.get("provider", "")),
+            name=str(payload.get("name", payload.get("agent_id", ""))),
+            status=str(payload.get("status", "unknown")),
+            integration_mode=str(payload.get("integration_mode", "observe")),
+            role=_optional_str(payload.get("role")),
+            policy_profile_id=_optional_str(payload.get("policy_profile_id")),
+            task_ids=[str(item) for item in (payload.get("task_ids") or [])],
+        )
+        for payload in (workforce_snapshot.get("agents") or [])
+        if isinstance(payload, dict)
+    ]
+    workforce_tasks = [
+        WorkforceTaskView(
+            task_id=str(payload.get("task_id", "")),
+            provider=str(payload.get("provider", "")),
+            title=str(payload.get("title", payload.get("task_id", ""))),
+            status=str(payload.get("status", "unknown")),
+            assignee=_optional_str(payload.get("assignee_agent_id")),
+            linked_approval_ids=[
+                str(item) for item in (payload.get("linked_approval_ids") or [])
+            ],
+            latest_note=_optional_str(payload.get("latest_comment_preview")),
+        )
+        for payload in (workforce_snapshot.get("tasks") or [])
+        if isinstance(payload, dict)
+    ]
+    workforce_approvals = [
+        WorkforceApprovalView(
+            approval_id=str(payload.get("approval_id", "")),
+            provider=str(payload.get("provider", "")),
+            summary=str(
+                payload.get("summary")
+                or payload.get("approval_type")
+                or payload.get("approval_id", "")
+            ),
+            status=str(payload.get("status", "unknown")),
+            requested_by=_optional_str(
+                payload.get("requested_by_name") or payload.get("requested_by_agent_id")
+            ),
+            task_ids=[str(item) for item in (payload.get("task_ids") or [])],
+        )
+        for payload in (workforce_snapshot.get("approvals") or [])
+        if isinstance(payload, dict)
+    ]
+    workforce_commands = [
+        WorkforceCommandView(
+            action=str(payload.get("action", "")),
+            provider=str(payload.get("provider", "")),
+            created_at=str(payload.get("created_at", "")),
+            target_ref=(
+                _optional_str(payload.get("approval_id"))
+                or _optional_str(payload.get("task_id"))
+                or _optional_str(payload.get("agent_id"))
+            ),
+            message=_optional_str(payload.get("message")),
+        )
+        for payload in (workforce.get("commands") or [])
+        if isinstance(payload, dict)
+    ]
+    if (
+        not tickets
+        and not service_requests
+        and not incidents
+        and not workforce_agents
+        and not workforce_tasks
+        and not workforce_approvals
+        and not workforce_commands
+    ):
         return None
     return WorkGraphView(
-        tickets=tickets, service_requests=service_requests, incidents=incidents
+        tickets=tickets,
+        service_requests=service_requests,
+        incidents=incidents,
+        workforce_agents=workforce_agents,
+        workforce_tasks=workforce_tasks,
+        workforce_approvals=workforce_approvals,
+        workforce_commands=workforce_commands,
     )
 
 

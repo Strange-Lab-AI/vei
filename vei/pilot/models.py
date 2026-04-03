@@ -5,6 +5,11 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+from vei.orchestrators.api import (
+    OrchestratorConfig,
+    OrchestratorSnapshot,
+    OrchestratorSyncHealth,
+)
 from vei.twin.models import (
     CompatibilitySurfaceSpec,
     ExternalAgentIdentity,
@@ -49,6 +54,7 @@ class PilotManifest(BaseModel):
     recommended_first_exercise: str
     sample_client_path: str
     snippets: list[PilotSnippet] = Field(default_factory=list)
+    orchestrator: OrchestratorConfig | None = None
 
 
 class PilotRuntime(BaseModel):
@@ -64,6 +70,10 @@ class PilotActivityItem(BaseModel):
     channel: str
     tool: str | None = None
     status: str | None = None
+    timestamp: str | None = None
+    detail: str | None = None
+    source_label: str | None = None
+    agent_id: str | None = None
     object_refs: list[str] = Field(default_factory=list)
     agent_name: str | None = None
     agent_role: str | None = None
@@ -79,6 +89,10 @@ class PilotOutcomeSummary(BaseModel):
     latest_tool: str | None = None
     current_tension: str = ""
     affected_surfaces: list[str] = Field(default_factory=list)
+    vei_action_count: int = 0
+    downstream_response_count: int = 0
+    governance_active: bool = False
+    direction: Literal["improving", "stable", "declining", "unknown"] = "unknown"
 
 
 class PilotStatus(BaseModel):
@@ -91,3 +105,5 @@ class PilotStatus(BaseModel):
     active_agents: list[ExternalAgentIdentity] = Field(default_factory=list)
     activity: list[PilotActivityItem] = Field(default_factory=list)
     outcome: PilotOutcomeSummary
+    orchestrator: OrchestratorSnapshot | None = None
+    orchestrator_sync: OrchestratorSyncHealth | None = None

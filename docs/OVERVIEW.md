@@ -103,6 +103,8 @@ Run pickers for path comparison are always visible. Fork-from-here and snapshot 
 
 The Pilot Console is a separate operator sidecar at `/pilot` that provides the fastest path for an outside agent (or a researcher) to connect. One command (`vei pilot up`) starts the twin gateway and Studio, writes a launch manifest with bearer token and curl snippets, and serves the Pilot Console where the operator can watch live or demo agent activity, check outcome status, and reset or finalize runs.
 
+The same console can now bridge an outside orchestrator into VEI without changing mirror-mode semantics. For the first adapter, Paperclip workforce state is normalized into a vendor-neutral snapshot, shown beside VEI activity, and routeable workers are synced into mirror registration using provider-prefixed agent IDs such as `paperclip:agent-42`.
+
 ---
 
 ## Connecting Your Own Enterprise Data

@@ -43,6 +43,7 @@ def build_surface_state(
             state.components.get("google_admin", {}),
         ),
         _build_approval_panel(state.components.get("servicedesk", {})),
+        _build_workforce_panel(state.components.get("workforce", {})),
         _build_vertical_panel(vertical_name, state.components),
     ]
 
@@ -366,6 +367,112 @@ def _build_approval_panel(
         headline=f"{len(requests)} routed requests",
         items=items,
         fallback_status=("warning" if pending_total else "ok"),
+    )
+
+
+def _build_workforce_panel(
+    workforce: Dict[str, Any],
+) -> LivingSurfacePanel | None:
+    if not isinstance(workforce, dict):
+        return None
+    summary = workforce.get("summary")
+    snapshot = workforce.get("snapshot")
+    if not isinstance(summary, dict) or not isinstance(snapshot, dict):
+        return None
+
+    items: list[LivingSurfaceItem] = []
+    for agent in (snapshot.get("agents") or [])[:2]:
+        if not isinstance(agent, dict):
+            continue
+        items.append(
+            LivingSurfaceItem(
+                item_id=f"workforce-agent:{agent.get('agent_id', '')}",
+                title=str(agent.get("name", agent.get("agent_id", "agent"))),
+                subtitle=str(agent.get("status", "unknown")),
+                body=_truncate(
+                    f"Mode {agent.get('integration_mode', 'observe')} · "
+                    f"{len(agent.get('task_ids') or [])} task(s)",
+                    160,
+                ),
+                status=str(agent.get("status", "")),
+                badges=_compact_badges(
+                    [
+                        str(agent.get("integration_mode", "")),
+                        str(agent.get("policy_profile_id", "")),
+                    ]
+                ),
+                highlight_ref=str(agent.get("agent_id", "")) or None,
+            )
+        )
+
+    for task in (snapshot.get("tasks") or [])[:2]:
+        if not isinstance(task, dict):
+            continue
+        items.append(
+            LivingSurfaceItem(
+                item_id=f"workforce-task:{task.get('task_id', '')}",
+                title=str(task.get("identifier") or task.get("title", "task")),
+                subtitle=str(task.get("status", "unknown")),
+                body=_truncate(
+                    str(
+                        task.get("latest_comment_preview") or task.get("summary") or ""
+                    ),
+                    160,
+                ),
+                status=str(task.get("status", "")),
+                badges=_compact_badges(
+                    [
+                        f"{len(task.get('linked_approval_ids') or [])} approvals",
+                        str(task.get("priority", "")),
+                    ]
+                ),
+                highlight_ref=str(task.get("task_id", "")) or None,
+            )
+        )
+
+    for approval in (snapshot.get("approvals") or [])[:2]:
+        if not isinstance(approval, dict):
+            continue
+        items.append(
+            LivingSurfaceItem(
+                item_id=f"workforce-approval:{approval.get('approval_id', '')}",
+                title=str(
+                    approval.get("summary")
+                    or approval.get("approval_type")
+                    or approval.get("approval_id", "approval")
+                ),
+                subtitle=str(approval.get("status", "unknown")),
+                body=_truncate(str(approval.get("decision_note") or ""), 160),
+                status=str(approval.get("status", "")),
+                badges=_compact_badges(
+                    [
+                        str(approval.get("requested_by_name", "")),
+                        f"{len(approval.get('task_ids') or [])} tasks",
+                    ]
+                ),
+                highlight_ref=str(approval.get("approval_id", "")) or None,
+            )
+        )
+
+    if not items:
+        return None
+
+    pending_total = int(summary.get("pending_approval_count", 0) or 0)
+    governable_total = int(summary.get("governable_agent_count", 0) or 0)
+    return _panel(
+        surface="workforce",
+        kind="queue",
+        title="Control Room",
+        accent="#4b8dff",
+        headline=(
+            f"{summary.get('observed_agent_count', 0)} agents · "
+            f"{summary.get('task_count', 0)} tasks · "
+            f"{pending_total} waiting decisions"
+        ),
+        items=items[:6],
+        fallback_status=(
+            "warning" if pending_total else ("ok" if governable_total else "attention")
+        ),
     )
 
 

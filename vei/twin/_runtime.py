@@ -42,6 +42,13 @@ from vei.run.models import (
     RunManifest,
     RunTimelineEvent,
 )
+from vei.workforce.api import (
+    WorkforceCommandRecord,
+    WorkforceState,
+    append_workforce_command,
+    sync_workforce_state,
+    workforce_state_fingerprint,
+)
 from vei.workspace.api import (
     build_workspace_scenario_asset,
     evaluate_workspace_contract_against_state,
@@ -139,10 +146,13 @@ class TwinRuntime:
             metadata={"organization_name": bundle.organization_name},
         )
         self.mirror: MirrorRuntime | None = None
+        self.workforce_state: WorkforceState | None = None
+        self._workforce_sync_fingerprint = ""
 
         self.state_dir.mkdir(parents=True, exist_ok=True)
         self.artifacts_dir.mkdir(parents=True, exist_ok=True)
         self.session = self._build_session()
+        _session_router(self.session).workforce = {}
         snapshot = self.session.snapshot("gateway.start")
         contract_eval = self._evaluate(snapshot, result={"status": "started"})
         self.status.latest_snapshot_id = snapshot.snapshot_id
@@ -359,10 +369,98 @@ class TwinRuntime:
             "bundle": self.bundle.model_dump(mode="json"),
             "runtime": self.status.model_dump(mode="json"),
             "mirror": self._mirror_snapshot_payload(),
+            "workforce": self._workforce_payload(),
             "manifest": load_run_manifest(
                 self.run_dir / "run_manifest.json"
             ).model_dump(mode="json"),
         }
+
+    def sync_workforce_state(self, state: WorkforceState) -> WorkforceState:
+        with self._lock:
+            next_state = sync_workforce_state(
+                self.workforce_state,
+                snapshot=state.snapshot,
+                sync=state.sync,
+            )
+            fingerprint = workforce_state_fingerprint(next_state)
+            self.workforce_state = next_state
+            self._apply_workforce_state()
+            if fingerprint == self._workforce_sync_fingerprint:
+                return next_state
+            self._workforce_sync_fingerprint = fingerprint
+            snapshot = self.session.snapshot("workforce.sync")
+            self.status.latest_snapshot_id = snapshot.snapshot_id
+            self._append_event(
+                kind="workforce_sync",
+                label="outside workforce synced into the company world",
+                channel="Control Room",
+                time_ms=snapshot.time_ms,
+                status=(
+                    next_state.sync.status
+                    if next_state.sync is not None
+                    else "disabled"
+                ),
+                object_refs=_workforce_object_refs(next_state),
+                payload=next_state.model_dump(mode="json"),
+            )
+            self._append_snapshot_event(
+                "workforce.sync",
+                snapshot.snapshot_id,
+                snapshot.time_ms,
+            )
+            self._write_manifest(
+                status="running",
+                success=None,
+                error=None,
+                completed_at=None,
+            )
+            return next_state
+
+    def record_workforce_command(
+        self,
+        command: WorkforceCommandRecord,
+    ) -> WorkforceState:
+        with self._lock:
+            self.workforce_state = append_workforce_command(
+                self.workforce_state,
+                command,
+            )
+            self._apply_workforce_state()
+            snapshot = self.session.snapshot(f"workforce.command:{command.action}")
+            self.status.latest_snapshot_id = snapshot.snapshot_id
+            self._append_event(
+                kind="workforce_control",
+                label=_workforce_command_label(command),
+                channel="Control Room",
+                time_ms=snapshot.time_ms,
+                status="applied",
+                object_refs=_workforce_command_refs(command),
+                payload=command.model_dump(mode="json"),
+            )
+            self._append_snapshot_event(
+                f"workforce.command:{command.action}",
+                snapshot.snapshot_id,
+                snapshot.time_ms,
+            )
+            self._write_manifest(
+                status="running",
+                success=None,
+                error=None,
+                completed_at=None,
+            )
+            return self.workforce_state
+
+    def _apply_workforce_state(self) -> None:
+        payload = self._workforce_payload()
+        _session_router(self.session).workforce = payload
+        metadata = dict(self.status.metadata)
+        metadata["workforce"] = payload
+        self.status.metadata = metadata
+
+    def _workforce_payload(self) -> dict[str, Any]:
+        if self.workforce_state is None:
+            return {}
+        return self.workforce_state.model_dump(mode="json")
 
     def _build_session(self) -> WorldSessionAPI:
         asset = build_workspace_scenario_asset(
@@ -444,6 +542,7 @@ class TwinRuntime:
                 "agents": list(self.status.metadata.get("agents", [])),
                 "last_agent": self.status.metadata.get("last_agent"),
                 "mirror": self._mirror_snapshot_payload(),
+                "workforce": self._workforce_payload(),
             },
         )
         write_run_manifest(self.workspace_root, manifest)
@@ -1142,6 +1241,27 @@ def create_twin_gateway_app(root: str | Path) -> FastAPI:
     def api_mirror(request: Request) -> JSONResponse:
         _require_bearer(request, bundle.gateway.auth_token)
         return JSONResponse(runtime._mirror_snapshot_payload())
+
+    @app.get("/api/workforce")
+    def api_workforce(request: Request) -> JSONResponse:
+        _require_bearer(request, bundle.gateway.auth_token)
+        return JSONResponse(runtime._workforce_payload())
+
+    @app.post("/api/workforce/sync")
+    async def api_workforce_sync(request: Request) -> JSONResponse:
+        _require_bearer(request, bundle.gateway.auth_token)
+        body = await _request_payload(request)
+        state = WorkforceState.model_validate(body)
+        payload = runtime.sync_workforce_state(state)
+        return JSONResponse(payload.model_dump(mode="json"))
+
+    @app.post("/api/workforce/commands")
+    async def api_workforce_command(request: Request) -> JSONResponse:
+        _require_bearer(request, bundle.gateway.auth_token)
+        body = await _request_payload(request)
+        command = WorkforceCommandRecord.model_validate(body)
+        payload = runtime.record_workforce_command(command)
+        return JSONResponse(payload.model_dump(mode="json"))
 
     @app.get("/api/mirror/agents")
     def api_mirror_agents(request: Request) -> JSONResponse:
@@ -2525,6 +2645,45 @@ def _merge_mirror_agent_identity(
     if not updates:
         return mirror_agent
     return mirror_agent.model_copy(update=updates, deep=True)
+
+
+def _session_router(session: WorldSessionAPI) -> Any:
+    router = getattr(session, "router", None)
+    if router is None:
+        raise RuntimeError("world session router is unavailable")
+    return router
+
+
+def _workforce_object_refs(state: WorkforceState) -> list[str]:
+    refs: list[str] = []
+    snapshot = state.snapshot
+    if snapshot is None:
+        return refs
+    refs.extend(agent.agent_id for agent in snapshot.agents[:4])
+    refs.extend(task.task_id for task in snapshot.tasks[:4])
+    refs.extend(item.approval_id for item in snapshot.approvals[:4])
+    return refs
+
+
+def _workforce_command_label(command: WorkforceCommandRecord) -> str:
+    target = (
+        command.approval_id
+        or command.task_id
+        or command.agent_id
+        or "outside workforce"
+    )
+    return f"VEI {command.action.replace('_', ' ')} on {target}"
+
+
+def _workforce_command_refs(command: WorkforceCommandRecord) -> list[str]:
+    refs = [
+        value
+        for value in (command.agent_id, command.task_id, command.approval_id)
+        if value
+    ]
+    if command.comment_id:
+        refs.append(f"comment:{command.comment_id}")
+    return refs
 
 
 def _iso_now() -> str:

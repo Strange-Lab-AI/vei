@@ -54,10 +54,52 @@ class ServiceRequestView(BaseModel):
     approval_stages: List[str] = Field(default_factory=list)
 
 
+class WorkforceAgentView(BaseModel):
+    agent_id: str
+    provider: str
+    name: str
+    status: str
+    integration_mode: str = "observe"
+    role: Optional[str] = None
+    policy_profile_id: Optional[str] = None
+    task_ids: List[str] = Field(default_factory=list)
+
+
+class WorkforceTaskView(BaseModel):
+    task_id: str
+    provider: str
+    title: str
+    status: str
+    assignee: Optional[str] = None
+    linked_approval_ids: List[str] = Field(default_factory=list)
+    latest_note: Optional[str] = None
+
+
+class WorkforceApprovalView(BaseModel):
+    approval_id: str
+    provider: str
+    summary: str
+    status: str
+    requested_by: Optional[str] = None
+    task_ids: List[str] = Field(default_factory=list)
+
+
+class WorkforceCommandView(BaseModel):
+    action: str
+    provider: str
+    created_at: str
+    target_ref: Optional[str] = None
+    message: Optional[str] = None
+
+
 class WorkGraphView(BaseModel):
     tickets: List[WorkItemView] = Field(default_factory=list)
     service_requests: List[ServiceRequestView] = Field(default_factory=list)
     incidents: List[WorkItemView] = Field(default_factory=list)
+    workforce_agents: List[WorkforceAgentView] = Field(default_factory=list)
+    workforce_tasks: List[WorkforceTaskView] = Field(default_factory=list)
+    workforce_approvals: List[WorkforceApprovalView] = Field(default_factory=list)
+    workforce_commands: List[WorkforceCommandView] = Field(default_factory=list)
 
 
 class IdentityUserView(BaseModel):
@@ -555,4 +597,8 @@ __all__ = [
     "ServiceRequestView",
     "WorkGraphView",
     "WorkItemView",
+    "WorkforceAgentView",
+    "WorkforceApprovalView",
+    "WorkforceCommandView",
+    "WorkforceTaskView",
 ]

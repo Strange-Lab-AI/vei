@@ -18,6 +18,7 @@ vei/ui/api.py
 vei/context
 vei/synthesis
 vei/pilot
+vei/orchestrators
 vei/playable
 vei/exercise
 vei/dataset
