@@ -615,7 +615,7 @@ function togglePlayback() {
 }
 
 async function loadWorkspace() {
-  const [workspace, storyArtifacts, exerciseArtifacts, playableArtifacts, scenarios, importSummary, identityFlow, importSources, importNormalization, importReview, generatedImportScenarios, provenanceIndex, mirrorStatus] = await Promise.all([
+  const [workspace, storyArtifacts, exerciseArtifacts, playableArtifacts, scenarios, importSummary, identityFlow, importSources, importNormalization, importReview, generatedImportScenarios, provenanceIndex, mirrorStatus, workforceStatus] = await Promise.all([
     getJson("/api/workspace"),
     fetchStoryArtifacts(),
     fetchExerciseArtifacts(),
@@ -629,9 +629,11 @@ async function loadWorkspace() {
     getJson("/api/imports/scenarios").catch(() => []),
     getJson("/api/imports/provenance").catch(() => []),
     getJson("/api/workspace/mirror").catch(() => ({})),
+    getJson("/api/workforce").catch(() => ({})),
   ]);
   state.workspace = workspace;
   state.mirrorStatus = nonEmptyPayload(mirrorStatus);
+  state.workforceStatus = nonEmptyPayload(workforceStatus);
   state.story = nonEmptyPayload(storyArtifacts.story);
   state.exercise = nonEmptyPayload(exerciseArtifacts.exercise);
   state.exportsPreview = storyArtifacts.exportsPreview;
@@ -1068,7 +1070,7 @@ async function refreshActiveRun(
   { connectStream = false, previousSurfaceState = null, preserveSurfaceHighlights = false } = {}
 ) {
   const generation = ++state.refreshGeneration;
-  const [run, timeline, orientation, graphs, snapshots, contract, surfaces, mirrorStatus] = await Promise.all([
+  const [run, timeline, orientation, graphs, snapshots, contract, surfaces, mirrorStatus, workforceStatus] = await Promise.all([
     getJson(`/api/runs/${runId}`),
     getJson(`/api/runs/${runId}/timeline`),
     getJson(`/api/runs/${runId}/orientation`),
@@ -1077,6 +1079,7 @@ async function refreshActiveRun(
     getJson(`/api/runs/${runId}/contract`),
     getJson(`/api/runs/${runId}/surfaces`).catch(() => null),
     getJson("/api/workspace/mirror").catch(() => null),
+    getJson("/api/workforce").catch(() => null),
   ]);
 
   if (generation !== state.refreshGeneration) return;
@@ -1092,6 +1095,7 @@ async function refreshActiveRun(
   state.snapshots = snapshots;
   state.activeRunContract = contract;
   state.mirrorStatus = nonEmptyPayload(mirrorStatus);
+  state.workforceStatus = nonEmptyPayload(workforceStatus);
   await refreshStoryArtifacts();
   await refreshPlayableArtifacts();
   if (state.selectedEventIndex >= timeline.length) {

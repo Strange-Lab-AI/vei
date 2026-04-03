@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from types import SimpleNamespace
 
+from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
 from vei.dataset.models import DatasetBuildSpec, DatasetBundle, DatasetSplitManifest
@@ -23,6 +24,7 @@ from vei.pilot.models import (
 from vei.run.api import launch_workspace_run
 from vei.twin.models import CompatibilitySurfaceSpec
 from vei.ui import api as ui_api
+from vei.ui import _workspace_routes as workspace_routes
 from vei.workspace.api import (
     create_workspace_from_template,
     generate_workspace_scenarios_from_import,
@@ -804,6 +806,42 @@ def test_ui_api_serves_pilot_console_and_controls(tmp_path: Path, monkeypatch) -
         json={"decision_note": "Not aligned with current plan."},
     )
     assert reject_response.status_code == 200
+
+
+def test_ui_api_serves_workforce_payload_from_gateway_fallback(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    root = tmp_path / "workforce-ui"
+    create_workspace_from_template(
+        root=root,
+        source_kind="vertical",
+        source_ref="service_ops",
+    )
+    expected = {
+        "summary": {
+            "provider": "paperclip",
+            "observed_agent_count": 2,
+            "task_count": 3,
+        }
+    }
+
+    def fake_gateway(*_args, **_kwargs):
+        raise HTTPException(status_code=503, detail="gateway unavailable")
+
+    monkeypatch.setattr(workspace_routes, "gateway_json_request", fake_gateway)
+    monkeypatch.setattr(
+        workspace_routes,
+        "load_workspace_workforce_payload",
+        lambda _root: expected,
+    )
+
+    client = TestClient(ui_api.create_ui_app(root))
+
+    response = client.get("/api/workforce")
+
+    assert response.status_code == 200
+    assert response.json() == expected
 
 
 def _sample_pilot_status(root: Path) -> PilotStatus:

@@ -29,9 +29,13 @@ function renderLivingCompanyContext() {
     ? `<strong>${escapeHtml(crisisTitle)}</strong>: ${escapeHtml(briefing)}`
     : "";
   const mirror = state.mirrorStatus;
-  const mirrorActive = mirror && mirror.config && (Array.isArray(mirror.agents) ? mirror.agents.length > 0 : false || mirror.config.demo_mode);
+  const workforce = state.workforceStatus;
+  const mirrorActive = (
+    (mirror && mirror.config && (Array.isArray(mirror.agents) ? mirror.agents.length > 0 : false || mirror.config.demo_mode))
+    || (workforce && workforce.snapshot && Array.isArray(workforce.snapshot.agents) && workforce.snapshot.agents.length > 0)
+  );
   const modeBanner = mirrorActive
-    ? `<div class="context-mode-banner"><span class="context-mode-dot"></span>Live mirror &mdash; agents run through the control plane</div>`
+    ? `<div class="context-mode-banner"><span class="context-mode-dot"></span>Control Room live &mdash; VEI is watching and steering outside work against the company world</div>`
     : "";
 
   panel.innerHTML = `
@@ -198,6 +202,11 @@ function renderSituationRoom() {
 function renderMirrorFleetPanel() {
   const el = document.getElementById("mirror-fleet-strip");
   if (!el) return;
+  const workforce = state.workforceStatus;
+  if (workforce?.snapshot && workforce?.summary) {
+    renderWorkforceControlRoom(el, workforce);
+    return;
+  }
   const mirror = state.mirrorStatus;
   if (!mirror || !mirror.config) {
     el.innerHTML = "";
@@ -464,6 +473,220 @@ function renderMirrorFleetPanel() {
       await refreshAfterMirrorMutation();
     });
   });
+}
+
+function renderWorkforceControlRoom(el, workforce) {
+  const snapshot = workforce.snapshot || {};
+  const summary = workforce.summary || {};
+  const sync = workforce.sync || {};
+  const agents = Array.isArray(snapshot.agents) ? snapshot.agents : [];
+  const tasks = Array.isArray(snapshot.tasks) ? snapshot.tasks : [];
+  const approvals = Array.isArray(snapshot.approvals) ? snapshot.approvals : [];
+  const routeableSurfaces = Array.isArray(snapshot.capabilities?.routeable_surfaces)
+    ? snapshot.capabilities.routeable_surfaces
+    : [];
+  const statusClass = (sync.status || "disabled") === "healthy"
+    ? "fleet-badge-live"
+    : "fleet-badge-sim";
+  const agentCards = agents.slice(0, 4).map((agent) => {
+    const status = agent.status || "unknown";
+    const action = /running|active|busy/i.test(status) ? "pause" : "resume";
+    const actionLabel = action === "pause" ? "Pause" : "Resume";
+    return `
+      <div class="mirror-agent-card">
+        <div class="agent-card-top">
+          <span class="agent-name">${escapeHtml(agent.name || agent.agent_id)}</span>
+          <span class="agent-policy-badge">${escapeHtml(humanize(agent.integration_mode || "observe"))}</span>
+        </div>
+        <span class="agent-role">${escapeHtml(agent.role || agent.title || agent.provider || "outside agent")}</span>
+        <span class="agent-status agent-status-${escapeHtml(status)}">${escapeHtml(status)}</span>
+        <div class="agent-metrics">
+          <span>${escapeHtml(agent.policy_profile_id || "observer")}</span>
+          <span>${(agent.task_ids || []).length} task(s)</span>
+          <span>${escapeHtml((agent.allowed_surfaces || []).join(", ") || "no surfaces reported")}</span>
+        </div>
+        <div class="agent-btn-row">
+          <button type="button" class="ghost-button workforce-agent-action" data-agent-action="${escapeHtml(action)}" data-agent-id="${escapeHtml(agent.agent_id)}">${actionLabel}</button>
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  const taskCards = tasks.slice(0, 4).map((task) => `
+    <article class="pilot-activity-card workforce-task-card" data-task-id="${escapeHtml(task.task_id)}">
+      <div class="activity-row">
+        <strong>${escapeHtml(task.identifier || task.title || task.task_id)}</strong>
+        <span class="badge">${escapeHtml(humanize(task.status || "unknown"))}</span>
+      </div>
+      <p class="metric-detail">${escapeHtml(task.summary || "No summary provided.")}</p>
+      ${task.latest_comment_preview ? `<p class="metric-detail">${escapeHtml(`Latest note: ${truncate(task.latest_comment_preview, 180)}`)}</p>` : ""}
+      <div class="chip-row">
+        ${(task.linked_approval_ids || []).map((item) => `<span class="badge">${escapeHtml(item)}</span>`).join("")}
+      </div>
+      <label class="agent-role" for="workforce-guidance-${escapeHtml(task.task_id)}">Guidance from VEI</label>
+      <textarea id="workforce-guidance-${escapeHtml(task.task_id)}" class="pilot-action-input workforce-guidance-input" data-guidance-input placeholder="Tell the team what to do next or what must change before this can proceed."></textarea>
+      <div class="agent-btn-row">
+        <button type="button" class="ghost-button workforce-guidance-action" data-task-id="${escapeHtml(task.task_id)}">Send guidance</button>
+      </div>
+    </article>
+  `).join("");
+
+  const approvalCards = approvals.slice(0, 4).map((approval) => `
+    <article class="pilot-activity-card workforce-approval-card" data-approval-id="${escapeHtml(approval.approval_id)}">
+      <div class="activity-row">
+        <strong>${escapeHtml(approval.summary || approval.approval_type || approval.approval_id)}</strong>
+        <span class="badge">${escapeHtml(humanize(approval.status || "unknown"))}</span>
+      </div>
+      <p class="metric-detail">${escapeHtml(approval.requested_by_name ? `Requested by ${approval.requested_by_name}` : "Requester not reported")}</p>
+      ${approval.decision_note ? `<p class="metric-detail">${escapeHtml(`Decision note: ${truncate(approval.decision_note, 180)}`)}</p>` : ""}
+      <div class="chip-row">
+        ${(approval.task_ids || []).map((item) => `<span class="badge">${escapeHtml(item)}</span>`).join("")}
+      </div>
+      <label class="agent-role" for="workforce-approval-note-${escapeHtml(approval.approval_id)}">Decision note</label>
+      <textarea id="workforce-approval-note-${escapeHtml(approval.approval_id)}" class="pilot-action-input workforce-approval-input" data-approval-note-input placeholder="Explain the board decision clearly."></textarea>
+      <div class="agent-btn-row">
+        <button type="button" class="ghost-button workforce-approval-action" data-approval-action="approve" data-approval-id="${escapeHtml(approval.approval_id)}">Approve</button>
+        <button type="button" class="ghost-button workforce-approval-action" data-approval-action="request-revision" data-approval-id="${escapeHtml(approval.approval_id)}">Request revision</button>
+        <button type="button" class="ghost-button workforce-approval-action" data-approval-action="reject" data-approval-id="${escapeHtml(approval.approval_id)}">Reject</button>
+      </div>
+    </article>
+  `).join("");
+
+  const feedEntries = buildWorkforceFeed(workforce)
+    .slice(0, 10)
+    .map((entry) => `
+      <div class="mirror-feed-item">
+        <span class="feed-agent">${escapeHtml(entry.actor)}</span>
+        <span class="feed-label">${escapeHtml(entry.label)}</span>
+        ${entry.when ? `<span class="feed-ts">${escapeHtml(entry.when)}</span>` : ""}
+        ${entry.detail ? `<span class="feed-reason">${escapeHtml(entry.detail)}</span>` : ""}
+      </div>
+    `)
+    .join("") || `<p class="metric-detail">No outside workforce activity yet.</p>`;
+
+  el.innerHTML = `
+    <div class="mirror-fleet-header">
+      <span class="fleet-label">Control Room</span>
+      <span class="fleet-badge ${statusClass}">${escapeHtml(sync.status || "disabled")}</span>
+      <span class="fleet-stat">${summary.observed_agent_count || 0} agents · ${summary.task_count || 0} tasks · ${summary.pending_approval_count || 0} waiting decisions</span>
+    </div>
+    <div class="mirror-connector-strip">
+      <div class="connector-pill connector-healthy connector-interactive">
+        <span class="connector-dot"></span>
+        <span class="connector-name">${escapeHtml(summary.company_name || snapshot.summary?.company_name || "Outside workforce")}</span>
+        <span class="connector-detail">${escapeHtml(snapshot.provider || summary.provider || "provider")}</span>
+      </div>
+      ${routeableSurfaces.map((surface) => `
+        <div class="connector-pill connector-healthy connector-interactive">
+          <span class="connector-dot"></span>
+          <span class="connector-name">${escapeHtml(humanize(surface))}</span>
+          <span class="connector-detail">routeable</span>
+        </div>
+      `).join("")}
+    </div>
+    <div class="mirror-fleet-body">
+      <div class="mirror-agents-grid">${agentCards || `<p class="metric-detail">No outside agents visible yet.</p>`}</div>
+      <div class="mirror-event-feed">
+        <div class="mirror-feed-header">Active work</div>
+        <div class="pilot-task-grid">${taskCards || `<p class="metric-detail">No outside work items yet.</p>`}</div>
+        <div class="mirror-feed-header">Board decisions</div>
+        <div class="pilot-task-grid">${approvalCards || `<p class="metric-detail">No approvals waiting right now.</p>`}</div>
+        <div class="mirror-feed-header">Recent activity</div>
+        <div class="mirror-feed-list">${feedEntries}</div>
+      </div>
+    </div>
+  `;
+
+  el.querySelectorAll(".workforce-agent-action").forEach((node) => {
+    node.addEventListener("click", async () => {
+      const agentId = node.dataset.agentId || "";
+      const action = node.dataset.agentAction || "";
+      if (!agentId || !action) return;
+      await getJson(`/api/pilot/orchestrator/agents/${encodeURIComponent(agentId)}/${action}`, {
+        method: "POST",
+      }).catch(() => null);
+      await refreshAfterMirrorMutation();
+    });
+  });
+
+  el.querySelectorAll(".workforce-guidance-action").forEach((node) => {
+    node.addEventListener("click", async () => {
+      const taskId = node.dataset.taskId || "";
+      const card = node.closest(".workforce-task-card");
+      const input = card?.querySelector("[data-guidance-input]");
+      const body = input?.value?.trim() || "";
+      if (!taskId || !body) return;
+      await getJson(`/api/pilot/orchestrator/tasks/${encodeURIComponent(taskId)}/comment`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ body }),
+      }).catch(() => null);
+      await refreshAfterMirrorMutation();
+    });
+  });
+
+  el.querySelectorAll(".workforce-approval-action").forEach((node) => {
+    node.addEventListener("click", async () => {
+      const approvalId = node.dataset.approvalId || "";
+      const action = node.dataset.approvalAction || "";
+      const card = node.closest(".workforce-approval-card");
+      const input = card?.querySelector("[data-approval-note-input]");
+      const decision_note = input?.value?.trim() || "";
+      if (!approvalId || !action) return;
+      await getJson(`/api/pilot/orchestrator/approvals/${encodeURIComponent(approvalId)}/${action}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ decision_note }),
+      }).catch(() => null);
+      await refreshAfterMirrorMutation();
+    });
+  });
+}
+
+function buildWorkforceFeed(workforce) {
+  const snapshot = workforce?.snapshot || {};
+  const activity = Array.isArray(snapshot.recent_activity) ? snapshot.recent_activity : [];
+  const commands = Array.isArray(workforce?.commands) ? workforce.commands : [];
+  const entries = [];
+  activity.forEach((item) => {
+    entries.push({
+      at: item.created_at || "",
+      actor: item.agent_name || item.provider || "outside agent",
+      label: item.label || item.action || "activity",
+      detail: item.detail || "",
+      when: shortWhen(item.created_at),
+    });
+  });
+  commands.forEach((item) => {
+    entries.push({
+      at: item.created_at || "",
+      actor: "VEI",
+      label: `VEI ${humanize(item.action || "action")}`,
+      detail: item.message || item.decision_note || "",
+      when: shortWhen(item.created_at),
+    });
+  });
+  return entries.sort((a, b) => String(b.at || "").localeCompare(String(a.at || "")));
+}
+
+function shortWhen(value) {
+  if (!value) return "";
+  try {
+    return new Intl.DateTimeFormat(undefined, {
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    }).format(new Date(value));
+  } catch {
+    return "";
+  }
+}
+
+function truncate(value, maxLength) {
+  const text = String(value || "");
+  if (text.length <= maxLength) return text;
+  return `${text.slice(0, Math.max(0, maxLength - 3)).trimEnd()}...`;
 }
 
 function renderSurfaceWall() {

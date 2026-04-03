@@ -20,6 +20,7 @@ from ._api_models import (
     OrchestratorApprovalDecisionRequest,
     OrchestratorTaskCommentRequest,
     gateway_json_request,
+    load_workspace_workforce_payload,
     load_workspace_mirror_payload,
 )
 
@@ -32,6 +33,14 @@ def register_workspace_routes(app: FastAPI, root: Path, *, deps: Any) -> None:
     @app.get("/api/workspace/mirror")
     def api_workspace_mirror() -> JSONResponse:
         return JSONResponse(load_workspace_mirror_payload(root))
+
+    @app.get("/api/workforce")
+    def api_workforce() -> JSONResponse:
+        try:
+            payload = gateway_json_request(root, path="/api/workforce")
+        except HTTPException:
+            payload = load_workspace_workforce_payload(root)
+        return JSONResponse(payload or {})
 
     @app.post("/api/workspace/mirror/agents")
     def api_workspace_mirror_register_agent(

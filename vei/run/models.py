@@ -65,6 +65,8 @@ class RunTimelineEvent(BaseModel):
         "snapshot",
         "contract",
         "mirror_denied",
+        "workforce_sync",
+        "workforce_control",
     ]
     label: str
     channel: str = "World"

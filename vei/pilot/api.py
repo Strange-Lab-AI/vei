@@ -20,6 +20,7 @@ from vei.context.models import (
 from vei.mirror import default_mirror_workspace_config
 from vei.orchestrators.api import (
     OrchestratorAgent,
+    OrchestratorCommandResult,
     OrchestratorConfig,
     OrchestratorSnapshot,
     OrchestratorSyncHealth,
@@ -35,6 +36,7 @@ from vei.twin.models import (
     ExternalAgentIdentity,
     TwinArchetype,
 )
+from vei.workforce.api import build_workforce_state, workforce_command_from_result
 
 from .models import (
     PilotActivityItem,
@@ -315,6 +317,12 @@ def build_pilot_status(
         services_ready=services_ready,
         force_sync=force_orchestrator_sync,
     )
+    _sync_workforce_gateway(
+        manifest,
+        orchestrator_snapshot=orchestrator_snapshot,
+        orchestrator_sync=orchestrator_sync,
+        enabled=services_ready,
+    )
     twin_activity = _build_activity(history_payload)
     if orchestrator_snapshot is not None:
         twin_activity = _attach_task_refs_to_activity(
@@ -398,9 +406,10 @@ def pause_pilot_orchestrator_agent(root: str | Path, agent_id: str) -> PilotStat
     if config is None:
         raise RuntimeError("pilot orchestrator is not configured")
     client = build_orchestrator_client(config)
-    client.pause_agent(
+    result = client.pause_agent(
         _resolve_orchestrator_external_agent_id(workspace_root, agent_id)
     )
+    _record_workforce_command(manifest, result=result)
     return build_pilot_status(workspace_root, force_orchestrator_sync=True)
 
 
@@ -411,9 +420,10 @@ def resume_pilot_orchestrator_agent(root: str | Path, agent_id: str) -> PilotSta
     if config is None:
         raise RuntimeError("pilot orchestrator is not configured")
     client = build_orchestrator_client(config)
-    client.resume_agent(
+    result = client.resume_agent(
         _resolve_orchestrator_external_agent_id(workspace_root, agent_id)
     )
+    _record_workforce_command(manifest, result=result)
     return build_pilot_status(workspace_root, force_orchestrator_sync=True)
 
 
@@ -432,9 +442,14 @@ def comment_on_pilot_orchestrator_task(
     if not comment_body:
         raise RuntimeError("task guidance cannot be empty")
     client = build_orchestrator_client(config)
-    client.comment_on_task(
+    result = client.comment_on_task(
         _resolve_orchestrator_external_task_id(workspace_root, task_id),
         comment_body,
+    )
+    _record_workforce_command(
+        manifest,
+        result=result,
+        decision_note=comment_body,
     )
     return build_pilot_status(workspace_root, force_orchestrator_sync=True)
 
@@ -1162,17 +1177,67 @@ def _act_on_pilot_orchestrator_approval(
         approval_id,
     )
     if action == "approve":
-        client.approve_approval(external_approval_id, decision_note=decision_note)
+        result = client.approve_approval(
+            external_approval_id,
+            decision_note=decision_note,
+        )
     elif action == "reject":
-        client.reject_approval(external_approval_id, decision_note=decision_note)
+        result = client.reject_approval(
+            external_approval_id,
+            decision_note=decision_note,
+        )
     elif action == "request_revision":
-        client.request_approval_revision(
+        result = client.request_approval_revision(
             external_approval_id,
             decision_note=decision_note,
         )
     else:
         raise RuntimeError(f"unsupported approval action: {action}")
+    _record_workforce_command(
+        manifest,
+        result=result,
+        decision_note=decision_note,
+    )
     return build_pilot_status(workspace_root, force_orchestrator_sync=True)
+
+
+def _sync_workforce_gateway(
+    manifest: PilotManifest,
+    *,
+    orchestrator_snapshot: OrchestratorSnapshot | None,
+    orchestrator_sync: OrchestratorSyncHealth | None,
+    enabled: bool,
+) -> None:
+    if not enabled:
+        return
+    if orchestrator_snapshot is None and orchestrator_sync is None:
+        return
+    payload = build_workforce_state(
+        snapshot=orchestrator_snapshot,
+        sync=orchestrator_sync,
+    ).model_dump(mode="json")
+    _post_json(
+        f"{manifest.gateway_url}/api/workforce/sync",
+        payload=payload,
+        headers={"Authorization": f"Bearer {manifest.bearer_token}"},
+    )
+
+
+def _record_workforce_command(
+    manifest: PilotManifest,
+    *,
+    result: OrchestratorCommandResult,
+    decision_note: str | None = None,
+) -> None:
+    command = workforce_command_from_result(
+        result,
+        decision_note=decision_note,
+    )
+    _post_json(
+        f"{manifest.gateway_url}/api/workforce/commands",
+        payload=command.model_dump(mode="json"),
+        headers={"Authorization": f"Bearer {manifest.bearer_token}"},
+    )
 
 
 def _default_policy_profile_for_orchestrator_agent(agent: OrchestratorAgent) -> str:
@@ -1309,8 +1374,19 @@ def _request_json(
         return None
 
 
-def _post_json(url: str, *, payload: dict[str, Any]) -> dict[str, Any] | None:
-    result = _request_json(url, method="POST", payload=payload, timeout_s=4.0)
+def _post_json(
+    url: str,
+    *,
+    payload: dict[str, Any],
+    headers: dict[str, str] | None = None,
+) -> dict[str, Any] | None:
+    result = _request_json(
+        url,
+        method="POST",
+        payload=payload,
+        headers=headers,
+        timeout_s=4.0,
+    )
     if isinstance(result, list):
         return None
     return result

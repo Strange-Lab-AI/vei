@@ -159,6 +159,21 @@ def load_workspace_mirror_payload(root: Path) -> dict[str, Any]:
     return completed_mirror if completed_mirror is not None else fallback
 
 
+def load_workspace_workforce_payload(root: Path) -> dict[str, Any]:
+    completed_workforce: dict[str, Any] | None = None
+    for manifest in list_run_manifests(root):
+        if manifest.runner != "external":
+            continue
+        workforce = manifest.metadata.get("workforce", {})
+        if not isinstance(workforce, dict):
+            continue
+        if manifest.status == "running":
+            return dict(workforce)
+        if completed_workforce is None and manifest.status == "completed":
+            completed_workforce = dict(workforce)
+    return completed_workforce or {}
+
+
 def gateway_json_request(
     root: Path,
     *,

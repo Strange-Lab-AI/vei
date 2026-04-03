@@ -13,6 +13,7 @@ from vei.orchestrators.api import (
     OrchestratorAgent,
     OrchestratorApproval,
     OrchestratorBudgetSummary,
+    OrchestratorCommandResult,
     OrchestratorConfig,
     OrchestratorSnapshot,
     OrchestratorSummary,
@@ -570,6 +571,8 @@ def test_build_pilot_status_merges_orchestrator_snapshot_and_syncs_mirror_agents
             return snapshot.capabilities
 
     captured_sync_payloads: list[dict[str, object]] = []
+    captured_workforce_sync_payloads: list[dict[str, object]] = []
+    captured_workforce_headers: list[dict[str, str] | None] = []
 
     def fake_fetch(url: str):
         if url.endswith("/healthz"):
@@ -629,6 +632,10 @@ def test_build_pilot_status_merges_orchestrator_snapshot_and_syncs_mirror_agents
         if url.endswith("/api/mirror/agents"):
             captured_sync_payloads.append(payload or {})
             return {"ok": True}
+        if url.endswith("/api/workforce/sync"):
+            captured_workforce_sync_payloads.append(payload or {})
+            captured_workforce_headers.append(headers)
+            return {"ok": True}
         return None
 
     monkeypatch.setattr(
@@ -650,6 +657,21 @@ def test_build_pilot_status_merges_orchestrator_snapshot_and_syncs_mirror_agents
         "homegrown:ana-1",
     ]
     assert captured_sync_payloads[1]["allowed_surfaces"] == ["graph"]
+    assert len(captured_workforce_sync_payloads) == 1
+    assert captured_workforce_headers == [{"Authorization": "Bearer pilot-token"}]
+    assert captured_workforce_sync_payloads[0]["summary"] == {
+        "provider": "paperclip",
+        "company_name": "Acme AI",
+        "sync_status": "healthy",
+        "observed_agent_count": 3,
+        "governable_agent_count": 2,
+        "steerable_agent_count": 3,
+        "active_agent_count": 3,
+        "task_count": 2,
+        "pending_approval_count": 1,
+        "routeable_surface_count": 3,
+        "latest_activity_at": None,
+    }
     assert "paperclip:issue-1" in status.activity[0].object_refs
     assert status.activity[0].source_label == "VEI"
     assert status.orchestrator.approvals[0].approval_id == "paperclip:approval-1"
@@ -851,6 +873,7 @@ def test_comment_on_pilot_orchestrator_task_posts_guidance_and_refreshes(
     )
 
     captured: dict[str, object] = {}
+    posted_commands: list[dict[str, object]] = []
 
     class _FakeClient:
         def fetch_snapshot(self):
@@ -865,7 +888,13 @@ def test_comment_on_pilot_orchestrator_task_posts_guidance_and_refreshes(
         def comment_on_task(self, task_id: str, body: str):
             captured["task_id"] = task_id
             captured["body"] = body
-            return None
+            return OrchestratorCommandResult(
+                provider="paperclip",
+                action="comment_task",
+                task_id="paperclip:issue-1",
+                external_task_id=task_id,
+                message="Guidance posted.",
+            )
 
         def approve_approval(
             self, _approval_id: str, *, decision_note: str | None = None
@@ -900,6 +929,14 @@ def test_comment_on_pilot_orchestrator_task_posts_guidance_and_refreshes(
     monkeypatch.setattr(
         pilot_api, "build_pilot_status", lambda *_args, **_kwargs: expected_status
     )
+    monkeypatch.setattr(
+        pilot_api,
+        "_post_json",
+        lambda url, *, payload, headers=None: posted_commands.append(
+            {"url": url, "payload": payload, "headers": headers}
+        )
+        or {"ok": True},
+    )
 
     status = pilot_api.comment_on_pilot_orchestrator_task(
         root,
@@ -912,6 +949,26 @@ def test_comment_on_pilot_orchestrator_task_posts_guidance_and_refreshes(
         "task_id": "issue-1",
         "body": "Ask for a risk review before shipping.",
     }
+    assert posted_commands == [
+        {
+            "url": "http://127.0.0.1:3020/api/workforce/commands",
+            "headers": {"Authorization": "Bearer pilot-token"},
+            "payload": {
+                "provider": "paperclip",
+                "action": "comment_task",
+                "created_at": posted_commands[0]["payload"]["created_at"],
+                "message": "Guidance posted.",
+                "agent_id": None,
+                "external_agent_id": None,
+                "task_id": "paperclip:issue-1",
+                "external_task_id": "issue-1",
+                "approval_id": None,
+                "external_approval_id": None,
+                "comment_id": None,
+                "decision_note": "Ask for a risk review before shipping.",
+            },
+        }
+    ]
 
 
 @pytest.mark.parametrize(
@@ -978,6 +1035,7 @@ def test_pilot_orchestrator_approval_actions_refresh_status(
     )
 
     captured: dict[str, object] = {}
+    posted_commands: list[dict[str, object]] = []
 
     class _FakeClient:
         def fetch_snapshot(self):
@@ -998,7 +1056,13 @@ def test_pilot_orchestrator_approval_actions_refresh_status(
             captured["action"] = "approve"
             captured["approval_id"] = approval_id
             captured["decision_note"] = decision_note
-            return None
+            return OrchestratorCommandResult(
+                provider="paperclip",
+                action="approve",
+                approval_id="paperclip:approval-1",
+                external_approval_id=approval_id,
+                message="Approval accepted.",
+            )
 
         def reject_approval(
             self, approval_id: str, *, decision_note: str | None = None
@@ -1006,7 +1070,13 @@ def test_pilot_orchestrator_approval_actions_refresh_status(
             captured["action"] = "reject"
             captured["approval_id"] = approval_id
             captured["decision_note"] = decision_note
-            return None
+            return OrchestratorCommandResult(
+                provider="paperclip",
+                action="reject",
+                approval_id="paperclip:approval-1",
+                external_approval_id=approval_id,
+                message="Approval rejected.",
+            )
 
         def request_approval_revision(
             self,
@@ -1017,7 +1087,13 @@ def test_pilot_orchestrator_approval_actions_refresh_status(
             captured["action"] = "request_revision"
             captured["approval_id"] = approval_id
             captured["decision_note"] = decision_note
-            return None
+            return OrchestratorCommandResult(
+                provider="paperclip",
+                action="request_revision",
+                approval_id="paperclip:approval-1",
+                external_approval_id=approval_id,
+                message="Revision requested.",
+            )
 
         def sync_capabilities(self):
             return OrchestratorSyncCapabilities()
@@ -1034,6 +1110,14 @@ def test_pilot_orchestrator_approval_actions_refresh_status(
     monkeypatch.setattr(
         pilot_api, "build_pilot_status", lambda *_args, **_kwargs: expected_status
     )
+    monkeypatch.setattr(
+        pilot_api,
+        "_post_json",
+        lambda url, *, payload, headers=None: posted_commands.append(
+            {"url": url, "payload": payload, "headers": headers}
+        )
+        or {"ok": True},
+    )
 
     status = getattr(pilot_api, f"{action_name}_pilot_orchestrator_approval")(
         root,
@@ -1047,6 +1131,194 @@ def test_pilot_orchestrator_approval_actions_refresh_status(
         "approval_id": "approval-1",
         "decision_note": "Need a clearer staffing plan.",
     }
+    assert posted_commands == [
+        {
+            "url": "http://127.0.0.1:3020/api/workforce/commands",
+            "headers": {"Authorization": "Bearer pilot-token"},
+            "payload": {
+                "provider": "paperclip",
+                "action": action_name,
+                "created_at": posted_commands[0]["payload"]["created_at"],
+                "message": {
+                    "approve": "Approval accepted.",
+                    "reject": "Approval rejected.",
+                    "request_revision": "Revision requested.",
+                }[action_name],
+                "agent_id": None,
+                "external_agent_id": None,
+                "task_id": None,
+                "external_task_id": None,
+                "approval_id": "paperclip:approval-1",
+                "external_approval_id": "approval-1",
+                "comment_id": None,
+                "decision_note": "Need a clearer staffing plan.",
+            },
+        }
+    ]
+
+
+@pytest.mark.parametrize("action_name", ["pause", "resume"])
+def test_pilot_orchestrator_agent_actions_record_workforce_command(
+    tmp_path: Path,
+    monkeypatch,
+    action_name: str,
+) -> None:
+    root = tmp_path / f"pilot_{action_name}_agent"
+    root.mkdir(parents=True, exist_ok=True)
+    manifest = pilot_api.PilotManifest(
+        workspace_root=root,
+        workspace_name="pilot",
+        organization_name="Pinnacle Analytics",
+        organization_domain="pinnacle.example.com",
+        archetype="service_ops",
+        crisis_name="VIP outage",
+        studio_url="http://127.0.0.1:3011",
+        pilot_console_url="http://127.0.0.1:3011/pilot",
+        gateway_url="http://127.0.0.1:3020",
+        gateway_status_url="http://127.0.0.1:3020/api/twin",
+        bearer_token="pilot-token",
+        recommended_first_exercise="Keep the customer safe.",
+        sample_client_path="/tmp/pilot_client.py",
+        orchestrator=OrchestratorConfig(
+            provider="paperclip",
+            base_url="http://paperclip.local",
+            company_id="company-1",
+        ),
+    )
+    snapshot = OrchestratorSnapshot(
+        provider="paperclip",
+        company_id="company-1",
+        fetched_at="2026-04-02T01:00:00+00:00",
+        summary=OrchestratorSummary(
+            provider="paperclip",
+            company_id="company-1",
+            company_name="Acme AI",
+        ),
+        agents=[
+            OrchestratorAgent(
+                provider="paperclip",
+                agent_id="paperclip:eng-1",
+                external_agent_id="eng-1",
+                name="Backend Engineer",
+            )
+        ],
+    )
+    (root / pilot_api.PILOT_MANIFEST_FILE).write_text(
+        manifest.model_dump_json(indent=2),
+        encoding="utf-8",
+    )
+    (root / pilot_api.PILOT_ORCHESTRATOR_CACHE_FILE).write_text(
+        snapshot.model_dump_json(indent=2),
+        encoding="utf-8",
+    )
+
+    captured: dict[str, object] = {}
+    posted_commands: list[dict[str, object]] = []
+
+    class _FakeClient:
+        def fetch_snapshot(self):
+            raise AssertionError("fetch_snapshot should not run here")
+
+        def pause_agent(self, agent_id: str):
+            captured["action"] = "pause"
+            captured["agent_id"] = agent_id
+            return OrchestratorCommandResult(
+                provider="paperclip",
+                action="pause",
+                agent_id="paperclip:eng-1",
+                external_agent_id=agent_id,
+                message="Agent paused.",
+            )
+
+        def resume_agent(self, agent_id: str):
+            captured["action"] = "resume"
+            captured["agent_id"] = agent_id
+            return OrchestratorCommandResult(
+                provider="paperclip",
+                action="resume",
+                agent_id="paperclip:eng-1",
+                external_agent_id=agent_id,
+                message="Agent resumed.",
+            )
+
+        def comment_on_task(self, _task_id: str, _body: str):
+            raise AssertionError("comment should not run here")
+
+        def approve_approval(
+            self, _approval_id: str, *, decision_note: str | None = None
+        ):
+            raise AssertionError("approve should not run here")
+
+        def reject_approval(
+            self, _approval_id: str, *, decision_note: str | None = None
+        ):
+            raise AssertionError("reject should not run here")
+
+        def request_approval_revision(
+            self,
+            _approval_id: str,
+            *,
+            decision_note: str | None = None,
+        ):
+            raise AssertionError("request revision should not run here")
+
+        def sync_capabilities(self):
+            return OrchestratorSyncCapabilities()
+
+    expected_status = pilot_api.PilotStatus(
+        manifest=manifest,
+        runtime=pilot_api.PilotRuntime(workspace_root=root),
+        outcome=pilot_api.PilotOutcomeSummary(status="running", summary="ok"),
+    )
+
+    monkeypatch.setattr(
+        pilot_api, "build_orchestrator_client", lambda _config: _FakeClient()
+    )
+    monkeypatch.setattr(
+        pilot_api, "build_pilot_status", lambda *_args, **_kwargs: expected_status
+    )
+    monkeypatch.setattr(
+        pilot_api,
+        "_post_json",
+        lambda url, *, payload, headers=None: posted_commands.append(
+            {"url": url, "payload": payload, "headers": headers}
+        )
+        or {"ok": True},
+    )
+
+    status = getattr(pilot_api, f"{action_name}_pilot_orchestrator_agent")(
+        root,
+        "paperclip:eng-1",
+    )
+
+    assert status == expected_status
+    assert captured == {
+        "action": action_name,
+        "agent_id": "eng-1",
+    }
+    assert posted_commands == [
+        {
+            "url": "http://127.0.0.1:3020/api/workforce/commands",
+            "headers": {"Authorization": "Bearer pilot-token"},
+            "payload": {
+                "provider": "paperclip",
+                "action": action_name,
+                "created_at": posted_commands[0]["payload"]["created_at"],
+                "message": {
+                    "pause": "Agent paused.",
+                    "resume": "Agent resumed.",
+                }[action_name],
+                "agent_id": "paperclip:eng-1",
+                "external_agent_id": "eng-1",
+                "task_id": None,
+                "external_task_id": None,
+                "approval_id": None,
+                "external_approval_id": None,
+                "comment_id": None,
+                "decision_note": None,
+            },
+        }
+    ]
 
 
 def _sample_snapshot() -> ContextSnapshot:
