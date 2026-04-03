@@ -33,7 +33,7 @@ VEI is one kernel with four operating modes sharing the same world session, conn
 
 - **Test / Eval** — run a fixed company world, score an agent, compare scripted vs LLM vs workflow runners
 - **Mirror / Control** — place VEI between agents and enterprise systems; govern, record, and replay what happened
-- **Sandbox / What-if** — fork the same world, change policy or actions, compare alternate futures with world-state diffs
+- **Sandbox / What-if** — fork the same world, change policy or actions, compare alternate futures with snapshot comparisons
 - **Train / Data** — turn traces and trajectories into rollouts, demonstrations, and RL-friendly data
 
 ## Runtime Shape
@@ -79,7 +79,7 @@ VEI now has a product-shaped layer above the kernel:
   - control-room style playback surface for launch, timeline, contract, graph, and snapshot inspection
   - Living Company View that turns the latest run snapshot into a normalized software wall for chat, mail, work tracking, documents, approvals, and the vertical heartbeat
   - Mirror mode indicator banner and Control Plane panel (agent cards, policy badges, approval queue, connector strip, readable activity log)
-  - Sandbox features: fork-from-here on snapshots, Compare Paths button, snapshot pickers, cross-run world-state diff grouped by domain, and `service_ops` policy replay
+  - Sandbox features: fork-from-here on snapshots, Compare Paths button, snapshot pickers, cross-run snapshot comparison grouped by domain, and `service_ops` policy replay
 - `vei.playable`
   - mission catalog, move model, scorecards, branch helpers, export previews, and playable release bundles
   - fork from any snapshot with move-history rewind via optional `snapshot_id` parameter

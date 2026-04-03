@@ -278,7 +278,7 @@ Or use the one-command path:
 vei quickstart run --world service_ops --mirror-demo
 ```
 
-**[Visual walkthrough of the service ops control plane: mirror mode, sandbox forking, path comparison, and world-state diff →](docs/SERVICE_OPS_WALKTHROUGH.md)**
+**[Visual walkthrough of the service ops control plane: mirror mode, sandbox forking, path comparison, and snapshot comparison →](docs/SERVICE_OPS_WALKTHROUGH.md)**
 
 For the first live slice, keep the same twin but flip the connector mode:
 
@@ -422,7 +422,7 @@ The import UI now shows:
 - VEI Studio narrative mode, so the same kernel can be shown as a world studio for enterprises with company briefings, situation/objective selection, branch/outcome explanation, and export previews for future RL/eval/agent-ops layers
 - Mission-driven playable Studio mode, where the same kernel now acts like a work-game runtime with human moves, scorecards, branch points, and twin-fidelity checks
 - Mirror control plane with policy profiles, surface and connector enforcement, approval holds, per-agent denial and throttle tracking, and a Studio dashboard for agents, approvals, and recent activity
-- Sandbox forking from any historical snapshot with move-history rewind, cross-run world-state diffing grouped by domain, and side-by-side path comparison with assertion-level divergence
+- Sandbox forking from any historical snapshot with move-history rewind, cross-run snapshot comparison grouped by domain, and side-by-side path comparison with clear separation points
 
 ## Architecture
 
@@ -444,7 +444,7 @@ Agent ──MCP──► VEI Router                       External Agent ──H
                   ├─ Living Company View + mode indicator
                   ├─ Control Plane panel (agents, approvals, connector strip)
                   ├─ Mission play + sandbox forking
-                  └─ Path comparison + policy replay + world-state diff
+                  └─ Path comparison + policy replay + snapshot comparison
 ```
 
 ## Use It As A Library
@@ -586,7 +586,7 @@ Run playback is now driven by the canonical append-only event spine, so live and
 
 The Studio front door is the Living Company view: Slack, email, tickets, docs, approvals, and the vertical business system displayed side by side as a software wall. Moves land visibly across all surfaces. The three-tab navigation (Company, Crisis, Outcome) keeps the audience focused.
 
-When mirror mode is active, a mode indicator banner appears at the top of the Company view and the control plane panel shows agent cards with policy badges, inline surface/profile controls, an approval queue, a connector-status strip, and a readable activity log for allowed, blocked, held, and throttled actions. The Outcome tab exposes a "Compare Paths" button, snapshot pickers for both paths, snapshot cards with "Fork from here" buttons, a `Try Different Policy` flow for `service_ops` runs, and a world-state diff view that groups changes by domain with humanized keys.
+When mirror mode is active, a mode indicator banner appears at the top of the Company view and the control plane panel shows agent cards with policy badges, inline surface/profile controls, an approval queue, a connector-status strip, and a readable activity log for allowed, blocked, held, and throttled actions. The Outcome tab exposes a "Compare Paths" button, snapshot pickers for both paths, snapshot cards with "Fork from here" buttons, a `Try Different Policy` flow for `service_ops` runs, and a snapshot comparison view that shows what changed between snapshots, grouped by domain with humanized keys.
 
 Imported workspaces add a grounded-intake layer on top of that same UI: source-package health, normalization diagnostics, scenario candidates, imported/derived/simulated object counts, and provenance drilldown from timeline events to raw-source lineage.
 
