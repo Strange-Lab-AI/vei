@@ -796,7 +796,7 @@ def example(
     typer.echo("")
     typer.echo("Eval example workspace is ready.")
     typer.echo(f"  Workspace: {root}")
-    typer.echo(f"  Baseline:  {result.baseline_run_id}")
+    typer.echo(f"  Baseline:  {result.workflow_run_id}")
     typer.echo(f"  Compare:   {result.comparison_run_id}")
     typer.echo("")
     typer.echo("View it with:")
