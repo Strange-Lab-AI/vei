@@ -44,6 +44,10 @@ def play_command(
     max_steps: int = typer.Option(18, help="Max steps for comparison runs"),
     host: str = typer.Option("127.0.0.1", help="Bind host when serving UI"),
     port: int = typer.Option(3011, help="Bind port when serving UI"),
+    mode: str = typer.Option(
+        "sandbox",
+        help="UI skin: sandbox, mirror, test, or train",
+    ),
     serve: bool = typer.Option(
         True,
         "--serve/--no-serve",
@@ -86,4 +90,4 @@ def play_command(
         return
     from vei.ui.app import serve_ui
 
-    serve_ui(root, host=host, port=port)
+    serve_ui(root, host=host, port=port, skin=mode)

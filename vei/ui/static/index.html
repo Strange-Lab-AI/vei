@@ -36,16 +36,17 @@
               <div id="world-menu-panel" class="toolbar-menu-panel"></div>
             </details>
           </label>
-          <label class="toolbar-field">
+          <label class="toolbar-field sandbox-only">
             <span>Crisis</span>
             <select id="mission-select"></select>
           </label>
-          <label class="toolbar-field">
+          <label class="toolbar-field sandbox-only">
             <span>Success criteria</span>
             <select id="objective-select" aria-label="Success criteria"></select>
           </label>
           <div class="toolbar-actions">
-            <button id="start-mission-button" type="button">Start</button>
+            <button id="start-mission-button" type="button" class="sandbox-only">Start</button>
+            <div id="skin-switcher" class="skin-switcher"></div>
             <details id="views-menu" class="toolbar-menu toolbar-menu-actions">
               <summary>Views</summary>
               <div class="toolbar-menu-panel toolbar-menu-actions-panel">
@@ -176,7 +177,7 @@
           </div>
         </section>
 
-        <section class="card play-card" data-studio-view="company">
+        <section class="card play-card sandbox-only" data-studio-view="company">
           <div class="section-header">
             <div>
               <p class="eyebrow">Next Move</p>
@@ -213,6 +214,7 @@
 
         <!-- ========== TAB: OUTCOME ========== -->
         <section class="card run-card outcome-card" data-studio-view="outcome">
+          <div id="eval-narrative-panel" class="eval-narrative test-only" style="display:none"></div>
           <div class="section-header">
             <div>
               <p class="eyebrow">Outcome</p>

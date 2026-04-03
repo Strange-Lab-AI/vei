@@ -83,17 +83,26 @@ __all__ = [
 ]
 
 
-def create_ui_app(workspace_root: str | Path) -> FastAPI:
+_VALID_SKINS = {"sandbox", "mirror", "test", "train"}
+
+
+def create_ui_app(workspace_root: str | Path, *, skin: str = "sandbox") -> FastAPI:
     root = Path(workspace_root).expanduser().resolve()
     static_dir = Path(__file__).with_name("static")
+    resolved_skin = skin if skin in _VALID_SKINS else "sandbox"
     app = FastAPI(title="VEI UI", version=vei_version)
     app.state.workspace_root = root
+    app.state.vei_skin = resolved_skin
     app.mount("/static", StaticFiles(directory=static_dir), name="static")
     deps = sys.modules[__name__]
 
     @app.get("/")
     def index() -> FileResponse:
         return FileResponse(static_dir / "index.html")
+
+    @app.get("/api/skin")
+    def api_skin() -> dict[str, str]:
+        return {"skin": app.state.vei_skin}
 
     @app.get("/pilot")
     def pilot_console() -> FileResponse:

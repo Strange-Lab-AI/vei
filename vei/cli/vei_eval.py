@@ -754,5 +754,54 @@ def frontier_score(
         raise typer.Exit(1)
 
 
+@app.command()
+def example(
+    root: Path = typer.Option(
+        Path("_vei_out/eval_example"),
+        help="Workspace root for the eval example",
+    ),
+    vertical: str = typer.Option(
+        "b2b_saas",
+        help="Vertical world to use for the eval example",
+    ),
+    seed: int = typer.Option(42042, help="Seed for reproducibility"),
+    overwrite: bool = typer.Option(
+        True,
+        help="Recreate the workspace before running",
+    ),
+) -> None:
+    """Generate a built-in eval example with two contrasting runs.
+
+    Creates a workspace from a vertical, runs a cautious workflow baseline
+    and a scripted comparison, then prints the workspace path so you can
+    serve it with `vei ui serve --root <path> --mode test`.
+    """
+    from vei.verticals.demo import (
+        VerticalDemoSpec,
+        prepare_vertical_demo,
+    )
+
+    typer.echo(f"Preparing eval example workspace at {root}")
+    result = prepare_vertical_demo(
+        VerticalDemoSpec(
+            vertical_name=vertical,
+            workspace_root=root,
+            compare_runner="scripted",
+            overwrite=overwrite,
+            seed=seed,
+            max_steps=18,
+        )
+    )
+    typer.echo(json.dumps(result.model_dump(mode="json"), indent=2))
+    typer.echo("")
+    typer.echo("Eval example workspace is ready.")
+    typer.echo(f"  Workspace: {root}")
+    typer.echo(f"  Baseline:  {result.baseline_run_id}")
+    typer.echo(f"  Compare:   {result.comparison_run_id}")
+    typer.echo("")
+    typer.echo("View it with:")
+    typer.echo(f"  vei ui serve --root {root} --mode test")
+
+
 if __name__ == "__main__":
     app()

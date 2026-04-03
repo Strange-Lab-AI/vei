@@ -420,7 +420,7 @@ def test_ui_and_twin_app_wrappers_invoke_uvicorn(
         ),
     )
     monkeypatch.setattr(
-        ui_app, "create_ui_app", lambda root: {"kind": "ui", "root": str(root)}
+        ui_app, "create_ui_app", lambda root, **_kw: {"kind": "ui", "root": str(root)}
     )
     monkeypatch.setattr(
         twin_app,

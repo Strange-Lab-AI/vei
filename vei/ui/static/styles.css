@@ -21,6 +21,44 @@
   --surface-approvals: #9b7bff;
   --surface-heartbeat: #17324a;
   --font-mono: "IBM Plex Mono", "SF Mono", ui-monospace, monospace;
+
+  --skin-accent: var(--accent-bright);
+  --skin-accent-glow: rgba(30, 108, 242, 0.16);
+  --skin-nav-active-bg: var(--accent-bright);
+  --skin-hero-gradient-a: rgba(26, 168, 141, 0.18);
+  --skin-hero-gradient-b: rgba(30, 108, 242, 0.16);
+}
+
+[data-vei-skin="sandbox"] {
+  --skin-accent: #9b7bff;
+  --skin-accent-glow: rgba(155, 123, 255, 0.16);
+  --skin-nav-active-bg: #9b7bff;
+  --skin-hero-gradient-a: rgba(155, 123, 255, 0.18);
+  --skin-hero-gradient-b: rgba(30, 108, 242, 0.14);
+}
+
+[data-vei-skin="mirror"] {
+  --skin-accent: #64b5f6;
+  --skin-accent-glow: rgba(100, 181, 246, 0.16);
+  --skin-nav-active-bg: #37474f;
+  --skin-hero-gradient-a: rgba(55, 71, 79, 0.22);
+  --skin-hero-gradient-b: rgba(100, 181, 246, 0.14);
+}
+
+[data-vei-skin="test"] {
+  --skin-accent: #26a69a;
+  --skin-accent-glow: rgba(38, 166, 154, 0.14);
+  --skin-nav-active-bg: #263238;
+  --skin-hero-gradient-a: rgba(38, 166, 154, 0.14);
+  --skin-hero-gradient-b: rgba(38, 50, 56, 0.18);
+}
+
+[data-vei-skin="train"] {
+  --skin-accent: #ffb74d;
+  --skin-accent-glow: rgba(255, 183, 77, 0.16);
+  --skin-nav-active-bg: #5d4037;
+  --skin-hero-gradient-a: rgba(255, 183, 77, 0.16);
+  --skin-hero-gradient-b: rgba(93, 64, 55, 0.14);
 }
 
 * {
@@ -32,8 +70,8 @@ body {
   font-family: "Sora", "IBM Plex Sans", "Avenir Next", sans-serif;
   color: var(--ink);
   background:
-    radial-gradient(circle at top left, rgba(26, 168, 141, 0.18), transparent 30%),
-    radial-gradient(circle at top right, rgba(30, 108, 242, 0.16), transparent 32%),
+    radial-gradient(circle at top left, var(--skin-hero-gradient-a), transparent 30%),
+    radial-gradient(circle at top right, var(--skin-hero-gradient-b), transparent 32%),
     linear-gradient(180deg, #f4f6ef 0%, #e8edf4 100%);
   min-height: 100vh;
 }
@@ -511,10 +549,10 @@ button:disabled {
 }
 
 .studio-nav-button.active {
-  border-color: rgba(30, 108, 242, 0.36);
-  background: linear-gradient(135deg, rgba(23, 50, 74, 0.96), rgba(30, 108, 242, 0.92));
+  border-color: color-mix(in srgb, var(--skin-nav-active-bg) 36%, transparent);
+  background: linear-gradient(135deg, rgba(23, 50, 74, 0.96), color-mix(in srgb, var(--skin-nav-active-bg) 92%, transparent));
   color: #fff;
-  box-shadow: 0 16px 34px rgba(30, 108, 242, 0.14);
+  box-shadow: 0 16px 34px var(--skin-accent-glow);
 }
 
 .developer-toggle {
@@ -4650,4 +4688,107 @@ details.secondary-disclosure summary:focus-visible {
   .snapshot-item {
     transition: none !important;
   }
+}
+
+/* --- Skin switcher toolbar --- */
+
+.skin-switcher {
+  display: flex;
+  gap: 2px;
+  border-radius: 8px;
+  background: var(--border);
+  padding: 2px;
+}
+
+.skin-switcher .skin-option {
+  font-size: 0.68rem;
+  padding: 3px 8px;
+  border-radius: 6px;
+  text-transform: capitalize;
+  letter-spacing: 0.03em;
+  border: none;
+  background: transparent;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+
+.skin-switcher .skin-option.active {
+  background: var(--skin-accent);
+  color: #fff;
+  font-weight: 600;
+}
+
+/* --- Skin visibility rules --- */
+
+[data-vei-skin="mirror"] .sandbox-only,
+[data-vei-skin="test"] .sandbox-only,
+[data-vei-skin="train"] .sandbox-only {
+  display: none !important;
+}
+
+[data-vei-skin="sandbox"] .mirror-only,
+[data-vei-skin="test"] .mirror-only,
+[data-vei-skin="train"] .mirror-only {
+  display: none !important;
+}
+
+[data-vei-skin="sandbox"] .test-only,
+[data-vei-skin="mirror"] .test-only,
+[data-vei-skin="train"] .test-only {
+  display: none !important;
+}
+
+[data-vei-skin="sandbox"] .train-only,
+[data-vei-skin="mirror"] .train-only,
+[data-vei-skin="test"] .train-only {
+  display: none !important;
+}
+
+/* --- Eval comparison narrative (Test skin) --- */
+
+.eval-narrative {
+  grid-column: 1 / -1;
+  padding: 16px 20px;
+  border-radius: 10px;
+  background: rgba(38, 166, 154, 0.06);
+  border: 1px solid rgba(38, 166, 154, 0.2);
+}
+
+.eval-narrative h3 {
+  font-size: 0.92rem;
+  margin: 0 0 8px;
+}
+
+.eval-narrative p {
+  font-size: 0.82rem;
+  line-height: 1.5;
+  margin: 4px 0;
+}
+
+.eval-divergence-row {
+  display: flex;
+  gap: 16px;
+  margin-top: 10px;
+}
+
+.eval-divergence-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.eval-divergence-value {
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.eval-divergence-label {
+  font-size: 0.66rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  opacity: 0.6;
 }

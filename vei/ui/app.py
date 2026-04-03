@@ -10,8 +10,9 @@ def serve_ui(
     *,
     host: str = "127.0.0.1",
     port: int = 3010,
+    skin: str = "sandbox",
 ) -> None:
     import uvicorn
 
-    app = create_ui_app(workspace_root)
+    app = create_ui_app(workspace_root, skin=skin)
     uvicorn.run(app, host=host, port=port, log_level="warning")

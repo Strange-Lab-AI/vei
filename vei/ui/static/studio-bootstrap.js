@@ -245,8 +245,143 @@ function bindControls() {
 
 bindControls();
 
-loadWorkspace()
+const VALID_SKINS = ["sandbox", "mirror", "test", "train"];
+
+async function applyVeiSkin() {
+  const params = new URLSearchParams(window.location.search);
+  let skin = params.get("skin");
+  if (!skin || !VALID_SKINS.includes(skin)) {
+    try {
+      const res = await getJson("/api/skin");
+      skin = res?.skin;
+    } catch {
+      skin = null;
+    }
+  }
+  if (!skin || !VALID_SKINS.includes(skin)) {
+    skin = "sandbox";
+  }
+  document.body.dataset.veiSkin = skin;
+  renderSkinSwitcher(skin);
+  updateNavLabelsForSkin(skin);
+}
+
+function renderSkinSwitcher(activeSkin) {
+  const container = document.getElementById("skin-switcher");
+  if (!container) return;
+  container.innerHTML = VALID_SKINS.map((s) =>
+    `<button type="button" class="ghost-button skin-option ${s === activeSkin ? "active" : ""}" data-skin="${s}">${s.charAt(0).toUpperCase() + s.slice(1)}</button>`
+  ).join("");
+  container.querySelectorAll(".skin-option").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const chosen = btn.dataset.skin;
+      document.body.dataset.veiSkin = chosen;
+      renderSkinSwitcher(chosen);
+      updateNavLabelsForSkin(chosen);
+      const url = new URL(window.location);
+      url.searchParams.set("skin", chosen);
+      window.history.replaceState({}, "", url);
+    });
+  });
+}
+
+const SKIN_NAV_LABELS = {
+  sandbox: ["Company", "Crisis", "Outcome"],
+  mirror:  ["Control Room", "Fleet", "Governance"],
+  test:    ["World", "Runs", "Eval"],
+  train:   ["World", "Corpus", "Export"],
+};
+
+const SKIN_HINTS = {
+  sandbox: "Track the company, then make the next move",
+  mirror:  "Live control room \u2014 watch and steer outside agents",
+  test:    "Evaluate agent performance against the company world",
+  train:   "Build datasets and export traces from completed runs",
+};
+
+function updateNavLabelsForSkin(skin) {
+  const labels = SKIN_NAV_LABELS[skin] || SKIN_NAV_LABELS.sandbox;
+  const buttons = document.querySelectorAll("#studio-nav .studio-nav-button");
+  buttons.forEach((btn, i) => {
+    if (labels[i]) btn.textContent = labels[i];
+  });
+  const hint = document.getElementById("shell-context-hint");
+  if (hint && !state.missionState?.run_id) {
+    hint.textContent = SKIN_HINTS[skin] || SKIN_HINTS.sandbox;
+  }
+}
+
+async function autoCompareForTestSkin() {
+  const skin = document.body.dataset.veiSkin;
+  if (skin !== "test") return;
+  const runs = state.runs || [];
+  if (runs.length < 2) return;
+  if (!state.compareMode) {
+    await toggleCompareMode();
+  }
+  renderEvalNarrative();
+}
+
+function renderEvalNarrative() {
+  const panel = document.getElementById("eval-narrative-panel");
+  if (!panel) return;
+  const cA = state.compareContractA;
+  const cB = state.compareContractB;
+  if (!cA && !cB) {
+    panel.style.display = "none";
+    return;
+  }
+  const okA = cA?.ok ?? null;
+  const okB = cB?.ok ?? null;
+  const issuesA = cA?.issue_count ?? 0;
+  const issuesB = cB?.issue_count ?? 0;
+  const passedA = cA?.success_predicate_results?.filter((p) => p.passed)?.length ?? 0;
+  const totalA = cA?.success_predicate_results?.length ?? 0;
+  const passedB = cB?.success_predicate_results?.filter((p) => p.passed)?.length ?? 0;
+  const totalB = cB?.success_predicate_results?.length ?? 0;
+  const runA = state.compareRunA;
+  const runB = state.compareRunB;
+  const nameA = runA?.run_id?.replace(/_/g, " ") || "Path A";
+  const nameB = runB?.run_id?.replace(/_/g, " ") || "Path B";
+
+  let verdict = "";
+  if (okA === true && okB !== true) {
+    verdict = `${escapeHtml(nameA)} satisfied the contract while ${escapeHtml(nameB)} did not. The cautious path passed more assertions because it followed proper escalation and approval procedures.`;
+  } else if (okB === true && okA !== true) {
+    verdict = `${escapeHtml(nameB)} satisfied the contract while ${escapeHtml(nameA)} did not.`;
+  } else if (passedA > passedB) {
+    verdict = `Both paths have open issues, but ${escapeHtml(nameA)} passed more assertions (${passedA}/${totalA} vs ${passedB}/${totalB}). Different decisions led to measurably different outcomes on the same starting state.`;
+  } else if (passedB > passedA) {
+    verdict = `${escapeHtml(nameB)} passed more assertions (${passedB}/${totalB} vs ${passedA}/${totalA}).`;
+  } else {
+    verdict = "Both paths produced similar contract results. Try varying the strategy further to see outcome divergence.";
+  }
+
+  panel.style.display = "";
+  panel.innerHTML = `
+    <h3>Eval comparison</h3>
+    <p>${verdict}</p>
+    <div class="eval-divergence-row">
+      <div class="eval-divergence-metric">
+        <span class="eval-divergence-value">${passedA}/${totalA}</span>
+        <span class="eval-divergence-label">${escapeHtml(nameA)}</span>
+      </div>
+      <div class="eval-divergence-metric">
+        <span class="eval-divergence-value">${passedB}/${totalB}</span>
+        <span class="eval-divergence-label">${escapeHtml(nameB)}</span>
+      </div>
+      <div class="eval-divergence-metric">
+        <span class="eval-divergence-value">${issuesA} / ${issuesB}</span>
+        <span class="eval-divergence-label">open issues</span>
+      </div>
+    </div>
+  `;
+}
+
+applyVeiSkin()
+  .then(() => loadWorkspace())
   .then(loadRuns)
+  .then(autoCompareForTestSkin)
   .catch((error) => {
     renderJson("workspace-panel", { error: String(error) });
     renderJson("run-panel", { error: String(error) });
