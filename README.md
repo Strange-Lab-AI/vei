@@ -26,7 +26,7 @@ vei quickstart run
 
 That creates a company world, starts Studio (`:3011`) and the Twin Gateway (`:3012`), runs a scripted baseline so you see events flowing immediately, and prints connection details. Press Ctrl-C to stop.
 
-Options: `--world service_ops`, `--mirror-demo`, `--connector-mode live`, `--seed`, `--no-baseline`.
+Options: `--world service_ops`, `--governor-demo`, `--connector-mode live`, `--seed`, `--no-baseline`.
 
 ## What This Looks Like
 
@@ -89,7 +89,7 @@ VEI simulates a complete enterprise environment — every software system, every
 ```text
 Agent ──MCP──► VEI Router                       External Agent ──HTTP──► Twin Gateway (:3012)
                   └─ transport + tool dispatch                              ├─ Slack / Jira / Graph / SFDC compat routes
-                            │                                               ├─ mirror agent registry
+                            │                                               ├─ governor agent registry
                             ▼                                               ├─ policy profiles + approval queue
                                                                             ├─ surface / connector enforcement
                       WorldSession Kernel ◄─────────────────────────────────┘
@@ -97,7 +97,7 @@ Agent ──MCP──► VEI Router                       External Agent ──H
                   ├─ snapshots / branch / replay / inject
                   ├─ actor state + receipts
                   ├─ enterprise twins (15+ surfaces)
-                  └─ mirror runtime (agent fleet, denial tracking, event feed)
+                  └─ governor runtime (agent fleet, denial tracking, event feed)
                             │
                             ▼
                       Studio UI (:3011)
@@ -171,17 +171,17 @@ vei twin serve --root _vei_out/customer_twins/acme_cloud
 ```
 The gateway exposes provider-shaped routes for Slack, Jira, MS Graph, and Salesforce while keeping normal VEI scoring and replay underneath.
 
-### Pilot stack with orchestrator bridge
+### Twin stack with orchestrator bridge
 
 ```bash
-vei pilot up \
-  --root _vei_out/pilots/pinnacle \
+vei twin up \
+  --root _vei_out/twins/pinnacle \
   --orchestrator paperclip \
   --orchestrator-url http://127.0.0.1:3100 \
   --orchestrator-company-id company-1 \
   --orchestrator-api-key-env PAPERCLIP_API_KEY
 ```
-Starts the customer twin gateway, Studio, and a Pilot Console sidecar. The console gives the operator one place to follow agent activity, sync routeable workers, send guidance, and approve or reject decisions.
+Starts the customer twin gateway and Studio in the governor skin. The control room gives the operator one place to follow agent activity, sync routeable workers, send guidance, and approve or reject decisions.
 
 ### Grounded import from real enterprise data
 
@@ -253,7 +253,7 @@ make all      # check → test → llm-live, stops on first failure
 ## CLI Surface
 
 - **Start here:** `vei quickstart run` · `vei ui serve` · `vei studio play`
-- **Twin and mirror:** `vei twin build|serve|status` · `vei pilot up|status|down|reset|finalize`
+- **Twin and governor:** `vei twin build|serve|status|up|down|reset|finalize|sync`
 - **Context and synthesis:** `vei context capture|hydrate|diff` · `vei synthesize runbook|training-set|agent-config`
 - **Workspace lifecycle:** `vei project|contract|scenario|run|inspect|showcase`
 - **Benchmarking:** `vei eval benchmark|demo|suite|showcase` · `vei bench list|run|scorecard`

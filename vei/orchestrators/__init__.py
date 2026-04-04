@@ -1,5 +1,4 @@
 from .api import (
-    ActivityItemBase,
     OrchestratorActivityItem,
     OrchestratorAgent,
     OrchestratorApproval,
@@ -24,6 +23,7 @@ from .api import (
     normalize_agent_id,
     normalize_task_id,
 )
+from .models import ActivityItemBase
 
 __all__ = [
     "ActivityItemBase",

@@ -390,7 +390,7 @@ function renderMirrorFleetPanel() {
 
   const addAgentForm = `
     <details class="mirror-agent-form-disclosure">
-      <summary class="mirror-feed-header">Register new agent</summary>
+      <summary class="mirror-feed-header">Register governed agent</summary>
       <div class="mirror-agent-form">
         <div class="agent-edit-grid">
           <label><span>Agent ID</span><input id="mirror-new-agent-id" placeholder="control-lead" /></label>
@@ -410,9 +410,15 @@ function renderMirrorFleetPanel() {
 
   el.innerHTML = `
     <div class="mirror-fleet-header">
-      <span class="fleet-label">Control Plane</span>
-      <span class="fleet-badge ${badgeClass}">${mode}</span>
-      <span class="fleet-stat">${eventCount} events · ${pending} pending approvals</span>
+      <div>
+        <span class="fleet-label">Governor</span>
+        <span class="fleet-badge ${badgeClass}">${mode}</span>
+        <span class="fleet-stat">${eventCount} events · ${pending} pending approvals</span>
+      </div>
+      <div class="agent-btn-row">
+        <button type="button" class="ghost-button" data-governor-control="reset">Reset</button>
+        <button type="button" class="ghost-button" data-governor-control="finalize">Finalize</button>
+      </div>
     </div>
     <div class="mirror-connector-strip">${connectorStrip}</div>
     ${addAgentForm}
@@ -434,7 +440,7 @@ function renderMirrorFleetPanel() {
     const profileValue = document.getElementById("mirror-new-agent-profile")?.value || "operator";
     const surfacesRaw = document.getElementById("mirror-new-agent-surfaces")?.value || "";
     if (!agentId || !name) return;
-    await mirrorPost("/api/workspace/mirror/agents", {
+    await mirrorPost("/api/workspace/governor/agents", {
       agent_id: agentId,
       name,
       mode: modeValue,
@@ -450,7 +456,7 @@ function renderMirrorFleetPanel() {
       const profile = el.querySelector(`[data-agent-profile="${agentId}"]`)?.value;
       const status = el.querySelector(`[data-agent-status="${agentId}"]`)?.value;
       const surfaces = el.querySelector(`[data-agent-surfaces="${agentId}"]`)?.value || "";
-      await mirrorPatch(`/api/workspace/mirror/agents/${encodeURIComponent(agentId)}`, {
+      await mirrorPatch(`/api/workspace/governor/agents/${encodeURIComponent(agentId)}`, {
         policy_profile_id: profile,
         status,
         allowed_surfaces: surfaces.split(",").map((item) => item.trim()).filter(Boolean),
@@ -463,7 +469,7 @@ function renderMirrorFleetPanel() {
     node.addEventListener("click", async () => {
       const agentId = node.dataset.agentRemove;
       if (!agentId) return;
-      await mirrorDelete(`/api/workspace/mirror/agents/${encodeURIComponent(agentId)}`).catch(() => null);
+      await mirrorDelete(`/api/workspace/governor/agents/${encodeURIComponent(agentId)}`).catch(() => null);
       await refreshAfterMirrorMutation();
     });
   });
@@ -473,7 +479,7 @@ function renderMirrorFleetPanel() {
       const approvalId = node.dataset.approvalApprove;
       const resolver = el.querySelector(`[data-approval-resolver="${approvalId}"]`)?.value;
       if (!resolver) return;
-      await mirrorPost(`/api/workspace/mirror/approvals/${encodeURIComponent(approvalId)}/approve`, {
+      await mirrorPost(`/api/workspace/governor/approvals/${encodeURIComponent(approvalId)}/approve`, {
         resolver_agent_id: resolver,
       }).catch(() => null);
       await refreshAfterMirrorMutation();
@@ -485,8 +491,24 @@ function renderMirrorFleetPanel() {
       const approvalId = node.dataset.approvalReject;
       const resolver = el.querySelector(`[data-approval-resolver="${approvalId}"]`)?.value;
       if (!resolver) return;
-      await mirrorPost(`/api/workspace/mirror/approvals/${encodeURIComponent(approvalId)}/reject`, {
+      await mirrorPost(`/api/workspace/governor/approvals/${encodeURIComponent(approvalId)}/reject`, {
         resolver_agent_id: resolver,
+      }).catch(() => null);
+      await refreshAfterMirrorMutation();
+    });
+  });
+
+  bindGovernorControlButtons(el);
+}
+
+function bindGovernorControlButtons(panel, { allowSync = false } = {}) {
+  panel.querySelectorAll("[data-governor-control]").forEach((node) => {
+    node.addEventListener("click", async () => {
+      const action = node.dataset.governorControl || "";
+      if (!action) return;
+      if (action === "sync" && !allowSync) return;
+      await getJson(`/api/workspace/governor/${action}`, {
+        method: "POST",
       }).catch(() => null);
       await refreshAfterMirrorMutation();
     });
@@ -589,9 +611,16 @@ function renderWorkforceControlRoom(el, workforce) {
 
   el.innerHTML = `
     <div class="mirror-fleet-header">
-      <span class="fleet-label">Control Room</span>
-      <span class="fleet-badge ${statusClass}">${escapeHtml(sync.status || "disabled")}</span>
-      <span class="fleet-stat">${summary.observed_agent_count || 0} agents · ${summary.task_count || 0} tasks · ${summary.pending_approval_count || 0} waiting decisions</span>
+      <div>
+        <span class="fleet-label">Control Room</span>
+        <span class="fleet-badge ${statusClass}">${escapeHtml(sync.status || "disabled")}</span>
+        <span class="fleet-stat">${summary.observed_agent_count || 0} agents · ${summary.task_count || 0} tasks · ${summary.pending_approval_count || 0} waiting decisions</span>
+      </div>
+      <div class="agent-btn-row">
+        <button type="button" class="ghost-button" data-governor-control="sync">Sync</button>
+        <button type="button" class="ghost-button" data-governor-control="reset">Reset</button>
+        <button type="button" class="ghost-button" data-governor-control="finalize">Finalize</button>
+      </div>
     </div>
     <div class="mirror-connector-strip">
       <div class="connector-pill connector-healthy connector-interactive">
@@ -625,7 +654,7 @@ function renderWorkforceControlRoom(el, workforce) {
       const agentId = node.dataset.agentId || "";
       const action = node.dataset.agentAction || "";
       if (!agentId || !action) return;
-      await getJson(`/api/pilot/orchestrator/agents/${encodeURIComponent(agentId)}/${action}`, {
+      await getJson(`/api/workspace/governor/orchestrator/agents/${encodeURIComponent(agentId)}/${action}`, {
         method: "POST",
       }).catch(() => null);
       await refreshAfterMirrorMutation();
@@ -639,7 +668,7 @@ function renderWorkforceControlRoom(el, workforce) {
       const input = card?.querySelector("[data-guidance-input]");
       const body = input?.value?.trim() || "";
       if (!taskId || !body) return;
-      await getJson(`/api/pilot/orchestrator/tasks/${encodeURIComponent(taskId)}/comment`, {
+      await getJson(`/api/workspace/governor/orchestrator/tasks/${encodeURIComponent(taskId)}/comment`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ body }),
@@ -656,7 +685,7 @@ function renderWorkforceControlRoom(el, workforce) {
       const input = card?.querySelector("[data-approval-note-input]");
       const decision_note = input?.value?.trim() || "";
       if (!approvalId || !action) return;
-      await getJson(`/api/pilot/orchestrator/approvals/${encodeURIComponent(approvalId)}/${action}`, {
+      await getJson(`/api/workspace/governor/orchestrator/approvals/${encodeURIComponent(approvalId)}/${action}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ decision_note }),
@@ -664,6 +693,8 @@ function renderWorkforceControlRoom(el, workforce) {
       await refreshAfterMirrorMutation();
     });
   });
+
+  bindGovernorControlButtons(el, { allowSync: true });
 }
 
 function buildWorkforceFeed(workforce) {
@@ -1112,11 +1143,11 @@ function renderMissionPlay() {
     state.lastMoveImpact = null;
     renderOutcomeActions();
     scorecard.innerHTML = `
-      <div class="story-card story-span-2">
+          <div class="story-card story-span-2">
         <p class="eyebrow">Play</p>
         <p class="metric-detail">${
           hasExerciseMode()
-            ? "Apply a crisis above, then connect an outside agent or use the operator console to watch the company respond."
+            ? "Apply a crisis above, then connect an outside agent and use the control room here to watch the company respond."
             : "Choose a situation and enter the world to begin making moves inside the company."
         }</p>
       </div>

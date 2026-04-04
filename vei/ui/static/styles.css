@@ -37,7 +37,7 @@
   --skin-hero-gradient-b: rgba(30, 108, 242, 0.14);
 }
 
-[data-vei-skin="mirror"] {
+[data-vei-skin="governor"] {
   --skin-accent: #64b5f6;
   --skin-accent-glow: rgba(100, 181, 246, 0.16);
   --skin-nav-active-bg: #37474f;
@@ -4720,7 +4720,7 @@ details.secondary-disclosure summary:focus-visible {
 
 /* --- Skin visibility rules --- */
 
-[data-vei-skin="mirror"] .sandbox-only,
+[data-vei-skin="governor"] .sandbox-only,
 [data-vei-skin="test"] .sandbox-only,
 [data-vei-skin="train"] .sandbox-only {
   display: none !important;
@@ -4733,13 +4733,13 @@ details.secondary-disclosure summary:focus-visible {
 }
 
 [data-vei-skin="sandbox"] .test-only,
-[data-vei-skin="mirror"] .test-only,
+[data-vei-skin="governor"] .test-only,
 [data-vei-skin="train"] .test-only {
   display: none !important;
 }
 
 [data-vei-skin="sandbox"] .train-only,
-[data-vei-skin="mirror"] .train-only,
+[data-vei-skin="governor"] .train-only,
 [data-vei-skin="test"] .train-only {
   display: none !important;
 }

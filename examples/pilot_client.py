@@ -50,7 +50,7 @@ def _post_json(base_url: str, path: str, token: str, payload: dict[str, Any]) ->
 def _register_proxy_agent(base_url: str, token: str) -> None:
     _post_json(
         base_url,
-        "/api/mirror/agents",
+        "/api/governor/agents",
         token,
         {
             "agent_id": AGENT_ID,

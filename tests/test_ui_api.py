@@ -11,7 +11,6 @@ from vei.pilot.exercise_models import (
     ExerciseCatalogItem,
     ExerciseComparisonRow,
     ExerciseManifest,
-    ExerciseStatus,
 )
 from vei.imports.api import get_import_package_example_path
 from vei.pilot.models import (
@@ -22,7 +21,7 @@ from vei.pilot.models import (
     PilotStatus,
 )
 from vei.run.api import launch_workspace_run
-from vei.twin.models import CompatibilitySurfaceSpec
+from vei.twin.models import CompatibilitySurfaceSpec, WorkspaceGovernorStatus
 from vei.ui import api as ui_api
 from vei.ui import _workspace_routes as workspace_routes
 from vei.workspace.api import (
@@ -260,38 +259,39 @@ def test_ui_api_serves_exercise_and_dataset_sidecar_payloads(
 
     monkeypatch.setattr(
         ui_api,
-        "build_exercise_status",
-        lambda *_args, **_kwargs: ExerciseStatus(
-            manifest=ExerciseManifest(
-                workspace_root=root,
-                workspace_name="workspace",
-                company_name="Harbor Point Management",
-                archetype="real_estate_management",
-                crisis_name="Tenant Opening Conflict",
-                scenario_variant="tenant_opening_conflict",
-                contract_variant="opening_readiness",
-                success_criteria=["Protect the opening date."],
-                catalog=[
-                    ExerciseCatalogItem(
-                        scenario_variant="tenant_opening_conflict",
-                        crisis_name="Tenant Opening Conflict",
-                        summary="Opening is blocked.",
-                        contract_variant="opening_readiness",
-                        objective_summary="Keep the opening valid.",
-                        active=True,
-                    )
+        "build_workspace_governor_status",
+        lambda *_args, **_kwargs: WorkspaceGovernorStatus(
+            exercise={
+                "manifest": ExerciseManifest(
+                    workspace_root=root,
+                    workspace_name="workspace",
+                    company_name="Harbor Point Management",
+                    archetype="real_estate_management",
+                    crisis_name="Tenant Opening Conflict",
+                    scenario_variant="tenant_opening_conflict",
+                    contract_variant="opening_readiness",
+                    success_criteria=["Protect the opening date."],
+                    catalog=[
+                        ExerciseCatalogItem(
+                            scenario_variant="tenant_opening_conflict",
+                            crisis_name="Tenant Opening Conflict",
+                            summary="Opening is blocked.",
+                            contract_variant="opening_readiness",
+                            objective_summary="Keep the opening valid.",
+                            active=True,
+                        )
+                    ],
+                ).model_dump(mode="json"),
+                "comparison": [
+                    ExerciseComparisonRow(
+                        runner="workflow",
+                        label="Workflow baseline",
+                        run_id="run_workflow",
+                        status="ok",
+                        summary="healthy",
+                    ).model_dump(mode="json")
                 ],
-            ),
-            pilot=_sample_pilot_status(root),
-            comparison=[
-                ExerciseComparisonRow(
-                    runner="workflow",
-                    label="Workflow baseline",
-                    run_id="run_workflow",
-                    status="ok",
-                    summary="healthy",
-                )
-            ],
+            }
         ),
     )
     monkeypatch.setattr(
@@ -314,10 +314,10 @@ def test_ui_api_serves_exercise_and_dataset_sidecar_payloads(
         ),
     )
 
-    exercise_response = client.get("/api/exercise")
+    exercise_response = client.get("/api/workspace/governor")
     assert exercise_response.status_code == 200
     assert (
-        exercise_response.json()["manifest"]["company_name"]
+        exercise_response.json()["exercise"]["manifest"]["company_name"]
         == "Harbor Point Management"
     )
 
@@ -697,7 +697,10 @@ def test_ui_api_supports_service_ops_policy_replay(tmp_path: Path) -> None:
     assert panel_map["vertical_heartbeat"]["policy"]["approval_threshold_usd"] == 2500.0
 
 
-def test_ui_api_serves_pilot_console_and_controls(tmp_path: Path, monkeypatch) -> None:
+def test_ui_api_serves_governor_workspace_controls(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
     root = tmp_path / "pilot-ui"
     create_workspace_from_template(
         root=root,
@@ -706,103 +709,106 @@ def test_ui_api_serves_pilot_console_and_controls(tmp_path: Path, monkeypatch) -
     )
     payload = _sample_pilot_status(root)
 
-    monkeypatch.setattr(ui_api, "build_pilot_status", lambda _: payload)
     monkeypatch.setattr(
         ui_api,
-        "reset_pilot_gateway",
+        "build_workspace_governor_status",
+        lambda *_args, **_kwargs: _sample_workspace_governor_status(root),
+    )
+    monkeypatch.setattr(
+        ui_api,
+        "reset_twin",
         lambda _: payload.model_copy(update={"request_count": 0}),
     )
     monkeypatch.setattr(
         ui_api,
-        "finalize_pilot_run",
+        "finalize_twin",
         lambda _: payload.model_copy(update={"twin_status": "completed"}),
     )
-    monkeypatch.setattr(ui_api, "sync_pilot_orchestrator", lambda _: payload)
+    monkeypatch.setattr(ui_api, "sync_twin", lambda _: payload)
     monkeypatch.setattr(
         ui_api,
-        "pause_pilot_orchestrator_agent",
+        "pause_twin_orchestrator_agent",
         lambda _root, _agent_id: payload,
     )
     monkeypatch.setattr(
         ui_api,
-        "resume_pilot_orchestrator_agent",
+        "resume_twin_orchestrator_agent",
         lambda _root, _agent_id: payload,
     )
     monkeypatch.setattr(
         ui_api,
-        "comment_on_pilot_orchestrator_task",
+        "comment_on_twin_orchestrator_task",
         lambda _root, _task_id, body: payload,
     )
     monkeypatch.setattr(
         ui_api,
-        "approve_pilot_orchestrator_approval",
+        "approve_twin_orchestrator_approval",
         lambda _root, _approval_id, decision_note=None: payload,
     )
     monkeypatch.setattr(
         ui_api,
-        "reject_pilot_orchestrator_approval",
+        "reject_twin_orchestrator_approval",
         lambda _root, _approval_id, decision_note=None: payload,
     )
     monkeypatch.setattr(
         ui_api,
-        "request_revision_pilot_orchestrator_approval",
+        "request_twin_orchestrator_revision",
         lambda _root, _approval_id, decision_note=None: payload,
     )
 
     client = TestClient(ui_api.create_ui_app(root))
 
     page_response = client.get("/pilot")
-    assert page_response.status_code == 200
-    assert "Operator Console" in page_response.text
+    assert page_response.status_code == 404
 
-    status_response = client.get("/api/pilot")
+    status_response = client.get("/api/workspace/governor")
     assert status_response.status_code == 200
     assert (
         status_response.json()["manifest"]["organization_name"] == "Pinnacle Analytics"
     )
 
-    reset_response = client.post("/api/pilot/reset")
+    reset_response = client.post("/api/workspace/governor/reset")
     assert reset_response.status_code == 200
     assert reset_response.json()["request_count"] == 0
 
-    finalize_response = client.post("/api/pilot/finalize")
+    finalize_response = client.post("/api/workspace/governor/finalize")
     assert finalize_response.status_code == 200
     assert finalize_response.json()["twin_status"] == "completed"
 
-    sync_response = client.post("/api/pilot/orchestrator/sync")
+    sync_response = client.post("/api/workspace/governor/sync")
     assert sync_response.status_code == 200
     assert sync_response.json()["manifest"]["organization_name"] == "Pinnacle Analytics"
 
     pause_response = client.post(
-        "/api/pilot/orchestrator/agents/paperclip%3Aeng-1/pause"
+        "/api/workspace/governor/orchestrator/agents/paperclip%3Aeng-1/pause"
     )
     assert pause_response.status_code == 200
 
     resume_response = client.post(
-        "/api/pilot/orchestrator/agents/paperclip%3Aeng-1/resume"
+        "/api/workspace/governor/orchestrator/agents/paperclip%3Aeng-1/resume"
     )
     assert resume_response.status_code == 200
 
     comment_response = client.post(
-        "/api/pilot/orchestrator/tasks/paperclip%3Aissue-1/comment",
+        "/api/workspace/governor/orchestrator/tasks/paperclip%3Aissue-1/comment",
         json={"body": "Ask for a safer rollout plan."},
     )
     assert comment_response.status_code == 200
 
     approve_response = client.post(
-        "/api/pilot/orchestrator/approvals/paperclip%3Aapproval-1/approve",
+        "/api/workspace/governor/orchestrator/approvals/paperclip%3Aapproval-1/approve",
         json={"decision_note": "Approved for the first engineering hire."},
     )
     assert approve_response.status_code == 200
 
     revision_response = client.post(
-        "/api/pilot/orchestrator/approvals/paperclip%3Aapproval-1/request-revision",
+        "/api/workspace/governor/orchestrator/approvals/paperclip%3Aapproval-1/request-revision",
         json={"decision_note": "Tighten the budget case first."},
     )
     assert revision_response.status_code == 200
 
     reject_response = client.post(
-        "/api/pilot/orchestrator/approvals/paperclip%3Aapproval-1/reject",
+        "/api/workspace/governor/orchestrator/approvals/paperclip%3Aapproval-1/reject",
         json={"decision_note": "Not aligned with current plan."},
     )
     assert reject_response.status_code == 200
@@ -909,4 +915,18 @@ def _sample_pilot_status(root: Path) -> PilotStatus:
             current_tension="Customer trust is slipping.",
             affected_surfaces=["Email", "Slack"],
         ),
+    )
+
+
+def _sample_workspace_governor_status(root: Path) -> WorkspaceGovernorStatus:
+    pilot = _sample_pilot_status(root)
+    return WorkspaceGovernorStatus(
+        governor={"config": {"connector_mode": "sim", "demo_mode": False}},
+        manifest=pilot.manifest.model_dump(mode="json"),
+        runtime=pilot.runtime.model_dump(mode="json"),
+        active_run=pilot.active_run,
+        twin_status=pilot.twin_status,
+        request_count=pilot.request_count,
+        services_ready=pilot.services_ready,
+        outcome=pilot.outcome.model_dump(mode="json"),
     )

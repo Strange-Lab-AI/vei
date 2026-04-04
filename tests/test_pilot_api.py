@@ -210,8 +210,8 @@ def test_ensure_twin_bundle_preserves_provider_capture_path(
         scenario_variant="renewal_save",
         contract_variant="customer_safe_recovery",
         connector_mode="live",
-        mirror_demo=False,
-        mirror_demo_interval_ms=2500,
+        governor_demo=False,
+        governor_demo_interval_ms=2500,
         gateway_token="pilot-token",
         rebuild=True,
     )
@@ -238,7 +238,7 @@ def test_ensure_twin_bundle_rejects_live_demo_combo(
     )
 
     with pytest.raises(
-        ValueError, match="mirror demo mode requires connector_mode='sim'"
+        ValueError, match="governor demo mode requires connector_mode='sim'"
     ):
         pilot_api._ensure_twin_bundle(
             tmp_path / "provider_pilot",
@@ -252,8 +252,8 @@ def test_ensure_twin_bundle_rejects_live_demo_combo(
             scenario_variant="renewal_save",
             contract_variant="customer_safe_recovery",
             connector_mode="live",
-            mirror_demo=True,
-            mirror_demo_interval_ms=2500,
+            governor_demo=True,
+            governor_demo_interval_ms=2500,
             gateway_token="pilot-token",
             rebuild=True,
         )
@@ -629,9 +629,9 @@ def test_build_pilot_status_merges_orchestrator_snapshot_and_syncs_mirror_agents
         headers=None,
         timeout_s: float = 4.0,
     ):
-        if url.endswith("/api/mirror/agents") and method == "GET":
+        if url.endswith("/api/governor/agents") and method == "GET":
             return {"agents": []}
-        if url.endswith("/api/mirror/agents"):
+        if url.endswith("/api/governor/agents"):
             captured_sync_payloads.append(payload or {})
             return {"ok": True}
         if url.endswith("/api/workforce/sync"):
@@ -1137,7 +1137,7 @@ def test_build_pilot_status_prunes_stale_orchestrator_agents_from_mirror(
         timeout_s: float = 4.0,
     ):
         del headers, timeout_s
-        if url.endswith("/api/mirror/agents") and method == "GET":
+        if url.endswith("/api/governor/agents") and method == "GET":
             return {
                 "agents": [
                     {
@@ -1151,10 +1151,13 @@ def test_build_pilot_status_prunes_stale_orchestrator_agents_from_mirror(
                     {"agent_id": "starter-agent", "metadata": {}},
                 ]
             }
-        if url.endswith("/api/mirror/agents") and method == "POST":
+        if url.endswith("/api/governor/agents") and method == "POST":
             captured_posts.append(payload or {})
             return {"ok": True}
-        if url.endswith("/api/mirror/agents/paperclip%3Aeng-2") and method == "DELETE":
+        if (
+            url.endswith("/api/governor/agents/paperclip%3Aeng-2")
+            and method == "DELETE"
+        ):
             captured_deletes.append(url)
             return {"ok": True}
         if url.endswith("/api/workforce/sync"):
@@ -1173,7 +1176,7 @@ def test_build_pilot_status_prunes_stale_orchestrator_agents_from_mirror(
     assert status.orchestrator is not None
     assert [item["agent_id"] for item in captured_posts] == ["paperclip:eng-1"]
     assert captured_deletes == [
-        "http://127.0.0.1:3020/api/mirror/agents/paperclip%3Aeng-2"
+        "http://127.0.0.1:3020/api/governor/agents/paperclip%3Aeng-2"
     ]
 
 

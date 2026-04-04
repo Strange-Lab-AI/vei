@@ -126,3 +126,20 @@ class TwinMatrixBundle(BaseModel):
     template: TwinTemplateSpec
     variants: list[TwinVariantSpec] = Field(default_factory=list)
     generated_at: str = ""
+
+
+class WorkspaceGovernorStatus(BaseModel):
+    governor: dict[str, Any] = Field(default_factory=dict)
+    workforce: dict[str, Any] = Field(default_factory=dict)
+    manifest: dict[str, Any] = Field(default_factory=dict)
+    runtime: dict[str, Any] = Field(default_factory=dict)
+    active_run: str | None = None
+    twin_status: str = "stopped"
+    request_count: int = 0
+    services_ready: bool = False
+    active_agents: list[dict[str, Any]] = Field(default_factory=list)
+    activity: list[dict[str, Any]] = Field(default_factory=list)
+    outcome: dict[str, Any] = Field(default_factory=dict)
+    orchestrator: dict[str, Any] | None = None
+    orchestrator_sync: dict[str, Any] | None = None
+    exercise: dict[str, Any] = Field(default_factory=dict)

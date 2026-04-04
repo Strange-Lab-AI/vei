@@ -17,13 +17,13 @@ from vei.benchmark.models import BenchmarkMetrics
 from vei.blueprint.api import create_world_session_from_blueprint
 from vei.connectors import TOOL_ROUTES
 from vei.contract.models import ContractEvaluationResult
-from vei.mirror import (
-    MirrorActionPlan,
-    MirrorAgentSpec,
-    MirrorConnectorStatus,
-    MirrorIngestEvent,
-    MirrorRuntime,
-    load_mirror_workspace_config,
+from vei.governor import (
+    GovernorActionPlan,
+    GovernorAgentSpec,
+    GovernorConnectorStatus,
+    GovernorIngestEvent,
+    GovernorRuntime,
+    load_governor_workspace_config,
 )
 from vei.router.errors import MCPError
 from vei.run.api import (
@@ -125,7 +125,7 @@ class TwinRuntime:
     def __init__(self, workspace_root: Path, bundle: CustomerTwinBundle):
         self.workspace_root = workspace_root
         self.bundle = bundle
-        self.mirror_config = load_mirror_workspace_config(bundle.metadata)
+        self.mirror_config = load_governor_workspace_config(bundle.metadata)
         self.workspace_manifest = load_workspace(workspace_root)
         self.scenario = resolve_workspace_scenario(
             workspace_root, self.workspace_manifest
@@ -145,7 +145,7 @@ class TwinRuntime:
             started_at=self.started_at,
             metadata={"organization_name": bundle.organization_name},
         )
-        self.mirror: MirrorRuntime | None = None
+        self.mirror: GovernorRuntime | None = None
         self.workforce_state: WorkforceState | None = None
         self._workforce_sync_fingerprint = ""
 
@@ -177,7 +177,7 @@ class TwinRuntime:
             "gateway.start", snapshot.snapshot_id, snapshot.time_ms
         )
         self._append_contract_event(contract_eval, snapshot.time_ms)
-        self.mirror = MirrorRuntime(
+        self.mirror = GovernorRuntime(
             metadata=bundle.metadata,
             hero_world=bundle.mold.archetype,
             target=self,
@@ -324,7 +324,7 @@ class TwinRuntime:
         agent: ExternalAgentIdentity,
     ) -> Any:
         if self.mirror is None:
-            raise MCPError("mirror.unavailable", "mirror runtime unavailable")
+            raise MCPError("mirror.unavailable", "governor runtime unavailable")
         try:
             mirror_agent = self.mirror.require_agent(agent.agent_id or "")
         except ValueError as exc:
@@ -335,7 +335,7 @@ class TwinRuntime:
         merged_agent = _merge_mirror_agent_identity(mirror_agent, agent)
         if merged_agent != mirror_agent:
             mirror_agent = self.mirror.register_agent(merged_agent)
-        event = MirrorIngestEvent(
+        event = GovernorIngestEvent(
             agent_id=mirror_agent.agent_id,
             external_tool=external_tool,
             resolved_tool=resolved_tool,
@@ -368,7 +368,7 @@ class TwinRuntime:
         return {
             "bundle": self.bundle.model_dump(mode="json"),
             "runtime": self.status.model_dump(mode="json"),
-            "mirror": self._mirror_snapshot_payload(),
+            "governor": self._mirror_snapshot_payload(),
             "workforce": self._workforce_payload(),
             "manifest": load_run_manifest(
                 self.run_dir / "run_manifest.json"
@@ -541,7 +541,7 @@ class TwinRuntime:
                 "surfaces": [item.name for item in self.bundle.gateway.surfaces],
                 "agents": list(self.status.metadata.get("agents", [])),
                 "last_agent": self.status.metadata.get("last_agent"),
-                "mirror": self._mirror_snapshot_payload(),
+                "governor": self._mirror_snapshot_payload(),
                 "workforce": self._workforce_payload(),
             },
         )
@@ -597,7 +597,7 @@ class TwinRuntime:
         if self.mirror is None:
             return
         metadata = dict(self.status.metadata)
-        metadata["mirror"] = self._mirror_snapshot_payload()
+        metadata["governor"] = self._mirror_snapshot_payload()
         self.status.metadata = metadata
 
     def sync_mirror_runtime_state(self) -> None:
@@ -674,7 +674,7 @@ class TwinRuntime:
             ),
         )
 
-    def register_mirror_agent(self, agent: MirrorAgentSpec) -> None:
+    def register_mirror_agent(self, agent: GovernorAgentSpec) -> None:
         actor = ActorState(
             actor_id=agent.agent_id,
             mode="scripted",
@@ -699,10 +699,10 @@ class TwinRuntime:
     def plan_mirror_action(
         self,
         *,
-        event: MirrorIngestEvent,
-        agent: MirrorAgentSpec,
+        event: GovernorIngestEvent,
+        agent: GovernorAgentSpec,
         approval_granted: bool = False,
-    ) -> MirrorActionPlan:
+    ) -> GovernorActionPlan:
         action = "dispatch" if event.resolved_tool else "inject"
         tool_name = str(event.resolved_tool or event.external_tool or "")
         surface = _event_surface(event)
@@ -710,7 +710,7 @@ class TwinRuntime:
         if operation_class is None and action == "inject":
             operation_class = "write_safe"
         if operation_class is None:
-            return MirrorActionPlan(
+            return GovernorActionPlan(
                 action=action,
                 surface=surface,
                 resolved_tool=tool_name,
@@ -724,7 +724,7 @@ class TwinRuntime:
 
         surface_denial = self._check_surface_access(agent, surface)
         if surface_denial is not None:
-            return MirrorActionPlan(
+            return GovernorActionPlan(
                 action=action,
                 surface=surface,
                 resolved_tool=tool_name,
@@ -740,7 +740,7 @@ class TwinRuntime:
             approval_granted=approval_granted,
         )
         if profile_decision is not None:
-            return MirrorActionPlan(
+            return GovernorActionPlan(
                 action=action,
                 surface=surface,
                 resolved_tool=tool_name,
@@ -757,7 +757,7 @@ class TwinRuntime:
             approval_granted=approval_granted,
         )
         if connector_decision is not None:
-            return MirrorActionPlan(
+            return GovernorActionPlan(
                 action=action,
                 surface=surface,
                 resolved_tool=tool_name,
@@ -767,7 +767,7 @@ class TwinRuntime:
                 reason=connector_decision["reason"],
             )
 
-        return MirrorActionPlan(
+        return GovernorActionPlan(
             action=action,
             surface=surface,
             resolved_tool=tool_name,
@@ -777,9 +777,9 @@ class TwinRuntime:
     def execute_mirror_action(
         self,
         *,
-        plan: MirrorActionPlan,
-        event: MirrorIngestEvent,
-        agent: MirrorAgentSpec,
+        plan: GovernorActionPlan,
+        event: GovernorIngestEvent,
+        agent: GovernorAgentSpec,
         approval_granted: bool = False,
     ) -> dict[str, Any]:
         if plan.action == "inject":
@@ -794,12 +794,12 @@ class TwinRuntime:
             approval_granted=approval_granted,
         )
 
-    def mirror_connector_status(self) -> list[MirrorConnectorStatus]:
+    def mirror_connector_status(self) -> list[GovernorConnectorStatus]:
         mode = self.mirror_config.connector_mode
         checked_at = _iso_now()
         if mode != "live":
             return [
-                MirrorConnectorStatus(
+                GovernorConnectorStatus(
                     surface="slack",
                     source_mode="sim",
                     availability="healthy",
@@ -807,7 +807,7 @@ class TwinRuntime:
                     reason="Simulated Slack surface is interactive.",
                     last_checked_at=checked_at,
                 ),
-                MirrorConnectorStatus(
+                GovernorConnectorStatus(
                     surface="jira",
                     source_mode="sim",
                     availability="healthy",
@@ -815,7 +815,7 @@ class TwinRuntime:
                     reason="Simulated Jira surface is interactive.",
                     last_checked_at=checked_at,
                 ),
-                MirrorConnectorStatus(
+                GovernorConnectorStatus(
                     surface="graph",
                     source_mode="sim",
                     availability="healthy",
@@ -823,7 +823,7 @@ class TwinRuntime:
                     reason="Simulated Graph surface is interactive.",
                     last_checked_at=checked_at,
                 ),
-                MirrorConnectorStatus(
+                GovernorConnectorStatus(
                     surface="salesforce",
                     source_mode="sim",
                     availability="healthy",
@@ -834,7 +834,7 @@ class TwinRuntime:
             ]
 
         slack_token = os.environ.get("VEI_LIVE_SLACK_TOKEN", "").strip()
-        slack_status = MirrorConnectorStatus(
+        slack_status = GovernorConnectorStatus(
             surface="slack",
             source_mode="live",
             availability="healthy" if slack_token else "degraded",
@@ -848,7 +848,7 @@ class TwinRuntime:
         )
         return [
             slack_status,
-            MirrorConnectorStatus(
+            GovernorConnectorStatus(
                 surface="jira",
                 source_mode="live",
                 availability="healthy",
@@ -856,7 +856,7 @@ class TwinRuntime:
                 reason="Live Jira compatibility stays read-only in this milestone.",
                 last_checked_at=checked_at,
             ),
-            MirrorConnectorStatus(
+            GovernorConnectorStatus(
                 surface="graph",
                 source_mode="live",
                 availability="healthy",
@@ -864,7 +864,7 @@ class TwinRuntime:
                 reason="Live Graph compatibility stays read-only in this milestone.",
                 last_checked_at=checked_at,
             ),
-            MirrorConnectorStatus(
+            GovernorConnectorStatus(
                 surface="salesforce",
                 source_mode="live",
                 availability="healthy",
@@ -878,7 +878,7 @@ class TwinRuntime:
 
     def _check_surface_access(
         self,
-        agent: MirrorAgentSpec,
+        agent: GovernorAgentSpec,
         surface: str,
     ) -> str | None:
         if not agent.allowed_surfaces:
@@ -895,7 +895,7 @@ class TwinRuntime:
     def _check_policy_profile(
         self,
         *,
-        agent: MirrorAgentSpec,
+        agent: GovernorAgentSpec,
         operation_class: str,
         approval_granted: bool,
     ) -> dict[str, str] | None:
@@ -979,8 +979,8 @@ class TwinRuntime:
 
     def _record_denial(
         self,
-        event: MirrorIngestEvent,
-        agent: MirrorAgentSpec,
+        event: GovernorIngestEvent,
+        agent: GovernorAgentSpec,
         reason: str,
     ) -> None:
         time_ms = self._current_time_ms()
@@ -1003,8 +1003,8 @@ class TwinRuntime:
     def record_mirror_denial(
         self,
         *,
-        event: MirrorIngestEvent,
-        agent: MirrorAgentSpec,
+        event: GovernorIngestEvent,
+        agent: GovernorAgentSpec,
         reason: str,
     ) -> None:
         with self._lock:
@@ -1022,8 +1022,8 @@ class TwinRuntime:
     def _execute_mirror_dispatch(
         self,
         *,
-        event: MirrorIngestEvent,
-        agent: MirrorAgentSpec,
+        event: GovernorIngestEvent,
+        agent: GovernorAgentSpec,
         operation_class: str,
         approval_granted: bool,
     ) -> dict[str, Any]:
@@ -1044,8 +1044,8 @@ class TwinRuntime:
     def _execute_mirror_inject(
         self,
         *,
-        event: MirrorIngestEvent,
-        agent: MirrorAgentSpec,
+        event: GovernorIngestEvent,
+        agent: GovernorAgentSpec,
     ) -> dict[str, Any]:
         target = str(event.target or "")
         if not target:
@@ -1135,8 +1135,8 @@ class TwinRuntime:
     def record_mirror_event(
         self,
         *,
-        event: MirrorIngestEvent,
-        agent: MirrorAgentSpec,
+        event: GovernorIngestEvent,
+        agent: GovernorAgentSpec,
     ) -> dict[str, Any]:
         with self._lock:
             snapshot = self.session.snapshot(f"mirror:{event.external_tool}")
@@ -1237,7 +1237,7 @@ def create_twin_gateway_app(root: str | Path) -> FastAPI:
     def api_twin() -> JSONResponse:
         return JSONResponse(runtime.status_payload())
 
-    @app.get("/api/mirror")
+    @app.get("/api/governor")
     def api_mirror(request: Request) -> JSONResponse:
         _require_bearer(request, bundle.gateway.auth_token)
         return JSONResponse(runtime._mirror_snapshot_payload())
@@ -1263,7 +1263,7 @@ def create_twin_gateway_app(root: str | Path) -> FastAPI:
         payload = runtime.record_workforce_command(command)
         return JSONResponse(payload.model_dump(mode="json"))
 
-    @app.get("/api/mirror/agents")
+    @app.get("/api/governor/agents")
     def api_mirror_agents(request: Request) -> JSONResponse:
         _require_bearer(request, bundle.gateway.auth_token)
         if runtime.mirror is None:
@@ -1271,20 +1271,20 @@ def create_twin_gateway_app(root: str | Path) -> FastAPI:
         agents = [item.model_dump(mode="json") for item in runtime.mirror.list_agents()]
         return JSONResponse({"agents": agents})
 
-    @app.post("/api/mirror/agents")
+    @app.post("/api/governor/agents")
     async def api_mirror_register_agent(request: Request) -> JSONResponse:
         _require_bearer(request, bundle.gateway.auth_token)
         if runtime.mirror is None:
-            raise HTTPException(status_code=503, detail="mirror runtime unavailable")
+            raise HTTPException(status_code=503, detail="governor runtime unavailable")
         body = await _request_payload(request)
-        agent = runtime.mirror.register_agent(MirrorAgentSpec.model_validate(body))
+        agent = runtime.mirror.register_agent(GovernorAgentSpec.model_validate(body))
         return JSONResponse(agent.model_dump(mode="json"), status_code=201)
 
-    @app.patch("/api/mirror/agents/{agent_id}")
+    @app.patch("/api/governor/agents/{agent_id}")
     async def api_mirror_update_agent(agent_id: str, request: Request) -> JSONResponse:
         _require_bearer(request, bundle.gateway.auth_token)
         if runtime.mirror is None:
-            raise HTTPException(status_code=503, detail="mirror runtime unavailable")
+            raise HTTPException(status_code=503, detail="governor runtime unavailable")
         body = await _request_payload(request)
         try:
             agent = runtime.mirror.update_agent(agent_id, dict(body))
@@ -1292,18 +1292,18 @@ def create_twin_gateway_app(root: str | Path) -> FastAPI:
             raise HTTPException(status_code=404, detail=str(exc)) from exc
         return JSONResponse(agent.model_dump(mode="json"))
 
-    @app.delete("/api/mirror/agents/{agent_id}")
+    @app.delete("/api/governor/agents/{agent_id}")
     def api_mirror_remove_agent(agent_id: str, request: Request) -> JSONResponse:
         _require_bearer(request, bundle.gateway.auth_token)
         if runtime.mirror is None:
-            raise HTTPException(status_code=503, detail="mirror runtime unavailable")
+            raise HTTPException(status_code=503, detail="governor runtime unavailable")
         try:
             agent = runtime.mirror.remove_agent(agent_id)
         except ValueError as exc:
             raise HTTPException(status_code=404, detail=str(exc)) from exc
         return JSONResponse(agent.model_dump(mode="json"))
 
-    @app.get("/api/mirror/approvals")
+    @app.get("/api/governor/approvals")
     def api_mirror_approvals(request: Request) -> JSONResponse:
         _require_bearer(request, bundle.gateway.auth_token)
         if runtime.mirror is None:
@@ -1314,14 +1314,14 @@ def create_twin_gateway_app(root: str | Path) -> FastAPI:
         ]
         return JSONResponse({"approvals": approvals})
 
-    @app.post("/api/mirror/approvals/{approval_id}/approve")
+    @app.post("/api/governor/approvals/{approval_id}/approve")
     async def api_mirror_approve(
         approval_id: str,
         request: Request,
     ) -> JSONResponse:
         _require_bearer(request, bundle.gateway.auth_token)
         if runtime.mirror is None:
-            raise HTTPException(status_code=503, detail="mirror runtime unavailable")
+            raise HTTPException(status_code=503, detail="governor runtime unavailable")
         body = await _request_payload(request)
         resolver_agent_id = str(body.get("resolver_agent_id") or "").strip()
         if not resolver_agent_id:
@@ -1339,14 +1339,14 @@ def create_twin_gateway_app(root: str | Path) -> FastAPI:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
         return JSONResponse(approval.model_dump(mode="json"))
 
-    @app.post("/api/mirror/approvals/{approval_id}/reject")
+    @app.post("/api/governor/approvals/{approval_id}/reject")
     async def api_mirror_reject(
         approval_id: str,
         request: Request,
     ) -> JSONResponse:
         _require_bearer(request, bundle.gateway.auth_token)
         if runtime.mirror is None:
-            raise HTTPException(status_code=503, detail="mirror runtime unavailable")
+            raise HTTPException(status_code=503, detail="governor runtime unavailable")
         body = await _request_payload(request)
         resolver_agent_id = str(body.get("resolver_agent_id") or "").strip()
         if not resolver_agent_id:
@@ -1364,13 +1364,13 @@ def create_twin_gateway_app(root: str | Path) -> FastAPI:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
         return JSONResponse(approval.model_dump(mode="json"))
 
-    @app.post("/api/mirror/events")
+    @app.post("/api/governor/events")
     async def api_mirror_ingest_event(request: Request) -> JSONResponse:
         _require_bearer(request, bundle.gateway.auth_token)
         if runtime.mirror is None:
-            raise HTTPException(status_code=503, detail="mirror runtime unavailable")
+            raise HTTPException(status_code=503, detail="governor runtime unavailable")
         body = await _request_payload(request)
-        event = MirrorIngestEvent.model_validate(body).model_copy(
+        event = GovernorIngestEvent.model_validate(body).model_copy(
             update={"source_mode": "ingest"}
         )
         try:
@@ -1385,11 +1385,11 @@ def create_twin_gateway_app(root: str | Path) -> FastAPI:
             ) from exc
         return JSONResponse(result.model_dump(mode="json"), status_code=202)
 
-    @app.post("/api/mirror/demo/tick")
-    def api_mirror_demo_tick(request: Request) -> JSONResponse:
+    @app.post("/api/governor/demo/tick")
+    def api_governor_demo_tick(request: Request) -> JSONResponse:
         _require_bearer(request, bundle.gateway.auth_token)
         if runtime.mirror is None:
-            raise HTTPException(status_code=503, detail="mirror runtime unavailable")
+            raise HTTPException(status_code=503, detail="governor runtime unavailable")
         result = runtime.mirror.demo_tick()
         if result is None:
             return JSONResponse({"ok": True, "remaining_demo_steps": 0})
@@ -2544,7 +2544,7 @@ def _mirror_operation_class(tool_name: str) -> str | None:
     return _MIRROR_OPERATION_CLASS_BY_TOOL.get(tool_name)
 
 
-def _event_surface(event: MirrorIngestEvent) -> str:
+def _event_surface(event: GovernorIngestEvent) -> str:
     if event.target:
         return _normalize_surface(str(event.target))
     tool_name = str(event.resolved_tool or event.external_tool or "")
@@ -2623,7 +2623,7 @@ def _request_agent_identity(request: Request) -> ExternalAgentIdentity | None:
     )
 
 
-def _identity_from_mirror_agent(agent: MirrorAgentSpec) -> ExternalAgentIdentity:
+def _identity_from_mirror_agent(agent: GovernorAgentSpec) -> ExternalAgentIdentity:
     return ExternalAgentIdentity(
         agent_id=agent.agent_id,
         name=agent.name,
@@ -2634,9 +2634,9 @@ def _identity_from_mirror_agent(agent: MirrorAgentSpec) -> ExternalAgentIdentity
 
 
 def _merge_mirror_agent_identity(
-    mirror_agent: MirrorAgentSpec,
+    mirror_agent: GovernorAgentSpec,
     request_agent: ExternalAgentIdentity,
-) -> MirrorAgentSpec:
+) -> GovernorAgentSpec:
     updates = {
         field: value
         for field in ("name", "role", "team", "source")

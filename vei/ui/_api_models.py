@@ -53,7 +53,7 @@ class MissionBranchRequest(BaseModel):
     snapshot_id: int | None = None
 
 
-class MirrorAgentUpdateRequest(BaseModel):
+class GovernorAgentUpdateRequest(BaseModel):
     name: str | None = None
     role: str | None = None
     team: str | None = None
@@ -63,7 +63,7 @@ class MirrorAgentUpdateRequest(BaseModel):
     status: str | None = None
 
 
-class MirrorApprovalResolveRequest(BaseModel):
+class GovernorApprovalResolveRequest(BaseModel):
     resolver_agent_id: str
 
 
@@ -75,7 +75,7 @@ class ContextCaptureRequest(BaseModel):
     providers: list[str]
 
 
-class ExerciseActivateRequest(BaseModel):
+class GovernorSituationActivateRequest(BaseModel):
     scenario_variant: str
     contract_variant: str | None = None
 
@@ -135,7 +135,7 @@ def context_capture_org_name(workspace_root: Path) -> str:
     return workspace.manifest.title or workspace.manifest.name or "Unknown"
 
 
-def load_workspace_mirror_payload(root: Path) -> dict[str, Any]:
+def load_workspace_governor_payload(root: Path) -> dict[str, Any]:
     twin_path = root / "twin_manifest.json"
     fallback: dict[str, Any] = {}
     if twin_path.exists():
@@ -143,7 +143,7 @@ def load_workspace_mirror_payload(root: Path) -> dict[str, Any]:
             data = json.loads(twin_path.read_text(encoding="utf-8"))
         except (json.JSONDecodeError, OSError):
             data = {}
-        fallback = dict(data.get("metadata", {}).get("mirror", {}) or {})
+        fallback = dict(data.get("metadata", {}).get("governor", {}) or {})
     if isinstance(fallback, dict) and (
         "config" in fallback
         or "agents" in fallback
@@ -152,18 +152,18 @@ def load_workspace_mirror_payload(root: Path) -> dict[str, Any]:
     ):
         return fallback
 
-    completed_mirror: dict[str, Any] | None = None
+    completed_governor: dict[str, Any] | None = None
     for manifest in list_run_manifests(root):
         if manifest.runner != "external":
             continue
-        mirror = manifest.metadata.get("mirror", {})
-        if not isinstance(mirror, dict):
+        governor = manifest.metadata.get("governor", {})
+        if not isinstance(governor, dict):
             continue
         if manifest.status == "running":
-            return dict(mirror)
-        if completed_mirror is None and manifest.status == "completed":
-            completed_mirror = dict(mirror)
-    return completed_mirror if completed_mirror is not None else fallback
+            return dict(governor)
+        if completed_governor is None and manifest.status == "completed":
+            completed_governor = dict(governor)
+    return completed_governor if completed_governor is not None else fallback
 
 
 def load_workspace_workforce_payload(root: Path) -> dict[str, Any]:

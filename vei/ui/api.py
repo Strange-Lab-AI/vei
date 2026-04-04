@@ -10,30 +10,30 @@ from fastapi.staticfiles import StaticFiles
 
 from vei import __version__ as vei_version
 from vei.dataset import load_workspace_dataset_bundle
-from vei.pilot.exercise import activate_exercise, build_exercise_status
 from vei.fidelity import get_or_build_workspace_fidelity_report
-from vei.pilot import (
-    approve_pilot_orchestrator_approval,
-    build_pilot_status,
-    comment_on_pilot_orchestrator_task,
-    finalize_pilot_run,
-    pause_pilot_orchestrator_agent,
-    reject_pilot_orchestrator_approval,
-    reset_pilot_gateway,
-    request_revision_pilot_orchestrator_approval,
-    resume_pilot_orchestrator_agent,
-    sync_pilot_orchestrator,
+from vei.twin.api import (
+    activate_twin_exercise,
+    approve_twin_orchestrator_approval,
+    build_workspace_governor_status,
+    comment_on_twin_orchestrator_task,
+    finalize_twin,
+    pause_twin_orchestrator_agent,
+    reject_twin_orchestrator_approval,
+    request_twin_orchestrator_revision,
+    reset_twin,
+    resume_twin_orchestrator_agent,
+    sync_twin,
 )
 
 from ._api_models import (
     ContextCaptureRequest,
     ContractActivateRequest,
-    ExerciseActivateRequest,
+    GovernorAgentUpdateRequest,
+    GovernorApprovalResolveRequest,
+    GovernorSituationActivateRequest,
     MissionActivateRequest,
     MissionBranchRequest,
     MissionStartRequest,
-    MirrorAgentUpdateRequest,
-    MirrorApprovalResolveRequest,
     OrchestratorApprovalDecisionRequest,
     OrchestratorTaskCommentRequest,
     RunLaunchRequest,
@@ -50,30 +50,29 @@ from ._workspace_routes import register_workspace_routes
 _PATCHABLE_ROUTE_DEPS = (
     Thread,
     load_workspace_dataset_bundle,
-    activate_exercise,
-    build_exercise_status,
+    activate_twin_exercise,
+    approve_twin_orchestrator_approval,
+    build_workspace_governor_status,
+    comment_on_twin_orchestrator_task,
+    finalize_twin,
     get_or_build_workspace_fidelity_report,
-    approve_pilot_orchestrator_approval,
-    build_pilot_status,
-    comment_on_pilot_orchestrator_task,
-    finalize_pilot_run,
-    pause_pilot_orchestrator_agent,
-    reject_pilot_orchestrator_approval,
-    reset_pilot_gateway,
-    request_revision_pilot_orchestrator_approval,
-    resume_pilot_orchestrator_agent,
-    sync_pilot_orchestrator,
+    pause_twin_orchestrator_agent,
+    reject_twin_orchestrator_approval,
+    request_twin_orchestrator_revision,
+    reset_twin,
+    resume_twin_orchestrator_agent,
+    sync_twin,
 )
 
 __all__ = [
     "ContextCaptureRequest",
     "ContractActivateRequest",
-    "ExerciseActivateRequest",
+    "GovernorAgentUpdateRequest",
+    "GovernorApprovalResolveRequest",
+    "GovernorSituationActivateRequest",
     "MissionActivateRequest",
     "MissionBranchRequest",
     "MissionStartRequest",
-    "MirrorAgentUpdateRequest",
-    "MirrorApprovalResolveRequest",
     "OrchestratorApprovalDecisionRequest",
     "OrchestratorTaskCommentRequest",
     "RunLaunchRequest",
@@ -83,7 +82,7 @@ __all__ = [
 ]
 
 
-_VALID_SKINS = {"sandbox", "mirror", "test", "train"}
+_VALID_SKINS = {"sandbox", "governor", "test", "train"}
 
 
 def create_ui_app(workspace_root: str | Path, *, skin: str = "sandbox") -> FastAPI:
@@ -103,10 +102,6 @@ def create_ui_app(workspace_root: str | Path, *, skin: str = "sandbox") -> FastA
     @app.get("/api/skin")
     def api_skin() -> dict[str, str]:
         return {"skin": app.state.vei_skin}
-
-    @app.get("/pilot")
-    def pilot_console() -> FileResponse:
-        return FileResponse(static_dir / "pilot.html")
 
     @app.get("/favicon.ico")
     def favicon() -> FileResponse:

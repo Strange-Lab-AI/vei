@@ -18,7 +18,7 @@ In the live local Paperclip run, VEI could:
 
 - Paperclip URL: `http://127.0.0.1:3100`
 - VEI Studio URL: `http://127.0.0.1:3511`
-- VEI Operator Console URL: `http://127.0.0.1:3511/pilot`
+- VEI Governor view: `http://127.0.0.1:3511/?skin=governor`
 - Paperclip company: `VEI Service Ops Lab`
 - VEI company world: `Pinnacle Analytics`
 - Crisis lens: `Enterprise Renewal at Risk`

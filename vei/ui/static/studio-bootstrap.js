@@ -286,7 +286,7 @@ async function runEvalAgent() {
   }
 }
 
-const VALID_SKINS = ["sandbox", "mirror", "test", "train"];
+const VALID_SKINS = ["sandbox", "governor", "test", "train"];
 
 async function applyVeiSkin() {
   const params = new URLSearchParams(window.location.search);
@@ -328,14 +328,14 @@ function renderSkinSwitcher(activeSkin) {
 
 const SKIN_NAV_LABELS = {
   sandbox: ["Company", "Crisis", "Outcome"],
-  mirror:  ["Control Room", "Fleet", "Governance"],
+  governor: ["Control Room", "Fleet", "Governance"],
   test:    ["World", "Runs", "Eval"],
   train:   ["World", "Corpus", "Export"],
 };
 
 const SKIN_HINTS = {
   sandbox: "Track the company, then make the next move",
-  mirror:  "Live control room \u2014 watch and steer outside agents",
+  governor: "Live control room \u2014 watch and steer outside agents",
   test:    "Evaluate agent performance against the company world",
   train:   "Build datasets and export traces from completed runs",
 };

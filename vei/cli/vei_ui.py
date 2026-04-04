@@ -12,16 +12,16 @@ def serve(
     root: Path = typer.Option(Path("."), help="Workspace root directory"),
     host: str = typer.Option("127.0.0.1", help="Bind host"),
     port: int = typer.Option(3010, help="Bind port"),
-    mode: str = typer.Option(
+    skin: str = typer.Option(
         "sandbox",
-        help="UI skin: sandbox, mirror, test, or train",
+        help="UI skin: sandbox, governor, test, or train",
     ),
 ) -> None:
     """Serve the local VEI playback UI for one workspace."""
 
     from vei.ui.app import serve_ui
 
-    serve_ui(root, host=host, port=port, skin=mode)
+    serve_ui(root, host=host, port=port, skin=skin)
 
 
 @app.command("play")
@@ -36,14 +36,21 @@ def play(
     ),
     mission: str | None = typer.Option(None, help="Mission slug"),
     objective: str | None = typer.Option(None, help="Objective variant override"),
-    compare_runner: str = typer.Option("scripted", help="Comparison runner: scripted|bc|llm"),
+    compare_runner: str = typer.Option(
+        "scripted", help="Comparison runner: scripted|bc|llm"
+    ),
     overwrite: bool = typer.Option(True, help="Recreate workspace before preparing"),
     seed: int = typer.Option(42042, help="Seed for reproducibility"),
     max_steps: int = typer.Option(18, help="Max steps for comparison runs"),
     host: str = typer.Option("127.0.0.1", help="Bind host"),
     port: int = typer.Option(3011, help="Bind port"),
-    mode: str = typer.Option("sandbox", help="UI skin: sandbox, mirror, test, or train"),
-    serve_ui_flag: bool = typer.Option(True, "--serve/--no-serve", help="Serve UI after preparing"),
+    skin: str = typer.Option(
+        "sandbox",
+        help="UI skin: sandbox, governor, test, or train",
+    ),
+    serve_ui_flag: bool = typer.Option(
+        True, "--serve/--no-serve", help="Serve UI after preparing"
+    ),
 ) -> None:
     """Prepare a playable mission world and optionally serve the UI."""
     import json
@@ -56,25 +63,36 @@ def play(
         raise typer.BadParameter("compare-runner must be one of scripted|bc|llm")
     try:
         state = prepare_playable_workspace(
-            root, world=world, mission=mission, objective=objective,
-            compare_runner=normalized, overwrite=overwrite, seed=seed, max_steps=max_steps,
+            root,
+            world=world,
+            mission=mission,
+            objective=objective,
+            compare_runner=normalized,
+            overwrite=overwrite,
+            seed=seed,
+            max_steps=max_steps,
         )
     except (ValueError, KeyError) as exc:
         raise typer.BadParameter(str(exc)) from exc
     fidelity = get_or_build_workspace_fidelity_report(root)
-    typer.echo(json.dumps({
-        "workspace_root": str(Path(root).expanduser().resolve()),
-        "world": world,
-        "mission": state.mission.mission_name,
-        "objective": state.objective_variant,
-        "run_id": state.run_id,
-        "fidelity_status": fidelity.status,
-    }, indent=2))
+    typer.echo(
+        json.dumps(
+            {
+                "workspace_root": str(Path(root).expanduser().resolve()),
+                "world": world,
+                "mission": state.mission.mission_name,
+                "objective": state.objective_variant,
+                "run_id": state.run_id,
+                "fidelity_status": fidelity.status,
+            },
+            indent=2,
+        )
+    )
     if not serve_ui_flag:
         return
     from vei.ui.app import serve_ui as _serve
 
-    _serve(root, host=host, port=port, skin=mode)
+    _serve(root, host=host, port=port, skin=skin)
 
 
 if __name__ == "__main__":

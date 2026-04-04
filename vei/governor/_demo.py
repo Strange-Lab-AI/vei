@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pydantic import BaseModel
 
-from .models import MirrorAgentSpec, MirrorIngestEvent
+from .models import GovernorAgentSpec, GovernorIngestEvent
 
 
 class MirrorApprovalCommand(BaseModel):
@@ -12,9 +12,9 @@ class MirrorApprovalCommand(BaseModel):
     label: str | None = None
 
 
-def default_service_ops_demo_agents() -> list[MirrorAgentSpec]:
+def default_service_ops_demo_agents() -> list[GovernorAgentSpec]:
     return [
-        MirrorAgentSpec(
+        GovernorAgentSpec(
             agent_id="dispatch-bot",
             name="Dispatch Bot",
             mode="demo",
@@ -22,9 +22,9 @@ def default_service_ops_demo_agents() -> list[MirrorAgentSpec]:
             team="dispatch",
             allowed_surfaces=["slack", "service_ops"],
             policy_profile_id="operator",
-            source="mirror-demo",
+            source="governor-demo",
         ),
-        MirrorAgentSpec(
+        GovernorAgentSpec(
             agent_id="billing-bot",
             name="Billing Bot",
             mode="demo",
@@ -32,9 +32,9 @@ def default_service_ops_demo_agents() -> list[MirrorAgentSpec]:
             team="finance",
             allowed_surfaces=["slack", "service_ops"],
             policy_profile_id="observer",
-            source="mirror-demo",
+            source="governor-demo",
         ),
-        MirrorAgentSpec(
+        GovernorAgentSpec(
             agent_id="control-lead",
             name="Control Lead",
             mode="demo",
@@ -42,15 +42,17 @@ def default_service_ops_demo_agents() -> list[MirrorAgentSpec]:
             team="operations",
             allowed_surfaces=["slack", "service_ops", "jira", "salesforce"],
             policy_profile_id="approver",
-            source="mirror-demo",
+            source="governor-demo",
         ),
     ]
 
 
-def default_service_ops_demo_steps() -> list[MirrorIngestEvent | MirrorApprovalCommand]:
+def default_service_ops_demo_steps() -> (
+    list[GovernorIngestEvent | MirrorApprovalCommand]
+):
     return [
-        MirrorIngestEvent(
-            event_id="mirror-demo-001",
+        GovernorIngestEvent(
+            event_id="governor-demo-001",
             agent_id="dispatch-bot",
             external_tool="slack.chat.postMessage",
             resolved_tool="slack.send_message",
@@ -65,8 +67,8 @@ def default_service_ops_demo_steps() -> list[MirrorIngestEvent | MirrorApprovalC
             label="Dispatch bot posts the reroute into Clearwater dispatch",
             source_mode="demo",
         ),
-        MirrorIngestEvent(
-            event_id="mirror-demo-002",
+        GovernorIngestEvent(
+            event_id="governor-demo-002",
             agent_id="dispatch-bot",
             external_tool="service_ops.assign_dispatch",
             resolved_tool="service_ops.assign_dispatch",
@@ -80,8 +82,8 @@ def default_service_ops_demo_steps() -> list[MirrorIngestEvent | MirrorApprovalC
             label="Dispatch bot assigns the backup controls technician",
             source_mode="demo",
         ),
-        MirrorIngestEvent(
-            event_id="mirror-demo-003",
+        GovernorIngestEvent(
+            event_id="governor-demo-003",
             agent_id="billing-bot",
             external_tool="service_ops.hold_billing",
             resolved_tool="service_ops.hold_billing",
@@ -94,8 +96,8 @@ def default_service_ops_demo_steps() -> list[MirrorIngestEvent | MirrorApprovalC
             label="Billing bot pauses the disputed VIP billing case",
             source_mode="demo",
         ),
-        MirrorIngestEvent(
-            event_id="mirror-demo-004",
+        GovernorIngestEvent(
+            event_id="governor-demo-004",
             agent_id="dispatch-bot",
             external_tool="slack.chat.postMessage",
             resolved_tool="slack.send_message",
@@ -107,8 +109,8 @@ def default_service_ops_demo_steps() -> list[MirrorIngestEvent | MirrorApprovalC
             label="Dispatch bot posts the executive ops update",
             source_mode="demo",
         ),
-        MirrorIngestEvent(
-            event_id="mirror-demo-005",
+        GovernorIngestEvent(
+            event_id="governor-demo-005",
             agent_id="billing-bot",
             external_tool="graph.messages.send",
             resolved_tool="mail.compose",
@@ -121,8 +123,8 @@ def default_service_ops_demo_steps() -> list[MirrorIngestEvent | MirrorApprovalC
             label="Billing bot tries to email the customer without mail access",
             source_mode="demo",
         ),
-        MirrorIngestEvent(
-            event_id="mirror-demo-006",
+        GovernorIngestEvent(
+            event_id="governor-demo-006",
             agent_id="dispatch-bot",
             external_tool="service_ops.update_policy",
             resolved_tool="service_ops.update_policy",
@@ -140,8 +142,8 @@ def default_service_ops_demo_steps() -> list[MirrorIngestEvent | MirrorApprovalC
             approval_id=None,
             label="Control lead approves the held policy change",
         ),
-        MirrorIngestEvent(
-            event_id="mirror-demo-007",
+        GovernorIngestEvent(
+            event_id="governor-demo-007",
             agent_id="dispatch-bot",
             external_tool="service_ops.clear_exception",
             resolved_tool="service_ops.clear_exception",
@@ -153,8 +155,8 @@ def default_service_ops_demo_steps() -> list[MirrorIngestEvent | MirrorApprovalC
             label="Dispatch bot clears the dispatch exception after approval",
             source_mode="demo",
         ),
-        MirrorIngestEvent(
-            event_id="mirror-demo-008",
+        GovernorIngestEvent(
+            event_id="governor-demo-008",
             agent_id="control-lead",
             external_tool="jira.search",
             resolved_tool="tickets.list",
@@ -163,8 +165,8 @@ def default_service_ops_demo_steps() -> list[MirrorIngestEvent | MirrorApprovalC
             label="Control lead checks Jira to confirm cross-surface visibility",
             source_mode="demo",
         ),
-        MirrorIngestEvent(
-            event_id="mirror-demo-009",
+        GovernorIngestEvent(
+            event_id="governor-demo-009",
             agent_id="control-lead",
             external_tool="salesforce.query.opportunity",
             resolved_tool="salesforce.opportunity.list",

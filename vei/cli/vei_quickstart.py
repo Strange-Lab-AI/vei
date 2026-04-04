@@ -1,14 +1,11 @@
 from __future__ import annotations
 
 import signal
-import threading
-import time
 from pathlib import Path
 
 import typer
 
-from vei.mirror import default_mirror_workspace_config, mirror_metadata_payload
-from vei.twin.api import CustomerTwinBundle
+from vei.twin.api import build_twin_status, start_twin, stop_twin
 
 app = typer.Typer(
     add_completion=False,
@@ -34,15 +31,15 @@ def quickstart_command(
     seed: int = typer.Option(42042, help="Seed for reproducibility"),
     connector_mode: str = typer.Option(
         "sim",
-        help="Mirror connector mode for the gateway: sim | live",
+        help="Governor connector mode for the gateway: sim | live",
     ),
-    mirror_demo: bool = typer.Option(
+    governor_demo: bool = typer.Option(
         False,
-        help="Enable mirror demo mode with staged agent activity.",
+        help="Enable governor demo mode with staged agent activity.",
     ),
-    mirror_demo_interval_ms: int = typer.Option(
+    governor_demo_interval_ms: int = typer.Option(
         1500,
-        help="Autoplay interval for mirror demo steps in milliseconds.",
+        help="Autoplay interval for governor demo steps in milliseconds.",
     ),
     no_baseline: bool = typer.Option(
         False, "--no-baseline", help="Skip the scripted baseline run"
@@ -88,38 +85,22 @@ def quickstart_command(
         f"run: {state.run_id}"
     )
 
-    # --- 2. Build twin bundle for gateway ----------------------------------------
-    console.print("[dim]Building twin gateway bundle...[/dim]")
+    # --- 2. Launch shared twin runtime -------------------------------------------
+    console.print("[dim]Launching Studio + twin gateway...[/dim]")
     try:
-        _ensure_twin_bundle(
+        start_twin(
             root,
-            world,
-            studio_port=studio_port,
+            archetype=world,  # type: ignore[arg-type]
             gateway_port=gateway_port,
+            studio_port=studio_port,
             connector_mode=connector_mode,
-            mirror_demo=mirror_demo,
-            mirror_demo_interval_ms=mirror_demo_interval_ms,
+            governor_demo=governor_demo,
+            governor_demo_interval_ms=governor_demo_interval_ms,
+            ui_skin="sandbox",
         )
-    except ValueError as exc:
+    except (ValueError, RuntimeError) as exc:
         raise typer.BadParameter(str(exc)) from exc
-    console.print("  [green]Twin gateway bundle ready[/green]")
-
-    # --- 3. Launch servers -------------------------------------------------------
-    shutdown = threading.Event()
-
-    studio_thread = threading.Thread(
-        target=_serve_studio,
-        args=(root, studio_port, shutdown),
-        daemon=True,
-    )
-    gateway_thread = threading.Thread(
-        target=_serve_gateway,
-        args=(root, gateway_port, shutdown),
-        daemon=True,
-    )
-    studio_thread.start()
-    gateway_thread.start()
-    time.sleep(1.5)
+    console.print("  [green]Twin runtime is live[/green]")
 
     # --- 4. Run scripted baseline (optional) -------------------------------------
     if not no_baseline:
@@ -128,20 +109,20 @@ def quickstart_command(
         console.print("  [green]Baseline complete — events are flowing[/green]")
 
     # --- 5. Print connection panel -----------------------------------------------
-    twin_bundle = _load_twin_bundle(root)
-    token = twin_bundle.gateway.auth_token if twin_bundle else "N/A"
+    twin_status = build_twin_status(root)
+    token = twin_status.manifest.bearer_token
 
     info_lines = [
-        f"[bold]Studio UI[/bold]        http://127.0.0.1:{studio_port}",
-        f"[bold]Twin Gateway[/bold]     http://127.0.0.1:{gateway_port}",
+        f"[bold]Studio UI[/bold]        {twin_status.manifest.studio_url}",
+        f"[bold]Twin Gateway[/bold]     {twin_status.manifest.gateway_url}",
         "",
         f"[bold]Auth token[/bold]       {token}",
         "",
         "[bold]Mock API endpoints:[/bold]",
-        f"  Slack    http://127.0.0.1:{gateway_port}/slack/api/",
-        f"  Jira     http://127.0.0.1:{gateway_port}/jira/rest/api/3/",
-        f"  Graph    http://127.0.0.1:{gateway_port}/graph/v1.0/",
-        f"  SFDC     http://127.0.0.1:{gateway_port}/salesforce/services/data/v60.0/",
+        f"  Slack    {twin_status.manifest.gateway_url}/slack/api/",
+        f"  Jira     {twin_status.manifest.gateway_url}/jira/rest/api/3/",
+        f"  Graph    {twin_status.manifest.gateway_url}/graph/v1.0/",
+        f"  SFDC     {twin_status.manifest.gateway_url}/salesforce/services/data/v60.0/",
         "",
         "[bold]MCP endpoint[/bold]     python -m vei.router",
         "",
@@ -154,144 +135,23 @@ def quickstart_command(
     # --- 6. Wait for Ctrl-C ------------------------------------------------------
     def _handle_signal(_sig, _frame):
         console.print("\n[yellow]Shutting down...[/yellow]")
-        shutdown.set()
+        raise KeyboardInterrupt
 
     signal.signal(signal.SIGINT, _handle_signal)
     signal.signal(signal.SIGTERM, _handle_signal)
 
     try:
-        while not shutdown.is_set():
-            shutdown.wait(timeout=1.0)
+        signal.pause()
     except KeyboardInterrupt:
         pass
     finally:
-        shutdown.set()
+        stop_twin(root)
         console.print("[green]VEI stopped.[/green]")
 
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
-
-
-def _ensure_twin_bundle(
-    root: Path,
-    world: str,
-    *,
-    studio_port: int,
-    gateway_port: int,
-    connector_mode: str,
-    mirror_demo: bool,
-    mirror_demo_interval_ms: int,
-) -> None:
-    """Create a minimal twin bundle so the gateway can start."""
-    import json
-    import secrets
-
-    from vei.workspace.api import load_workspace
-
-    workspace_root = root.expanduser().resolve()
-    manifest_path = workspace_root / "twin_manifest.json"
-    ws = load_workspace(workspace_root)
-    mirror_config = default_mirror_workspace_config(
-        connector_mode=connector_mode,
-        demo_mode=mirror_demo,
-        autoplay=mirror_demo,
-        demo_interval_ms=mirror_demo_interval_ms,
-        hero_world=world,
-    )
-    bundle = {
-        "workspace_root": str(workspace_root),
-        "workspace_name": ws.name,
-        "organization_name": ws.title or world.replace("_", " ").title(),
-        "organization_domain": "example.com",
-        "mold": {
-            "archetype": world,
-            "density_level": "medium",
-            "named_team_expansion": "standard",
-            "crisis_family": "operational",
-            "redaction_mode": "preserve",
-            "synthetic_expansion_strength": "light",
-            "included_surfaces": [],
-        },
-        "context_snapshot_path": "",
-        "blueprint_asset_path": str(ws.blueprint_asset_path),
-        "gateway": {
-            "host": "127.0.0.1",
-            "port": gateway_port,
-            "auth_token": secrets.token_urlsafe(18),
-            "surfaces": [
-                {"name": "slack", "title": "Slack", "base_path": "/slack/api"},
-                {"name": "jira", "title": "Jira", "base_path": "/jira/rest/api/3"},
-                {
-                    "name": "graph",
-                    "title": "Microsoft Graph",
-                    "base_path": "/graph/v1.0",
-                },
-                {
-                    "name": "salesforce",
-                    "title": "Salesforce",
-                    "base_path": "/salesforce/services/data/v60.0",
-                },
-            ],
-            "ui_command": (
-                "python -m vei.cli.vei ui serve "
-                f"--root {workspace_root} --port {studio_port}"
-            ),
-        },
-        "summary": f"Quickstart twin for {world}",
-        "metadata": {"mirror": mirror_metadata_payload(mirror_config)},
-    }
-    if manifest_path.exists():
-        existing = json.loads(manifest_path.read_text(encoding="utf-8"))
-        bundle["gateway"]["auth_token"] = (
-            existing.get("gateway", {}).get("auth_token")
-            or bundle["gateway"]["auth_token"]
-        )
-    manifest_path.write_text(json.dumps(bundle, indent=2), encoding="utf-8")
-
-
-def _load_twin_bundle(root: Path) -> CustomerTwinBundle | None:
-    try:
-        from vei.twin import load_customer_twin
-
-        return load_customer_twin(root)
-    except Exception:  # noqa: BLE001
-        return None
-
-
-def _serve_studio(root: Path, port: int, shutdown: threading.Event) -> None:
-    import uvicorn
-
-    from vei.ui.api import create_ui_app
-
-    app = create_ui_app(root)
-    config = uvicorn.Config(app, host="127.0.0.1", port=port, log_level="warning")
-    server = uvicorn.Server(config)
-
-    thread = threading.Thread(target=server.run, daemon=True)
-    thread.start()
-    shutdown.wait()
-    server.should_exit = True
-
-
-def _serve_gateway(root: Path, port: int, shutdown: threading.Event) -> None:
-    import uvicorn
-
-    from vei.twin.gateway import create_twin_gateway_app
-
-    try:
-        app = create_twin_gateway_app(root)
-    except Exception:  # noqa: BLE001
-        return
-
-    config = uvicorn.Config(app, host="127.0.0.1", port=port, log_level="warning")
-    server = uvicorn.Server(config)
-
-    thread = threading.Thread(target=server.run, daemon=True)
-    thread.start()
-    shutdown.wait()
-    server.should_exit = True
 
 
 def _run_scripted_baseline(root: Path, state) -> None:

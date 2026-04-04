@@ -15,6 +15,7 @@ from vei.cli.vei_quickstart import app as quickstart_app
 from vei.cli.vei_report import app as report_app
 from vei.cli.vei_run import app as run_app
 from vei.cli.vei_smoke import app as smoke_app
+from vei.cli.vei_showcase import app as showcase_app
 from vei.cli.vei_synthesize import app as synthesize_app
 from vei.cli.vei_twin import app as twin_app
 from vei.cli.vei_ui import app as ui_app
@@ -43,11 +44,9 @@ app.add_typer(det_app, name="det")
 app.add_typer(llm_test_app, name="llm-test")
 app.add_typer(report_app, name="report")
 app.add_typer(smoke_app, name="smoke")
+app.add_typer(showcase_app, name="showcase")
 app.add_typer(synthesize_app, name="synthesize")
 app.add_typer(visualize_app, name="visualize")
-
-from vei.cli.vei_showcase import app as showcase_app
-app.add_typer(showcase_app, name="showcase")
 
 
 if __name__ == "__main__":
