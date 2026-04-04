@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import secrets
 import signal
 import subprocess
 import sys
@@ -18,7 +19,7 @@ from vei.context.models import (
     ContextSnapshot,
     ContextSourceResult,
 )
-from vei.mirror import default_mirror_workspace_config
+from vei.governor import default_governor_workspace_config, governor_metadata_payload
 from vei.orchestrators.api import (
     OrchestratorAgent,
     OrchestratorCommandResult,
@@ -36,9 +37,15 @@ from vei.twin.models import (
     CustomerTwinBundle,
     ExternalAgentIdentity,
     TwinArchetype,
+    TwinGatewayConfig,
 )
 from vei.workforce.api import build_workforce_state, workforce_command_from_result
 from vei.workforce.models import WorkforceCommandRecord
+from vei.workspace.api import (
+    load_workspace,
+    preview_workspace_scenario,
+    write_workspace,
+)
 
 from .models import (
     PilotActivityItem,
@@ -68,12 +75,13 @@ def start_pilot(
     scenario_variant: str | None = None,
     contract_variant: str | None = None,
     connector_mode: str = "sim",
-    mirror_demo: bool = False,
-    mirror_demo_interval_ms: int = 1500,
+    governor_demo: bool = False,
+    governor_demo_interval_ms: int = 1500,
     gateway_token: str | None = None,
     host: str = "127.0.0.1",
     gateway_port: int = 3020,
     studio_port: int = 3011,
+    ui_skin: str = "governor",
     rebuild: bool = False,
     orchestrator: str | None = None,
     orchestrator_url: str | None = None,
@@ -117,9 +125,10 @@ def start_pilot(
         scenario_variant=scenario_variant,
         contract_variant=contract_variant,
         connector_mode=connector_mode,
-        mirror_demo=mirror_demo,
-        mirror_demo_interval_ms=mirror_demo_interval_ms,
+        governor_demo=governor_demo,
+        governor_demo_interval_ms=governor_demo_interval_ms,
         gateway_token=gateway_token,
+        ui_skin=ui_skin,
         rebuild=rebuild,
     )
 
@@ -179,6 +188,8 @@ def start_pilot(
                 host,
                 "--port",
                 str(studio_port),
+                "--skin",
+                ui_skin,
             ],
             log_path=studio_log,
         )
@@ -519,6 +530,27 @@ def request_revision_pilot_orchestrator_approval(
     )
 
 
+def activate_exercise(
+    root: str | Path,
+    *,
+    scenario_variant: str,
+    contract_variant: str | None = None,
+):
+    from .exercise import activate_exercise as _activate_exercise
+
+    return _activate_exercise(
+        root,
+        scenario_variant=scenario_variant,
+        contract_variant=contract_variant,
+    )
+
+
+def build_exercise_status(root: str | Path):
+    from .exercise import build_exercise_status as _build_exercise_status
+
+    return _build_exercise_status(root)
+
+
 def _ensure_twin_bundle(
     workspace_root: Path,
     *,
@@ -530,9 +562,10 @@ def _ensure_twin_bundle(
     scenario_variant: str | None,
     contract_variant: str | None,
     connector_mode: str,
-    mirror_demo: bool,
-    mirror_demo_interval_ms: int,
+    governor_demo: bool,
+    governor_demo_interval_ms: int,
     gateway_token: str | None,
+    ui_skin: str = "governor",
     rebuild: bool,
 ) -> CustomerTwinBundle:
     manifest_path = workspace_root / "twin_manifest.json"
@@ -552,6 +585,18 @@ def _ensure_twin_bundle(
         resolved_domain = organization_domain
     resolved_snapshot = snapshot
     if resolved_snapshot is None and provider_configs is None:
+        if (workspace_root / "workspace.json").exists():
+            return _build_existing_workspace_twin_bundle(
+                workspace_root,
+                archetype=archetype,
+                scenario_variant=scenario_variant,
+                contract_variant=contract_variant,
+                connector_mode=connector_mode,
+                governor_demo=governor_demo,
+                governor_demo_interval_ms=governor_demo_interval_ms,
+                gateway_token=gateway_token,
+                ui_skin=ui_skin,
+            )
         resolved_domain = resolved_domain or _default_domain(resolved_name)
         resolved_snapshot = _default_pilot_snapshot(
             organization_name=resolved_name,
@@ -570,16 +615,94 @@ def _ensure_twin_bundle(
         organization_name=resolved_name,
         organization_domain=resolved_domain,
         mold=mold,
-        mirror_config=default_mirror_workspace_config(
+        mirror_config=default_governor_workspace_config(
             connector_mode=connector_mode,
-            demo_mode=mirror_demo,
-            autoplay=mirror_demo,
-            demo_interval_ms=mirror_demo_interval_ms,
+            demo_mode=governor_demo,
+            autoplay=governor_demo,
+            demo_interval_ms=governor_demo_interval_ms,
             hero_world=archetype,
         ),
         gateway_token=gateway_token,
         overwrite=True,
     )
+
+
+def _build_existing_workspace_twin_bundle(
+    workspace_root: Path,
+    *,
+    archetype: TwinArchetype,
+    scenario_variant: str | None,
+    contract_variant: str | None,
+    connector_mode: str,
+    governor_demo: bool,
+    governor_demo_interval_ms: int,
+    gateway_token: str | None,
+    ui_skin: str,
+) -> CustomerTwinBundle:
+    workspace = load_workspace(workspace_root)
+    resolved_archetype = str(workspace.source_ref or "").strip() or str(archetype)
+    governor_config = default_governor_workspace_config(
+        connector_mode=connector_mode,
+        demo_mode=governor_demo,
+        autoplay=governor_demo,
+        demo_interval_ms=governor_demo_interval_ms,
+        hero_world=resolved_archetype,
+    )
+    workspace.metadata = {
+        **dict(workspace.metadata),
+        "governor": governor_metadata_payload(governor_config),
+    }
+    write_workspace(workspace_root, workspace)
+
+    context_snapshot_path = workspace_root / "context_snapshot.json"
+    bundle = CustomerTwinBundle(
+        workspace_root=workspace_root,
+        workspace_name=workspace.name,
+        organization_name=workspace.title or workspace.name,
+        organization_domain="",
+        mold=ContextMoldConfig(
+            archetype=resolved_archetype,  # type: ignore[arg-type]
+            scenario_variant=scenario_variant,
+            contract_variant=contract_variant,
+        ),
+        context_snapshot_path=(
+            str(context_snapshot_path.relative_to(workspace_root))
+            if context_snapshot_path.exists()
+            else ""
+        ),
+        blueprint_asset_path=workspace.blueprint_asset_path,
+        gateway=TwinGatewayConfig(
+            auth_token=gateway_token or secrets.token_urlsafe(18),
+            surfaces=[
+                {"name": "slack", "title": "Slack", "base_path": "/slack/api"},
+                {"name": "jira", "title": "Jira", "base_path": "/jira/rest/api/3"},
+                {
+                    "name": "graph",
+                    "title": "Microsoft Graph",
+                    "base_path": "/graph/v1.0",
+                },
+                {
+                    "name": "salesforce",
+                    "title": "Salesforce",
+                    "base_path": "/salesforce/services/data/v60.0",
+                },
+            ],
+            ui_command=(
+                "python -m vei.cli.vei ui serve "
+                f"--root {workspace_root} --host 127.0.0.1 --port 3011 --skin {ui_skin}"
+            ),
+        ),
+        summary=(
+            f"{workspace.title or workspace.name} is ready as a governed twin "
+            "workspace with compatibility routes for enterprise connectors."
+        ),
+        metadata={
+            "preview": preview_workspace_scenario(workspace_root),
+            "governor": governor_metadata_payload(governor_config),
+        },
+    )
+    _write_json(workspace_root / "twin_manifest.json", bundle.model_dump(mode="json"))
+    return bundle
 
 
 def _build_manifest(
@@ -594,7 +717,9 @@ def _build_manifest(
         bundle.metadata.get("preview", {}) if isinstance(bundle.metadata, dict) else {}
     )
     crisis_name = _resolve_crisis_name(preview)
-    sample_client_path = str((_repo_root() / "examples" / "pilot_client.py").resolve())
+    sample_client_path = str(
+        (_repo_root() / "examples" / "governor_client.py").resolve()
+    )
     manifest = PilotManifest(
         workspace_root=bundle.workspace_root,
         workspace_name=bundle.workspace_name,
@@ -630,7 +755,7 @@ def _persist_pilot_manifest(
     manifest = _build_manifest(
         bundle,
         studio_url=studio_url,
-        pilot_console_url=f"{studio_url}/pilot",
+        pilot_console_url=f"{studio_url}/?skin=governor",
         gateway_url=gateway_url,
         orchestrator_config=orchestrator_config,
     )
@@ -647,11 +772,11 @@ def _persist_pilot_manifest(
 
 def _build_snippets(manifest: PilotManifest) -> list[PilotSnippet]:
     env_block = (
-        f'export VEI_PILOT_BASE_URL="{manifest.gateway_url}"\n'
-        f'export VEI_PILOT_TOKEN="{manifest.bearer_token}"\n'
+        f'export VEI_TWIN_BASE_URL="{manifest.gateway_url}"\n'
+        f'export VEI_TWIN_TOKEN="{manifest.bearer_token}"\n'
         'export VEI_AGENT_ID="starter-agent"\n'
         'export VEI_AGENT_NAME="starter-agent"\n'
-        'export VEI_AGENT_ROLE="exercise-runner"'
+        'export VEI_AGENT_ROLE="external-agent"'
     )
     python_snippet = (
         "import json\n"
@@ -659,7 +784,7 @@ def _build_snippets(manifest: PilotManifest) -> list[PilotSnippet]:
         f'BASE_URL = "{manifest.gateway_url}"\n'
         f'TOKEN = "{manifest.bearer_token}"\n\n'
         "register = Request(\n"
-        '    f"{BASE_URL}/api/mirror/agents",\n'
+        '    f"{BASE_URL}/api/governor/agents",\n'
         "    data=json.dumps({\n"
         '        "agent_id": "starter-agent",\n'
         '        "name": "starter-agent",\n'
@@ -678,7 +803,7 @@ def _build_snippets(manifest: PilotManifest) -> list[PilotSnippet]:
         '        "Authorization": f"Bearer {TOKEN}",\n'
         '        "X-VEI-Agent-Id": "starter-agent",\n'
         '        "X-VEI-Agent-Name": "starter-agent",\n'
-        '        "X-VEI-Agent-Role": "exercise-runner",\n'
+        '        "X-VEI-Agent-Role": "external-agent",\n'
         "    },\n"
         ")\n"
         "print(json.loads(urlopen(req).read()))\n"
@@ -686,35 +811,35 @@ def _build_snippets(manifest: PilotManifest) -> list[PilotSnippet]:
     register_curl = (
         f"curl -X POST -H 'Authorization: Bearer {manifest.bearer_token}' "
         "-H 'Content-Type: application/json' "
-        f"'{manifest.gateway_url}/api/mirror/agents' "
+        f"'{manifest.gateway_url}/api/governor/agents' "
         '-d \'{"agent_id":"starter-agent","name":"starter-agent","mode":"proxy"}\''
     )
     slack_curl = (
         f"curl -H 'Authorization: Bearer {manifest.bearer_token}' "
         "-H 'X-VEI-Agent-Id: starter-agent' "
         "-H 'X-VEI-Agent-Name: starter-agent' "
-        "-H 'X-VEI-Agent-Role: exercise-runner' "
+        "-H 'X-VEI-Agent-Role: external-agent' "
         f"'{manifest.gateway_url}/slack/api/conversations.list'"
     )
     jira_curl = (
         f"curl -H 'Authorization: Bearer {manifest.bearer_token}' "
         "-H 'X-VEI-Agent-Id: starter-agent' "
         "-H 'X-VEI-Agent-Name: starter-agent' "
-        "-H 'X-VEI-Agent-Role: exercise-runner' "
+        "-H 'X-VEI-Agent-Role: external-agent' "
         f"'{manifest.gateway_url}/jira/rest/api/3/search'"
     )
     graph_curl = (
         f"curl -H 'Authorization: Bearer {manifest.bearer_token}' "
         "-H 'X-VEI-Agent-Id: starter-agent' "
         "-H 'X-VEI-Agent-Name: starter-agent' "
-        "-H 'X-VEI-Agent-Role: exercise-runner' "
+        "-H 'X-VEI-Agent-Role: external-agent' "
         f"'{manifest.gateway_url}/graph/v1.0/me/messages'"
     )
     salesforce_curl = (
         f"curl -H 'Authorization: Bearer {manifest.bearer_token}' "
         "-H 'X-VEI-Agent-Id: starter-agent' "
         "-H 'X-VEI-Agent-Name: starter-agent' "
-        "-H 'X-VEI-Agent-Role: exercise-runner' "
+        "-H 'X-VEI-Agent-Role: external-agent' "
         f"'{manifest.gateway_url}/salesforce/services/data/v60.0/query?q=SELECT+Name+FROM+Opportunity'"
     )
     return [
@@ -765,7 +890,7 @@ def _build_snippets(manifest: PilotManifest) -> list[PilotSnippet]:
 
 def _resolve_crisis_name(preview: Any) -> str:
     if not isinstance(preview, dict):
-        return "Customer pilot exercise"
+        return "Customer twin run"
     active_variant = preview.get("active_scenario_variant")
     variants = preview.get("available_scenario_variants")
     if isinstance(active_variant, str) and isinstance(variants, list):
@@ -781,7 +906,7 @@ def _resolve_crisis_name(preview: Any) -> str:
         value = preview.get(key)
         if isinstance(value, str) and value.strip():
             return value
-    return "Customer pilot exercise"
+    return "Customer twin run"
 
 
 def _render_pilot_guide(manifest: PilotManifest) -> str:
@@ -803,17 +928,17 @@ def _render_pilot_guide(manifest: PilotManifest) -> str:
             f"- API key env: `{manifest.orchestrator.api_key_env}`\n\n"
         )
     return (
-        f"# Pilot Guide — {manifest.organization_name}\n\n"
+        f"# Twin Launch Guide — {manifest.organization_name}\n\n"
         f"## What this is\n\n"
         f"- Company: **{manifest.organization_name}**\n"
         f"- Archetype: **{manifest.archetype.replace('_', ' ')}**\n"
         f"- Current crisis: **{manifest.crisis_name}**\n"
         f"- Studio: `{manifest.studio_url}`\n"
-        f"- Operator Console: `{manifest.pilot_console_url}`\n"
+        f"- Control room: `{manifest.pilot_console_url}`\n"
         f"- Gateway: `{manifest.gateway_url}`\n\n"
         f"## Supported surfaces\n\n"
         f"{surface_lines}\n\n"
-        f"## Recommended first exercise\n\n"
+        f"## Recommended first move\n\n"
         f"{manifest.recommended_first_exercise}\n\n"
         f"{orchestrator_lines}"
         f"## Sample client\n\n"
@@ -821,8 +946,8 @@ def _render_pilot_guide(manifest: PilotManifest) -> str:
         f"## Connection snippets\n\n"
         f"{snippets}\n\n"
         "## Reset or finalize\n\n"
-        "- Reset the twin to baseline: use `vei pilot down` then `vei pilot up`, or the reset control in the Operator Console.\n"
-        "- Finalize the current run: use the Operator Console finalize control or `POST /api/twin/finalize` on the gateway.\n"
+        "- Reset the twin to baseline: use `vei twin reset`, or use the reset control in Studio.\n"
+        "- Finalize the current run: use `vei twin finalize`, or use the finalize control in Studio.\n"
     )
 
 
@@ -1066,7 +1191,7 @@ def _build_outcome(
     if gateway_payload is None:
         return PilotOutcomeSummary(
             status="stopped",
-            summary="Pilot services are not fully up yet.",
+            summary="Twin services are not fully up yet.",
         )
     runtime = (
         gateway_payload.get("runtime", {}) if isinstance(gateway_payload, dict) else {}
@@ -1287,7 +1412,7 @@ def _sync_orchestrator_agents_to_mirror(
     synced_agent_count = 0
     for agent_id, payload in desired_agent_payloads.items():
         response = _request_json(
-            f"{manifest.gateway_url}/api/mirror/agents",
+            f"{manifest.gateway_url}/api/governor/agents",
             method="POST",
             payload=payload,
             headers=auth_headers,
@@ -1295,7 +1420,7 @@ def _sync_orchestrator_agents_to_mirror(
         )
         if response is None:
             raise RuntimeError(
-                f"failed to sync orchestrator agent into mirror: {agent_id}"
+                f"failed to sync orchestrator agent into governor: {agent_id}"
             )
         synced_agent_count += 1
 
@@ -1312,14 +1437,14 @@ def _sync_orchestrator_agents_to_mirror(
     )
     for agent_id in stale_agent_ids:
         response = _request_json(
-            f"{manifest.gateway_url}/api/mirror/agents/{quote(agent_id, safe='')}",
+            f"{manifest.gateway_url}/api/governor/agents/{quote(agent_id, safe='')}",
             method="DELETE",
             headers=auth_headers,
             timeout_s=4.0,
         )
         if response is None:
             raise RuntimeError(
-                f"failed to remove stale orchestrator agent from mirror: {agent_id}"
+                f"failed to remove stale orchestrator agent from governor: {agent_id}"
             )
     return synced_agent_count
 
@@ -1603,12 +1728,12 @@ def _load_mirror_agents(
     headers: dict[str, str],
 ) -> list[dict[str, Any]]:
     payload = _request_json(
-        f"{manifest.gateway_url}/api/mirror/agents",
+        f"{manifest.gateway_url}/api/governor/agents",
         headers=headers,
         timeout_s=4.0,
     )
     if not isinstance(payload, dict):
-        raise RuntimeError("failed to load current mirror agents")
+        raise RuntimeError("failed to load current governor agents")
     agents = payload.get("agents") or []
     if not isinstance(agents, list):
         return []
@@ -1889,7 +2014,7 @@ def _write_json(path: Path, payload: dict[str, Any]) -> None:
 
 
 def _pilot_dir(workspace_root: Path) -> Path:
-    return workspace_root / ".pilot"
+    return workspace_root / ".twin"
 
 
 def _repo_root() -> Path:

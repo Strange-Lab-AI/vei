@@ -724,10 +724,9 @@ function togglePlayback() {
 }
 
 async function loadWorkspace() {
-  const [workspace, storyArtifacts, exerciseArtifacts, playableArtifacts, scenarios, importSummary, identityFlow, importSources, importNormalization, importReview, generatedImportScenarios, provenanceIndex, mirrorStatus, workforceStatus] = await Promise.all([
+  const [workspace, storyArtifacts, playableArtifacts, scenarios, importSummary, identityFlow, importSources, importNormalization, importReview, generatedImportScenarios, provenanceIndex, governorWorkspace] = await Promise.all([
     getJson("/api/workspace"),
     fetchStoryArtifacts(),
-    fetchExerciseArtifacts(),
     fetchPlayableArtifacts(),
     getJson("/api/scenarios"),
     getJson("/api/imports/summary").catch(() => ({})),
@@ -737,14 +736,11 @@ async function loadWorkspace() {
     getJson("/api/imports/review").catch(() => ({})),
     getJson("/api/imports/scenarios").catch(() => []),
     getJson("/api/imports/provenance").catch(() => []),
-    getJson("/api/workspace/mirror").catch(() => ({})),
-    getJson("/api/workforce").catch(() => ({})),
+    getJson("/api/workspace/governor").catch(() => ({})),
   ]);
   state.workspace = workspace;
-  state.mirrorStatus = nonEmptyPayload(mirrorStatus);
-  state.workforceStatus = nonEmptyPayload(workforceStatus);
+  applyGovernorWorkspaceStatus(governorWorkspace);
   state.story = nonEmptyPayload(storyArtifacts.story);
-  state.exercise = nonEmptyPayload(exerciseArtifacts.exercise);
   state.exportsPreview = storyArtifacts.exportsPreview;
   state.presentation =
     nonEmptyPayload(storyArtifacts.presentation) ||
@@ -854,7 +850,7 @@ async function startMission() {
     status.textContent = "Applying crisis\u2026";
     state.lastMoveImpact = null;
     try {
-      await getJson("/api/exercise/activate", {
+      await getJson("/api/workspace/governor/exercise/activate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -1179,7 +1175,7 @@ async function refreshActiveRun(
   { connectStream = false, previousSurfaceState = null, preserveSurfaceHighlights = false } = {}
 ) {
   const generation = ++state.refreshGeneration;
-  const [run, timeline, orientation, graphs, snapshots, contract, surfaces, mirrorStatus, workforceStatus] = await Promise.all([
+  const [run, timeline, orientation, graphs, snapshots, contract, surfaces, governorWorkspace] = await Promise.all([
     getJson(`/api/runs/${runId}`),
     getJson(`/api/runs/${runId}/timeline`),
     getJson(`/api/runs/${runId}/orientation`),
@@ -1187,8 +1183,7 @@ async function refreshActiveRun(
     getJson(`/api/runs/${runId}/snapshots`),
     getJson(`/api/runs/${runId}/contract`),
     getJson(`/api/runs/${runId}/surfaces`).catch(() => null),
-    getJson("/api/workspace/mirror").catch(() => null),
-    getJson("/api/workforce").catch(() => null),
+    getJson("/api/workspace/governor").catch(() => null),
   ]);
 
   if (generation !== state.refreshGeneration) return;
@@ -1203,8 +1198,7 @@ async function refreshActiveRun(
   });
   state.snapshots = snapshots;
   state.activeRunContract = contract;
-  state.mirrorStatus = nonEmptyPayload(mirrorStatus);
-  state.workforceStatus = nonEmptyPayload(workforceStatus);
+  applyGovernorWorkspaceStatus(governorWorkspace);
   await refreshStoryArtifacts();
   await refreshPlayableArtifacts();
   if (state.selectedEventIndex >= timeline.length) {

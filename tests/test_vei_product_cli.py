@@ -658,7 +658,8 @@ def test_product_cli_prepares_playable_world_and_exports(tmp_path: Path) -> None
     studio_result = runner.invoke(
         app,
         [
-            "ui", "play",
+            "ui",
+            "play",
             "--root",
             str(root),
             "--world",
@@ -710,7 +711,8 @@ def test_product_cli_rejects_unknown_playable_world(tmp_path: Path) -> None:
     result = runner.invoke(
         app,
         [
-            "ui", "play",
+            "ui",
+            "play",
             "--root",
             str(root),
             "--world",

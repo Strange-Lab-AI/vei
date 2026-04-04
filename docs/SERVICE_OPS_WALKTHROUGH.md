@@ -1,8 +1,8 @@
 # VEI Service Operations Pack — Control Plane and What-If Walkthrough
 
-**Clearwater Field Services** is the strongest built-in demo for VEI's current product story: a VIP outage, technician no-show, and billing dispute all collide before 9 AM, while mirror-governed agents and a human operator respond through the same control surface.
+**Clearwater Field Services** is the strongest built-in demo for VEI's current product story: a VIP outage, technician no-show, and billing dispute all collide before 9 AM, while governed agents and a human operator respond through the same control surface.
 
-This walkthrough describes the current Studio experience for the `service_ops` pack with mirror mode enabled. It focuses on the two demo moments the product now supports well:
+This walkthrough describes the current Studio experience for the `service_ops` pack with governor mode enabled. It focuses on the two demo moments the product now supports well:
 
 1. **Control plane** — governed agent activity with visible denials, approval holds, connector status, and operator controls.
 2. **What-if replay** — change a small set of service-ops policy knobs, replay from the same starting point, and compare the new outcome side by side.
@@ -17,7 +17,7 @@ The Studio opens on the **Living Company** view. The top of the screen still cen
 - **Crisis**: one of the built-in service-ops crisis variants
 - **Success means**: an objective variant such as Protect SLA, Protect Revenue, or Protect Customer Trust
 
-Below that header, mirror-enabled runs show a persistent **mode indicator** so the operator can immediately tell they are looking at governed agent traffic rather than an unguided simulation.
+Below that header, governor-enabled runs show a persistent **mode indicator** so the operator can immediately tell they are looking at governed agent traffic rather than an unguided simulation.
 
 ---
 
@@ -32,15 +32,15 @@ The situation room remains the fastest summary of business state. It shows six c
 - **Deadline** — time or action-budget pressure
 - **Risk** — overall mission risk level
 
-This strip updates after both human moves and mirror-governed agent activity, so the operator sees operational state and governance state move together.
+This strip updates after both human moves and governor-governed agent activity, so the operator sees operational state and governance state move together.
 
 ---
 
-## 3. Control Plane — The Main Mirror Story
+## 3. Control Room — The Main Governor Story
 
-The **Control Plane** panel is the main mirror-mode surface in the Company view.
+The **Control Room** panel is the main governor surface in the Company view.
 
-In the built-in service-ops demo, three mirror agents are pre-registered:
+In the built-in service-ops demo, three governed agents are pre-registered:
 
 | Agent | Profile | Main surfaces | Role in demo |
 |---|---|---|---|
@@ -54,7 +54,7 @@ The panel now does more than show raw activity:
 - **Connector strip** shows Slack, Jira, Graph, and Salesforce with readable status such as simulated interactive, live interactive, live read-only, or unsupported.
 - **Approval queue** shows all approvals — pending items first with a gold "held" badge, then resolved items with green "approved" or red "rejected" badges — so you can see the full approval history, not just the current queue.
 - **Activity log** shows allowed actions, blocked actions, held actions, and throttled actions with relative timestamps (e.g. "2m ago"). The feed shows the 20 most recent events with a "Show all" disclosure for the rest.
-- **Register Agent form** is collapsed behind a "Register new agent" disclosure to keep the panel clean by default.
+- **Register Agent form** is collapsed behind a "Register governed agent" disclosure to keep the panel clean by default.
 - **Inline operator controls** let the human add an agent, change profile, update allowed surfaces, and set status without leaving Studio.
 
 This is the current control-plane moment: you can explain who is acting, what VEI allowed, what VEI blocked, and why.
@@ -63,7 +63,7 @@ This is the current control-plane moment: you can explain who is acting, what VE
 
 ## 4. The Governed Demo Beats
 
-The built-in mirror demo is no longer just ambient activity. It stages a clear governance story:
+The built-in governor demo is no longer just ambient activity. It stages a clear governance story:
 
 1. Dispatch Bot posts an allowed Slack update.
 2. Dispatch Bot performs an allowed dispatch reassignment.
@@ -90,7 +90,7 @@ The rest of the Company view still shows the full business wall:
 - **Approvals** for business-side requests
 - **Service loop** for the domain-specific service-ops state
 
-Mirror-governed actions show up here as normal business activity. That is the key product trick: the control plane is not a side dashboard disconnected from the company simulation. It governs actions that visibly change the company world.
+Governor-controlled actions show up here as normal business activity. That is the key product trick: the control plane is not a side dashboard disconnected from the company simulation. It governs actions that visibly change the company world.
 
 ---
 
@@ -105,7 +105,7 @@ The mission controls still let a human play the scenario directly:
 That means the `service_ops` pack can still demo both halves of VEI:
 
 - **human-in-the-loop mission play**
-- **governed agent activity through mirror mode**
+- **governed agent activity through governor mode**
 
 ---
 
@@ -168,7 +168,7 @@ This makes the sandbox story easier to explain:
 The cross-run diff is now cleaner and more business-readable:
 
 - branch-local runtime noise is stripped out
-- mirror runtime internals do not dominate the diff
+- governor runtime internals do not dominate the diff
 - field paths are humanized
 - booleans are rendered as toggles
 - numeric values are shown as deltas where useful
@@ -183,9 +183,9 @@ The point is not to dump raw JSON. The point is to show how two strategies produ
 
 Use this moment to show that VEI is governing real-looking work, not just visualizing it:
 
-1. Start `service_ops` with `--mirror-demo`.
+1. Start `service_ops` with `--governor-demo`.
 2. Show the mode banner and the situation room.
-3. Point out the three mirror agents and their policy badges.
+3. Point out the three governed agents and their policy badges.
 4. Explain the connector strip: Slack is the live-first story, the other surfaces are still governed but may be read-only or unsupported for live writes.
 5. Let the staged actions play until you can show:
    - one allowed action
@@ -209,11 +209,11 @@ Use this moment to show that VEI can replay the same company from the same start
 ## Running It
 
 ```bash
-# Standard mode (no mirror agents)
+# Standard mode (no governed agents)
 vei quickstart run --world service_ops
 
-# Mirror demo with staged governed agents
-vei quickstart run --world service_ops --mirror-demo
+# Governor demo with staged governed agents
+vei quickstart run --world service_ops --governor-demo
 
 # Slack-first live alpha
 vei quickstart run --world service_ops --connector-mode live

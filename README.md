@@ -26,41 +26,27 @@ vei quickstart run
 
 That creates a company world, starts Studio (`:3011`) and the Twin Gateway (`:3012`), runs a scripted baseline so you see events flowing immediately, and prints connection details. Press Ctrl-C to stop.
 
-Options: `--world service_ops`, `--mirror-demo`, `--connector-mode live`, `--seed`, `--no-baseline`.
+Options: `--world service_ops`, `--governor-demo`, `--connector-mode live`, `--seed`, `--no-baseline`.
 
 ## What This Looks Like
 
-The screenshots below come from a real local VEI run connected to a real local Paperclip company. VEI is not just showing logs here. It is posting guidance into outside work, recording its own intervention, and showing the downstream response inside the same company view.
+The screenshots below come from `vei quickstart run --world service_ops --governor-demo`, so a new teammate can reproduce the same flow locally in one command. VEI is not just showing logs. It is showing the company state, the governed outside agents, and the approval story in one place.
 
-![VEI + Paperclip control room demo](docs/assets/paperclip-control-room/vei-paperclip-demo.gif)
+![VEI governor demo hero](docs/assets/governor-demo/service-ops-governor-hero.png)
 
-[Download the MP4 version](docs/assets/paperclip-control-room/vei-paperclip-demo.mp4)
+### Control Room
 
-### Operator Console
+The control room keeps the outside agents, their permissions, and the company-facing connectors in the same view as the simulated company.
 
-The outside-workforce view: who exists, what they own, and whether VEI can steer the work.
+![VEI governor control room](docs/assets/governor-demo/service-ops-governor-control-room.png)
 
-![VEI operator console](docs/assets/paperclip-control-room/demo-frame-01-pilot-top.png)
+### Governance Feed
 
-### VEI Intervention
+The governance feed shows what VEI allowed, held, and blocked, with the reason attached to the event instead of hiding it in a side log.
 
-VEI's own action appears as `Guided task`, followed by the downstream Paperclip update. The cause-and-effect chain is visible instead of hiding VEI inside generic activity noise.
+![VEI governor activity log](docs/assets/governor-demo/service-ops-governor-activity-log.png)
 
-![VEI intervention in the operator feed](docs/assets/paperclip-control-room/demo-frame-02-pilot-activity.png)
-
-### Company Control Room
-
-The outside workforce is visible inside the company world itself, not only in a side dashboard. Tasks, approvals, interventions, and responses become part of the world state VEI can replay, compare, and branch.
-
-![VEI company control room](docs/assets/paperclip-control-room/demo-frame-03-control-room.png)
-
-### Intervention Story
-
-VEI intervention first, outside response second, all inside one operating picture.
-
-![VEI intervention story in the company view](docs/assets/paperclip-control-room/demo-frame-04-intervention-story.png)
-
-[Full write-up: Paperclip Control Room Report](docs/PAPERCLIP_CONTROL_ROOM_REPORT.md)
+Need the live-orchestrator proof point too? Read the [Paperclip Control Room Report](docs/PAPERCLIP_CONTROL_ROOM_REPORT.md).
 
 ## How It Works
 
@@ -89,7 +75,7 @@ VEI simulates a complete enterprise environment — every software system, every
 ```text
 Agent ──MCP──► VEI Router                       External Agent ──HTTP──► Twin Gateway (:3012)
                   └─ transport + tool dispatch                              ├─ Slack / Jira / Graph / SFDC compat routes
-                            │                                               ├─ mirror agent registry
+                            │                                               ├─ governor agent registry
                             ▼                                               ├─ policy profiles + approval queue
                                                                             ├─ surface / connector enforcement
                       WorldSession Kernel ◄─────────────────────────────────┘
@@ -97,7 +83,7 @@ Agent ──MCP──► VEI Router                       External Agent ──H
                   ├─ snapshots / branch / replay / inject
                   ├─ actor state + receipts
                   ├─ enterprise twins (15+ surfaces)
-                  └─ mirror runtime (agent fleet, denial tracking, event feed)
+                  └─ governor runtime (agent fleet, denial tracking, event feed)
                             │
                             ▼
                       Studio UI (:3011)
@@ -171,17 +157,17 @@ vei twin serve --root _vei_out/customer_twins/acme_cloud
 ```
 The gateway exposes provider-shaped routes for Slack, Jira, MS Graph, and Salesforce while keeping normal VEI scoring and replay underneath.
 
-### Pilot stack with orchestrator bridge
+### Twin stack with orchestrator bridge
 
 ```bash
-vei pilot up \
-  --root _vei_out/pilots/pinnacle \
+vei twin up \
+  --root _vei_out/twins/pinnacle \
   --orchestrator paperclip \
   --orchestrator-url http://127.0.0.1:3100 \
   --orchestrator-company-id company-1 \
   --orchestrator-api-key-env PAPERCLIP_API_KEY
 ```
-Starts the customer twin gateway, Studio, and a Pilot Console sidecar. The console gives the operator one place to follow agent activity, sync routeable workers, send guidance, and approve or reject decisions.
+Starts the customer twin gateway and Studio in the governor skin. The control room gives the operator one place to follow agent activity, sync routeable workers, send guidance, and approve or reject decisions.
 
 ### Grounded import from real enterprise data
 
@@ -253,7 +239,7 @@ make all      # check → test → llm-live, stops on first failure
 ## CLI Surface
 
 - **Start here:** `vei quickstart run` · `vei ui serve` · `vei studio play`
-- **Twin and mirror:** `vei twin build|serve|status` · `vei pilot up|status|down|reset|finalize`
+- **Twin and governor:** `vei twin build|serve|status|up|down|reset|finalize|sync`
 - **Context and synthesis:** `vei context capture|hydrate|diff` · `vei synthesize runbook|training-set|agent-config`
 - **Workspace lifecycle:** `vei project|contract|scenario|run|inspect|showcase`
 - **Benchmarking:** `vei eval benchmark|demo|suite|showcase` · `vei bench list|run|scorecard`
@@ -264,7 +250,7 @@ make all      # check → test → llm-live, stops on first failure
 - `examples/sdk_playground_min.py`
 - `examples/mcp_client_stdio_min.py`
 - `examples/rl_train.py`
-- `examples/pilot_client.py`
+- `examples/governor_client.py`
 
 ## Docs
 

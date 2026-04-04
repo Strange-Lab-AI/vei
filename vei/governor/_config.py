@@ -3,13 +3,13 @@ from __future__ import annotations
 from typing import Any, Mapping, cast
 
 from .models import (
-    MirrorPolicyProfile,
-    MirrorPolicyProfileId,
-    MirrorWorkspaceConfig,
+    GovernorPolicyProfile,
+    GovernorPolicyProfileId,
+    GovernorWorkspaceConfig,
 )
 
-_PROFILE_REGISTRY: dict[MirrorPolicyProfileId, MirrorPolicyProfile] = {
-    "observer": MirrorPolicyProfile(
+_PROFILE_REGISTRY: dict[GovernorPolicyProfileId, GovernorPolicyProfile] = {
+    "observer": GovernorPolicyProfile(
         profile_id="observer",
         label="Observer",
         description="Can read governed surfaces but cannot make changes.",
@@ -18,7 +18,7 @@ _PROFILE_REGISTRY: dict[MirrorPolicyProfileId, MirrorPolicyProfile] = {
         safe_write_access="deny",
         risky_write_access="deny",
     ),
-    "operator": MirrorPolicyProfile(
+    "operator": GovernorPolicyProfile(
         profile_id="operator",
         label="Operator",
         description="Can read and perform safe changes. Risky changes pause for approval.",
@@ -27,7 +27,7 @@ _PROFILE_REGISTRY: dict[MirrorPolicyProfileId, MirrorPolicyProfile] = {
         safe_write_access="allow",
         risky_write_access="require_approval",
     ),
-    "approver": MirrorPolicyProfile(
+    "approver": GovernorPolicyProfile(
         profile_id="approver",
         label="Approver",
         description="Can operate like an operator and resolve approval holds.",
@@ -36,7 +36,7 @@ _PROFILE_REGISTRY: dict[MirrorPolicyProfileId, MirrorPolicyProfile] = {
         safe_write_access="allow",
         risky_write_access="require_approval",
     ),
-    "admin": MirrorPolicyProfile(
+    "admin": GovernorPolicyProfile(
         profile_id="admin",
         label="Admin",
         description="Full access inside surface allowlists and connector safety rules.",
@@ -48,15 +48,15 @@ _PROFILE_REGISTRY: dict[MirrorPolicyProfileId, MirrorPolicyProfile] = {
 }
 
 
-def default_mirror_workspace_config(
+def default_governor_workspace_config(
     *,
     connector_mode: str = "sim",
     demo_mode: bool = False,
     autoplay: bool = False,
     demo_interval_ms: int = 1500,
     hero_world: str | None = None,
-) -> MirrorWorkspaceConfig:
-    return MirrorWorkspaceConfig(
+) -> GovernorWorkspaceConfig:
+    return GovernorWorkspaceConfig(
         connector_mode=(
             "live" if str(connector_mode).strip().lower() == "live" else "sim"
         ),
@@ -67,22 +67,22 @@ def default_mirror_workspace_config(
     )
 
 
-def mirror_policy_profiles() -> list[MirrorPolicyProfile]:
+def governor_policy_profiles() -> list[GovernorPolicyProfile]:
     return [profile.model_copy(deep=True) for profile in _PROFILE_REGISTRY.values()]
 
 
-def resolve_mirror_policy_profile(
-    profile_id: MirrorPolicyProfileId | str | None,
-) -> MirrorPolicyProfile:
+def resolve_governor_policy_profile(
+    profile_id: GovernorPolicyProfileId | str | None,
+) -> GovernorPolicyProfile:
     normalized = str(profile_id or "admin").strip().lower() or "admin"
     if normalized not in _PROFILE_REGISTRY:
         normalized = "admin"
-    resolved_id = cast(MirrorPolicyProfileId, normalized)
+    resolved_id = cast(GovernorPolicyProfileId, normalized)
     return _PROFILE_REGISTRY[resolved_id].model_copy(deep=True)
 
 
-def mirror_metadata_payload(
-    config: MirrorWorkspaceConfig | None = None,
+def governor_metadata_payload(
+    config: GovernorWorkspaceConfig | None = None,
     *,
     connector_mode: str = "sim",
     demo_mode: bool = False,
@@ -90,7 +90,7 @@ def mirror_metadata_payload(
     demo_interval_ms: int = 1500,
     hero_world: str | None = None,
 ) -> dict[str, Any]:
-    resolved = config or default_mirror_workspace_config(
+    resolved = config or default_governor_workspace_config(
         connector_mode=connector_mode,
         demo_mode=demo_mode,
         autoplay=autoplay,
@@ -100,12 +100,12 @@ def mirror_metadata_payload(
     return resolved.model_dump(mode="json")
 
 
-def load_mirror_workspace_config(
+def load_governor_workspace_config(
     metadata: Mapping[str, Any] | None,
-) -> MirrorWorkspaceConfig:
+) -> GovernorWorkspaceConfig:
     if not isinstance(metadata, Mapping):
-        return default_mirror_workspace_config()
-    payload = metadata.get("mirror")
+        return default_governor_workspace_config()
+    payload = metadata.get("governor")
     if not isinstance(payload, Mapping):
-        return default_mirror_workspace_config()
-    return MirrorWorkspaceConfig.model_validate(dict(payload))
+        return default_governor_workspace_config()
+    return GovernorWorkspaceConfig.model_validate(dict(payload))

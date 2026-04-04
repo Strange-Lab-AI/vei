@@ -7,9 +7,9 @@ from datetime import UTC, datetime
 from typing import Any, Protocol
 
 from ._config import (
-    load_mirror_workspace_config,
-    mirror_policy_profiles,
-    resolve_mirror_policy_profile,
+    load_governor_workspace_config,
+    governor_policy_profiles,
+    resolve_governor_policy_profile,
 )
 from ._demo import (
     MirrorApprovalCommand,
@@ -17,28 +17,28 @@ from ._demo import (
     default_service_ops_demo_steps,
 )
 from .models import (
-    MirrorActionPlan,
-    MirrorAgentSpec,
-    MirrorConnectorStatus,
-    MirrorEventResult,
-    MirrorHandleMode,
-    MirrorIngestEvent,
-    MirrorPendingApproval,
-    MirrorRecentEvent,
-    MirrorRuntimeSnapshot,
+    GovernorActionPlan,
+    GovernorAgentSpec,
+    GovernorConnectorStatus,
+    GovernorEventResult,
+    GovernorHandleMode,
+    GovernorIngestEvent,
+    GovernorPendingApproval,
+    GovernorRecentEvent,
+    GovernorRuntimeSnapshot,
 )
 
 logger = logging.getLogger(__name__)
 
 
-class MirrorTarget(Protocol):
-    def register_mirror_agent(self, agent: MirrorAgentSpec) -> None: ...
+class GovernorTarget(Protocol):
+    def register_mirror_agent(self, agent: GovernorAgentSpec) -> None: ...
 
     def record_mirror_denial(
         self,
         *,
-        event: MirrorIngestEvent,
-        agent: MirrorAgentSpec,
+        event: GovernorIngestEvent,
+        agent: GovernorAgentSpec,
         reason: str,
     ) -> None: ...
 
@@ -47,39 +47,39 @@ class MirrorTarget(Protocol):
     def plan_mirror_action(
         self,
         *,
-        event: MirrorIngestEvent,
-        agent: MirrorAgentSpec,
+        event: GovernorIngestEvent,
+        agent: GovernorAgentSpec,
         approval_granted: bool = False,
-    ) -> MirrorActionPlan: ...
+    ) -> GovernorActionPlan: ...
 
     def execute_mirror_action(
         self,
         *,
-        plan: MirrorActionPlan,
-        event: MirrorIngestEvent,
-        agent: MirrorAgentSpec,
+        plan: GovernorActionPlan,
+        event: GovernorIngestEvent,
+        agent: GovernorAgentSpec,
         approval_granted: bool = False,
     ) -> dict[str, Any]: ...
 
     def record_mirror_event(
         self,
         *,
-        event: MirrorIngestEvent,
-        agent: MirrorAgentSpec,
+        event: GovernorIngestEvent,
+        agent: GovernorAgentSpec,
     ) -> dict[str, Any]: ...
 
-    def mirror_connector_status(self) -> list[MirrorConnectorStatus]: ...
+    def mirror_connector_status(self) -> list[GovernorConnectorStatus]: ...
 
 
-class MirrorRuntime:
+class GovernorRuntime:
     def __init__(
         self,
         *,
         metadata: dict[str, Any] | None,
         hero_world: str,
-        target: MirrorTarget,
+        target: GovernorTarget,
     ) -> None:
-        self.config = load_mirror_workspace_config(metadata)
+        self.config = load_governor_workspace_config(metadata)
         if self.config.hero_world is None:
             self.config.hero_world = hero_world
         self._target = target
@@ -91,25 +91,25 @@ class MirrorRuntime:
         self._denied_event_count = 0
         self._throttled_event_count = 0
         self._last_event_at: str | None = None
-        self._agents: dict[str, MirrorAgentSpec] = {}
-        self._demo_steps: list[MirrorIngestEvent | MirrorApprovalCommand] = []
-        self._recent_events: list[MirrorRecentEvent] = []
-        self._pending_approvals: list[MirrorPendingApproval] = []
+        self._agents: dict[str, GovernorAgentSpec] = {}
+        self._demo_steps: list[GovernorIngestEvent | MirrorApprovalCommand] = []
+        self._recent_events: list[GovernorRecentEvent] = []
+        self._pending_approvals: list[GovernorPendingApproval] = []
         self._approval_seq = 0
         self._total_action_windows: dict[str, list[float]] = {}
         self._mutating_action_windows: dict[tuple[str, str], list[float]] = {}
         self._max_recent_events = 20
         self._seed_default_content()
 
-    def snapshot(self) -> MirrorRuntimeSnapshot:
+    def snapshot(self) -> GovernorRuntimeSnapshot:
         with self._lock:
-            return MirrorRuntimeSnapshot(
+            return GovernorRuntimeSnapshot(
                 config=self.config.model_copy(deep=True),
                 agents=[
                     self._resolve_agent(agent).model_copy(deep=True)
                     for agent in self._agents.values()
                 ],
-                policy_profiles=mirror_policy_profiles(),
+                policy_profiles=governor_policy_profiles(),
                 event_count=self._event_count,
                 denied_event_count=self._denied_event_count,
                 throttled_event_count=self._throttled_event_count,
@@ -127,13 +127,13 @@ class MirrorRuntime:
                 recent_events=list(self._recent_events),
             )
 
-    def list_agents(self) -> list[MirrorAgentSpec]:
+    def list_agents(self) -> list[GovernorAgentSpec]:
         return self.snapshot().agents
 
-    def list_pending_approvals(self) -> list[MirrorPendingApproval]:
+    def list_pending_approvals(self) -> list[GovernorPendingApproval]:
         return self.snapshot().pending_approvals
 
-    def get_agent(self, agent_id: str) -> MirrorAgentSpec | None:
+    def get_agent(self, agent_id: str) -> GovernorAgentSpec | None:
         with self._lock:
             agent = self._agents.get(agent_id)
             if agent is None:
@@ -141,12 +141,12 @@ class MirrorRuntime:
             return self._resolve_agent(agent)
 
     def register_agent(
-        self, agent: MirrorAgentSpec | dict[str, Any]
-    ) -> MirrorAgentSpec:
+        self, agent: GovernorAgentSpec | dict[str, Any]
+    ) -> GovernorAgentSpec:
         payload = (
             agent
-            if isinstance(agent, MirrorAgentSpec)
-            else MirrorAgentSpec.model_validate(agent)
+            if isinstance(agent, GovernorAgentSpec)
+            else GovernorAgentSpec.model_validate(agent)
         )
         payload = self._resolve_agent(payload)
         with self._lock:
@@ -173,7 +173,7 @@ class MirrorRuntime:
         self,
         agent_id: str,
         fields: dict[str, Any],
-    ) -> MirrorAgentSpec:
+    ) -> GovernorAgentSpec:
         current = self.require_agent(agent_id)
         payload = current.model_copy(
             update={k: v for k, v in fields.items() if k != "agent_id"},
@@ -181,11 +181,11 @@ class MirrorRuntime:
         )
         return self.register_agent(payload)
 
-    def remove_agent(self, agent_id: str) -> MirrorAgentSpec:
+    def remove_agent(self, agent_id: str) -> GovernorAgentSpec:
         with self._lock:
             removed = self._agents.pop(agent_id, None)
         if removed is None:
-            raise ValueError(f"mirror agent not found: {agent_id}")
+            raise ValueError(f"governor agent not found: {agent_id}")
         self._sync_runtime_state()
         return removed
 
@@ -195,7 +195,7 @@ class MirrorRuntime:
         approval_id: str,
         resolver_agent_id: str,
         action: str,
-    ) -> MirrorPendingApproval:
+    ) -> GovernorPendingApproval:
         resolver = self.require_agent(resolver_agent_id)
         active_denial = _mirror_status_denial_reason(resolver)
         if active_denial is not None:
@@ -205,7 +205,7 @@ class MirrorRuntime:
             or not resolver.resolved_policy_profile.can_approve
         ):
             raise ValueError(
-                f"mirror agent '{resolver.agent_id}' cannot approve held actions"
+                f"governor agent '{resolver.agent_id}' cannot approve held actions"
             )
 
         with self._lock:
@@ -250,7 +250,7 @@ class MirrorRuntime:
             self._sync_runtime_state()
             return updated
 
-        event = MirrorIngestEvent(
+        event = GovernorIngestEvent(
             agent_id=approval.agent_id,
             external_tool=approval.external_tool or approval.resolved_tool,
             resolved_tool=approval.resolved_tool,
@@ -410,12 +410,12 @@ class MirrorRuntime:
         return updated
 
     def ingest_event(
-        self, event: MirrorIngestEvent | dict[str, Any]
-    ) -> MirrorEventResult:
+        self, event: GovernorIngestEvent | dict[str, Any]
+    ) -> GovernorEventResult:
         payload = (
             event
-            if isinstance(event, MirrorIngestEvent)
-            else MirrorIngestEvent.model_validate(event)
+            if isinstance(event, GovernorIngestEvent)
+            else GovernorIngestEvent.model_validate(event)
         )
         agent = self.require_agent(payload.agent_id)
 
@@ -513,7 +513,7 @@ class MirrorRuntime:
             resolved_tool=plan.resolved_tool,
         )
 
-    def demo_tick(self) -> MirrorEventResult | None:
+    def demo_tick(self) -> GovernorEventResult | None:
         while True:
             with self._lock:
                 if not self._demo_steps:
@@ -545,7 +545,7 @@ class MirrorRuntime:
                     continue
                 raise
 
-            return MirrorEventResult(
+            return GovernorEventResult(
                 ok=resolved.status == "executed",
                 handled_by="record_only" if resolved.status == "executed" else "denied",
                 agent_id=next_step.agent_id,
@@ -563,7 +563,7 @@ class MirrorRuntime:
             self._autoplay_running = True
         self._thread = threading.Thread(
             target=self._autoplay_loop,
-            name="vei-mirror-demo",
+            name="vei-governor-demo",
             daemon=True,
         )
         self._thread.start()
@@ -573,12 +573,12 @@ class MirrorRuntime:
         if self._thread is not None:
             self._thread.join(timeout=1.0)
 
-    def require_agent(self, agent_id: str) -> MirrorAgentSpec:
+    def require_agent(self, agent_id: str) -> GovernorAgentSpec:
         with self._lock:
             existing = self._agents.get(agent_id)
             if existing is not None:
                 return self._resolve_agent(existing)
-        raise ValueError(f"mirror agent not registered: {agent_id}")
+        raise ValueError(f"governor agent not registered: {agent_id}")
 
     def _seed_default_content(self) -> None:
         if self.config.hero_world != "service_ops" or not self.config.demo_mode:
@@ -587,10 +587,10 @@ class MirrorRuntime:
             self.register_agent(agent)
         self._demo_steps = default_service_ops_demo_steps()
 
-    def _resolve_agent(self, agent: MirrorAgentSpec) -> MirrorAgentSpec:
+    def _resolve_agent(self, agent: GovernorAgentSpec) -> GovernorAgentSpec:
         return agent.model_copy(
             update={
-                "resolved_policy_profile": resolve_mirror_policy_profile(
+                "resolved_policy_profile": resolve_governor_policy_profile(
                     agent.policy_profile_id
                 )
             },
@@ -599,12 +599,12 @@ class MirrorRuntime:
 
     def _create_pending_approval(
         self,
-        event: MirrorIngestEvent,
-        plan: MirrorActionPlan,
-    ) -> MirrorPendingApproval:
+        event: GovernorIngestEvent,
+        plan: GovernorActionPlan,
+    ) -> GovernorPendingApproval:
         with self._lock:
             self._approval_seq += 1
-            approval = MirrorPendingApproval(
+            approval = GovernorPendingApproval(
                 approval_id=f"approval-{self._approval_seq:04d}",
                 agent_id=event.agent_id,
                 surface=plan.surface,
@@ -623,7 +623,7 @@ class MirrorRuntime:
             self._pending_approvals.append(approval)
             return approval
 
-    def _store_resolved_approval(self, updated: MirrorPendingApproval) -> None:
+    def _store_resolved_approval(self, updated: GovernorPendingApproval) -> None:
         with self._lock:
             self._pending_approvals = [
                 updated if item.approval_id == updated.approval_id else item
@@ -666,15 +666,15 @@ class MirrorRuntime:
 
     def _deny_event(
         self,
-        event: MirrorIngestEvent,
-        agent: MirrorAgentSpec,
+        event: GovernorIngestEvent,
+        agent: GovernorAgentSpec,
         *,
         reason: str,
         code: str,
         surface: str | None = None,
         resolved_tool: str | None = None,
         throttled: bool = False,
-    ) -> MirrorEventResult:
+    ) -> GovernorEventResult:
         self._target.record_mirror_denial(event=event, agent=agent, reason=reason)
         return self._finalize_event(
             event,
@@ -691,17 +691,17 @@ class MirrorRuntime:
 
     def _finalize_event(
         self,
-        event: MirrorIngestEvent,
-        agent: MirrorAgentSpec,
+        event: GovernorIngestEvent,
+        agent: GovernorAgentSpec,
         *,
-        handled_by: MirrorHandleMode,
+        handled_by: GovernorHandleMode,
         result: dict[str, Any],
         surface: str,
         resolved_tool: str,
         reason_code: str | None = None,
         reason: str | None = None,
         throttled: bool = False,
-    ) -> MirrorEventResult:
+    ) -> GovernorEventResult:
         action_label = event.label or event.external_tool
         with self._lock:
             self._event_count += 1
@@ -720,7 +720,7 @@ class MirrorRuntime:
                 last_action=action_label,
             )
             self._recent_events.append(
-                MirrorRecentEvent(
+                GovernorRecentEvent(
                     event_id=event.event_id,
                     agent_id=updated_agent.agent_id,
                     tool=event.external_tool,
@@ -735,7 +735,7 @@ class MirrorRuntime:
             )
             if len(self._recent_events) > self._max_recent_events:
                 self._recent_events = self._recent_events[-self._max_recent_events :]
-            event_result = MirrorEventResult(
+            event_result = GovernorEventResult(
                 ok=handled_by not in {"denied", "pending_approval"},
                 handled_by=handled_by,
                 agent_id=updated_agent.agent_id,
@@ -752,11 +752,11 @@ class MirrorRuntime:
         denied_delta: int = 0,
         throttled_delta: int = 0,
         last_action: str | None = None,
-    ) -> MirrorAgentSpec:
+    ) -> GovernorAgentSpec:
         now = self._last_event_at or _iso_now()
         current = self._agents.get(agent_id)
         if current is None:
-            raise ValueError(f"mirror agent not registered: {agent_id}")
+            raise ValueError(f"governor agent not registered: {agent_id}")
         updated = self._resolve_agent(
             current.model_copy(
                 update={
@@ -777,7 +777,7 @@ class MirrorRuntime:
         *,
         agent_id: str,
         label: str,
-        handled_by: MirrorHandleMode,
+        handled_by: GovernorHandleMode,
         surface: str,
         resolved_tool: str,
         reason_code: str | None,
@@ -789,7 +789,7 @@ class MirrorRuntime:
             if handled_by == "denied":
                 self._denied_event_count += 1
             self._recent_events.append(
-                MirrorRecentEvent(
+                GovernorRecentEvent(
                     agent_id=agent_id,
                     tool=label,
                     handled_by=handled_by,
@@ -808,7 +808,7 @@ class MirrorRuntime:
         try:
             self._target.sync_mirror_runtime_state()
         except Exception:
-            logger.warning("mirror runtime state sync failed", exc_info=True)
+            logger.warning("governor runtime state sync failed", exc_info=True)
 
     def _autoplay_loop(self) -> None:
         interval_s = max(0.25, self.config.demo_interval_ms / 1000.0)
@@ -833,7 +833,7 @@ def _iso_now() -> str:
     return datetime.now(UTC).isoformat()
 
 
-def _mirror_status_denial_reason(agent: MirrorAgentSpec) -> str | None:
+def _mirror_status_denial_reason(agent: GovernorAgentSpec) -> str | None:
     if agent.status in {"registered", "active"}:
         return None
     return (
@@ -843,8 +843,8 @@ def _mirror_status_denial_reason(agent: MirrorAgentSpec) -> str | None:
 
 
 def _mirror_mode_denial_reason(
-    agent: MirrorAgentSpec,
-    event: MirrorIngestEvent,
+    agent: GovernorAgentSpec,
+    event: GovernorIngestEvent,
 ) -> str | None:
     if event.source_mode == "proxy":
         if agent.mode in {"proxy", "demo"}:

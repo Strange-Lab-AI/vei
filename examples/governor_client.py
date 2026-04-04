@@ -17,9 +17,9 @@ def _get_json(base_url: str, path: str, token: str) -> Any:
             "Authorization": f"Bearer {token}",
             "X-VEI-Agent-Id": AGENT_ID,
             "X-VEI-Agent-Name": "starter-agent",
-            "X-VEI-Agent-Role": "exercise-runner",
+            "X-VEI-Agent-Role": "external-agent",
             "X-VEI-Agent-Team": "external",
-            "User-Agent": "vei-pilot-client/1.0",
+            "User-Agent": "vei-governor-client/1.0",
         },
         method="GET",
     )
@@ -36,9 +36,9 @@ def _post_json(base_url: str, path: str, token: str, payload: dict[str, Any]) ->
             "Content-Type": "application/json",
             "X-VEI-Agent-Id": AGENT_ID,
             "X-VEI-Agent-Name": "starter-agent",
-            "X-VEI-Agent-Role": "exercise-runner",
+            "X-VEI-Agent-Role": "external-agent",
             "X-VEI-Agent-Team": "external",
-            "User-Agent": "vei-pilot-client/1.0",
+            "User-Agent": "vei-governor-client/1.0",
         },
         data=body,
         method="POST",
@@ -50,7 +50,7 @@ def _post_json(base_url: str, path: str, token: str, payload: dict[str, Any]) ->
 def _register_proxy_agent(base_url: str, token: str) -> None:
     _post_json(
         base_url,
-        "/api/mirror/agents",
+        "/api/governor/agents",
         token,
         {
             "agent_id": AGENT_ID,
@@ -62,10 +62,10 @@ def _register_proxy_agent(base_url: str, token: str) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Quick pilot client for the VEI compatibility gateway."
+        description="Quick governor client for the VEI compatibility gateway."
     )
-    parser.add_argument("--base-url", required=True, help="Pilot gateway base URL")
-    parser.add_argument("--token", required=True, help="Pilot bearer token")
+    parser.add_argument("--base-url", required=True, help="Twin gateway base URL")
+    parser.add_argument("--token", required=True, help="Twin bearer token")
     parser.add_argument(
         "--post-message",
         default="",

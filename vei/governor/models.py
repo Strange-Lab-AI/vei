@@ -4,32 +4,32 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field, model_validator
 
-MirrorConnectorMode = Literal["sim", "live"]
-MirrorAgentMode = Literal["proxy", "ingest", "demo"]
-MirrorAgentStatus = Literal["registered", "active", "idle", "error"]
-MirrorHandleMode = Literal[
+GovernorConnectorMode = Literal["sim", "live"]
+GovernorAgentMode = Literal["proxy", "ingest", "demo"]
+GovernorAgentStatus = Literal["registered", "active", "idle", "error"]
+GovernorHandleMode = Literal[
     "dispatch",
     "inject",
     "record_only",
     "denied",
     "pending_approval",
 ]
-MirrorPolicyProfileId = Literal["observer", "operator", "approver", "admin"]
-MirrorOperationClass = Literal["read", "write_safe", "write_risky"]
-MirrorApprovalStatus = Literal[
+GovernorPolicyProfileId = Literal["observer", "operator", "approver", "admin"]
+GovernorOperationClass = Literal["read", "write_safe", "write_risky"]
+GovernorApprovalStatus = Literal[
     "pending",
     "approved",
     "rejected",
     "executed",
     "failed",
 ]
-MirrorConnectorAvailability = Literal["healthy", "degraded"]
-MirrorConnectorWriteCapability = Literal["interactive", "read_only", "unsupported"]
-MirrorActionDecision = Literal["allow", "deny", "approval_required"]
+GovernorConnectorAvailability = Literal["healthy", "degraded"]
+GovernorConnectorWriteCapability = Literal["interactive", "read_only", "unsupported"]
+GovernorActionDecision = Literal["allow", "deny", "approval_required"]
 
 
-class MirrorPolicyProfile(BaseModel):
-    profile_id: MirrorPolicyProfileId
+class GovernorPolicyProfile(BaseModel):
+    profile_id: GovernorPolicyProfileId
     label: str
     description: str
     can_approve: bool = False
@@ -38,30 +38,30 @@ class MirrorPolicyProfile(BaseModel):
     risky_write_access: Literal["allow", "deny", "require_approval"] = "deny"
 
 
-class MirrorWorkspaceConfig(BaseModel):
-    connector_mode: MirrorConnectorMode = "sim"
+class GovernorWorkspaceConfig(BaseModel):
+    connector_mode: GovernorConnectorMode = "sim"
     demo_mode: bool = False
     autoplay: bool = False
     demo_interval_ms: int = 1500
     hero_world: str | None = None
 
     @model_validator(mode="after")
-    def validate_demo_connector_mode(self) -> "MirrorWorkspaceConfig":
+    def validate_demo_connector_mode(self) -> "GovernorWorkspaceConfig":
         if self.demo_mode and self.connector_mode != "sim":
-            raise ValueError("mirror demo mode requires connector_mode='sim'")
+            raise ValueError("governor demo mode requires connector_mode='sim'")
         return self
 
 
-class MirrorAgentSpec(BaseModel):
+class GovernorAgentSpec(BaseModel):
     agent_id: str
     name: str
-    mode: MirrorAgentMode = "ingest"
+    mode: GovernorAgentMode = "ingest"
     role: str | None = None
     team: str | None = None
     allowed_surfaces: list[str] = Field(default_factory=list)
-    policy_profile_id: MirrorPolicyProfileId = "admin"
-    resolved_policy_profile: MirrorPolicyProfile | None = None
-    status: MirrorAgentStatus = "registered"
+    policy_profile_id: GovernorPolicyProfileId = "admin"
+    resolved_policy_profile: GovernorPolicyProfile | None = None
+    status: GovernorAgentStatus = "registered"
     last_seen_at: str | None = None
     source: str | None = None
     metadata: dict[str, Any] = Field(default_factory=dict)
@@ -96,7 +96,7 @@ class MirrorAgentSpec(BaseModel):
         return {**value, "policy_profile_id": mapped}
 
 
-class MirrorIngestEvent(BaseModel):
+class GovernorIngestEvent(BaseModel):
     event_id: str | None = None
     agent_id: str
     external_tool: str
@@ -106,22 +106,22 @@ class MirrorIngestEvent(BaseModel):
     args: dict[str, Any] = Field(default_factory=dict)
     payload: dict[str, Any] = Field(default_factory=dict)
     label: str | None = None
-    source_mode: MirrorAgentMode = "ingest"
+    source_mode: GovernorAgentMode = "ingest"
 
 
-class MirrorEventResult(BaseModel):
+class GovernorEventResult(BaseModel):
     ok: bool = True
-    handled_by: MirrorHandleMode
+    handled_by: GovernorHandleMode
     agent_id: str
     remaining_demo_steps: int = 0
     result: dict[str, Any] = Field(default_factory=dict)
 
 
-class MirrorRecentEvent(BaseModel):
+class GovernorRecentEvent(BaseModel):
     event_id: str | None = None
     agent_id: str
     tool: str
-    handled_by: MirrorHandleMode
+    handled_by: GovernorHandleMode
     resolved_tool: str | None = None
     surface: str | None = None
     label: str | None = None
@@ -130,16 +130,16 @@ class MirrorRecentEvent(BaseModel):
     timestamp: str
 
 
-class MirrorPendingApproval(BaseModel):
+class GovernorPendingApproval(BaseModel):
     approval_id: str
     agent_id: str
     surface: str
     resolved_tool: str
-    operation_class: MirrorOperationClass
+    operation_class: GovernorOperationClass
     args: dict[str, Any] = Field(default_factory=dict)
     reason_code: str
     reason: str
-    status: MirrorApprovalStatus = "pending"
+    status: GovernorApprovalStatus = "pending"
     created_at: str
     resolved_by: str | None = None
     resolved_at: str | None = None
@@ -148,38 +148,38 @@ class MirrorPendingApproval(BaseModel):
     focus_hint: str | None = None
     target: str | None = None
     payload: dict[str, Any] = Field(default_factory=dict)
-    source_mode: MirrorAgentMode = "ingest"
+    source_mode: GovernorAgentMode = "ingest"
 
 
-class MirrorConnectorStatus(BaseModel):
+class GovernorConnectorStatus(BaseModel):
     surface: str
-    source_mode: MirrorConnectorMode
-    availability: MirrorConnectorAvailability
-    write_capability: MirrorConnectorWriteCapability
+    source_mode: GovernorConnectorMode
+    availability: GovernorConnectorAvailability
+    write_capability: GovernorConnectorWriteCapability
     reason: str | None = None
     last_checked_at: str | None = None
 
 
-class MirrorActionPlan(BaseModel):
+class GovernorActionPlan(BaseModel):
     action: Literal["dispatch", "inject"]
     surface: str
     resolved_tool: str
-    operation_class: MirrorOperationClass
-    decision: MirrorActionDecision = "allow"
+    operation_class: GovernorOperationClass
+    decision: GovernorActionDecision = "allow"
     reason_code: str | None = None
     reason: str | None = None
 
 
-class MirrorRuntimeSnapshot(BaseModel):
-    config: MirrorWorkspaceConfig
-    agents: list[MirrorAgentSpec] = Field(default_factory=list)
-    policy_profiles: list[MirrorPolicyProfile] = Field(default_factory=list)
+class GovernorRuntimeSnapshot(BaseModel):
+    config: GovernorWorkspaceConfig
+    agents: list[GovernorAgentSpec] = Field(default_factory=list)
+    policy_profiles: list[GovernorPolicyProfile] = Field(default_factory=list)
     event_count: int = 0
     denied_event_count: int = 0
     throttled_event_count: int = 0
     pending_demo_steps: int = 0
     last_event_at: str | None = None
     autoplay_running: bool = False
-    pending_approvals: list[MirrorPendingApproval] = Field(default_factory=list)
-    connector_status: list[MirrorConnectorStatus] = Field(default_factory=list)
-    recent_events: list[MirrorRecentEvent] = Field(default_factory=list)
+    pending_approvals: list[GovernorPendingApproval] = Field(default_factory=list)
+    connector_status: list[GovernorConnectorStatus] = Field(default_factory=list)
+    recent_events: list[GovernorRecentEvent] = Field(default_factory=list)

@@ -602,7 +602,10 @@ def _score_b2b_saas(
     if isinstance(activities, list) and activities:
         stakeholder_alignment += 0.5
     if any(
-        any("renewal" in str(msg.get("text", "")).lower() for msg in ch.get("messages", []))
+        any(
+            "renewal" in str(msg.get("text", "")).lower()
+            for msg in ch.get("messages", [])
+        )
         for ch in slack_channels.values()
     ):
         stakeholder_alignment += 0.5
@@ -630,7 +633,15 @@ def _score_b2b_saas(
         competitive_defense += 0.5
 
     cross_functional_coordination = 0.0
-    surface_prefixes = ("slack.", "mail.", "jira.", "tickets.", "crm.", "servicedesk.", "docs.")
+    surface_prefixes = (
+        "slack.",
+        "mail.",
+        "jira.",
+        "tickets.",
+        "crm.",
+        "servicedesk.",
+        "docs.",
+    )
     surfaces_hit = set()
     for call in calls:
         tool = str(call.get("tool", ""))

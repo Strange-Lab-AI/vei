@@ -8,7 +8,7 @@ VEI now treats outside agent work as part of the company world instead of as a s
 
 In the live local Paperclip run, VEI could:
 
-- show the outside team, work items, approvals, notes, and recent activity in both the Company view and the Operator Console
+- show the outside team, work items, approvals, notes, and recent activity in both the Company view and the Studio control room
 - store that outside-workforce state inside the VEI world so it appears in company snapshots, timelines, and the work graph
 - send guidance back into Paperclip from VEI
 - make a board decision in VEI and push that decision back into Paperclip
@@ -18,7 +18,7 @@ In the live local Paperclip run, VEI could:
 
 - Paperclip URL: `http://127.0.0.1:3100`
 - VEI Studio URL: `http://127.0.0.1:3511`
-- VEI Operator Console URL: `http://127.0.0.1:3511/pilot`
+- VEI Governor view: `http://127.0.0.1:3511/?skin=governor`
 - Paperclip company: `VEI Service Ops Lab`
 - VEI company world: `Pinnacle Analytics`
 - Crisis lens: `Enterprise Renewal at Risk`
@@ -47,11 +47,11 @@ From the Company view Control Room, VEI posted this instruction on `VEI-1`:
 
 VEI recorded that action as a control command, and Paperclip showed it as a new task comment.
 
-On the refreshed visual pass, VEI also posted a follow-up board note on `VEI-4` from the Operator Console:
+On the refreshed visual pass, VEI also posted a follow-up board note on `VEI-4` from the control room:
 
 > VEI board note: turn the completed feature work into a one-paragraph operator proof with user impact, test evidence, and the next safest move.
 
-That refreshed run now shows the full sequence in the Operator Console activity feed:
+That refreshed run now shows the full sequence in the control-room activity feed:
 
 - VEI records `Guided task`
 - Paperclip records the new `Issue Comment Added`
@@ -78,7 +78,7 @@ After VEI's guidance and approval, the outside team responded inside Paperclip:
 
 This is the core proof point: VEI was not only watching the outside system. VEI changed the outside workflow, and the outside workflow reacted in a visible way.
 
-## Why this is better than the old mirror framing
+## Why this is better than the old split-console framing
 
 The new flow makes the dashboard meaningful because it answers the real operating questions in one place:
 
@@ -88,7 +88,7 @@ The new flow makes the dashboard meaningful because it answers the real operatin
 - what VEI has told the team
 - what changed in the company because of those decisions
 
-That is much closer to a true control room than the older mirror-only framing.
+That is much closer to a true control room than the older split-console framing.
 
 ## World-model impact
 
@@ -109,20 +109,7 @@ That means this run demonstrates strong visibility and real steering, but not fu
 
 ## Local proof artifacts
 
-Use these tracked repo assets for the visual proof:
-
-- Refreshed Company Control Room full capture:
-  - `docs/assets/paperclip-control-room/demo-frame-03-control-room.png`
-- Refreshed Operator Console full capture:
-  - `docs/assets/paperclip-control-room/demo-frame-01-pilot-top.png`
-- VEI intervention in the operator activity stream:
-  - `docs/assets/paperclip-control-room/demo-frame-02-pilot-activity.png`
-- VEI intervention story in the company view:
-  - `docs/assets/paperclip-control-room/demo-frame-04-intervention-story.png`
-- Demo GIF:
-  - `docs/assets/paperclip-control-room/vei-paperclip-demo.gif`
-- Demo MP4:
-  - `docs/assets/paperclip-control-room/vei-paperclip-demo.mp4`
+The tracked Paperclip proof captures and recordings still live under `docs/assets/paperclip-control-room/`. The root README now uses the newer built-in governor demo so a new reader can reproduce the visuals without a separate local orchestrator.
 
 ## Bottom line
 

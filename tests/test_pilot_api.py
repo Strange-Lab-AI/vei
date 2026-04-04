@@ -66,7 +66,7 @@ def test_start_pilot_writes_handoff_files_and_status(
                         "agents": [
                             {
                                 "name": "starter-agent",
-                                "role": "exercise-runner",
+                                "role": "external-agent",
                                 "team": "external",
                                 "source": "vei-pilot-client/1.0",
                             }
@@ -92,7 +92,7 @@ def test_start_pilot_writes_handoff_files_and_status(
                     "payload": {
                         "agent": {
                             "name": "starter-agent",
-                            "role": "exercise-runner",
+                            "role": "external-agent",
                             "team": "external",
                             "source": "vei-pilot-client/1.0",
                         }
@@ -127,7 +127,7 @@ def test_start_pilot_writes_handoff_files_and_status(
     assert status.outcome.issue_count == 2
     assert status.activity[0].tool == "slack.send_message"
     assert status.activity[0].agent_name == "starter-agent"
-    assert status.active_agents[0].role == "exercise-runner"
+    assert status.active_agents[0].role == "external-agent"
     assert (root / pilot_api.PILOT_MANIFEST_FILE).exists()
     assert (root / pilot_api.PILOT_GUIDE_FILE).exists()
     assert (root / pilot_api.PILOT_RUNTIME_FILE).exists()
@@ -139,10 +139,10 @@ def test_start_pilot_writes_handoff_files_and_status(
     assert manifest.organization_name == "Acme Cloud"
     assert manifest.crisis_name
     assert manifest.snippets[0].language == "bash"
-    assert manifest.sample_client_path.endswith("examples/pilot_client.py")
+    assert manifest.sample_client_path.endswith("examples/governor_client.py")
     assert len(runtime.services) == 2
     assert "python " in guide
-    assert "pilot_client.py" in guide
+    assert "governor_client.py" in guide
 
     stopped = pilot_api.stop_pilot(root)
     assert stopped.services_ready is False
@@ -210,8 +210,8 @@ def test_ensure_twin_bundle_preserves_provider_capture_path(
         scenario_variant="renewal_save",
         contract_variant="customer_safe_recovery",
         connector_mode="live",
-        mirror_demo=False,
-        mirror_demo_interval_ms=2500,
+        governor_demo=False,
+        governor_demo_interval_ms=2500,
         gateway_token="pilot-token",
         rebuild=True,
     )
@@ -238,7 +238,7 @@ def test_ensure_twin_bundle_rejects_live_demo_combo(
     )
 
     with pytest.raises(
-        ValueError, match="mirror demo mode requires connector_mode='sim'"
+        ValueError, match="governor demo mode requires connector_mode='sim'"
     ):
         pilot_api._ensure_twin_bundle(
             tmp_path / "provider_pilot",
@@ -252,8 +252,8 @@ def test_ensure_twin_bundle_rejects_live_demo_combo(
             scenario_variant="renewal_save",
             contract_variant="customer_safe_recovery",
             connector_mode="live",
-            mirror_demo=True,
-            mirror_demo_interval_ms=2500,
+            governor_demo=True,
+            governor_demo_interval_ms=2500,
             gateway_token="pilot-token",
             rebuild=True,
         )
@@ -317,12 +317,12 @@ def test_start_pilot_rebuild_stops_existing_services_first(
                 archetype="b2b_saas",
                 crisis_name="Enterprise Renewal at Risk",
                 studio_url=f"http://127.0.0.1:{studio_port}",
-                pilot_console_url=f"http://127.0.0.1:{studio_port}/pilot",
+                pilot_console_url=f"http://127.0.0.1:{studio_port}/?skin=governor",
                 gateway_url=f"http://127.0.0.1:{gateway_port}",
                 gateway_status_url=f"http://127.0.0.1:{gateway_port}/api/twin",
                 bearer_token="pilot-token",
                 recommended_first_exercise="Read Slack first.",
-                sample_client_path="/tmp/pilot_client.py",
+                sample_client_path="/tmp/governor_client.py",
             ),
             runtime=stopped_runtime,
             outcome=pilot_api.PilotOutcomeSummary(
@@ -388,7 +388,7 @@ def test_build_pilot_status_merges_orchestrator_snapshot_and_syncs_mirror_agents
         archetype="service_ops",
         crisis_name="VIP outage",
         studio_url="http://127.0.0.1:3011",
-        pilot_console_url="http://127.0.0.1:3011/pilot",
+        pilot_console_url="http://127.0.0.1:3011/?skin=governor",
         gateway_url="http://127.0.0.1:3020",
         gateway_status_url="http://127.0.0.1:3020/api/twin",
         bearer_token="pilot-token",
@@ -404,7 +404,7 @@ def test_build_pilot_status_merges_orchestrator_snapshot_and_syncs_mirror_agents
             ),
         ],
         recommended_first_exercise="Keep the customer safe.",
-        sample_client_path="/tmp/pilot_client.py",
+        sample_client_path="/tmp/governor_client.py",
         orchestrator=OrchestratorConfig(
             provider="paperclip",
             base_url="http://paperclip.local",
@@ -629,9 +629,9 @@ def test_build_pilot_status_merges_orchestrator_snapshot_and_syncs_mirror_agents
         headers=None,
         timeout_s: float = 4.0,
     ):
-        if url.endswith("/api/mirror/agents") and method == "GET":
+        if url.endswith("/api/governor/agents") and method == "GET":
             return {"agents": []}
-        if url.endswith("/api/mirror/agents"):
+        if url.endswith("/api/governor/agents"):
             captured_sync_payloads.append(payload or {})
             return {"ok": True}
         if url.endswith("/api/workforce/sync"):
@@ -697,12 +697,12 @@ def test_build_pilot_status_uses_cached_orchestrator_snapshot_without_refresh(
         archetype="service_ops",
         crisis_name="VIP outage",
         studio_url="http://127.0.0.1:3011",
-        pilot_console_url="http://127.0.0.1:3011/pilot",
+        pilot_console_url="http://127.0.0.1:3011/?skin=governor",
         gateway_url="http://127.0.0.1:3020",
         gateway_status_url="http://127.0.0.1:3020/api/twin",
         bearer_token="pilot-token",
         recommended_first_exercise="Keep the customer safe.",
-        sample_client_path="/tmp/pilot_client.py",
+        sample_client_path="/tmp/governor_client.py",
         orchestrator=OrchestratorConfig(
             provider="paperclip",
             base_url="http://paperclip.local",
@@ -839,12 +839,12 @@ def test_build_pilot_status_force_sync_uses_cached_orchestrator_snapshot_when_re
         archetype="service_ops",
         crisis_name="VIP outage",
         studio_url="http://127.0.0.1:3011",
-        pilot_console_url="http://127.0.0.1:3011/pilot",
+        pilot_console_url="http://127.0.0.1:3011/?skin=governor",
         gateway_url="http://127.0.0.1:3020",
         gateway_status_url="http://127.0.0.1:3020/api/twin",
         bearer_token="pilot-token",
         recommended_first_exercise="Keep the customer safe.",
-        sample_client_path="/tmp/pilot_client.py",
+        sample_client_path="/tmp/governor_client.py",
         orchestrator=OrchestratorConfig(
             provider="paperclip",
             base_url="http://paperclip.local",
@@ -981,7 +981,7 @@ def test_build_pilot_status_prunes_stale_orchestrator_agents_from_mirror(
         archetype="service_ops",
         crisis_name="VIP outage",
         studio_url="http://127.0.0.1:3011",
-        pilot_console_url="http://127.0.0.1:3011/pilot",
+        pilot_console_url="http://127.0.0.1:3011/?skin=governor",
         gateway_url="http://127.0.0.1:3020",
         gateway_status_url="http://127.0.0.1:3020/api/twin",
         bearer_token="pilot-token",
@@ -991,7 +991,7 @@ def test_build_pilot_status_prunes_stale_orchestrator_agents_from_mirror(
             )
         ],
         recommended_first_exercise="Keep the customer safe.",
-        sample_client_path="/tmp/pilot_client.py",
+        sample_client_path="/tmp/governor_client.py",
         orchestrator=OrchestratorConfig(
             provider="paperclip",
             base_url="http://paperclip.local",
@@ -1137,7 +1137,7 @@ def test_build_pilot_status_prunes_stale_orchestrator_agents_from_mirror(
         timeout_s: float = 4.0,
     ):
         del headers, timeout_s
-        if url.endswith("/api/mirror/agents") and method == "GET":
+        if url.endswith("/api/governor/agents") and method == "GET":
             return {
                 "agents": [
                     {
@@ -1151,10 +1151,13 @@ def test_build_pilot_status_prunes_stale_orchestrator_agents_from_mirror(
                     {"agent_id": "starter-agent", "metadata": {}},
                 ]
             }
-        if url.endswith("/api/mirror/agents") and method == "POST":
+        if url.endswith("/api/governor/agents") and method == "POST":
             captured_posts.append(payload or {})
             return {"ok": True}
-        if url.endswith("/api/mirror/agents/paperclip%3Aeng-2") and method == "DELETE":
+        if (
+            url.endswith("/api/governor/agents/paperclip%3Aeng-2")
+            and method == "DELETE"
+        ):
             captured_deletes.append(url)
             return {"ok": True}
         if url.endswith("/api/workforce/sync"):
@@ -1173,7 +1176,7 @@ def test_build_pilot_status_prunes_stale_orchestrator_agents_from_mirror(
     assert status.orchestrator is not None
     assert [item["agent_id"] for item in captured_posts] == ["paperclip:eng-1"]
     assert captured_deletes == [
-        "http://127.0.0.1:3020/api/mirror/agents/paperclip%3Aeng-2"
+        "http://127.0.0.1:3020/api/governor/agents/paperclip%3Aeng-2"
     ]
 
 
@@ -1191,7 +1194,7 @@ def test_start_pilot_updates_live_manifest_with_new_orchestrator_config(
         archetype="b2b_saas",
         crisis_name="VIP outage",
         studio_url="http://127.0.0.1:3011",
-        pilot_console_url="http://127.0.0.1:3011/pilot",
+        pilot_console_url="http://127.0.0.1:3011/?skin=governor",
         gateway_url="http://127.0.0.1:3020",
         gateway_status_url="http://127.0.0.1:3020/api/twin",
         bearer_token="pilot-token",
@@ -1201,7 +1204,7 @@ def test_start_pilot_updates_live_manifest_with_new_orchestrator_config(
             )
         ],
         recommended_first_exercise="Keep the customer safe.",
-        sample_client_path="/tmp/pilot_client.py",
+        sample_client_path="/tmp/governor_client.py",
         orchestrator=OrchestratorConfig(
             provider="paperclip",
             base_url="http://paperclip.old",
@@ -1308,12 +1311,12 @@ def test_pause_pilot_orchestrator_agent_raises_when_workforce_recording_fails(
         archetype="service_ops",
         crisis_name="VIP outage",
         studio_url="http://127.0.0.1:3011",
-        pilot_console_url="http://127.0.0.1:3011/pilot",
+        pilot_console_url="http://127.0.0.1:3011/?skin=governor",
         gateway_url="http://127.0.0.1:3020",
         gateway_status_url="http://127.0.0.1:3020/api/twin",
         bearer_token="pilot-token",
         recommended_first_exercise="Keep the customer safe.",
-        sample_client_path="/tmp/pilot_client.py",
+        sample_client_path="/tmp/governor_client.py",
         orchestrator=OrchestratorConfig(
             provider="paperclip",
             base_url="http://paperclip.local",
@@ -1410,12 +1413,12 @@ def test_build_pilot_status_merges_vei_workforce_commands_into_activity(
         archetype="service_ops",
         crisis_name="VIP outage",
         studio_url="http://127.0.0.1:3011",
-        pilot_console_url="http://127.0.0.1:3011/pilot",
+        pilot_console_url="http://127.0.0.1:3011/?skin=governor",
         gateway_url="http://127.0.0.1:3020",
         gateway_status_url="http://127.0.0.1:3020/api/twin",
         bearer_token="pilot-token",
         recommended_first_exercise="Keep the customer safe.",
-        sample_client_path="/tmp/pilot_client.py",
+        sample_client_path="/tmp/governor_client.py",
     )
     runtime = pilot_api.PilotRuntime(
         workspace_root=root,
@@ -1516,12 +1519,12 @@ def test_comment_on_pilot_orchestrator_task_posts_guidance_and_refreshes(
         archetype="service_ops",
         crisis_name="VIP outage",
         studio_url="http://127.0.0.1:3011",
-        pilot_console_url="http://127.0.0.1:3011/pilot",
+        pilot_console_url="http://127.0.0.1:3011/?skin=governor",
         gateway_url="http://127.0.0.1:3020",
         gateway_status_url="http://127.0.0.1:3020/api/twin",
         bearer_token="pilot-token",
         recommended_first_exercise="Keep the customer safe.",
-        sample_client_path="/tmp/pilot_client.py",
+        sample_client_path="/tmp/governor_client.py",
         orchestrator=OrchestratorConfig(
             provider="paperclip",
             base_url="http://paperclip.local",
@@ -1678,12 +1681,12 @@ def test_pilot_orchestrator_approval_actions_refresh_status(
         archetype="service_ops",
         crisis_name="VIP outage",
         studio_url="http://127.0.0.1:3011",
-        pilot_console_url="http://127.0.0.1:3011/pilot",
+        pilot_console_url="http://127.0.0.1:3011/?skin=governor",
         gateway_url="http://127.0.0.1:3020",
         gateway_status_url="http://127.0.0.1:3020/api/twin",
         bearer_token="pilot-token",
         recommended_first_exercise="Keep the customer safe.",
-        sample_client_path="/tmp/pilot_client.py",
+        sample_client_path="/tmp/governor_client.py",
         orchestrator=OrchestratorConfig(
             provider="paperclip",
             base_url="http://paperclip.local",
@@ -1856,12 +1859,12 @@ def test_pilot_orchestrator_agent_actions_record_workforce_command(
         archetype="service_ops",
         crisis_name="VIP outage",
         studio_url="http://127.0.0.1:3011",
-        pilot_console_url="http://127.0.0.1:3011/pilot",
+        pilot_console_url="http://127.0.0.1:3011/?skin=governor",
         gateway_url="http://127.0.0.1:3020",
         gateway_status_url="http://127.0.0.1:3020/api/twin",
         bearer_token="pilot-token",
         recommended_first_exercise="Keep the customer safe.",
-        sample_client_path="/tmp/pilot_client.py",
+        sample_client_path="/tmp/governor_client.py",
         orchestrator=OrchestratorConfig(
             provider="paperclip",
             base_url="http://paperclip.local",

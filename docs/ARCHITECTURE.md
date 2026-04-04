@@ -32,7 +32,7 @@ VEI is a deterministic, MCP-native enterprise simulator built around one stable 
 VEI is one kernel with four operating modes sharing the same world session, connector layer, event spine, replay model, and contract scoring:
 
 - **Test / Eval** — run a fixed company world, score an agent, compare scripted vs LLM vs workflow runners
-- **Mirror / Control** — place VEI between agents and enterprise systems; govern, record, and replay what happened
+- **Governor / Control** — place VEI between agents and enterprise systems; govern, record, and replay what happened
 - **Sandbox / What-if** — fork the same world, change policy or actions, compare alternate futures with snapshot comparisons
 - **Train / Data** — turn traces and trajectories into rollouts, demonstrations, and RL-friendly data
 
@@ -48,7 +48,7 @@ Workspace / CLI / UI / SDK / Agent
         ▼               ▼
   Router (MCP)    Twin Gateway (HTTP)
                   ├─ provider-shaped compat routes
-                  ├─ mirror agent registry
+                  ├─ governor agent registry
                   ├─ policy profiles + approval queue
                   └─ surface / connector enforcement
         │               │
@@ -60,10 +60,10 @@ Workspace / CLI / UI / SDK / Agent
           ├─ actor state + receipts
           ├─ snapshots / branch / restore
           ├─ replay / injection
-          └─ mirror runtime (agent fleet, approvals, throttles, event feed)
+          └─ governor runtime (agent fleet, approvals, throttles, event feed)
 ```
 
-The router is a transport and tool-dispatch adapter. The twin gateway is an HTTP adapter that exposes provider-shaped compatibility routes and manages mirror agents. Mutable enterprise state belongs to the kernel, not to transport wrappers.
+The router is a transport and tool-dispatch adapter. The twin gateway is an HTTP adapter that exposes provider-shaped compatibility routes and manages governed agents. Mutable enterprise state belongs to the kernel, not to transport wrappers.
 
 ## Product Workflow Layer
 
@@ -78,7 +78,7 @@ VEI now has a product-shaped layer above the kernel:
   - local FastAPI + SSE playback/debug app over workspace and run APIs
   - control-room style playback surface for launch, timeline, contract, graph, and snapshot inspection
   - Living Company View that turns the latest run snapshot into a normalized software wall for chat, mail, work tracking, documents, approvals, and the vertical heartbeat
-  - Mirror mode indicator banner and Control Plane panel (agent cards, policy badges, approval queue, connector strip, readable activity log)
+  - Governor mode indicator banner and Control Plane panel (agent cards, policy badges, approval queue, connector strip, readable activity log)
   - Sandbox features: fork-from-here on snapshots, Compare Paths button, snapshot pickers, cross-run snapshot comparison grouped by domain, and `service_ops` policy replay
 - `vei.playable`
   - mission catalog, move model, scorecards, branch helpers, export previews, and playable release bundles
@@ -110,22 +110,22 @@ Imported identity workspaces now add an earlier preparation ladder:
 
 For the canonical product demo, `vei project identity-demo` wraps that ladder into one opinionated identity/access-governance flow and optionally launches the baseline plus scripted comparison runs for the active generated scenario.
 
-## Mirror / Control Plane Layer
+## Governor / Control Plane Layer
 
-- `vei.mirror`
-  - `MirrorRuntime` — agent registry, event ingest, approval queue, rate limiting, demo autoplay, snapshot generation
-  - public mirror surface stays in `vei.mirror.api`, with internal split across `_config.py`, `_demo.py`, and `_runtime.py`
-  - `MirrorAgentSpec` — typed model for registered agents with role, team, allowed surfaces, policy profile, status, `last_action`, `denied_count`, and `throttled_count`
-  - `MirrorPendingApproval` / `MirrorPolicyProfile` / `MirrorConnectorStatus` — typed models for held actions, built-in agent permissions, and operator-facing surface status
-  - `MirrorRecentEvent` — bounded ring buffer entries for the recent-event feed
-  - `MirrorRuntimeSnapshot` — typed fleet snapshot including agents, resolved profiles, approvals, connector status, config, and recent events
+- `vei.governor`
+  - `GovernorRuntime` — agent registry, event ingest, approval queue, rate limiting, demo autoplay, snapshot generation
+  - public governor surface stays in `vei.governor.api`, with internal split across `_config.py`, `_demo.py`, and `_runtime.py`
+  - `GovernorAgentSpec` — typed model for registered agents with role, team, allowed surfaces, policy profile, status, `last_action`, `denied_count`, and `throttled_count`
+  - `GovernorPendingApproval` / `GovernorPolicyProfile` / `GovernorConnectorStatus` — typed models for held actions, built-in agent permissions, and operator-facing surface status
+  - `GovernorRecentEvent` — bounded ring buffer entries for the recent-event feed
+  - `GovernorRuntimeSnapshot` — typed fleet snapshot including agents, resolved profiles, approvals, connector status, config, and recent events
 - `vei.twin`
   - `CustomerTwinBundle` — builds a customer-shaped twin from a context snapshot and vertical archetype
   - `TwinRuntime` — FastAPI runtime behind `vei.twin.gateway`, with helper, route, and runtime internals separated for the compatibility layer
-  - Mirror decision pipeline: registration, agent mode, allowed surface, policy profile, connector safety, rate limit, then execution
+  - Governor decision pipeline: registration, agent mode, allowed surface, policy profile, connector safety, rate limit, then execution
   - Surface and policy denials, approval-required holds, unsupported live writes, and rate limits are recorded in the run timeline and exposed through provider-shaped responses
 - `vei.pilot`
-  - higher-level flow for local agent demos: starts twin gateway, Studio, and Pilot Console sidecar
+  - internal launch/runtime helpers that still back the twin lifecycle while the public surface stays on `vei.twin`
   - writes launch manifest, handoff guide, and runtime state
 
 ## Sandbox / What-if Layer
@@ -137,7 +137,7 @@ For the canonical product demo, `vei project identity-demo` wraps that ladder in
   - `branch_workspace_mission_run(..., snapshot_id=...)` — fork a playable mission from any historical snapshot, rewinding move history to that point
   - `get_service_ops_policy_bundle()` / `replay_service_ops_with_policy_delta()` — service-ops-only what-if replay over four named policy knobs from the initial snapshot
 - `vei.ui.api`
-  - stable public surface over grouped route registrars for workspace/mirror, playable, run, and imports/context endpoints
+  - stable public surface over grouped route registrars for workspace/governor, playable, run, and imports/context endpoints
   - `GET /api/runs/diff-cross` — HTTP endpoint for cross-run snapshot comparison
   - `POST /api/missions/{run_id}/branch` with optional `snapshot_id` — fork from any snapshot via the UI
   - `GET /api/runs/{run_id}/policy-knobs` / `POST /api/runs/{run_id}/replay-with-policy` — service-ops policy replay endpoints used by the Studio outcome flow
@@ -229,11 +229,11 @@ For the canonical product demo, `vei project identity-demo` wraps that ladder in
   - SSE MCP transport
 - Twin Gateway (FastAPI, default `:3012`)
   - provider-shaped HTTP routes (Slack Web API, Jira REST v3, MS Graph, Salesforce REST)
-  - mirror agent registration, event ingest, policy enforcement, approval endpoints, and connector status
-  - launched by `vei quickstart run`, `vei twin serve`, or `vei pilot up`
+  - governor agent registration, event ingest, policy enforcement, approval endpoints, and connector status
+  - launched by `vei quickstart run`, `vei twin serve`, or `vei twin up`
 - `vei`
   - unified CLI — all subcommands are now under `vei <group> <command>`
-  - `project`, `quickstart`, `contract`, `scenario`, `scenarios`, `run`, `inspect`, `showcase`, `studio`, `export`, `ui`, `world`, `blueprint`, `bench`, `eval`, `llm-test`, `pack`, `twin`, `pilot`, `rollout`, `train`, `score`, `smoke`, `demo`, `det`, `context`, `synthesize`, `release`, `report`, `visualize`
+  - `project`, `quickstart`, `contract`, `scenario`, `scenarios`, `run`, `inspect`, `showcase`, `studio`, `export`, `ui`, `world`, `blueprint`, `bench`, `eval`, `llm-test`, `pack`, `twin`, `rollout`, `train`, `score`, `smoke`, `demo`, `det`, `context`, `synthesize`, `release`, `report`, `visualize`
 
 ## Software Twins
 

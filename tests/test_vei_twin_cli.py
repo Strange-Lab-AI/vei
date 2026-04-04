@@ -6,7 +6,20 @@ from pathlib import Path
 from typer.testing import CliRunner
 
 from vei.cli.vei import app
+from vei.cli import vei_twin
 from vei.context.models import ContextSnapshot, ContextSourceResult
+from vei.pilot.models import (
+    PilotManifest,
+    PilotOutcomeSummary,
+    PilotRuntime,
+    PilotServiceRecord,
+    PilotStatus,
+)
+from vei.twin.models import (
+    CompatibilitySurfaceSpec,
+    CustomerTwinBundle,
+    WorkspaceGovernorStatus,
+)
 
 
 def test_twin_cli_builds_and_reports_status(tmp_path: Path) -> None:
@@ -47,8 +60,90 @@ def test_twin_cli_builds_and_reports_status(tmp_path: Path) -> None:
     )
     assert status_result.exit_code == 0, status_result.output
     status_payload = json.loads(status_result.output)
-    assert status_payload["workspace_name"]
-    assert status_payload["gateway"]["surfaces"][0]["name"] == "slack"
+    assert status_payload["bundle"]["workspace_name"]
+    assert status_payload["bundle"]["gateway"]["surfaces"][0]["name"] == "slack"
+
+
+def test_twin_cli_lifecycle_commands_use_shared_runtime_surface(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    runner = CliRunner()
+    root = tmp_path / "governed_twin"
+
+    def _sample_bundle():
+        return {
+            "version": "1",
+            "workspace_root": str(root),
+            "workspace_name": "governed_twin",
+            "organization_name": "Acme Cloud",
+            "organization_domain": "acme.ai",
+            "mold": {"archetype": "service_ops"},
+            "context_snapshot_path": "context_snapshot.json",
+            "blueprint_asset_path": "sources/blueprint_asset.json",
+            "gateway": {
+                "host": "127.0.0.1",
+                "port": 3020,
+                "auth_token": "token-123",
+                "surfaces": [
+                    {"name": "slack", "title": "Slack", "base_path": "/slack/api"}
+                ],
+                "ui_command": None,
+            },
+            "summary": "Acme Cloud twin",
+            "metadata": {"governor": {"connector_mode": "sim"}},
+        }
+
+    monkeypatch.setattr(
+        vei_twin,
+        "load_customer_twin",
+        lambda _root: CustomerTwinBundle.model_validate(_sample_bundle()),
+    )
+    monkeypatch.setattr(
+        vei_twin,
+        "build_workspace_governor_status",
+        lambda _root, **_kwargs: WorkspaceGovernorStatus(
+            governor={"config": {"connector_mode": "sim", "demo_mode": False}},
+            outcome={"status": "running"},
+            twin_status="running",
+            services_ready=True,
+        ),
+    )
+    monkeypatch.setattr(
+        vei_twin,
+        "build_twin_status",
+        lambda _root: _sample_pilot_status(root),
+    )
+
+    calls: list[tuple[str, tuple, dict]] = []
+
+    def _record(name):
+        def inner(*args, **kwargs):
+            calls.append((name, args, kwargs))
+            return _sample_pilot_status(root)
+
+        return inner
+
+    monkeypatch.setattr(vei_twin, "start_twin", _record("up"))
+    monkeypatch.setattr(vei_twin, "stop_twin", _record("down"))
+    monkeypatch.setattr(vei_twin, "reset_twin", _record("reset"))
+    monkeypatch.setattr(vei_twin, "finalize_twin", _record("finalize"))
+    monkeypatch.setattr(vei_twin, "sync_twin", _record("sync"))
+
+    for command in ("up", "down", "reset", "finalize", "sync"):
+        result = runner.invoke(app, ["twin", command, "--root", str(root)])
+        assert result.exit_code == 0, result.output
+        payload = json.loads(result.output)
+        assert payload["bundle"]["workspace_name"] == "governed_twin"
+        assert payload["status"]["studio_url"] == "http://127.0.0.1:3011"
+
+    assert [name for name, _args, _kwargs in calls] == [
+        "up",
+        "down",
+        "reset",
+        "finalize",
+        "sync",
+    ]
 
 
 def _sample_snapshot() -> ContextSnapshot:
@@ -117,4 +212,58 @@ def _sample_snapshot() -> ContextSnapshot:
                 },
             ),
         ],
+    )
+
+
+def _sample_pilot_status(root: Path) -> PilotStatus:
+    return PilotStatus(
+        manifest=PilotManifest(
+            workspace_root=root,
+            workspace_name="governed_twin",
+            organization_name="Acme Cloud",
+            organization_domain="acme.ai",
+            archetype="service_ops",
+            crisis_name="Dispatch overload",
+            studio_url="http://127.0.0.1:3011",
+            pilot_console_url="http://127.0.0.1:3011/?skin=governor",
+            gateway_url="http://127.0.0.1:3020",
+            gateway_status_url="http://127.0.0.1:3020/api/twin",
+            bearer_token="token-123",
+            supported_surfaces=[
+                CompatibilitySurfaceSpec(
+                    name="slack",
+                    title="Slack",
+                    base_path="/slack/api",
+                )
+            ],
+            recommended_first_exercise="Read the queue before acting.",
+            sample_client_path="/tmp/governor_client.py",
+        ),
+        runtime=PilotRuntime(
+            workspace_root=root,
+            services=[
+                PilotServiceRecord(
+                    name="gateway",
+                    host="127.0.0.1",
+                    port=3020,
+                    url="http://127.0.0.1:3020",
+                    state="running",
+                ),
+                PilotServiceRecord(
+                    name="studio",
+                    host="127.0.0.1",
+                    port=3011,
+                    url="http://127.0.0.1:3011",
+                    state="running",
+                ),
+            ],
+        ),
+        active_run="external-run",
+        twin_status="running",
+        request_count=3,
+        services_ready=True,
+        outcome=PilotOutcomeSummary(
+            status="running",
+            summary="Outside work is active.",
+        ),
     )

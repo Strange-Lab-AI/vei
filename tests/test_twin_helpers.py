@@ -94,7 +94,7 @@ def _register_proxy_agent(
     allowed_surfaces: list[str] | None = None,
 ) -> dict[str, str]:
     response = client.post(
-        "/api/mirror/agents",
+        "/api/governor/agents",
         headers=auth_headers,
         json={
             "agent_id": agent_id,

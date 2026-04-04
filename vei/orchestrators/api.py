@@ -12,7 +12,6 @@ from ._paperclip import (
     normalize_task_id,
 )
 from .models import (
-    ActivityItemBase,
     OrchestratorActivityItem,
     OrchestratorAgent,
     OrchestratorApproval,

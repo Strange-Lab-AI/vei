@@ -32,6 +32,7 @@ const state = {
   workspace: null,
   story: null,
   exercise: null,
+  governorWorkspace: null,
   presentation: null,
   playableBundle: null,
   missions: [],
@@ -110,8 +111,11 @@ async function fetchStoryArtifacts() {
 }
 
 async function fetchExerciseArtifacts() {
-  const exercise = await getJson("/api/exercise").catch(() => null);
-  return { exercise };
+  const governorWorkspace = await getJson("/api/workspace/governor").catch(() => null);
+  return {
+    exercise: governorWorkspace?.exercise || null,
+    governorWorkspace,
+  };
 }
 
 async function fetchPlayableArtifacts() {
@@ -179,12 +183,8 @@ async function mirrorDelete(path) {
 }
 
 async function refreshMirrorStatus() {
-  const [mirrorStatus, workforceStatus] = await Promise.all([
-    getJson("/api/workspace/mirror").catch(() => null),
-    getJson("/api/workforce").catch(() => null),
-  ]);
-  state.mirrorStatus = nonEmptyPayload(mirrorStatus);
-  state.workforceStatus = nonEmptyPayload(workforceStatus);
+  const governorWorkspace = await getJson("/api/workspace/governor").catch(() => null);
+  applyGovernorWorkspaceStatus(governorWorkspace);
   renderLivingCompanyView();
   renderTrustStrip();
 }
@@ -219,6 +219,14 @@ function nonEmptyPayload(payload) {
   return payload && typeof payload === "object" && Object.keys(payload).length
     ? payload
     : null;
+}
+
+function applyGovernorWorkspaceStatus(payload) {
+  const workspaceStatus = nonEmptyPayload(payload);
+  state.governorWorkspace = workspaceStatus;
+  state.mirrorStatus = nonEmptyPayload(workspaceStatus?.governor);
+  state.workforceStatus = nonEmptyPayload(workspaceStatus?.workforce);
+  state.exercise = nonEmptyPayload(workspaceStatus?.exercise);
 }
 
 function escapeHtml(value) {
@@ -889,7 +897,7 @@ function renderTrustStrip() {
   if (mirror && mirror.config && typeof mirror.config === "object") {
     const cfg = mirror.config;
     if (cfg.demo_mode) {
-      parts.push("Control plane: demo mirror (staged activity)");
+      parts.push("Control plane: governor demo (staged activity)");
     } else if (cfg.connector_mode === "live") {
       parts.push("Control plane: live connectors on governed paths");
     } else {

@@ -101,7 +101,7 @@ def _sample_pilot_status(root: Path) -> PilotStatus:
         archetype="b2b_saas",
         crisis_name="Tenant Opening Conflict",
         studio_url="http://127.0.0.1:3011",
-        pilot_console_url="http://127.0.0.1:3011/pilot",
+        pilot_console_url="http://127.0.0.1:3011/?skin=governor",
         gateway_url="http://127.0.0.1:3020",
         gateway_status_url="http://127.0.0.1:3020/api/twin",
         bearer_token="pilot-token",
@@ -113,7 +113,7 @@ def _sample_pilot_status(root: Path) -> PilotStatus:
             )
         ],
         recommended_first_exercise="Read Slack and Jira before taking one action.",
-        sample_client_path="/tmp/pilot_client.py",
+        sample_client_path="/tmp/governor_client.py",
     )
     runtime = PilotRuntime(
         workspace_root=root,

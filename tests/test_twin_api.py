@@ -7,7 +7,7 @@ from threading import Event, Thread
 from fastapi.testclient import TestClient
 
 from vei.context.models import ContextSnapshot, ContextSourceResult
-from vei.mirror import MirrorAgentSpec, default_mirror_workspace_config
+from vei.governor import GovernorAgentSpec, default_governor_workspace_config
 from vei.orchestrators.api import (
     OrchestratorAgent,
     OrchestratorApproval,
@@ -34,7 +34,7 @@ def _register_proxy_agent(
     policy_profile_id: str | None = None,
 ) -> dict[str, str]:
     response = client.post(
-        "/api/mirror/agents",
+        "/api/governor/agents",
         headers=auth_headers,
         json={
             "agent_id": agent_id,
@@ -363,7 +363,7 @@ def test_twin_gateway_workforce_sync_updates_control_room_world_state(
         )
 
 
-def test_service_ops_twin_mirror_demo_exposes_agents_and_generates_activity(
+def test_service_ops_twin_governor_demo_exposes_agents_and_generates_activity(
     tmp_path: Path,
 ) -> None:
     root = tmp_path / "service_ops_twin"
@@ -372,7 +372,7 @@ def test_service_ops_twin_mirror_demo_exposes_agents_and_generates_activity(
         snapshot=_sample_snapshot(),
         organization_domain="clearwater.example.com",
         mold=ContextMoldConfig(archetype="service_ops"),
-        mirror_config=default_mirror_workspace_config(
+        mirror_config=default_governor_workspace_config(
             demo_mode=True,
             autoplay=False,
             hero_world="service_ops",
@@ -381,7 +381,7 @@ def test_service_ops_twin_mirror_demo_exposes_agents_and_generates_activity(
     auth_headers = {"Authorization": f"Bearer {bundle.gateway.auth_token}"}
 
     with TestClient(create_twin_gateway_app(root)) as client:
-        mirror_response = client.get("/api/mirror", headers=auth_headers)
+        mirror_response = client.get("/api/governor", headers=auth_headers)
         assert mirror_response.status_code == 200
         mirror_payload = mirror_response.json()
         assert mirror_payload["config"]["demo_mode"] is True
@@ -389,12 +389,12 @@ def test_service_ops_twin_mirror_demo_exposes_agents_and_generates_activity(
         assert mirror_payload["connector_status"]
         assert mirror_payload["policy_profiles"]
 
-        agents_response = client.get("/api/mirror/agents", headers=auth_headers)
+        agents_response = client.get("/api/governor/agents", headers=auth_headers)
         assert agents_response.status_code == 200
         agent_ids = {item["agent_id"] for item in agents_response.json()["agents"]}
         assert {"dispatch-bot", "billing-bot", "control-lead"} <= agent_ids
 
-        tick_response = client.post("/api/mirror/demo/tick", headers=auth_headers)
+        tick_response = client.post("/api/governor/demo/tick", headers=auth_headers)
         assert tick_response.status_code == 200
         tick_payload = tick_response.json()
         assert tick_payload["handled_by"] == "dispatch"
@@ -408,7 +408,7 @@ def test_service_ops_twin_mirror_demo_exposes_agents_and_generates_activity(
         assert runtime_payload["runtime"]["request_count"] >= 1
 
 
-def test_service_ops_twin_mirror_demo_runs_salesforce_step_without_error(
+def test_service_ops_twin_governor_demo_runs_salesforce_step_without_error(
     tmp_path: Path,
 ) -> None:
     root = tmp_path / "service_ops_demo_salesforce"
@@ -417,7 +417,7 @@ def test_service_ops_twin_mirror_demo_runs_salesforce_step_without_error(
         snapshot=_sample_snapshot(),
         organization_domain="clearwater.example.com",
         mold=ContextMoldConfig(archetype="service_ops"),
-        mirror_config=default_mirror_workspace_config(
+        mirror_config=default_governor_workspace_config(
             demo_mode=True,
             autoplay=False,
             hero_world="service_ops",
@@ -426,16 +426,16 @@ def test_service_ops_twin_mirror_demo_runs_salesforce_step_without_error(
     auth_headers = {"Authorization": f"Bearer {bundle.gateway.auth_token}"}
 
     with TestClient(create_twin_gateway_app(root)) as client:
-        pending_steps = client.get("/api/mirror", headers=auth_headers).json()[
+        pending_steps = client.get("/api/governor", headers=auth_headers).json()[
             "pending_demo_steps"
         ]
         for _ in range(pending_steps + 2):
-            response = client.post("/api/mirror/demo/tick", headers=auth_headers)
+            response = client.post("/api/governor/demo/tick", headers=auth_headers)
             assert response.status_code == 200
             if response.json().get("remaining_demo_steps") == 0:
                 break
 
-        mirror_payload = client.get("/api/mirror", headers=auth_headers).json()
+        mirror_payload = client.get("/api/governor", headers=auth_headers).json()
         history_payload = client.get("/api/twin/history").json()
 
         assert mirror_payload["pending_demo_steps"] == 0
@@ -449,7 +449,7 @@ def test_service_ops_twin_mirror_demo_runs_salesforce_step_without_error(
         )
 
 
-def test_service_ops_twin_mirror_demo_skips_stale_approval_step_after_manual_approval(
+def test_service_ops_twin_governor_demo_skips_stale_approval_step_after_manual_approval(
     tmp_path: Path,
 ) -> None:
     root = tmp_path / "service_ops_demo_manual_approval"
@@ -458,7 +458,7 @@ def test_service_ops_twin_mirror_demo_skips_stale_approval_step_after_manual_app
         snapshot=_sample_snapshot(),
         organization_domain="clearwater.example.com",
         mold=ContextMoldConfig(archetype="service_ops"),
-        mirror_config=default_mirror_workspace_config(
+        mirror_config=default_governor_workspace_config(
             demo_mode=True,
             autoplay=False,
             hero_world="service_ops",
@@ -468,17 +468,17 @@ def test_service_ops_twin_mirror_demo_skips_stale_approval_step_after_manual_app
 
     with TestClient(create_twin_gateway_app(root)) as client:
         for _ in range(6):
-            response = client.post("/api/mirror/demo/tick", headers=auth_headers)
+            response = client.post("/api/governor/demo/tick", headers=auth_headers)
             assert response.status_code == 200
 
         approvals_payload = client.get(
-            "/api/mirror/approvals",
+            "/api/governor/approvals",
             headers=auth_headers,
         ).json()
         approval_id = approvals_payload["approvals"][-1]["approval_id"]
 
         approval_response = client.post(
-            f"/api/mirror/approvals/{approval_id}/approve",
+            f"/api/governor/approvals/{approval_id}/approve",
             headers=auth_headers,
             json={"resolver_agent_id": "control-lead"},
         )
@@ -486,10 +486,10 @@ def test_service_ops_twin_mirror_demo_skips_stale_approval_step_after_manual_app
         assert approval_response.json()["status"] == "executed"
 
         while True:
-            mirror_payload = client.get("/api/mirror", headers=auth_headers).json()
+            mirror_payload = client.get("/api/governor", headers=auth_headers).json()
             if mirror_payload["pending_demo_steps"] == 0:
                 break
-            response = client.post("/api/mirror/demo/tick", headers=auth_headers)
+            response = client.post("/api/governor/demo/tick", headers=auth_headers)
             assert response.status_code == 200
 
         history_payload = client.get("/api/twin/history").json()
@@ -499,7 +499,7 @@ def test_service_ops_twin_mirror_demo_skips_stale_approval_step_after_manual_app
         assert not any(item["status"] == "error" for item in history_payload)
 
 
-def test_mirror_policy_profiles_hold_or_deny_as_expected(
+def test_governor_policy_profiles_hold_or_deny_as_expected(
     tmp_path: Path,
 ) -> None:
     root = tmp_path / "service_ops_policy_profiles"
@@ -508,13 +508,13 @@ def test_mirror_policy_profiles_hold_or_deny_as_expected(
         snapshot=_sample_snapshot(),
         organization_domain="clearwater.example.com",
         mold=ContextMoldConfig(archetype="service_ops"),
-        mirror_config=default_mirror_workspace_config(hero_world="service_ops"),
+        mirror_config=default_governor_workspace_config(hero_world="service_ops"),
     )
     auth_headers = {"Authorization": f"Bearer {bundle.gateway.auth_token}"}
 
     with TestClient(create_twin_gateway_app(root)) as client:
         observer = client.post(
-            "/api/mirror/agents",
+            "/api/governor/agents",
             headers=auth_headers,
             json={
                 "agent_id": "observer-bot",
@@ -527,7 +527,7 @@ def test_mirror_policy_profiles_hold_or_deny_as_expected(
         assert observer.status_code == 201
 
         denied = client.post(
-            "/api/mirror/events",
+            "/api/governor/events",
             headers=auth_headers,
             json={
                 "agent_id": "observer-bot",
@@ -545,7 +545,7 @@ def test_mirror_policy_profiles_hold_or_deny_as_expected(
         assert denied.json()["result"]["code"] == "mirror.profile_denied"
 
         operator = client.post(
-            "/api/mirror/agents",
+            "/api/governor/agents",
             headers=auth_headers,
             json={
                 "agent_id": "operator-bot",
@@ -558,7 +558,7 @@ def test_mirror_policy_profiles_hold_or_deny_as_expected(
         assert operator.status_code == 201
 
         held = client.post(
-            "/api/mirror/events",
+            "/api/governor/events",
             headers=auth_headers,
             json={
                 "agent_id": "operator-bot",
@@ -576,7 +576,7 @@ def test_mirror_policy_profiles_hold_or_deny_as_expected(
         assert held.json()["handled_by"] == "pending_approval"
         assert held.json()["result"]["approval_required"] is True
 
-        mirror = client.get("/api/mirror", headers=auth_headers).json()
+        mirror = client.get("/api/governor", headers=auth_headers).json()
         assert len(mirror["pending_approvals"]) == 1
         operator_snapshot = next(
             item for item in mirror["agents"] if item["agent_id"] == "operator-bot"
@@ -593,13 +593,13 @@ def test_mirror_approval_resolution_executes_held_action(
         snapshot=_sample_snapshot(),
         organization_domain="clearwater.example.com",
         mold=ContextMoldConfig(archetype="service_ops"),
-        mirror_config=default_mirror_workspace_config(hero_world="service_ops"),
+        mirror_config=default_governor_workspace_config(hero_world="service_ops"),
     )
     auth_headers = {"Authorization": f"Bearer {bundle.gateway.auth_token}"}
 
     with TestClient(create_twin_gateway_app(root)) as client:
         client.post(
-            "/api/mirror/agents",
+            "/api/governor/agents",
             headers=auth_headers,
             json={
                 "agent_id": "operator-bot",
@@ -610,7 +610,7 @@ def test_mirror_approval_resolution_executes_held_action(
             },
         )
         client.post(
-            "/api/mirror/agents",
+            "/api/governor/agents",
             headers=auth_headers,
             json={
                 "agent_id": "control-lead",
@@ -622,7 +622,7 @@ def test_mirror_approval_resolution_executes_held_action(
         )
 
         held = client.post(
-            "/api/mirror/events",
+            "/api/governor/events",
             headers=auth_headers,
             json={
                 "agent_id": "operator-bot",
@@ -639,7 +639,7 @@ def test_mirror_approval_resolution_executes_held_action(
         approval_id = held["result"]["approval_id"]
 
         approval = client.post(
-            f"/api/mirror/approvals/{approval_id}/approve",
+            f"/api/governor/approvals/{approval_id}/approve",
             headers=auth_headers,
             json={"resolver_agent_id": "control-lead"},
         )
@@ -665,7 +665,7 @@ def test_proxy_risky_action_returns_approval_required(
         snapshot=_sample_snapshot(),
         organization_domain="clearwater.example.com",
         mold=ContextMoldConfig(archetype="service_ops"),
-        mirror_config=default_mirror_workspace_config(hero_world="service_ops"),
+        mirror_config=default_governor_workspace_config(hero_world="service_ops"),
     )
     auth_headers = {"Authorization": f"Bearer {bundle.gateway.auth_token}"}
 
@@ -696,13 +696,13 @@ def test_mirror_rate_limit_denial_tracks_throttled_count(
         snapshot=_sample_snapshot(),
         organization_domain="clearwater.example.com",
         mold=ContextMoldConfig(archetype="service_ops"),
-        mirror_config=default_mirror_workspace_config(hero_world="service_ops"),
+        mirror_config=default_governor_workspace_config(hero_world="service_ops"),
     )
     auth_headers = {"Authorization": f"Bearer {bundle.gateway.auth_token}"}
 
     with TestClient(create_twin_gateway_app(root)) as client:
         client.post(
-            "/api/mirror/agents",
+            "/api/governor/agents",
             headers=auth_headers,
             json={
                 "agent_id": "rate-bot",
@@ -717,7 +717,7 @@ def test_mirror_rate_limit_denial_tracks_throttled_count(
         mirror_runtime._total_action_windows["rate-bot"] = [monotonic()] * 60
 
         response = client.post(
-            "/api/mirror/events",
+            "/api/governor/events",
             headers=auth_headers,
             json={
                 "agent_id": "rate-bot",
@@ -733,7 +733,7 @@ def test_mirror_rate_limit_denial_tracks_throttled_count(
         assert response.status_code == 202
         assert response.json()["result"]["code"] == "mirror.rate_limited"
 
-        mirror = client.get("/api/mirror", headers=auth_headers).json()
+        mirror = client.get("/api/governor", headers=auth_headers).json()
         agent = next(
             item for item in mirror["agents"] if item["agent_id"] == "rate-bot"
         )
@@ -772,7 +772,7 @@ def test_workspace_mirror_marks_autoplay_stopped_after_demo_finishes(
         snapshot=_sample_snapshot(),
         organization_domain="clearwater.example.com",
         mold=ContextMoldConfig(archetype="service_ops"),
-        mirror_config=default_mirror_workspace_config(
+        mirror_config=default_governor_workspace_config(
             demo_mode=True,
             autoplay=True,
             demo_interval_ms=250,
@@ -786,7 +786,7 @@ def test_workspace_mirror_marks_autoplay_stopped_after_demo_finishes(
         TestClient(create_ui_app(root)) as ui_client,
     ):
         for _ in range(20):
-            mirror = gateway_client.get("/api/mirror", headers=auth_headers).json()
+            mirror = gateway_client.get("/api/governor", headers=auth_headers).json()
             if (
                 mirror["pending_demo_steps"] == 0
                 and mirror["autoplay_running"] is False
@@ -794,8 +794,10 @@ def test_workspace_mirror_marks_autoplay_stopped_after_demo_finishes(
                 break
             sleep(0.2)
 
-        gateway_mirror = gateway_client.get("/api/mirror", headers=auth_headers).json()
-        workspace_mirror = ui_client.get("/api/workspace/mirror").json()
+        gateway_mirror = gateway_client.get(
+            "/api/governor", headers=auth_headers
+        ).json()
+        workspace_mirror = ui_client.get("/api/workspace/governor").json()
 
         assert gateway_mirror["pending_demo_steps"] == 0
         assert gateway_mirror["autoplay_running"] is False
@@ -812,13 +814,13 @@ def test_mirror_ingest_event_updates_history_and_slack_surface(
         snapshot=_sample_snapshot(),
         organization_domain="clearwater.example.com",
         mold=ContextMoldConfig(archetype="service_ops"),
-        mirror_config=default_mirror_workspace_config(hero_world="service_ops"),
+        mirror_config=default_governor_workspace_config(hero_world="service_ops"),
     )
     auth_headers = {"Authorization": f"Bearer {bundle.gateway.auth_token}"}
 
     with TestClient(create_twin_gateway_app(root)) as client:
         register_response = client.post(
-            "/api/mirror/agents",
+            "/api/governor/agents",
             headers=auth_headers,
             json={
                 "agent_id": "vendor-bot",
@@ -832,7 +834,7 @@ def test_mirror_ingest_event_updates_history_and_slack_surface(
         assert register_response.status_code == 201
 
         ingest_response = client.post(
-            "/api/mirror/events",
+            "/api/governor/events",
             headers=auth_headers,
             json={
                 "agent_id": "vendor-bot",
@@ -871,13 +873,13 @@ def test_mirror_ingest_requires_registered_agent(
         snapshot=_sample_snapshot(),
         organization_domain="clearwater.example.com",
         mold=ContextMoldConfig(archetype="service_ops"),
-        mirror_config=default_mirror_workspace_config(hero_world="service_ops"),
+        mirror_config=default_governor_workspace_config(hero_world="service_ops"),
     )
     auth_headers = {"Authorization": f"Bearer {bundle.gateway.auth_token}"}
 
     with TestClient(create_twin_gateway_app(root)) as client:
         ingest_response = client.post(
-            "/api/mirror/events",
+            "/api/governor/events",
             headers=auth_headers,
             json={
                 "agent_id": "unknown-bot",
@@ -903,7 +905,7 @@ def test_workspace_mirror_state_reflects_live_activity(
         snapshot=_sample_snapshot(),
         organization_domain="clearwater.example.com",
         mold=ContextMoldConfig(archetype="service_ops"),
-        mirror_config=default_mirror_workspace_config(hero_world="service_ops"),
+        mirror_config=default_governor_workspace_config(hero_world="service_ops"),
     )
     auth_headers = {"Authorization": f"Bearer {bundle.gateway.auth_token}"}
 
@@ -912,7 +914,7 @@ def test_workspace_mirror_state_reflects_live_activity(
         TestClient(create_ui_app(root)) as ui_client,
     ):
         register_response = gateway_client.post(
-            "/api/mirror/agents",
+            "/api/governor/agents",
             headers=auth_headers,
             json={
                 "agent_id": "vendor-bot",
@@ -923,12 +925,12 @@ def test_workspace_mirror_state_reflects_live_activity(
         )
         assert register_response.status_code == 201
 
-        workspace_mirror = ui_client.get("/api/workspace/mirror").json()
+        workspace_mirror = ui_client.get("/api/workspace/governor").json()
         agent_ids = {item["agent_id"] for item in workspace_mirror["agents"]}
         assert "vendor-bot" in agent_ids
 
         event_response = gateway_client.post(
-            "/api/mirror/events",
+            "/api/governor/events",
             headers=auth_headers,
             json={
                 "agent_id": "vendor-bot",
@@ -944,7 +946,7 @@ def test_workspace_mirror_state_reflects_live_activity(
         assert event_response.status_code == 202
 
         denied_response = gateway_client.post(
-            "/api/mirror/events",
+            "/api/governor/events",
             headers=auth_headers,
             json={
                 "agent_id": "vendor-bot",
@@ -960,7 +962,7 @@ def test_workspace_mirror_state_reflects_live_activity(
         assert denied_response.status_code == 202
         assert denied_response.json()["handled_by"] == "denied"
 
-        workspace_mirror = ui_client.get("/api/workspace/mirror").json()
+        workspace_mirror = ui_client.get("/api/workspace/governor").json()
         vendor_bot = next(
             agent
             for agent in workspace_mirror["agents"]
@@ -981,13 +983,13 @@ def test_workspace_mirror_uses_current_external_run_only(
         snapshot=_sample_snapshot(),
         organization_domain="clearwater.example.com",
         mold=ContextMoldConfig(archetype="service_ops"),
-        mirror_config=default_mirror_workspace_config(hero_world="service_ops"),
+        mirror_config=default_governor_workspace_config(hero_world="service_ops"),
     )
     auth_headers = {"Authorization": f"Bearer {bundle.gateway.auth_token}"}
 
     with TestClient(create_twin_gateway_app(root)) as first_gateway:
         register_response = first_gateway.post(
-            "/api/mirror/agents",
+            "/api/governor/agents",
             headers=auth_headers,
             json={
                 "agent_id": "old-bot",
@@ -1002,7 +1004,7 @@ def test_workspace_mirror_uses_current_external_run_only(
         TestClient(create_twin_gateway_app(root)),
         TestClient(create_ui_app(root)) as ui_client,
     ):
-        mirror = ui_client.get("/api/workspace/mirror").json()
+        mirror = ui_client.get("/api/workspace/governor").json()
         assert mirror["config"]["hero_world"] == "service_ops"
         assert mirror["agents"] == []
         assert mirror["event_count"] == 0
@@ -1018,7 +1020,7 @@ def test_registered_proxy_agent_updates_mirror_state_from_gateway_route(
         snapshot=_sample_snapshot(),
         organization_domain="clearwater.example.com",
         mold=ContextMoldConfig(archetype="service_ops"),
-        mirror_config=default_mirror_workspace_config(hero_world="service_ops"),
+        mirror_config=default_governor_workspace_config(hero_world="service_ops"),
     )
     auth_headers = {"Authorization": f"Bearer {bundle.gateway.auth_token}"}
 
@@ -1027,7 +1029,7 @@ def test_registered_proxy_agent_updates_mirror_state_from_gateway_route(
         TestClient(create_ui_app(root)) as ui_client,
     ):
         register_response = gateway_client.post(
-            "/api/mirror/agents",
+            "/api/governor/agents",
             headers=auth_headers,
             json={
                 "agent_id": "proxy-bot",
@@ -1054,7 +1056,7 @@ def test_registered_proxy_agent_updates_mirror_state_from_gateway_route(
         assert response.status_code == 200
         assert response.json()["ok"] is True
 
-        workspace_mirror = ui_client.get("/api/workspace/mirror").json()
+        workspace_mirror = ui_client.get("/api/workspace/governor").json()
         proxy_bot = next(
             agent
             for agent in workspace_mirror["agents"]
@@ -1075,13 +1077,13 @@ def test_ingest_mode_agent_cannot_use_proxy_routes(
         snapshot=_sample_snapshot(),
         organization_domain="clearwater.example.com",
         mold=ContextMoldConfig(archetype="service_ops"),
-        mirror_config=default_mirror_workspace_config(hero_world="service_ops"),
+        mirror_config=default_governor_workspace_config(hero_world="service_ops"),
     )
     auth_headers = {"Authorization": f"Bearer {bundle.gateway.auth_token}"}
 
     with TestClient(create_twin_gateway_app(root)) as client:
         register_response = client.post(
-            "/api/mirror/agents",
+            "/api/governor/agents",
             headers=auth_headers,
             json={
                 "agent_id": "ingest-only",
@@ -1109,7 +1111,7 @@ def test_ingest_mode_agent_cannot_use_proxy_routes(
         assert response.status_code == 200
         assert response.json() == {"ok": False, "error": "mirror.mode_denied"}
 
-        mirror = client.get("/api/mirror", headers=auth_headers).json()
+        mirror = client.get("/api/governor", headers=auth_headers).json()
         ingest_only = next(
             agent for agent in mirror["agents"] if agent["agent_id"] == "ingest-only"
         )
@@ -1127,7 +1129,7 @@ def test_unregistered_proxy_agent_is_rejected(
         snapshot=_sample_snapshot(),
         organization_domain="clearwater.example.com",
         mold=ContextMoldConfig(archetype="service_ops"),
-        mirror_config=default_mirror_workspace_config(hero_world="service_ops"),
+        mirror_config=default_governor_workspace_config(hero_world="service_ops"),
     )
     auth_headers = {"Authorization": f"Bearer {bundle.gateway.auth_token}"}
 
@@ -1162,7 +1164,7 @@ def test_mirror_registration_does_not_deadlock_with_dispatch(
         snapshot=_sample_snapshot(),
         organization_domain="clearwater.example.com",
         mold=ContextMoldConfig(archetype="service_ops"),
-        mirror_config=default_mirror_workspace_config(hero_world="service_ops"),
+        mirror_config=default_governor_workspace_config(hero_world="service_ops"),
     )
     app = create_twin_gateway_app(root)
     runtime = app.state.runtime
@@ -1181,7 +1183,7 @@ def test_mirror_registration_does_not_deadlock_with_dispatch(
                 raise AssertionError("dispatch release timed out")
         return original_call_tool(tool, args)
 
-    def observed_register(agent: MirrorAgentSpec) -> None:
+    def observed_register(agent: GovernorAgentSpec) -> None:
         register_entered.set()
         original_register(agent)
 
@@ -1202,7 +1204,7 @@ def test_mirror_registration_does_not_deadlock_with_dispatch(
     def register_call() -> None:
         try:
             runtime.mirror.register_agent(
-                MirrorAgentSpec(agent_id="vendor-bot", name="Vendor Bot")
+                GovernorAgentSpec(agent_id="vendor-bot", name="Vendor Bot")
             )
         except BaseException as exc:  # noqa: BLE001
             errors.append(exc)
@@ -1235,13 +1237,13 @@ def test_mirror_agent_removal_deletes_from_registry(
         snapshot=_sample_snapshot(),
         organization_domain="clearwater.example.com",
         mold=ContextMoldConfig(archetype="service_ops"),
-        mirror_config=default_mirror_workspace_config(hero_world="service_ops"),
+        mirror_config=default_governor_workspace_config(hero_world="service_ops"),
     )
     auth_headers = {"Authorization": f"Bearer {bundle.gateway.auth_token}"}
 
     with TestClient(create_twin_gateway_app(root)) as client:
         client.post(
-            "/api/mirror/agents",
+            "/api/governor/agents",
             headers=auth_headers,
             json={
                 "agent_id": "ephemeral-bot",
@@ -1250,22 +1252,22 @@ def test_mirror_agent_removal_deletes_from_registry(
                 "allowed_surfaces": ["slack"],
             },
         )
-        listed = client.get("/api/mirror/agents", headers=auth_headers).json()
+        listed = client.get("/api/governor/agents", headers=auth_headers).json()
         ids_before = {a["agent_id"] for a in listed["agents"]}
         assert "ephemeral-bot" in ids_before
 
         delete_resp = client.delete(
-            "/api/mirror/agents/ephemeral-bot", headers=auth_headers
+            "/api/governor/agents/ephemeral-bot", headers=auth_headers
         )
         assert delete_resp.status_code == 200
         assert delete_resp.json()["agent_id"] == "ephemeral-bot"
 
-        listed_after = client.get("/api/mirror/agents", headers=auth_headers).json()
+        listed_after = client.get("/api/governor/agents", headers=auth_headers).json()
         ids_after = {a["agent_id"] for a in listed_after["agents"]}
         assert "ephemeral-bot" not in ids_after
 
         not_found = client.delete(
-            "/api/mirror/agents/ephemeral-bot", headers=auth_headers
+            "/api/governor/agents/ephemeral-bot", headers=auth_headers
         )
         assert not_found.status_code == 404
 
@@ -1279,13 +1281,13 @@ def test_mirror_surface_access_enforcement_denies_unauthorized_surfaces(
         snapshot=_sample_snapshot(),
         organization_domain="clearwater.example.com",
         mold=ContextMoldConfig(archetype="service_ops"),
-        mirror_config=default_mirror_workspace_config(hero_world="service_ops"),
+        mirror_config=default_governor_workspace_config(hero_world="service_ops"),
     )
     auth_headers = {"Authorization": f"Bearer {bundle.gateway.auth_token}"}
 
     with TestClient(create_twin_gateway_app(root)) as client:
         client.post(
-            "/api/mirror/agents",
+            "/api/governor/agents",
             headers=auth_headers,
             json={
                 "agent_id": "restricted-bot",
@@ -1296,7 +1298,7 @@ def test_mirror_surface_access_enforcement_denies_unauthorized_surfaces(
         )
 
         allowed_response = client.post(
-            "/api/mirror/events",
+            "/api/governor/events",
             headers=auth_headers,
             json={
                 "agent_id": "restricted-bot",
@@ -1314,7 +1316,7 @@ def test_mirror_surface_access_enforcement_denies_unauthorized_surfaces(
         assert allowed_response.json()["ok"] is True
 
         denied_response = client.post(
-            "/api/mirror/events",
+            "/api/governor/events",
             headers=auth_headers,
             json={
                 "agent_id": "restricted-bot",
@@ -1336,7 +1338,7 @@ def test_mirror_surface_access_enforcement_denies_unauthorized_surfaces(
         assert len(denial_events) >= 1
         assert denial_events[0]["payload"]["agent_id"] == "restricted-bot"
 
-        mirror = client.get("/api/mirror", headers=auth_headers).json()
+        mirror = client.get("/api/governor", headers=auth_headers).json()
         restricted = next(
             a for a in mirror["agents"] if a["agent_id"] == "restricted-bot"
         )
@@ -1364,13 +1366,13 @@ def test_registered_proxy_agent_cannot_bypass_surface_restrictions(
         snapshot=_sample_snapshot(),
         organization_domain="clearwater.example.com",
         mold=ContextMoldConfig(archetype="service_ops"),
-        mirror_config=default_mirror_workspace_config(hero_world="service_ops"),
+        mirror_config=default_governor_workspace_config(hero_world="service_ops"),
     )
     auth_headers = {"Authorization": f"Bearer {bundle.gateway.auth_token}"}
 
     with TestClient(create_twin_gateway_app(root)) as client:
         register_response = client.post(
-            "/api/mirror/agents",
+            "/api/governor/agents",
             headers=auth_headers,
             json={
                 "agent_id": "slack-only",
@@ -1394,7 +1396,7 @@ def test_registered_proxy_agent_cannot_bypass_surface_restrictions(
         assert denied_response.status_code == 403
         assert denied_response.json()["detail"]["code"] == "mirror.surface_denied"
 
-        mirror = client.get("/api/mirror", headers=auth_headers).json()
+        mirror = client.get("/api/governor", headers=auth_headers).json()
         proxy_agent = next(
             agent for agent in mirror["agents"] if agent["agent_id"] == "slack-only"
         )
@@ -1417,13 +1419,13 @@ def test_proxy_mode_agent_cannot_use_ingest_events(
         snapshot=_sample_snapshot(),
         organization_domain="clearwater.example.com",
         mold=ContextMoldConfig(archetype="service_ops"),
-        mirror_config=default_mirror_workspace_config(hero_world="service_ops"),
+        mirror_config=default_governor_workspace_config(hero_world="service_ops"),
     )
     auth_headers = {"Authorization": f"Bearer {bundle.gateway.auth_token}"}
 
     with TestClient(create_twin_gateway_app(root)) as client:
         register_response = client.post(
-            "/api/mirror/agents",
+            "/api/governor/agents",
             headers=auth_headers,
             json={
                 "agent_id": "proxy-only",
@@ -1435,7 +1437,7 @@ def test_proxy_mode_agent_cannot_use_ingest_events(
         assert register_response.status_code == 201
 
         response = client.post(
-            "/api/mirror/events",
+            "/api/governor/events",
             headers=auth_headers,
             json={
                 "agent_id": "proxy-only",
@@ -1456,7 +1458,7 @@ def test_proxy_mode_agent_cannot_use_ingest_events(
             "agent 'proxy-only' is registered for proxy mode"
         )
 
-        mirror = client.get("/api/mirror", headers=auth_headers).json()
+        mirror = client.get("/api/governor", headers=auth_headers).json()
         proxy_only = next(
             agent for agent in mirror["agents"] if agent["agent_id"] == "proxy-only"
         )
@@ -1474,13 +1476,13 @@ def test_mirror_unrestricted_agent_can_dispatch_any_surface(
         snapshot=_sample_snapshot(),
         organization_domain="clearwater.example.com",
         mold=ContextMoldConfig(archetype="service_ops"),
-        mirror_config=default_mirror_workspace_config(hero_world="service_ops"),
+        mirror_config=default_governor_workspace_config(hero_world="service_ops"),
     )
     auth_headers = {"Authorization": f"Bearer {bundle.gateway.auth_token}"}
 
     with TestClient(create_twin_gateway_app(root)) as client:
         client.post(
-            "/api/mirror/agents",
+            "/api/governor/agents",
             headers=auth_headers,
             json={
                 "agent_id": "open-bot",
@@ -1491,7 +1493,7 @@ def test_mirror_unrestricted_agent_can_dispatch_any_surface(
         )
 
         response = client.post(
-            "/api/mirror/events",
+            "/api/governor/events",
             headers=auth_headers,
             json={
                 "agent_id": "open-bot",
@@ -1508,7 +1510,7 @@ def test_mirror_unrestricted_agent_can_dispatch_any_surface(
         assert response.json()["handled_by"] == "dispatch"
         assert response.json()["ok"] is True
 
-        mirror = client.get("/api/mirror", headers=auth_headers).json()
+        mirror = client.get("/api/governor", headers=auth_headers).json()
         open_bot = next(a for a in mirror["agents"] if a["agent_id"] == "open-bot")
         assert open_bot["denied_count"] == 0
 
@@ -1522,13 +1524,13 @@ def test_mirror_inject_denial_for_restricted_surface(
         snapshot=_sample_snapshot(),
         organization_domain="clearwater.example.com",
         mold=ContextMoldConfig(archetype="service_ops"),
-        mirror_config=default_mirror_workspace_config(hero_world="service_ops"),
+        mirror_config=default_governor_workspace_config(hero_world="service_ops"),
     )
     auth_headers = {"Authorization": f"Bearer {bundle.gateway.auth_token}"}
 
     with TestClient(create_twin_gateway_app(root)) as client:
         client.post(
-            "/api/mirror/agents",
+            "/api/governor/agents",
             headers=auth_headers,
             json={
                 "agent_id": "slack-only-bot",
@@ -1539,7 +1541,7 @@ def test_mirror_inject_denial_for_restricted_surface(
         )
 
         denied_inject = client.post(
-            "/api/mirror/events",
+            "/api/governor/events",
             headers=auth_headers,
             json={
                 "agent_id": "slack-only-bot",
@@ -1553,7 +1555,7 @@ def test_mirror_inject_denial_for_restricted_surface(
         assert denied_inject.json()["handled_by"] == "denied"
         assert denied_inject.json()["ok"] is False
 
-        mirror = client.get("/api/mirror", headers=auth_headers).json()
+        mirror = client.get("/api/governor", headers=auth_headers).json()
         bot = next(a for a in mirror["agents"] if a["agent_id"] == "slack-only-bot")
         assert bot["denied_count"] == 1
 

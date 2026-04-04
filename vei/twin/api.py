@@ -23,10 +23,10 @@ from vei.blueprint.models import (
 )
 from vei.context.api import capture_context, hydrate_blueprint
 from vei.context.models import ContextProviderConfig, ContextSnapshot
-from vei.mirror import (
-    MirrorWorkspaceConfig,
-    default_mirror_workspace_config,
-    mirror_metadata_payload,
+from vei.governor import (
+    GovernorWorkspaceConfig,
+    default_governor_workspace_config,
+    governor_metadata_payload,
 )
 from vei.verticals import build_vertical_blueprint_asset
 from vei.workspace.api import (
@@ -62,7 +62,7 @@ def build_customer_twin(
     organization_name: str | None = None,
     organization_domain: str = "",
     mold: ContextMoldConfig | None = None,
-    mirror_config: MirrorWorkspaceConfig | None = None,
+    mirror_config: GovernorWorkspaceConfig | None = None,
     gateway_token: str | None = None,
     overwrite: bool = True,
 ) -> CustomerTwinBundle:
@@ -73,7 +73,7 @@ def build_customer_twin(
         raise ValueError("snapshot or provider_configs is required")
 
     resolved_mold = mold or ContextMoldConfig()
-    resolved_mirror = mirror_config or default_mirror_workspace_config(
+    resolved_mirror = mirror_config or default_governor_workspace_config(
         hero_world=resolved_mold.archetype
     )
     resolved_snapshot = snapshot
@@ -117,7 +117,7 @@ def build_customer_twin(
             "organization_domain": resolved_domain,
             "mold": resolved_mold.model_dump(mode="json"),
         },
-        "mirror": mirror_metadata_payload(resolved_mirror),
+        "governor": governor_metadata_payload(resolved_mirror),
     }
     write_workspace(workspace_root, manifest)
     compile_workspace(workspace_root)
@@ -165,7 +165,7 @@ def build_customer_twin(
         metadata={
             "preview": preview_workspace_scenario(workspace_root),
             "source_providers": [item.provider for item in resolved_snapshot.sources],
-            "mirror": mirror_metadata_payload(resolved_mirror),
+            "governor": governor_metadata_payload(resolved_mirror),
         },
     )
     _write_json(workspace_root / TWIN_MANIFEST_FILE, bundle.model_dump(mode="json"))
@@ -243,6 +243,94 @@ def create_twin_gateway_app(root: str | Path) -> FastAPI:
     from .gateway import create_twin_gateway_app as _create_twin_gateway_app
 
     return _create_twin_gateway_app(root)
+
+
+def start_twin(*args, **kwargs):
+    from .lifecycle import start_twin as _start_twin
+
+    return _start_twin(*args, **kwargs)
+
+
+def build_twin_status(*args, **kwargs):
+    from .lifecycle import build_twin_status as _build_twin_status
+
+    return _build_twin_status(*args, **kwargs)
+
+
+def stop_twin(*args, **kwargs):
+    from .lifecycle import stop_twin as _stop_twin
+
+    return _stop_twin(*args, **kwargs)
+
+
+def reset_twin(*args, **kwargs):
+    from .lifecycle import reset_twin as _reset_twin
+
+    return _reset_twin(*args, **kwargs)
+
+
+def finalize_twin(*args, **kwargs):
+    from .lifecycle import finalize_twin as _finalize_twin
+
+    return _finalize_twin(*args, **kwargs)
+
+
+def sync_twin(*args, **kwargs):
+    from .lifecycle import sync_twin as _sync_twin
+
+    return _sync_twin(*args, **kwargs)
+
+
+def pause_twin_orchestrator_agent(*args, **kwargs):
+    from .lifecycle import pause_twin_orchestrator_agent as _pause_twin_agent
+
+    return _pause_twin_agent(*args, **kwargs)
+
+
+def resume_twin_orchestrator_agent(*args, **kwargs):
+    from .lifecycle import resume_twin_orchestrator_agent as _resume_twin_agent
+
+    return _resume_twin_agent(*args, **kwargs)
+
+
+def comment_on_twin_orchestrator_task(*args, **kwargs):
+    from .lifecycle import (
+        comment_on_twin_orchestrator_task as _comment_on_twin_task,
+    )
+
+    return _comment_on_twin_task(*args, **kwargs)
+
+
+def approve_twin_orchestrator_approval(*args, **kwargs):
+    from .lifecycle import (
+        approve_twin_orchestrator_approval as _approve_twin_approval,
+    )
+
+    return _approve_twin_approval(*args, **kwargs)
+
+
+def reject_twin_orchestrator_approval(*args, **kwargs):
+    from .lifecycle import reject_twin_orchestrator_approval as _reject_twin_approval
+
+    return _reject_twin_approval(*args, **kwargs)
+
+
+def request_twin_orchestrator_revision(*args, **kwargs):
+    from .lifecycle import request_twin_orchestrator_revision as _request_twin_revision
+
+    return _request_twin_revision(*args, **kwargs)
+
+
+def activate_twin_exercise(*args, **kwargs):
+    from .lifecycle import activate_twin_exercise as _activate_twin_exercise
+
+    return _activate_twin_exercise(*args, **kwargs)
+
+
+def build_workspace_governor_status(*args, **kwargs):
+    from .lifecycle import build_workspace_governor_status as _build_workspace_status
+
+    return _build_workspace_status(*args, **kwargs)
 
 
 def build_twin_matrix(

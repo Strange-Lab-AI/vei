@@ -1,14 +1,20 @@
 from __future__ import annotations
 
-import json
 from pathlib import Path
 from types import SimpleNamespace
 
 from typer.testing import CliRunner
 
-from vei.cli.vei import app
 from vei.cli import vei_quickstart
-from vei.workspace.api import create_workspace_from_template
+from vei.cli.vei import app
+from vei.pilot.models import (
+    PilotManifest,
+    PilotOutcomeSummary,
+    PilotRuntime,
+    PilotServiceRecord,
+    PilotStatus,
+)
+from vei.twin.models import CompatibilitySurfaceSpec
 
 
 def test_quickstart_reports_invalid_live_demo_combo(
@@ -29,9 +35,9 @@ def test_quickstart_reports_invalid_live_demo_combo(
     )
     monkeypatch.setattr(
         vei_quickstart,
-        "_ensure_twin_bundle",
+        "start_twin",
         lambda *args, **kwargs: (_ for _ in ()).throw(
-            ValueError("mirror demo mode requires connector_mode='sim'")
+            ValueError("governor demo mode requires connector_mode='sim'")
         ),
     )
 
@@ -44,7 +50,7 @@ def test_quickstart_reports_invalid_live_demo_combo(
             "service_ops",
             "--root",
             str(root),
-            "--mirror-demo",
+            "--governor-demo",
             "--connector-mode",
             "live",
             "--no-baseline",
@@ -52,51 +58,123 @@ def test_quickstart_reports_invalid_live_demo_combo(
     )
 
     assert result.exit_code == 2
-    assert "mirror demo mode requires connector_mode='sim'" in result.output
+    assert "governor demo mode requires connector_mode='sim'" in result.output
     assert "Traceback" not in result.output
 
 
-def test_ensure_twin_bundle_tracks_custom_ports_and_preserves_token(
+def test_quickstart_uses_shared_twin_launcher(
     tmp_path: Path,
+    monkeypatch,
 ) -> None:
+    runner = CliRunner()
     root = tmp_path / "quickstart_workspace"
-    create_workspace_from_template(
-        root=root,
-        source_kind="vertical",
-        source_ref="service_ops",
-        overwrite=True,
+    fake_state = SimpleNamespace(
+        mission=SimpleNamespace(mission_name="service_day_collision"),
+        run_id="human_play_123",
+    )
+    captured: dict[str, object] = {}
+
+    monkeypatch.setattr(
+        "vei.playable.prepare_playable_workspace",
+        lambda *args, **kwargs: fake_state,
     )
 
-    vei_quickstart._ensure_twin_bundle(
-        root,
-        "service_ops",
-        studio_port=3311,
-        gateway_port=3312,
-        connector_mode="sim",
-        mirror_demo=True,
-        mirror_demo_interval_ms=900,
+    def fake_start_twin(*args, **kwargs):
+        captured["args"] = args
+        captured["kwargs"] = kwargs
+        return _sample_pilot_status(root)
+
+    monkeypatch.setattr(vei_quickstart, "start_twin", fake_start_twin)
+    monkeypatch.setattr(
+        vei_quickstart,
+        "build_twin_status",
+        lambda _root: _sample_pilot_status(root),
+    )
+    monkeypatch.setattr(
+        vei_quickstart.signal,
+        "pause",
+        lambda: (_ for _ in ()).throw(KeyboardInterrupt()),
+    )
+    stopped: list[Path] = []
+    monkeypatch.setattr(vei_quickstart, "stop_twin", lambda path: stopped.append(path))
+
+    result = runner.invoke(
+        app,
+        [
+            "quickstart",
+            "run",
+            "--world",
+            "service_ops",
+            "--root",
+            str(root),
+            "--studio-port",
+            "3311",
+            "--gateway-port",
+            "3312",
+            "--governor-demo",
+            "--no-baseline",
+        ],
     )
 
-    manifest_path = root / "twin_manifest.json"
-    first_manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    first_token = first_manifest["gateway"]["auth_token"]
+    assert result.exit_code == 0, result.output
+    assert captured["args"] == (root,)
+    assert captured["kwargs"]["archetype"] == "service_ops"
+    assert captured["kwargs"]["studio_port"] == 3311
+    assert captured["kwargs"]["gateway_port"] == 3312
+    assert captured["kwargs"]["governor_demo"] is True
+    assert captured["kwargs"]["ui_skin"] == "sandbox"
+    assert stopped == [root]
 
-    assert first_manifest["gateway"]["host"] == "127.0.0.1"
-    assert first_manifest["gateway"]["port"] == 3312
-    assert "--port 3311" in first_manifest["gateway"]["ui_command"]
 
-    vei_quickstart._ensure_twin_bundle(
-        root,
-        "service_ops",
-        studio_port=4411,
-        gateway_port=4412,
-        connector_mode="sim",
-        mirror_demo=True,
-        mirror_demo_interval_ms=900,
+def _sample_pilot_status(root: Path) -> PilotStatus:
+    return PilotStatus(
+        manifest=PilotManifest(
+            workspace_root=root,
+            workspace_name="quickstart_workspace",
+            organization_name="Acme Cloud",
+            organization_domain="acme.ai",
+            archetype="service_ops",
+            crisis_name="Dispatch overload",
+            studio_url="http://127.0.0.1:3011",
+            pilot_console_url="http://127.0.0.1:3011/?skin=governor",
+            gateway_url="http://127.0.0.1:3020",
+            gateway_status_url="http://127.0.0.1:3020/api/twin",
+            bearer_token="token-123",
+            supported_surfaces=[
+                CompatibilitySurfaceSpec(
+                    name="slack",
+                    title="Slack",
+                    base_path="/slack/api",
+                )
+            ],
+            recommended_first_exercise="Read the queue before acting.",
+            sample_client_path="/tmp/governor_client.py",
+        ),
+        runtime=PilotRuntime(
+            workspace_root=root,
+            services=[
+                PilotServiceRecord(
+                    name="gateway",
+                    host="127.0.0.1",
+                    port=3020,
+                    url="http://127.0.0.1:3020",
+                    state="running",
+                ),
+                PilotServiceRecord(
+                    name="studio",
+                    host="127.0.0.1",
+                    port=3011,
+                    url="http://127.0.0.1:3011",
+                    state="running",
+                ),
+            ],
+        ),
+        active_run="external-run",
+        twin_status="running",
+        request_count=3,
+        services_ready=True,
+        outcome=PilotOutcomeSummary(
+            status="running",
+            summary="Outside work is active.",
+        ),
     )
-
-    second_manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-
-    assert second_manifest["gateway"]["auth_token"] == first_token
-    assert second_manifest["gateway"]["port"] == 4412
-    assert "--port 4411" in second_manifest["gateway"]["ui_command"]
