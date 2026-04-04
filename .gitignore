@@ -81,13 +81,9 @@ archive_data/
 # Other tooling
 node_modules/
 .cursor/
-.beads/
 /.codex/
 ~$*
 
-# Dolt / beads local database state
+# Local database state
 .dolt/
 *.db
-
-# Beads / Dolt files (added by bd init)
-.beads-credential-key

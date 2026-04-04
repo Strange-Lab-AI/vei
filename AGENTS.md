@@ -10,14 +10,12 @@ Drop‑In Rules for Autonomous Coding Agents
 2) Run the interface targets (Appendix A): `setup` → `all`.  
 3) On failure, apply the **triage in Appendix B** (do not loop blindly).  
 4) Open PR with tests (LLM live if applicable).
-5) For any piece of work you start doing, create issues using bd (see below) and that's your bible of things to do, in order.
 
 ---
 
 ## 0) Core Principles
 - Ship minimal, correct, succinct code.
 - All changes via PR. No direct pushes to `main` unless explicitly requested.
-- Record context, plan, risks, tests, and failures via 'bd' tool, mentioned at the bottom. Always bd init to start.
 - Handle failures using Appendix B (retries, cost ceilings, infrastructure vs. code).
 
 - All the code that’s part of our architecture goes into the one monolith we have.
@@ -262,10 +260,6 @@ Agents must read this file to configure gates. Missing keys default to the value
 
 ---
 
-## Work Plan/ Issues
-USE the bd tool instead of markdown for all new work. We only and always track work in Beads instead of Markdown. Run \`bd quickstart\` to see how. 'bd init' can help start things, and you can install it if needed - more information here https://github.com/steveyegge/beads
----
-
 ## Appendix H — Repo quickstart and conventions
 
 ### Project Structure & Modules
@@ -331,50 +325,3 @@ Scoring is multi-layered: raw task success → policy compliance → domain-spec
 ### Architecture Overview
 - Router exposes MCP tools: `slack.*`, `mail.*`, `browser.*`, `vei.*`.
 - Two transports: stdio (default for dev/CI) and SSE (`vei.router.sse`). Keep new tools deterministic and replay‑friendly.
-
-<!-- BEGIN BEADS INTEGRATION v:1 profile:minimal hash:ca08a54f -->
-## Beads Issue Tracker
-
-This project uses **bd (beads)** for issue tracking. Run `bd prime` to see full workflow context and commands.
-
-### Quick Reference
-
-```bash
-bd ready              # Find available work
-bd show <id>          # View issue details
-bd update <id> --claim  # Claim work
-bd close <id>         # Complete work
-```
-
-### Rules
-
-- Use `bd` for ALL task tracking — do NOT use TodoWrite, TaskCreate, or markdown TODO lists
-- Run `bd prime` for detailed command reference and session close protocol
-- Use `bd remember` for persistent knowledge — do NOT use MEMORY.md files
-
-## Session Completion
-
-**When ending a work session**, you MUST complete ALL steps below. Work is NOT complete until `git push` succeeds.
-
-**MANDATORY WORKFLOW:**
-
-1. **File issues for remaining work** - Create issues for anything that needs follow-up
-2. **Run quality gates** (if code changed) - Tests, linters, builds
-3. **Update issue status** - Close finished work, update in-progress items
-4. **PUSH TO REMOTE** - This is MANDATORY:
-   ```bash
-   git pull --rebase
-   bd dolt push
-   git push
-   git status  # MUST show "up to date with origin"
-   ```
-5. **Clean up** - Clear stashes, prune remote branches
-6. **Verify** - All changes committed AND pushed
-7. **Hand off** - Provide context for next session
-
-**CRITICAL RULES:**
-- Work is NOT complete until `git push` succeeds
-- NEVER stop before pushing - that leaves work stranded locally
-- NEVER say "ready to push when you are" - YOU must push
-- If push fails, resolve and retry until it succeeds
-<!-- END BEADS INTEGRATION -->

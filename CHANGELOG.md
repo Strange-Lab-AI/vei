@@ -7,7 +7,7 @@
 - Added deterministic enterprise/control-plane twins for Google Admin, SIEM, Datadog, PagerDuty, feature flags, HRIS, and Jira-style issue workflows.
 - Added release/export tooling (`vei release`) with benchmark/dataset manifests and a nightly GitHub Actions workflow.
 - Consolidated the repo around `vei world`, deleted compatibility-only CLIs and legacy transport wrappers, and pruned committed eval artifacts plus historical planning docs.
-- Licensed the repository under Business Source License 1.1 and removed tracked `.beads/` state from version control.
+- Licensed the repository under Business Source License 1.1 and removed tracked local workflow state from version control.
 
 ## 0.2.0a1 - 2026-02-06
 
@@ -19,4 +19,3 @@ Mini-alpha stabilization for external embedding.
 - Added external-consumer example: `examples/sdk_playground_min.py`.
 - Added git dependency smoke script for CI: `tools/git_dependency_smoke.sh`.
 - Added an SDK surface guide for external consumers.
-- Added contributor guidance for `bd` repo-id mismatch: `CONTRIBUTING.md`.

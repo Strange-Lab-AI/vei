@@ -274,5 +274,3 @@ Business Source License 1.1 — see [LICENSE](LICENSE). Change date: 2030-03-10.
 ## Workspace Hygiene
 
 Source of truth: `vei/`, `tests/`, `docs/`, `tools/`, and top-level config. Generated folders (`_vei_out/`, `.artifacts/`, caches) are disposable — run `make clean-workspace` to prune.
-
-`bd` state is local-only under `.beads/` and should stay out of Git.
