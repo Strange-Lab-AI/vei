@@ -28,7 +28,7 @@ function renderLivingCompanyContext() {
   const crisisLine = crisisTitle
     ? `<strong>${escapeHtml(crisisTitle)}</strong>: ${escapeHtml(briefing)}`
     : "";
-  const mirror = state.mirrorStatus;
+  const mirror = state.governorStatus;
   const workforce = state.workforceStatus;
   const mirrorActive = (
     (mirror && mirror.config && (Array.isArray(mirror.agents) ? mirror.agents.length > 0 : false || mirror.config.demo_mode))
@@ -218,14 +218,14 @@ function renderSituationRoom() {
 }
 
 function renderMirrorFleetPanel() {
-  const el = document.getElementById("mirror-fleet-strip");
+  const el = document.getElementById("governor-fleet-strip");
   if (!el) return;
   const workforce = state.workforceStatus;
   if (workforce?.snapshot && workforce?.summary) {
     renderWorkforceControlRoom(el, workforce);
     return;
   }
-  const mirror = state.mirrorStatus;
+  const mirror = state.governorStatus;
   if (!mirror || !mirror.config) {
     el.innerHTML = "";
     return;
@@ -276,7 +276,7 @@ function renderMirrorFleetPanel() {
       `<option value="${escapeHtml(profile.profile_id)}" ${profile.profile_id === agent.policy_profile_id ? "selected" : ""}>${escapeHtml(profile.label)}</option>`
     ).join("");
     return `
-      <div class="mirror-agent-card${denied > 0 ? " mirror-agent-has-denials" : ""}">
+      <div class="governor-agent-card${denied > 0 ? " governor-agent-has-denials" : ""}">
         <div class="agent-card-top">
           <span class="agent-name">${escapeHtml(agent.name || agent.agent_id)}</span>
           ${profileBadge}
@@ -353,10 +353,10 @@ function renderMirrorFleetPanel() {
     const denied = evt.handled_by === "denied";
     const pendingApproval = evt.handled_by === "pending_approval";
     const cls = denied
-      ? "mirror-feed-item mirror-feed-denied"
+      ? "governor-feed-item governor-feed-denied"
       : pendingApproval
-        ? "mirror-feed-item mirror-feed-pending"
-        : "mirror-feed-item";
+        ? "governor-feed-item governor-feed-pending"
+        : "governor-feed-item";
     const label = evt.label || evt.tool || "event";
     const reason = evt.reason
       || ({
@@ -389,27 +389,27 @@ function renderMirrorFleetPanel() {
     : `<p class="metric-detail">No governed actions yet.</p>`;
 
   const addAgentForm = `
-    <details class="mirror-agent-form-disclosure">
-      <summary class="mirror-feed-header">Register governed agent</summary>
-      <div class="mirror-agent-form">
+    <details class="governor-agent-form-disclosure">
+      <summary class="governor-feed-header">Register governed agent</summary>
+      <div class="governor-agent-form">
         <div class="agent-edit-grid">
-          <label><span>Agent ID</span><input id="mirror-new-agent-id" placeholder="control-lead" /></label>
-          <label><span>Name</span><input id="mirror-new-agent-name" placeholder="Control Lead" /></label>
-          <label><span>Mode</span><select id="mirror-new-agent-mode">
+          <label><span>Agent ID</span><input id="governor-new-agent-id" placeholder="control-lead" /></label>
+          <label><span>Name</span><input id="governor-new-agent-name" placeholder="Control Lead" /></label>
+          <label><span>Mode</span><select id="governor-new-agent-mode">
             <option value="proxy">proxy</option>
             <option value="ingest">ingest</option>
             <option value="demo">demo</option>
           </select></label>
-          <label><span>Profile</span><select id="mirror-new-agent-profile">${profileOptions.map((profile) => `<option value="${escapeHtml(profile.profile_id)}">${escapeHtml(profile.label)}</option>`).join("")}</select></label>
-          <label class="agent-edit-surfaces"><span>Surfaces</span><input id="mirror-new-agent-surfaces" placeholder="slack, service_ops" /></label>
+          <label><span>Profile</span><select id="governor-new-agent-profile">${profileOptions.map((profile) => `<option value="${escapeHtml(profile.profile_id)}">${escapeHtml(profile.label)}</option>`).join("")}</select></label>
+          <label class="agent-edit-surfaces"><span>Surfaces</span><input id="governor-new-agent-surfaces" placeholder="slack, service_ops" /></label>
         </div>
-        <button type="button" class="ghost-button" id="mirror-register-agent-btn">Add agent</button>
+        <button type="button" class="ghost-button" id="governor-register-agent-btn">Add agent</button>
       </div>
     </details>
   `;
 
   el.innerHTML = `
-    <div class="mirror-fleet-header">
+    <div class="governor-fleet-header">
       <div>
         <span class="fleet-label">Governor</span>
         <span class="fleet-badge ${badgeClass}">${mode}</span>
@@ -420,27 +420,27 @@ function renderMirrorFleetPanel() {
         <button type="button" class="ghost-button" data-governor-control="finalize">Finalize</button>
       </div>
     </div>
-    <div class="mirror-connector-strip">${connectorStrip}</div>
+    <div class="governor-connector-strip">${connectorStrip}</div>
     ${addAgentForm}
-    <div class="mirror-fleet-body">
-      <div class="mirror-agents-grid">${agentCards}</div>
-      <div class="mirror-event-feed">
-        <div class="mirror-feed-header">Approval Queue</div>
+    <div class="governor-fleet-body">
+      <div class="governor-agents-grid">${agentCards}</div>
+      <div class="governor-event-feed">
+        <div class="governor-feed-header">Approval Queue</div>
         <div class="approval-queue">${approvalQueue}</div>
-        <div class="mirror-feed-header">Activity Log</div>
-        <div class="mirror-feed-list">${eventFeedHtml}</div>
+        <div class="governor-feed-header">Activity Log</div>
+        <div class="governor-feed-list">${eventFeedHtml}</div>
       </div>
     </div>
   `;
 
-  document.getElementById("mirror-register-agent-btn")?.addEventListener("click", async () => {
-    const agentId = document.getElementById("mirror-new-agent-id")?.value?.trim();
-    const name = document.getElementById("mirror-new-agent-name")?.value?.trim();
-    const modeValue = document.getElementById("mirror-new-agent-mode")?.value || "ingest";
-    const profileValue = document.getElementById("mirror-new-agent-profile")?.value || "operator";
-    const surfacesRaw = document.getElementById("mirror-new-agent-surfaces")?.value || "";
+  document.getElementById("governor-register-agent-btn")?.addEventListener("click", async () => {
+    const agentId = document.getElementById("governor-new-agent-id")?.value?.trim();
+    const name = document.getElementById("governor-new-agent-name")?.value?.trim();
+    const modeValue = document.getElementById("governor-new-agent-mode")?.value || "ingest";
+    const profileValue = document.getElementById("governor-new-agent-profile")?.value || "operator";
+    const surfacesRaw = document.getElementById("governor-new-agent-surfaces")?.value || "";
     if (!agentId || !name) return;
-    await mirrorPost("/api/workspace/governor/agents", {
+    await governorPost("/api/workspace/governor/agents", {
       agent_id: agentId,
       name,
       mode: modeValue,
@@ -456,7 +456,7 @@ function renderMirrorFleetPanel() {
       const profile = el.querySelector(`[data-agent-profile="${agentId}"]`)?.value;
       const status = el.querySelector(`[data-agent-status="${agentId}"]`)?.value;
       const surfaces = el.querySelector(`[data-agent-surfaces="${agentId}"]`)?.value || "";
-      await mirrorPatch(`/api/workspace/governor/agents/${encodeURIComponent(agentId)}`, {
+      await governorPatch(`/api/workspace/governor/agents/${encodeURIComponent(agentId)}`, {
         policy_profile_id: profile,
         status,
         allowed_surfaces: surfaces.split(",").map((item) => item.trim()).filter(Boolean),
@@ -469,7 +469,7 @@ function renderMirrorFleetPanel() {
     node.addEventListener("click", async () => {
       const agentId = node.dataset.agentRemove;
       if (!agentId) return;
-      await mirrorDelete(`/api/workspace/governor/agents/${encodeURIComponent(agentId)}`).catch(() => null);
+      await governorDelete(`/api/workspace/governor/agents/${encodeURIComponent(agentId)}`).catch(() => null);
       await refreshAfterMirrorMutation();
     });
   });
@@ -479,7 +479,7 @@ function renderMirrorFleetPanel() {
       const approvalId = node.dataset.approvalApprove;
       const resolver = el.querySelector(`[data-approval-resolver="${approvalId}"]`)?.value;
       if (!resolver) return;
-      await mirrorPost(`/api/workspace/governor/approvals/${encodeURIComponent(approvalId)}/approve`, {
+      await governorPost(`/api/workspace/governor/approvals/${encodeURIComponent(approvalId)}/approve`, {
         resolver_agent_id: resolver,
       }).catch(() => null);
       await refreshAfterMirrorMutation();
@@ -491,7 +491,7 @@ function renderMirrorFleetPanel() {
       const approvalId = node.dataset.approvalReject;
       const resolver = el.querySelector(`[data-approval-resolver="${approvalId}"]`)?.value;
       if (!resolver) return;
-      await mirrorPost(`/api/workspace/governor/approvals/${encodeURIComponent(approvalId)}/reject`, {
+      await governorPost(`/api/workspace/governor/approvals/${encodeURIComponent(approvalId)}/reject`, {
         resolver_agent_id: resolver,
       }).catch(() => null);
       await refreshAfterMirrorMutation();
@@ -533,7 +533,7 @@ function renderWorkforceControlRoom(el, workforce) {
     const action = /running|active|busy/i.test(status) ? "pause" : "resume";
     const actionLabel = action === "pause" ? "Pause" : "Resume";
     return `
-      <div class="mirror-agent-card">
+      <div class="governor-agent-card">
         <div class="agent-card-top">
           <span class="agent-name">${escapeHtml(agent.name || agent.agent_id)}</span>
           <span class="agent-policy-badge">${escapeHtml(humanize(agent.integration_mode || "observe"))}</span>
@@ -559,7 +559,7 @@ function renderWorkforceControlRoom(el, workforce) {
   }).join("");
 
   const taskCards = tasks.slice(0, 4).map((task) => `
-    <article class="pilot-activity-card workforce-task-card" data-task-id="${escapeHtml(task.task_id)}">
+    <article class="control-room-activity-card workforce-task-card" data-task-id="${escapeHtml(task.task_id)}">
       <div class="activity-row">
         <strong>${escapeHtml(task.identifier || task.title || task.task_id)}</strong>
         <span class="badge">${escapeHtml(humanize(task.status || "unknown"))}</span>
@@ -575,7 +575,7 @@ function renderWorkforceControlRoom(el, workforce) {
         </div>
       </details>
       <label class="agent-role" for="workforce-guidance-${escapeHtml(task.task_id)}">Guidance from VEI</label>
-      <textarea id="workforce-guidance-${escapeHtml(task.task_id)}" class="pilot-action-input workforce-guidance-input" data-guidance-input placeholder="Tell the team what to do next or what must change before this can proceed."></textarea>
+      <textarea id="workforce-guidance-${escapeHtml(task.task_id)}" class="control-room-action-input workforce-guidance-input" data-guidance-input placeholder="Tell the team what to do next or what must change before this can proceed."></textarea>
       <div class="agent-btn-row">
         <button type="button" class="ghost-button workforce-guidance-action" data-task-id="${escapeHtml(task.task_id)}">Send guidance</button>
       </div>
@@ -583,7 +583,7 @@ function renderWorkforceControlRoom(el, workforce) {
   `).join("");
 
   const approvalCards = approvals.slice(0, 4).map((approval) => `
-    <article class="pilot-activity-card workforce-approval-card" data-approval-id="${escapeHtml(approval.approval_id)}">
+    <article class="control-room-activity-card workforce-approval-card" data-approval-id="${escapeHtml(approval.approval_id)}">
       <div class="activity-row">
         <strong>${escapeHtml(approval.summary || approval.approval_type || approval.approval_id)}</strong>
         <span class="badge">${escapeHtml(humanize(approval.status || "unknown"))}</span>
@@ -598,7 +598,7 @@ function renderWorkforceControlRoom(el, workforce) {
         </div>
       </details>
       <label class="agent-role" for="workforce-approval-note-${escapeHtml(approval.approval_id)}">Decision note</label>
-      <textarea id="workforce-approval-note-${escapeHtml(approval.approval_id)}" class="pilot-action-input workforce-approval-input" data-approval-note-input placeholder="Explain the board decision clearly."></textarea>
+      <textarea id="workforce-approval-note-${escapeHtml(approval.approval_id)}" class="control-room-action-input workforce-approval-input" data-approval-note-input placeholder="Explain the board decision clearly."></textarea>
       <div class="agent-btn-row">
         <button type="button" class="ghost-button workforce-approval-action" data-approval-action="approve" data-approval-id="${escapeHtml(approval.approval_id)}">Approve</button>
         <button type="button" class="ghost-button workforce-approval-action" data-approval-action="request-revision" data-approval-id="${escapeHtml(approval.approval_id)}">Request revision</button>
@@ -610,7 +610,7 @@ function renderWorkforceControlRoom(el, workforce) {
   const interventionHtml = renderInterventionFeed(workforce);
 
   el.innerHTML = `
-    <div class="mirror-fleet-header">
+    <div class="governor-fleet-header">
       <div>
         <span class="fleet-label">Control Room</span>
         <span class="fleet-badge ${statusClass}">${escapeHtml(sync.status || "disabled")}</span>
@@ -622,7 +622,7 @@ function renderWorkforceControlRoom(el, workforce) {
         <button type="button" class="ghost-button" data-governor-control="finalize">Finalize</button>
       </div>
     </div>
-    <div class="mirror-connector-strip">
+    <div class="governor-connector-strip">
       <div class="connector-pill connector-healthy connector-interactive">
         <span class="connector-dot"></span>
         <span class="connector-name">${escapeHtml(summary.company_name || snapshot.summary?.company_name || "Outside workforce")}</span>
@@ -636,15 +636,15 @@ function renderWorkforceControlRoom(el, workforce) {
         </div>
       `).join("")}
     </div>
-    <div class="mirror-fleet-body">
-      <div class="mirror-agents-grid">${agentCards || `<p class="metric-detail">No outside agents visible yet.</p>`}</div>
-      <div class="mirror-event-feed">
-        <div class="mirror-feed-header">Active work</div>
-        <div class="pilot-task-grid">${taskCards || `<p class="metric-detail">No outside work items yet.</p>`}</div>
-        <div class="mirror-feed-header">Board decisions</div>
-        <div class="pilot-task-grid">${approvalCards || `<p class="metric-detail">No approvals waiting right now.</p>`}</div>
-        <div class="mirror-feed-header">Intervention story</div>
-        <div class="mirror-feed-list">${interventionHtml}</div>
+    <div class="governor-fleet-body">
+      <div class="governor-agents-grid">${agentCards || `<p class="metric-detail">No outside agents visible yet.</p>`}</div>
+      <div class="governor-event-feed">
+        <div class="governor-feed-header">Active work</div>
+        <div class="control-room-task-grid">${taskCards || `<p class="metric-detail">No outside work items yet.</p>`}</div>
+        <div class="governor-feed-header">Board decisions</div>
+        <div class="control-room-task-grid">${approvalCards || `<p class="metric-detail">No approvals waiting right now.</p>`}</div>
+        <div class="governor-feed-header">Intervention story</div>
+        <div class="governor-feed-list">${interventionHtml}</div>
       </div>
     </div>
   `;
@@ -786,7 +786,7 @@ function renderInterventionFeed(workforce) {
   if ((ungrouped || []).length) {
     html += `<div class="intervention-ungrouped">`;
     html += ungrouped.slice(0, 5).map((entry) => `
-      <div class="mirror-feed-item">
+      <div class="governor-feed-item">
         <span class="feed-agent">${escapeHtml(entry.actor)}</span>
         <span class="feed-label">${escapeHtml(entry.label)}</span>
         ${entry.when ? `<span class="feed-ts">${escapeHtml(entry.when)}</span>` : ""}

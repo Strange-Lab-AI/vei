@@ -13,12 +13,12 @@ from vei.pilot.exercise_models import (
     ExerciseManifest,
 )
 from vei.imports.api import get_import_package_example_path
-from vei.pilot.models import (
-    PilotManifest,
-    PilotOutcomeSummary,
-    PilotRuntime,
-    PilotServiceRecord,
-    PilotStatus,
+from vei.twin.models import (
+    TwinLaunchManifest,
+    TwinLaunchRuntime,
+    TwinLaunchStatus,
+    TwinOutcomeSummary,
+    TwinServiceRecord,
 )
 from vei.run.api import launch_workspace_run
 from vei.twin.models import CompatibilitySurfaceSpec, WorkspaceGovernorStatus
@@ -850,9 +850,9 @@ def test_ui_api_serves_workforce_payload_from_gateway_fallback(
     assert response.json() == expected
 
 
-def _sample_pilot_status(root: Path) -> PilotStatus:
-    return PilotStatus(
-        manifest=PilotManifest(
+def _sample_pilot_status(root: Path) -> TwinLaunchStatus:
+    return TwinLaunchStatus(
+        manifest=TwinLaunchManifest(
             workspace_root=root,
             workspace_name="pinnacle",
             organization_name="Pinnacle Analytics",
@@ -860,7 +860,7 @@ def _sample_pilot_status(root: Path) -> PilotStatus:
             archetype="b2b_saas",
             crisis_name="Renewal save",
             studio_url="http://127.0.0.1:3011",
-            pilot_console_url="http://127.0.0.1:3011/?skin=governor",
+            control_room_url="http://127.0.0.1:3011/?skin=governor",
             gateway_url="http://127.0.0.1:3020",
             gateway_status_url="http://127.0.0.1:3020/api/twin",
             bearer_token="pilot-token",
@@ -876,13 +876,13 @@ def _sample_pilot_status(root: Path) -> PilotStatus:
                     base_path="/jira/rest/api/3",
                 ),
             ],
-            recommended_first_exercise="Read Slack and Jira, then send one customer-safe update.",
+            recommended_first_move="Read Slack and Jira, then send one customer-safe update.",
             sample_client_path="/tmp/governor_client.py",
         ),
-        runtime=PilotRuntime(
+        runtime=TwinLaunchRuntime(
             workspace_root=root,
             services=[
-                PilotServiceRecord(
+                TwinServiceRecord(
                     name="gateway",
                     host="127.0.0.1",
                     port=3020,
@@ -890,7 +890,7 @@ def _sample_pilot_status(root: Path) -> PilotStatus:
                     pid=4101,
                     state="running",
                 ),
-                PilotServiceRecord(
+                TwinServiceRecord(
                     name="studio",
                     host="127.0.0.1",
                     port=3011,
@@ -906,7 +906,7 @@ def _sample_pilot_status(root: Path) -> PilotStatus:
         twin_status="running",
         request_count=4,
         services_ready=True,
-        outcome=PilotOutcomeSummary(
+        outcome=TwinOutcomeSummary(
             status="running",
             contract_ok=False,
             issue_count=2,

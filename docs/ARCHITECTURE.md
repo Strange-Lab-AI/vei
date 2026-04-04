@@ -124,9 +124,11 @@ For the canonical product demo, `vei project identity-demo` wraps that ladder in
   - `TwinRuntime` — FastAPI runtime behind `vei.twin.gateway`, with helper, route, and runtime internals separated for the compatibility layer
   - Governor decision pipeline: registration, agent mode, allowed surface, policy profile, connector safety, rate limit, then execution
   - Surface and policy denials, approval-required holds, unsupported live writes, and rate limits are recorded in the run timeline and exposed through provider-shaped responses
+- `vei.twin` launch layer
+  - `TwinLaunchManifest` / `TwinLaunchRuntime` / `TwinLaunchStatus` — internal launch and handoff models used by the governed twin lifecycle
+  - writes launch manifest, handoff guide, and runtime state for Studio + gateway orchestration
 - `vei.pilot`
-  - internal launch/runtime helpers that still back the twin lifecycle while the public surface stays on `vei.twin`
-  - writes launch manifest, handoff guide, and runtime state
+  - compatibility shim for older internal imports that still point at the twin launch layer
 
 ## Sandbox / What-if Layer
 

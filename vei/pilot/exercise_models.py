@@ -3,9 +3,9 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import AliasChoices, BaseModel, Field
 
-from vei.pilot.models import PilotStatus
+from vei.twin.models import TwinLaunchStatus
 
 ExerciseRunner = Literal["workflow", "scripted", "external"]
 
@@ -63,5 +63,7 @@ class ExerciseManifest(BaseModel):
 
 class ExerciseStatus(BaseModel):
     manifest: ExerciseManifest
-    pilot: PilotStatus
+    launch_status: TwinLaunchStatus = Field(
+        validation_alias=AliasChoices("launch_status", "pilot")
+    )
     comparison: list[ExerciseComparisonRow] = Field(default_factory=list)

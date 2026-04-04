@@ -3,12 +3,12 @@ from __future__ import annotations
 from pathlib import Path
 
 from vei.pilot import exercise as exercise_api
-from vei.pilot.models import (
-    PilotManifest,
-    PilotOutcomeSummary,
-    PilotRuntime,
-    PilotServiceRecord,
-    PilotStatus,
+from vei.twin.models import (
+    TwinLaunchManifest,
+    TwinLaunchRuntime,
+    TwinLaunchStatus,
+    TwinOutcomeSummary,
+    TwinServiceRecord,
 )
 from vei.twin.models import CompatibilitySurfaceSpec
 from vei.workspace.api import create_workspace_from_template, preview_workspace_scenario
@@ -92,8 +92,8 @@ def test_activate_exercise_switches_variant_and_refreshes_manifest(
     )
 
 
-def _sample_pilot_status(root: Path) -> PilotStatus:
-    manifest = PilotManifest(
+def _sample_pilot_status(root: Path) -> TwinLaunchStatus:
+    manifest = TwinLaunchManifest(
         workspace_root=root,
         workspace_name="exercise",
         organization_name="Harbor Point Management",
@@ -101,7 +101,7 @@ def _sample_pilot_status(root: Path) -> PilotStatus:
         archetype="b2b_saas",
         crisis_name="Tenant Opening Conflict",
         studio_url="http://127.0.0.1:3011",
-        pilot_console_url="http://127.0.0.1:3011/?skin=governor",
+        control_room_url="http://127.0.0.1:3011/?skin=governor",
         gateway_url="http://127.0.0.1:3020",
         gateway_status_url="http://127.0.0.1:3020/api/twin",
         bearer_token="pilot-token",
@@ -112,20 +112,20 @@ def _sample_pilot_status(root: Path) -> PilotStatus:
                 base_path="/slack/api",
             )
         ],
-        recommended_first_exercise="Read Slack and Jira before taking one action.",
+        recommended_first_move="Read Slack and Jira before taking one action.",
         sample_client_path="/tmp/governor_client.py",
     )
-    runtime = PilotRuntime(
+    runtime = TwinLaunchRuntime(
         workspace_root=root,
         services=[
-            PilotServiceRecord(
+            TwinServiceRecord(
                 name="gateway",
                 host="127.0.0.1",
                 port=3020,
                 url="http://127.0.0.1:3020",
                 state="running",
             ),
-            PilotServiceRecord(
+            TwinServiceRecord(
                 name="studio",
                 host="127.0.0.1",
                 port=3011,
@@ -136,14 +136,14 @@ def _sample_pilot_status(root: Path) -> PilotStatus:
         started_at="2026-03-25T18:00:00+00:00",
         updated_at="2026-03-25T18:05:00+00:00",
     )
-    return PilotStatus(
+    return TwinLaunchStatus(
         manifest=manifest,
         runtime=runtime,
         active_run="external_run",
         twin_status="running",
         request_count=2,
         services_ready=True,
-        outcome=PilotOutcomeSummary(
+        outcome=TwinOutcomeSummary(
             status="running",
             contract_ok=False,
             issue_count=2,

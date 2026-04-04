@@ -8,12 +8,12 @@ from typer.testing import CliRunner
 from vei.cli.vei import app
 from vei.cli import vei_twin
 from vei.context.models import ContextSnapshot, ContextSourceResult
-from vei.pilot.models import (
-    PilotManifest,
-    PilotOutcomeSummary,
-    PilotRuntime,
-    PilotServiceRecord,
-    PilotStatus,
+from vei.twin.models import (
+    TwinLaunchManifest,
+    TwinLaunchRuntime,
+    TwinLaunchStatus,
+    TwinOutcomeSummary,
+    TwinServiceRecord,
 )
 from vei.twin.models import (
     CompatibilitySurfaceSpec,
@@ -215,9 +215,9 @@ def _sample_snapshot() -> ContextSnapshot:
     )
 
 
-def _sample_pilot_status(root: Path) -> PilotStatus:
-    return PilotStatus(
-        manifest=PilotManifest(
+def _sample_pilot_status(root: Path) -> TwinLaunchStatus:
+    return TwinLaunchStatus(
+        manifest=TwinLaunchManifest(
             workspace_root=root,
             workspace_name="governed_twin",
             organization_name="Acme Cloud",
@@ -225,7 +225,7 @@ def _sample_pilot_status(root: Path) -> PilotStatus:
             archetype="service_ops",
             crisis_name="Dispatch overload",
             studio_url="http://127.0.0.1:3011",
-            pilot_console_url="http://127.0.0.1:3011/?skin=governor",
+            control_room_url="http://127.0.0.1:3011/?skin=governor",
             gateway_url="http://127.0.0.1:3020",
             gateway_status_url="http://127.0.0.1:3020/api/twin",
             bearer_token="token-123",
@@ -236,20 +236,20 @@ def _sample_pilot_status(root: Path) -> PilotStatus:
                     base_path="/slack/api",
                 )
             ],
-            recommended_first_exercise="Read the queue before acting.",
+            recommended_first_move="Read the queue before acting.",
             sample_client_path="/tmp/governor_client.py",
         ),
-        runtime=PilotRuntime(
+        runtime=TwinLaunchRuntime(
             workspace_root=root,
             services=[
-                PilotServiceRecord(
+                TwinServiceRecord(
                     name="gateway",
                     host="127.0.0.1",
                     port=3020,
                     url="http://127.0.0.1:3020",
                     state="running",
                 ),
-                PilotServiceRecord(
+                TwinServiceRecord(
                     name="studio",
                     host="127.0.0.1",
                     port=3011,
@@ -262,7 +262,7 @@ def _sample_pilot_status(root: Path) -> PilotStatus:
         twin_status="running",
         request_count=3,
         services_ready=True,
-        outcome=PilotOutcomeSummary(
+        outcome=TwinOutcomeSummary(
             status="running",
             summary="Outside work is active.",
         ),

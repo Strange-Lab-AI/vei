@@ -162,7 +162,7 @@ async function activateMissionBranch(payload) {
   state.missionState = payload;
 }
 
-async function mirrorPost(path, payload) {
+async function governorPost(path, payload) {
   return await getJson(path, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -170,7 +170,7 @@ async function mirrorPost(path, payload) {
   });
 }
 
-async function mirrorPatch(path, payload) {
+async function governorPatch(path, payload) {
   return await getJson(path, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
@@ -178,7 +178,7 @@ async function mirrorPatch(path, payload) {
   });
 }
 
-async function mirrorDelete(path) {
+async function governorDelete(path) {
   return await getJson(path, { method: "DELETE" });
 }
 
@@ -224,7 +224,7 @@ function nonEmptyPayload(payload) {
 function applyGovernorWorkspaceStatus(payload) {
   const workspaceStatus = nonEmptyPayload(payload);
   state.governorWorkspace = workspaceStatus;
-  state.mirrorStatus = nonEmptyPayload(workspaceStatus?.governor);
+  state.governorStatus = nonEmptyPayload(workspaceStatus?.governor);
   state.workforceStatus = nonEmptyPayload(workspaceStatus?.workforce);
   state.exercise = nonEmptyPayload(workspaceStatus?.exercise);
 }
@@ -893,7 +893,7 @@ function renderTrustStrip() {
     return;
   }
   const parts = [];
-  const mirror = state.mirrorStatus;
+  const mirror = state.governorStatus;
   if (mirror && mirror.config && typeof mirror.config === "object") {
     const cfg = mirror.config;
     if (cfg.demo_mode) {
@@ -1247,11 +1247,11 @@ function renderCinemaNarrative() {
   const score = ms?.scorecard || {};
   const systemCount = (state.surfaceState?.panels || []).length;
 
-  const mirrorEvents = state.mirrorStatus?.recent_events || [];
+  const mirrorEvents = state.governorStatus?.recent_events || [];
   const latestMirrorEvent = mirrorEvents.length ? mirrorEvents[mirrorEvents.length - 1] : null;
 
   let narrativeLine = "";
-  if (latestMirrorEvent && state.mirrorStatus?.autoplay_running) {
+  if (latestMirrorEvent && state.governorStatus?.autoplay_running) {
     const lbl = latestMirrorEvent.label || latestMirrorEvent.tool || "event";
     const handledBy = latestMirrorEvent.handled_by || "";
     narrativeLine = `${lbl}`;

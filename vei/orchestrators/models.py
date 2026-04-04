@@ -111,7 +111,7 @@ class OrchestratorApproval(BaseModel):
 
 
 class ActivityItemBase(BaseModel):
-    """Shared fields for any activity feed item (pilot, orchestrator, workforce)."""
+    """Shared fields for any activity feed item (launch, orchestrator, workforce)."""
 
     label: str
     status: str | None = None

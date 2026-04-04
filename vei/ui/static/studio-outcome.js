@@ -1034,7 +1034,7 @@ function showPolicyReplayModal(bundle) {
     modal.remove();
     if (status) status.textContent = "Replaying the path with updated policy\u2026";
     try {
-      const replay = await mirrorPost(
+      const replay = await governorPost(
         `/api/runs/${encodeURIComponent(state.missionState.run_id)}/replay-with-policy`,
         { policy_delta: policyDelta }
       );

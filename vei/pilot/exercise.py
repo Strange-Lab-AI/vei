@@ -106,11 +106,11 @@ def activate_exercise(
 def build_exercise_status(root: str | Path) -> ExerciseStatus:
     workspace_root = Path(root).expanduser().resolve()
     manifest = load_exercise_manifest(workspace_root)
-    pilot = build_pilot_status(workspace_root)
+    launch_status = build_pilot_status(workspace_root)
     comparison = _build_comparison(workspace_root)
     return ExerciseStatus(
         manifest=manifest,
-        pilot=pilot,
+        launch_status=launch_status,
         comparison=comparison,
     )
 

@@ -7,19 +7,19 @@ from typing import Any
 from vei.context.models import ContextProviderConfig, ContextSnapshot
 from vei.pilot.api import (
     activate_exercise,
-    approve_pilot_orchestrator_approval,
-    build_pilot_status,
+    approve_pilot_orchestrator_approval as approve_twin_launch_orchestrator_approval,
     build_exercise_status,
-    comment_on_pilot_orchestrator_task,
-    finalize_pilot_run,
-    pause_pilot_orchestrator_agent,
-    reject_pilot_orchestrator_approval,
-    request_revision_pilot_orchestrator_approval,
-    reset_pilot_gateway,
-    resume_pilot_orchestrator_agent,
-    start_pilot,
-    stop_pilot,
-    sync_pilot_orchestrator,
+    build_pilot_status as build_twin_launch_status,
+    comment_on_pilot_orchestrator_task as comment_on_twin_launch_orchestrator_task,
+    finalize_pilot_run as finalize_twin_launch_run,
+    pause_pilot_orchestrator_agent as pause_twin_launch_orchestrator_agent,
+    reject_pilot_orchestrator_approval as reject_twin_launch_orchestrator_approval,
+    request_revision_pilot_orchestrator_approval as request_twin_launch_orchestrator_revision,
+    reset_pilot_gateway as reset_twin_gateway,
+    resume_pilot_orchestrator_agent as resume_twin_launch_orchestrator_agent,
+    start_pilot as start_twin_launch,
+    stop_pilot as stop_twin_launch,
+    sync_pilot_orchestrator as sync_twin_orchestrator,
 )
 from vei.run.api import list_run_manifests
 
@@ -50,7 +50,7 @@ def start_twin(
     orchestrator_company_id: str | None = None,
     orchestrator_api_key_env: str | None = None,
 ):
-    return start_pilot(
+    return start_twin_launch(
         root,
         snapshot=snapshot,
         provider_configs=provider_configs,
@@ -76,31 +76,31 @@ def start_twin(
 
 
 def build_twin_status(root: str | Path):
-    return build_pilot_status(root)
+    return build_twin_launch_status(root)
 
 
 def stop_twin(root: str | Path):
-    return stop_pilot(root)
+    return stop_twin_launch(root)
 
 
 def reset_twin(root: str | Path):
-    return reset_pilot_gateway(root)
+    return reset_twin_gateway(root)
 
 
 def finalize_twin(root: str | Path):
-    return finalize_pilot_run(root)
+    return finalize_twin_launch_run(root)
 
 
 def sync_twin(root: str | Path):
-    return sync_pilot_orchestrator(root)
+    return sync_twin_orchestrator(root)
 
 
 def pause_twin_orchestrator_agent(root: str | Path, agent_id: str):
-    return pause_pilot_orchestrator_agent(root, agent_id)
+    return pause_twin_launch_orchestrator_agent(root, agent_id)
 
 
 def resume_twin_orchestrator_agent(root: str | Path, agent_id: str):
-    return resume_pilot_orchestrator_agent(root, agent_id)
+    return resume_twin_launch_orchestrator_agent(root, agent_id)
 
 
 def comment_on_twin_orchestrator_task(
@@ -109,7 +109,7 @@ def comment_on_twin_orchestrator_task(
     *,
     body: str,
 ):
-    return comment_on_pilot_orchestrator_task(root, task_id, body=body)
+    return comment_on_twin_launch_orchestrator_task(root, task_id, body=body)
 
 
 def approve_twin_orchestrator_approval(
@@ -118,7 +118,7 @@ def approve_twin_orchestrator_approval(
     *,
     decision_note: str | None = None,
 ):
-    return approve_pilot_orchestrator_approval(
+    return approve_twin_launch_orchestrator_approval(
         root,
         approval_id,
         decision_note=decision_note,
@@ -131,7 +131,7 @@ def reject_twin_orchestrator_approval(
     *,
     decision_note: str | None = None,
 ):
-    return reject_pilot_orchestrator_approval(
+    return reject_twin_launch_orchestrator_approval(
         root,
         approval_id,
         decision_note=decision_note,
@@ -144,7 +144,7 @@ def request_twin_orchestrator_revision(
     *,
     decision_note: str | None = None,
 ):
-    return request_revision_pilot_orchestrator_approval(
+    return request_twin_launch_orchestrator_revision(
         root,
         approval_id,
         decision_note=decision_note,
@@ -171,10 +171,10 @@ def build_workspace_governor_status(
     workforce_payload: dict[str, Any] | None = None,
 ) -> WorkspaceGovernorStatus:
     workspace_root = Path(root).expanduser().resolve()
-    pilot_status = None
+    launch_status = None
     exercise_status = None
     try:
-        pilot_status = build_pilot_status(workspace_root)
+        launch_status = build_twin_launch_status(workspace_root)
     except FileNotFoundError:
         pass
     try:
@@ -186,24 +186,24 @@ def build_workspace_governor_status(
         governor=governor_payload or _load_saved_governor_payload(workspace_root),
         workforce=workforce_payload or _load_saved_workforce_payload(workspace_root),
     )
-    if pilot_status is not None:
-        payload.manifest = pilot_status.manifest.model_dump(mode="json")
-        payload.runtime = pilot_status.runtime.model_dump(mode="json")
-        payload.active_run = pilot_status.active_run
-        payload.twin_status = pilot_status.twin_status
-        payload.request_count = pilot_status.request_count
-        payload.services_ready = pilot_status.services_ready
+    if launch_status is not None:
+        payload.manifest = launch_status.manifest.model_dump(mode="json")
+        payload.runtime = launch_status.runtime.model_dump(mode="json")
+        payload.active_run = launch_status.active_run
+        payload.twin_status = launch_status.twin_status
+        payload.request_count = launch_status.request_count
+        payload.services_ready = launch_status.services_ready
         payload.active_agents = [
-            item.model_dump(mode="json") for item in pilot_status.active_agents
+            item.model_dump(mode="json") for item in launch_status.active_agents
         ]
         payload.activity = [
-            item.model_dump(mode="json") for item in pilot_status.activity
+            item.model_dump(mode="json") for item in launch_status.activity
         ]
-        payload.outcome = pilot_status.outcome.model_dump(mode="json")
-        if pilot_status.orchestrator is not None:
-            payload.orchestrator = pilot_status.orchestrator.model_dump(mode="json")
-        if pilot_status.orchestrator_sync is not None:
-            payload.orchestrator_sync = pilot_status.orchestrator_sync.model_dump(
+        payload.outcome = launch_status.outcome.model_dump(mode="json")
+        if launch_status.orchestrator is not None:
+            payload.orchestrator = launch_status.orchestrator.model_dump(mode="json")
+        if launch_status.orchestrator_sync is not None:
+            payload.orchestrator_sync = launch_status.orchestrator_sync.model_dump(
                 mode="json"
             )
     if exercise_status is not None:

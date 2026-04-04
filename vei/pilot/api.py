@@ -36,8 +36,15 @@ from vei.twin.models import (
     ContextMoldConfig,
     CustomerTwinBundle,
     ExternalAgentIdentity,
+    TwinActivityItem,
     TwinArchetype,
+    TwinLaunchManifest,
+    TwinLaunchRuntime,
+    TwinLaunchSnippet,
+    TwinLaunchStatus,
+    TwinOutcomeSummary,
     TwinGatewayConfig,
+    TwinServiceRecord,
 )
 from vei.workforce.api import build_workforce_state, workforce_command_from_result
 from vei.workforce.models import WorkforceCommandRecord
@@ -47,21 +54,32 @@ from vei.workspace.api import (
     write_workspace,
 )
 
-from .models import (
-    PilotActivityItem,
-    PilotManifest,
-    PilotOutcomeSummary,
-    PilotRuntime,
-    PilotServiceRecord,
-    PilotSnippet,
-    PilotStatus,
-)
+TWIN_LAUNCH_MANIFEST_FILE = "twin_launch_manifest.json"
+TWIN_LAUNCH_GUIDE_FILE = "twin_launch_guide.md"
+TWIN_LAUNCH_RUNTIME_FILE = "twin_launch_runtime.json"
+TWIN_ORCHESTRATOR_CACHE_FILE = "twin_orchestrator_snapshot.json"
+TWIN_ORCHESTRATOR_SYNC_FILE = "twin_orchestrator_sync.json"
 
-PILOT_MANIFEST_FILE = "pilot_manifest.json"
-PILOT_GUIDE_FILE = "pilot_guide.md"
-PILOT_RUNTIME_FILE = "pilot_runtime.json"
-PILOT_ORCHESTRATOR_CACHE_FILE = "pilot_orchestrator_snapshot.json"
-PILOT_ORCHESTRATOR_SYNC_FILE = "pilot_orchestrator_sync.json"
+_LEGACY_PILOT_MANIFEST_FILE = "pilot_manifest.json"
+_LEGACY_PILOT_GUIDE_FILE = "pilot_guide.md"
+_LEGACY_PILOT_RUNTIME_FILE = "pilot_runtime.json"
+_LEGACY_PILOT_ORCHESTRATOR_CACHE_FILE = "pilot_orchestrator_snapshot.json"
+_LEGACY_PILOT_ORCHESTRATOR_SYNC_FILE = "pilot_orchestrator_sync.json"
+
+# Compatibility aliases for older internal imports.
+PILOT_MANIFEST_FILE = TWIN_LAUNCH_MANIFEST_FILE
+PILOT_GUIDE_FILE = TWIN_LAUNCH_GUIDE_FILE
+PILOT_RUNTIME_FILE = TWIN_LAUNCH_RUNTIME_FILE
+PILOT_ORCHESTRATOR_CACHE_FILE = TWIN_ORCHESTRATOR_CACHE_FILE
+PILOT_ORCHESTRATOR_SYNC_FILE = TWIN_ORCHESTRATOR_SYNC_FILE
+
+PilotManifest = TwinLaunchManifest
+PilotRuntime = TwinLaunchRuntime
+PilotServiceRecord = TwinServiceRecord
+PilotSnippet = TwinLaunchSnippet
+PilotStatus = TwinLaunchStatus
+PilotOutcomeSummary = TwinOutcomeSummary
+PilotActivityItem = TwinActivityItem
 
 
 def start_pilot(
@@ -87,7 +105,7 @@ def start_pilot(
     orchestrator_url: str | None = None,
     orchestrator_company_id: str | None = None,
     orchestrator_api_key_env: str | None = None,
-) -> PilotStatus:
+) -> TwinLaunchStatus:
     workspace_root = Path(root).expanduser().resolve()
     existing_manifest = _safe_load_manifest(workspace_root)
     resolved_orchestrator_config = _resolve_orchestrator_config(
@@ -100,12 +118,12 @@ def start_pilot(
         api_key_env=orchestrator_api_key_env,
     )
     if rebuild:
-        _clear_stale_pilot_listener(
+        _clear_stale_twin_listener(
             workspace_root,
             port=gateway_port,
             command_fragment=" twin serve ",
         )
-        _clear_stale_pilot_listener(
+        _clear_stale_twin_listener(
             workspace_root,
             port=studio_port,
             command_fragment=" ui serve ",
@@ -133,7 +151,7 @@ def start_pilot(
     )
 
     if existing_runtime is not None and _services_ready(existing_runtime):
-        _persist_pilot_manifest(
+        _persist_twin_launch_manifest(
             bundle=bundle,
             runtime=existing_runtime,
             orchestrator_config=resolved_orchestrator_config,
@@ -148,14 +166,14 @@ def start_pilot(
     ):
         stop_pilot(workspace_root)
 
-    pilot_dir = _pilot_dir(workspace_root)
-    pilot_dir.mkdir(parents=True, exist_ok=True)
+    twin_dir = _twin_dir(workspace_root)
+    twin_dir.mkdir(parents=True, exist_ok=True)
 
     gateway_url = f"http://{host}:{gateway_port}"
     studio_url = f"http://{host}:{studio_port}"
 
-    gateway_log = pilot_dir / "gateway.log"
-    studio_log = pilot_dir / "studio.log"
+    gateway_log = twin_dir / "gateway.log"
+    studio_log = twin_dir / "studio.log"
 
     gateway_pid = _spawn_service(
         [
@@ -202,12 +220,12 @@ def start_pilot(
         _stop_pid(gateway_pid)
         raise
 
-    runtime = PilotRuntime(
+    runtime = TwinLaunchRuntime(
         workspace_root=workspace_root,
         started_at=_iso_now(),
         updated_at=_iso_now(),
         services=[
-            PilotServiceRecord(
+            TwinServiceRecord(
                 name="gateway",
                 host=host,
                 port=gateway_port,
@@ -216,7 +234,7 @@ def start_pilot(
                 state="running",
                 log_path=str(gateway_log),
             ),
-            PilotServiceRecord(
+            TwinServiceRecord(
                 name="studio",
                 host=host,
                 port=studio_port,
@@ -227,9 +245,13 @@ def start_pilot(
             ),
         ],
     )
-    _write_json(workspace_root / PILOT_RUNTIME_FILE, runtime.model_dump(mode="json"))
+    _write_json(
+        workspace_root / TWIN_LAUNCH_RUNTIME_FILE,
+        runtime.model_dump(mode="json"),
+    )
+    _remove_legacy_artifact(workspace_root, _LEGACY_PILOT_RUNTIME_FILE)
 
-    manifest = _persist_pilot_manifest(
+    manifest = _persist_twin_launch_manifest(
         bundle,
         runtime=runtime,
         orchestrator_config=resolved_orchestrator_config,
@@ -240,24 +262,24 @@ def start_pilot(
     )
 
 
-def stop_pilot(root: str | Path) -> PilotStatus:
+def stop_pilot(root: str | Path) -> TwinLaunchStatus:
     workspace_root = Path(root).expanduser().resolve()
     runtime = _safe_load_runtime(workspace_root)
     manifest = load_pilot_manifest(workspace_root)
     if runtime is None:
-        runtime = PilotRuntime(
+        runtime = TwinLaunchRuntime(
             workspace_root=workspace_root,
             started_at="",
             updated_at=_iso_now(),
             services=[
-                PilotServiceRecord(
+                TwinServiceRecord(
                     name="gateway",
                     host=_host_from_url(manifest.gateway_url),
                     port=_port_from_url(manifest.gateway_url),
                     url=manifest.gateway_url,
                     state="stopped",
                 ),
-                PilotServiceRecord(
+                TwinServiceRecord(
                     name="studio",
                     host=_host_from_url(manifest.studio_url),
                     port=_port_from_url(manifest.studio_url),
@@ -272,21 +294,33 @@ def stop_pilot(root: str | Path) -> PilotStatus:
         service.pid = None
         service.state = "stopped"
     runtime.updated_at = _iso_now()
-    _write_json(workspace_root / PILOT_RUNTIME_FILE, runtime.model_dump(mode="json"))
+    _write_json(
+        workspace_root / TWIN_LAUNCH_RUNTIME_FILE,
+        runtime.model_dump(mode="json"),
+    )
+    _remove_legacy_artifact(workspace_root, _LEGACY_PILOT_RUNTIME_FILE)
     return build_pilot_status(workspace_root)
 
 
-def load_pilot_manifest(root: str | Path) -> PilotManifest:
+def load_pilot_manifest(root: str | Path) -> TwinLaunchManifest:
     workspace_root = Path(root).expanduser().resolve()
-    return PilotManifest.model_validate_json(
-        (workspace_root / PILOT_MANIFEST_FILE).read_text(encoding="utf-8")
+    return TwinLaunchManifest.model_validate_json(
+        _artifact_path(
+            workspace_root,
+            TWIN_LAUNCH_MANIFEST_FILE,
+            _LEGACY_PILOT_MANIFEST_FILE,
+        ).read_text(encoding="utf-8")
     )
 
 
-def load_pilot_runtime(root: str | Path) -> PilotRuntime:
+def load_pilot_runtime(root: str | Path) -> TwinLaunchRuntime:
     workspace_root = Path(root).expanduser().resolve()
-    return PilotRuntime.model_validate_json(
-        (workspace_root / PILOT_RUNTIME_FILE).read_text(encoding="utf-8")
+    return TwinLaunchRuntime.model_validate_json(
+        _artifact_path(
+            workspace_root,
+            TWIN_LAUNCH_RUNTIME_FILE,
+            _LEGACY_PILOT_RUNTIME_FILE,
+        ).read_text(encoding="utf-8")
     )
 
 
@@ -294,22 +328,22 @@ def build_pilot_status(
     root: str | Path,
     *,
     force_orchestrator_sync: bool = False,
-) -> PilotStatus:
+) -> TwinLaunchStatus:
     workspace_root = Path(root).expanduser().resolve()
     manifest = load_pilot_manifest(workspace_root)
-    runtime = _safe_load_runtime(workspace_root) or PilotRuntime(
+    runtime = _safe_load_runtime(workspace_root) or TwinLaunchRuntime(
         workspace_root=workspace_root,
         started_at="",
         updated_at="",
         services=[
-            PilotServiceRecord(
+            TwinServiceRecord(
                 name="gateway",
                 host=_host_from_url(manifest.gateway_url),
                 port=_port_from_url(manifest.gateway_url),
                 url=manifest.gateway_url,
                 state="stopped",
             ),
-            PilotServiceRecord(
+            TwinServiceRecord(
                 name="studio",
                 host=_host_from_url(manifest.studio_url),
                 port=_port_from_url(manifest.studio_url),
@@ -363,7 +397,7 @@ def build_pilot_status(
         workforce_commands=workforce_commands,
     )
     active_agents = _parse_active_agents(gateway_payload)
-    return PilotStatus(
+    return TwinLaunchStatus(
         manifest=manifest,
         runtime=runtime,
         active_run=twin_runtime.get("run_id"),
@@ -378,7 +412,7 @@ def build_pilot_status(
     )
 
 
-def reset_pilot_gateway(root: str | Path) -> PilotStatus:
+def reset_pilot_gateway(root: str | Path) -> TwinLaunchStatus:
     workspace_root = Path(root).expanduser().resolve()
     manifest = load_pilot_manifest(workspace_root)
     runtime = load_pilot_runtime(workspace_root)
@@ -388,7 +422,7 @@ def reset_pilot_gateway(root: str | Path) -> PilotStatus:
     log_path = (
         Path(gateway.log_path)
         if gateway.log_path
-        else _pilot_dir(workspace_root) / "gateway.log"
+        else _twin_dir(workspace_root) / "gateway.log"
     )
     gateway.pid = _spawn_service(
         [
@@ -408,7 +442,11 @@ def reset_pilot_gateway(root: str | Path) -> PilotStatus:
     )
     gateway.state = "running"
     runtime.updated_at = _iso_now()
-    _write_json(workspace_root / PILOT_RUNTIME_FILE, runtime.model_dump(mode="json"))
+    _write_json(
+        workspace_root / TWIN_LAUNCH_RUNTIME_FILE,
+        runtime.model_dump(mode="json"),
+    )
+    _remove_legacy_artifact(workspace_root, _LEGACY_PILOT_RUNTIME_FILE)
     _wait_for_ready(f"{manifest.gateway_url}/healthz")
     return build_pilot_status(
         workspace_root,
@@ -416,26 +454,26 @@ def reset_pilot_gateway(root: str | Path) -> PilotStatus:
     )
 
 
-def finalize_pilot_run(root: str | Path) -> PilotStatus:
+def finalize_pilot_run(root: str | Path) -> TwinLaunchStatus:
     workspace_root = Path(root).expanduser().resolve()
     manifest = load_pilot_manifest(workspace_root)
     payload = _post_json(f"{manifest.gateway_url}/api/twin/finalize", payload={})
     if payload is None:
-        raise RuntimeError("pilot gateway is not reachable right now")
+        raise RuntimeError("twin gateway is not reachable right now")
     return build_pilot_status(workspace_root)
 
 
-def sync_pilot_orchestrator(root: str | Path) -> PilotStatus:
+def sync_pilot_orchestrator(root: str | Path) -> TwinLaunchStatus:
     workspace_root = Path(root).expanduser().resolve()
     return build_pilot_status(workspace_root, force_orchestrator_sync=True)
 
 
-def pause_pilot_orchestrator_agent(root: str | Path, agent_id: str) -> PilotStatus:
+def pause_pilot_orchestrator_agent(root: str | Path, agent_id: str) -> TwinLaunchStatus:
     workspace_root = Path(root).expanduser().resolve()
     manifest = load_pilot_manifest(workspace_root)
     config = manifest.orchestrator
     if config is None:
-        raise RuntimeError("pilot orchestrator is not configured")
+        raise RuntimeError("twin orchestrator is not configured")
     client = build_orchestrator_client(config)
     result = client.pause_agent(
         _resolve_orchestrator_external_agent_id(workspace_root, agent_id)
@@ -444,12 +482,14 @@ def pause_pilot_orchestrator_agent(root: str | Path, agent_id: str) -> PilotStat
     return build_pilot_status(workspace_root, force_orchestrator_sync=True)
 
 
-def resume_pilot_orchestrator_agent(root: str | Path, agent_id: str) -> PilotStatus:
+def resume_pilot_orchestrator_agent(
+    root: str | Path, agent_id: str
+) -> TwinLaunchStatus:
     workspace_root = Path(root).expanduser().resolve()
     manifest = load_pilot_manifest(workspace_root)
     config = manifest.orchestrator
     if config is None:
-        raise RuntimeError("pilot orchestrator is not configured")
+        raise RuntimeError("twin orchestrator is not configured")
     client = build_orchestrator_client(config)
     result = client.resume_agent(
         _resolve_orchestrator_external_agent_id(workspace_root, agent_id)
@@ -463,12 +503,12 @@ def comment_on_pilot_orchestrator_task(
     task_id: str,
     *,
     body: str,
-) -> PilotStatus:
+) -> TwinLaunchStatus:
     workspace_root = Path(root).expanduser().resolve()
     manifest = load_pilot_manifest(workspace_root)
     config = manifest.orchestrator
     if config is None:
-        raise RuntimeError("pilot orchestrator is not configured")
+        raise RuntimeError("twin orchestrator is not configured")
     comment_body = body.strip()
     if not comment_body:
         raise RuntimeError("task guidance cannot be empty")
@@ -490,7 +530,7 @@ def approve_pilot_orchestrator_approval(
     approval_id: str,
     *,
     decision_note: str | None = None,
-) -> PilotStatus:
+) -> TwinLaunchStatus:
     workspace_root = Path(root).expanduser().resolve()
     return _act_on_pilot_orchestrator_approval(
         workspace_root,
@@ -505,7 +545,7 @@ def reject_pilot_orchestrator_approval(
     approval_id: str,
     *,
     decision_note: str | None = None,
-) -> PilotStatus:
+) -> TwinLaunchStatus:
     workspace_root = Path(root).expanduser().resolve()
     return _act_on_pilot_orchestrator_approval(
         workspace_root,
@@ -520,7 +560,7 @@ def request_revision_pilot_orchestrator_approval(
     approval_id: str,
     *,
     decision_note: str | None = None,
-) -> PilotStatus:
+) -> TwinLaunchStatus:
     workspace_root = Path(root).expanduser().resolve()
     return _act_on_pilot_orchestrator_approval(
         workspace_root,
@@ -598,7 +638,7 @@ def _ensure_twin_bundle(
                 ui_skin=ui_skin,
             )
         resolved_domain = resolved_domain or _default_domain(resolved_name)
-        resolved_snapshot = _default_pilot_snapshot(
+        resolved_snapshot = _default_twin_snapshot(
             organization_name=resolved_name,
             organization_domain=resolved_domain,
         )
@@ -709,10 +749,10 @@ def _build_manifest(
     bundle: CustomerTwinBundle,
     *,
     studio_url: str,
-    pilot_console_url: str,
+    control_room_url: str,
     gateway_url: str,
     orchestrator_config: OrchestratorConfig | None,
-) -> PilotManifest:
+) -> TwinLaunchManifest:
     preview = (
         bundle.metadata.get("preview", {}) if isinstance(bundle.metadata, dict) else {}
     )
@@ -720,7 +760,7 @@ def _build_manifest(
     sample_client_path = str(
         (_repo_root() / "examples" / "governor_client.py").resolve()
     )
-    manifest = PilotManifest(
+    manifest = TwinLaunchManifest(
         workspace_root=bundle.workspace_root,
         workspace_name=bundle.workspace_name,
         organization_name=bundle.organization_name,
@@ -728,12 +768,12 @@ def _build_manifest(
         archetype=bundle.mold.archetype,
         crisis_name=str(crisis_name),
         studio_url=studio_url,
-        pilot_console_url=pilot_console_url,
+        control_room_url=control_room_url,
         gateway_url=gateway_url,
         gateway_status_url=f"{gateway_url}/api/twin",
         bearer_token=bundle.gateway.auth_token,
         supported_surfaces=bundle.gateway.surfaces,
-        recommended_first_exercise=(
+        recommended_first_move=(
             "Connect a lightweight external agent, read Slack + Jira first, then "
             "inspect mail and CRM before taking one customer-safe action."
         ),
@@ -744,33 +784,35 @@ def _build_manifest(
     return manifest
 
 
-def _persist_pilot_manifest(
+def _persist_twin_launch_manifest(
     bundle: CustomerTwinBundle,
     *,
-    runtime: PilotRuntime,
+    runtime: TwinLaunchRuntime,
     orchestrator_config: OrchestratorConfig | None,
-) -> PilotManifest:
+) -> TwinLaunchManifest:
     gateway_url = _service_by_name(runtime, "gateway").url
     studio_url = _service_by_name(runtime, "studio").url
     manifest = _build_manifest(
         bundle,
         studio_url=studio_url,
-        pilot_console_url=f"{studio_url}/?skin=governor",
+        control_room_url=f"{studio_url}/?skin=governor",
         gateway_url=gateway_url,
         orchestrator_config=orchestrator_config,
     )
     _write_json(
-        bundle.workspace_root / PILOT_MANIFEST_FILE,
+        bundle.workspace_root / TWIN_LAUNCH_MANIFEST_FILE,
         manifest.model_dump(mode="json"),
     )
-    (bundle.workspace_root / PILOT_GUIDE_FILE).write_text(
-        _render_pilot_guide(manifest),
+    _remove_legacy_artifact(bundle.workspace_root, _LEGACY_PILOT_MANIFEST_FILE)
+    (bundle.workspace_root / TWIN_LAUNCH_GUIDE_FILE).write_text(
+        _render_twin_launch_guide(manifest),
         encoding="utf-8",
     )
+    _remove_legacy_artifact(bundle.workspace_root, _LEGACY_PILOT_GUIDE_FILE)
     return manifest
 
 
-def _build_snippets(manifest: PilotManifest) -> list[PilotSnippet]:
+def _build_snippets(manifest: TwinLaunchManifest) -> list[TwinLaunchSnippet]:
     env_block = (
         f'export VEI_TWIN_BASE_URL="{manifest.gateway_url}"\n'
         f'export VEI_TWIN_TOKEN="{manifest.bearer_token}"\n'
@@ -843,43 +885,43 @@ def _build_snippets(manifest: PilotManifest) -> list[PilotSnippet]:
         f"'{manifest.gateway_url}/salesforce/services/data/v60.0/query?q=SELECT+Name+FROM+Opportunity'"
     )
     return [
-        PilotSnippet(
+        TwinLaunchSnippet(
             name="env",
             title="Launch env",
             language="bash",
             content=env_block,
         ),
-        PilotSnippet(
+        TwinLaunchSnippet(
             name="python",
             title="Python base URL usage",
             language="python",
             content=python_snippet,
         ),
-        PilotSnippet(
+        TwinLaunchSnippet(
             name="register",
             title="Register proxy agent",
             language="bash",
             content=register_curl,
         ),
-        PilotSnippet(
+        TwinLaunchSnippet(
             name="slack",
             title="Slack-style request",
             language="bash",
             content=slack_curl,
         ),
-        PilotSnippet(
+        TwinLaunchSnippet(
             name="jira",
             title="Jira-style request",
             language="bash",
             content=jira_curl,
         ),
-        PilotSnippet(
+        TwinLaunchSnippet(
             name="graph",
             title="Graph-style request",
             language="bash",
             content=graph_curl,
         ),
-        PilotSnippet(
+        TwinLaunchSnippet(
             name="salesforce",
             title="Salesforce-style request",
             language="bash",
@@ -909,7 +951,7 @@ def _resolve_crisis_name(preview: Any) -> str:
     return "Customer twin run"
 
 
-def _render_pilot_guide(manifest: PilotManifest) -> str:
+def _render_twin_launch_guide(manifest: TwinLaunchManifest) -> str:
     snippets = "\n\n".join(
         f"### {snippet.title}\n\n```{snippet.language}\n{snippet.content}\n```"
         for snippet in manifest.snippets
@@ -934,12 +976,12 @@ def _render_pilot_guide(manifest: PilotManifest) -> str:
         f"- Archetype: **{manifest.archetype.replace('_', ' ')}**\n"
         f"- Current crisis: **{manifest.crisis_name}**\n"
         f"- Studio: `{manifest.studio_url}`\n"
-        f"- Control room: `{manifest.pilot_console_url}`\n"
+        f"- Control room: `{manifest.control_room_url}`\n"
         f"- Gateway: `{manifest.gateway_url}`\n\n"
         f"## Supported surfaces\n\n"
         f"{surface_lines}\n\n"
         f"## Recommended first move\n\n"
-        f"{manifest.recommended_first_exercise}\n\n"
+        f"{manifest.recommended_first_move}\n\n"
         f"{orchestrator_lines}"
         f"## Sample client\n\n"
         f"`python {manifest.sample_client_path} --base-url {manifest.gateway_url} --token {manifest.bearer_token}`\n\n"
@@ -951,10 +993,10 @@ def _render_pilot_guide(manifest: PilotManifest) -> str:
     )
 
 
-def _build_activity(history_payload: Any) -> list[PilotActivityItem]:
+def _build_activity(history_payload: Any) -> list[TwinActivityItem]:
     if not isinstance(history_payload, list):
         return []
-    items: list[PilotActivityItem] = []
+    items: list[TwinActivityItem] = []
     for raw in history_payload:
         if not isinstance(raw, dict):
             continue
@@ -963,7 +1005,7 @@ def _build_activity(history_payload: Any) -> list[PilotActivityItem]:
         payload = raw.get("payload", {}) if isinstance(raw.get("payload"), dict) else {}
         agent = payload.get("agent", {}) if isinstance(payload, dict) else {}
         items.append(
-            PilotActivityItem(
+            TwinActivityItem(
                 label=str(raw.get("label", "")),
                 channel=str(raw.get("channel", "World")),
                 tool=raw.get("resolved_tool") or raw.get("tool"),
@@ -1012,11 +1054,11 @@ def _build_activity(history_payload: Any) -> list[PilotActivityItem]:
 
 def _build_orchestrator_activity(
     orchestrator_snapshot: OrchestratorSnapshot | None,
-) -> list[PilotActivityItem]:
+) -> list[TwinActivityItem]:
     if orchestrator_snapshot is None:
         return []
     return [
-        PilotActivityItem(
+        TwinActivityItem(
             label=item.label,
             channel="Orchestrator",
             tool=item.action,
@@ -1035,14 +1077,14 @@ def _build_orchestrator_activity(
 
 def _build_workforce_command_activity(
     workforce_commands: list[WorkforceCommandRecord],
-) -> list[PilotActivityItem]:
+) -> list[TwinActivityItem]:
     if not workforce_commands:
         return []
-    items: list[PilotActivityItem] = []
+    items: list[TwinActivityItem] = []
     for command in workforce_commands[-8:]:
         object_refs = _workforce_command_refs(command)
         items.append(
-            PilotActivityItem(
+            TwinActivityItem(
                 label=_workforce_command_label(command.action),
                 channel="VEI",
                 tool=_workforce_command_tool(command),
@@ -1060,10 +1102,10 @@ def _build_workforce_command_activity(
 
 
 def _attach_task_refs_to_activity(
-    activity: list[PilotActivityItem],
+    activity: list[TwinActivityItem],
     *,
     orchestrator_snapshot: OrchestratorSnapshot,
-) -> list[PilotActivityItem]:
+) -> list[TwinActivityItem]:
     task_refs_by_agent: dict[str, list[str]] = {}
     for task in orchestrator_snapshot.tasks:
         if not task.assignee_agent_id:
@@ -1074,7 +1116,7 @@ def _attach_task_refs_to_activity(
             refs.append(f"project:{task.project_name}")
         if task.goal_name:
             refs.append(f"goal:{task.goal_name}")
-    enriched: list[PilotActivityItem] = []
+    enriched: list[TwinActivityItem] = []
     for item in activity:
         refs = list(item.object_refs)
         for ref in task_refs_by_agent.get(item.agent_id or "", []):
@@ -1085,10 +1127,10 @@ def _attach_task_refs_to_activity(
 
 
 def _merge_activity(
-    twin_activity: list[PilotActivityItem],
-    orchestrator_activity: list[PilotActivityItem],
-    workforce_command_activity: list[PilotActivityItem],
-) -> list[PilotActivityItem]:
+    twin_activity: list[TwinActivityItem],
+    orchestrator_activity: list[TwinActivityItem],
+    workforce_command_activity: list[TwinActivityItem],
+) -> list[TwinActivityItem]:
     combined = [
         *workforce_command_activity,
         *orchestrator_activity,
@@ -1183,13 +1225,13 @@ def _parse_active_agents(
 def _build_outcome(
     gateway_payload: dict[str, Any] | None,
     surfaces_payload: dict[str, Any] | None,
-    activity: list[PilotActivityItem],
+    activity: list[TwinActivityItem],
     *,
     orchestrator_snapshot: OrchestratorSnapshot | None = None,
     workforce_commands: list[Any] | None = None,
-) -> PilotOutcomeSummary:
+) -> TwinOutcomeSummary:
     if gateway_payload is None:
-        return PilotOutcomeSummary(
+        return TwinOutcomeSummary(
             status="stopped",
             summary="Twin services are not fully up yet.",
         )
@@ -1260,7 +1302,7 @@ def _build_outcome(
     else:
         direction = "unknown"
         summary = "The pilot is running and waiting for the next outside-agent action."
-    return PilotOutcomeSummary(
+    return TwinOutcomeSummary(
         status=str(runtime.get("status", "stopped")),
         contract_ok=contract_ok if isinstance(contract_ok, bool) else None,
         issue_count=issue_count,
@@ -1278,7 +1320,7 @@ def _build_outcome(
 def _build_orchestrator_status(
     workspace_root: Path,
     *,
-    manifest: PilotManifest,
+    manifest: TwinLaunchManifest,
     services_ready: bool,
     force_sync: bool,
 ) -> tuple[OrchestratorSnapshot | None, OrchestratorSyncHealth | None]:
@@ -1321,7 +1363,7 @@ def _build_orchestrator_status(
             )
             message = f"Orchestrator snapshot refreshed and synced {synced_agent_count} routeable agents."
         else:
-            message = "Orchestrator snapshot refreshed. Mirror registration will resume once the pilot services are live."
+            message = "Orchestrator snapshot refreshed. Governor registration will resume once the twin services are live."
         health = OrchestratorSyncHealth(
             provider=config.provider,
             status="healthy",
@@ -1332,13 +1374,15 @@ def _build_orchestrator_status(
             message=message,
         )
         _write_json(
-            workspace_root / PILOT_ORCHESTRATOR_CACHE_FILE,
+            workspace_root / TWIN_ORCHESTRATOR_CACHE_FILE,
             snapshot.model_dump(mode="json"),
         )
+        _remove_legacy_artifact(workspace_root, _LEGACY_PILOT_ORCHESTRATOR_CACHE_FILE)
         _write_json(
-            workspace_root / PILOT_ORCHESTRATOR_SYNC_FILE,
+            workspace_root / TWIN_ORCHESTRATOR_SYNC_FILE,
             health.model_dump(mode="json"),
         )
+        _remove_legacy_artifact(workspace_root, _LEGACY_PILOT_ORCHESTRATOR_SYNC_FILE)
         return snapshot, health
     except Exception as exc:  # noqa: BLE001
         if cached_snapshot is not None:
@@ -1348,8 +1392,12 @@ def _build_orchestrator_status(
             if not health.message:
                 health.message = "Using the last cached orchestrator snapshot."
             _write_json(
-                workspace_root / PILOT_ORCHESTRATOR_SYNC_FILE,
+                workspace_root / TWIN_ORCHESTRATOR_SYNC_FILE,
                 health.model_dump(mode="json"),
+            )
+            _remove_legacy_artifact(
+                workspace_root,
+                _LEGACY_PILOT_ORCHESTRATOR_SYNC_FILE,
             )
             return cached_snapshot, health
         health.status = "error"
@@ -1357,15 +1405,16 @@ def _build_orchestrator_status(
         health.last_error = str(exc)
         health.message = "The orchestrator could not be reached."
         _write_json(
-            workspace_root / PILOT_ORCHESTRATOR_SYNC_FILE,
+            workspace_root / TWIN_ORCHESTRATOR_SYNC_FILE,
             health.model_dump(mode="json"),
         )
+        _remove_legacy_artifact(workspace_root, _LEGACY_PILOT_ORCHESTRATOR_SYNC_FILE)
         return None, health
 
 
 def _sync_orchestrator_agents_to_mirror(
     *,
-    manifest: PilotManifest,
+    manifest: TwinLaunchManifest,
     snapshot: OrchestratorSnapshot,
     previous_snapshot: OrchestratorSnapshot | None = None,
 ) -> int:
@@ -1548,11 +1597,11 @@ def _act_on_pilot_orchestrator_approval(
     *,
     action: str,
     decision_note: str | None,
-) -> PilotStatus:
+) -> TwinLaunchStatus:
     manifest = load_pilot_manifest(workspace_root)
     config = manifest.orchestrator
     if config is None:
-        raise RuntimeError("pilot orchestrator is not configured")
+        raise RuntimeError("twin orchestrator is not configured")
     client = build_orchestrator_client(config)
     external_approval_id = _resolve_orchestrator_external_approval_id(
         workspace_root,
@@ -1584,7 +1633,7 @@ def _act_on_pilot_orchestrator_approval(
 
 
 def _sync_workforce_gateway(
-    manifest: PilotManifest,
+    manifest: TwinLaunchManifest,
     *,
     orchestrator_snapshot: OrchestratorSnapshot | None,
     orchestrator_sync: OrchestratorSyncHealth | None,
@@ -1605,7 +1654,9 @@ def _sync_workforce_gateway(
     )
 
 
-def _fetch_workforce_commands(manifest: PilotManifest) -> list[WorkforceCommandRecord]:
+def _fetch_workforce_commands(
+    manifest: TwinLaunchManifest,
+) -> list[WorkforceCommandRecord]:
     raw = _request_json(
         f"{manifest.gateway_url}/api/workforce",
         headers={"Authorization": f"Bearer {manifest.bearer_token}"},
@@ -1629,7 +1680,7 @@ def _fetch_workforce_commands(manifest: PilotManifest) -> list[WorkforceCommandR
 
 
 def _record_workforce_command(
-    manifest: PilotManifest,
+    manifest: TwinLaunchManifest,
     *,
     result: OrchestratorCommandResult,
     decision_note: str | None = None,
@@ -1677,7 +1728,11 @@ def _mirror_status_for_orchestrator_agent(status: str | None) -> str:
 def _load_orchestrator_snapshot_cache(
     workspace_root: Path,
 ) -> OrchestratorSnapshot | None:
-    path = workspace_root / PILOT_ORCHESTRATOR_CACHE_FILE
+    path = _artifact_path(
+        workspace_root,
+        TWIN_ORCHESTRATOR_CACHE_FILE,
+        _LEGACY_PILOT_ORCHESTRATOR_CACHE_FILE,
+    )
     if not path.exists():
         return None
     return OrchestratorSnapshot.model_validate_json(path.read_text(encoding="utf-8"))
@@ -1686,7 +1741,11 @@ def _load_orchestrator_snapshot_cache(
 def _load_orchestrator_sync_cache(
     workspace_root: Path,
 ) -> OrchestratorSyncHealth | None:
-    path = workspace_root / PILOT_ORCHESTRATOR_SYNC_FILE
+    path = _artifact_path(
+        workspace_root,
+        TWIN_ORCHESTRATOR_SYNC_FILE,
+        _LEGACY_PILOT_ORCHESTRATOR_SYNC_FILE,
+    )
     if not path.exists():
         return None
     return OrchestratorSyncHealth.model_validate_json(path.read_text(encoding="utf-8"))
@@ -1723,7 +1782,7 @@ def _cached_orchestrator_health(
 
 
 def _load_mirror_agents(
-    manifest: PilotManifest,
+    manifest: TwinLaunchManifest,
     *,
     headers: dict[str, str],
 ) -> list[dict[str, Any]]:
@@ -1765,7 +1824,7 @@ def _managed_orchestrator_mirror_agent_ids(
     return managed_agent_ids
 
 
-def _default_pilot_snapshot(
+def _default_twin_snapshot(
     *,
     organization_name: str,
     organization_domain: str,
@@ -1874,7 +1933,7 @@ def _post_json(
     return result
 
 
-def _service_alive(service: PilotServiceRecord) -> bool:
+def _service_alive(service: TwinServiceRecord) -> bool:
     if service.pid is None:
         return False
     try:
@@ -1884,7 +1943,7 @@ def _service_alive(service: PilotServiceRecord) -> bool:
     return True
 
 
-def _services_ready(runtime: PilotRuntime) -> bool:
+def _services_ready(runtime: TwinLaunchRuntime) -> bool:
     services = {service.name: service for service in runtime.services}
     gateway = services.get("gateway")
     studio = services.get("studio")
@@ -1898,11 +1957,11 @@ def _services_ready(runtime: PilotRuntime) -> bool:
     )
 
 
-def _service_by_name(runtime: PilotRuntime, name: str) -> PilotServiceRecord:
+def _service_by_name(runtime: TwinLaunchRuntime, name: str) -> TwinServiceRecord:
     for service in runtime.services:
         if service.name == name:
             return service
-    raise KeyError(f"unknown pilot service: {name}")
+    raise KeyError(f"unknown twin service: {name}")
 
 
 def _stop_pid(pid: int) -> None:
@@ -1923,7 +1982,7 @@ def _stop_pid(pid: int) -> None:
         return
 
 
-def _clear_stale_pilot_listener(
+def _clear_stale_twin_listener(
     workspace_root: Path,
     *,
     port: int,
@@ -1950,7 +2009,7 @@ def _clear_stale_pilot_listener(
     remaining = _listening_pids(port)
     if remaining:
         raise RuntimeError(
-            f"port {port} is still busy after stopping stale pilot services"
+            f"port {port} is still busy after stopping stale twin services"
         )
 
 
@@ -1995,25 +2054,49 @@ def _command_for_pid(pid: int) -> str:
     return result.stdout.strip()
 
 
-def _safe_load_runtime(workspace_root: Path) -> PilotRuntime | None:
-    path = workspace_root / PILOT_RUNTIME_FILE
+def _safe_load_runtime(workspace_root: Path) -> TwinLaunchRuntime | None:
+    path = _artifact_path(
+        workspace_root,
+        TWIN_LAUNCH_RUNTIME_FILE,
+        _LEGACY_PILOT_RUNTIME_FILE,
+    )
     if not path.exists():
         return None
-    return PilotRuntime.model_validate_json(path.read_text(encoding="utf-8"))
+    return TwinLaunchRuntime.model_validate_json(path.read_text(encoding="utf-8"))
 
 
-def _safe_load_manifest(workspace_root: Path) -> PilotManifest | None:
-    path = workspace_root / PILOT_MANIFEST_FILE
+def _safe_load_manifest(workspace_root: Path) -> TwinLaunchManifest | None:
+    path = _artifact_path(
+        workspace_root,
+        TWIN_LAUNCH_MANIFEST_FILE,
+        _LEGACY_PILOT_MANIFEST_FILE,
+    )
     if not path.exists():
         return None
-    return PilotManifest.model_validate_json(path.read_text(encoding="utf-8"))
+    return TwinLaunchManifest.model_validate_json(path.read_text(encoding="utf-8"))
 
 
 def _write_json(path: Path, payload: dict[str, Any]) -> None:
     path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
 
 
-def _pilot_dir(workspace_root: Path) -> Path:
+def _artifact_path(workspace_root: Path, preferred: str, legacy: str) -> Path:
+    preferred_path = workspace_root / preferred
+    if preferred_path.exists():
+        return preferred_path
+    legacy_path = workspace_root / legacy
+    if legacy_path.exists():
+        return legacy_path
+    return preferred_path
+
+
+def _remove_legacy_artifact(workspace_root: Path, legacy_name: str) -> None:
+    legacy_path = workspace_root / legacy_name
+    if legacy_path.exists():
+        legacy_path.unlink()
+
+
+def _twin_dir(workspace_root: Path) -> Path:
     return workspace_root / ".twin"
 
 

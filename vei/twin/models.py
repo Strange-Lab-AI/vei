@@ -3,7 +3,14 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import AliasChoices, BaseModel, Field
+
+from vei.orchestrators.api import (
+    OrchestratorConfig,
+    OrchestratorSnapshot,
+    OrchestratorSyncHealth,
+)
+from vei.orchestrators.models import ActivityItemBase
 
 TwinArchetype = Literal[
     "b2b_saas",
@@ -30,6 +37,8 @@ TwinIncludedSurface = Literal[
     "approvals",
     "vertical",
 ]
+TwinServiceName = Literal["gateway", "studio"]
+TwinServiceState = Literal["running", "stopped", "error"]
 
 
 class ContextMoldConfig(BaseModel):
@@ -143,3 +152,94 @@ class WorkspaceGovernorStatus(BaseModel):
     orchestrator: dict[str, Any] | None = None
     orchestrator_sync: dict[str, Any] | None = None
     exercise: dict[str, Any] = Field(default_factory=dict)
+
+
+class TwinLaunchSnippet(BaseModel):
+    name: str
+    title: str
+    language: str = "bash"
+    content: str
+
+
+class TwinServiceRecord(BaseModel):
+    name: TwinServiceName
+    host: str
+    port: int
+    url: str
+    pid: int | None = None
+    state: TwinServiceState = "stopped"
+    log_path: str | None = None
+
+
+class TwinLaunchManifest(BaseModel):
+    version: Literal["1"] = "1"
+    workspace_root: Path
+    workspace_name: str
+    organization_name: str
+    organization_domain: str = ""
+    archetype: TwinArchetype
+    crisis_name: str
+    studio_url: str
+    control_room_url: str = Field(
+        validation_alias=AliasChoices("control_room_url", "pilot_console_url")
+    )
+    gateway_url: str
+    gateway_status_url: str
+    bearer_token: str
+    supported_surfaces: list[CompatibilitySurfaceSpec] = Field(default_factory=list)
+    recommended_first_move: str = Field(
+        default="",
+        validation_alias=AliasChoices(
+            "recommended_first_move",
+            "recommended_first_exercise",
+        ),
+    )
+    sample_client_path: str
+    snippets: list[TwinLaunchSnippet] = Field(default_factory=list)
+    orchestrator: OrchestratorConfig | None = None
+
+
+class TwinLaunchRuntime(BaseModel):
+    version: Literal["1"] = "1"
+    workspace_root: Path
+    services: list[TwinServiceRecord] = Field(default_factory=list)
+    started_at: str = ""
+    updated_at: str = ""
+
+
+class TwinActivityItem(ActivityItemBase):
+    channel: str
+    tool: str | None = None
+    timestamp: str | None = None
+    source_label: str | None = None
+    agent_role: str | None = None
+    agent_team: str | None = None
+    agent_source: str | None = None
+
+
+class TwinOutcomeSummary(BaseModel):
+    status: str
+    contract_ok: bool | None = None
+    issue_count: int = 0
+    summary: str
+    latest_tool: str | None = None
+    current_tension: str = ""
+    affected_surfaces: list[str] = Field(default_factory=list)
+    vei_action_count: int = 0
+    downstream_response_count: int = 0
+    governance_active: bool = False
+    direction: Literal["improving", "stable", "declining", "unknown"] = "unknown"
+
+
+class TwinLaunchStatus(BaseModel):
+    manifest: TwinLaunchManifest
+    runtime: TwinLaunchRuntime
+    active_run: str | None = None
+    twin_status: str = "stopped"
+    request_count: int = 0
+    services_ready: bool = False
+    active_agents: list[ExternalAgentIdentity] = Field(default_factory=list)
+    activity: list[TwinActivityItem] = Field(default_factory=list)
+    outcome: TwinOutcomeSummary
+    orchestrator: OrchestratorSnapshot | None = None
+    orchestrator_sync: OrchestratorSyncHealth | None = None
