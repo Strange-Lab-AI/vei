@@ -21,29 +21,11 @@ from vei.cli.vei_ui import app as ui_app
 from vei.cli.vei_visualize import app as visualize_app
 from vei.cli.vei_world import app as world_app
 
-# Thin CLI modules absorbed into their logical parents:
-from vei.cli.vei_bench import app as bench_app
-from vei.cli.vei_dataset import app as dataset_app
-from vei.cli.vei_exercise import app as exercise_app
-from vei.cli.vei_export import app as export_app
-from vei.cli.vei_pack import app as pack_app
-from vei.cli.vei_pilot import app as pilot_app
-from vei.cli.vei_release import app as release_app
-from vei.cli.vei_rollout import app as rollout_app
-from vei.cli.vei_scenario import app as scenario_app
-from vei.cli.vei_scenarios import app as scenarios_app
-from vei.cli.vei_score import app as score_app
-from vei.cli.vei_showcase import app as showcase_app
-from vei.cli.vei_studio import app as studio_app
-from vei.cli.vei_train import app as train_app
-
 app = typer.Typer(
     add_completion=False,
     no_args_is_help=True,
     help="VEI — programmable enterprise simulation, context capture, and synthesis.",
 )
-
-# ── Primary commands (the 8 top-level groups) ───────────────────────────
 
 app.add_typer(project_app, name="project")
 app.add_typer(quickstart_app, name="quickstart")
@@ -53,9 +35,6 @@ app.add_typer(inspect_app, name="inspect")
 app.add_typer(twin_app, name="twin")
 app.add_typer(ui_app, name="ui")
 app.add_typer(world_app, name="world")
-
-# ── Secondary commands (used less often, still top-level) ───────────────
-
 app.add_typer(blueprint_app, name="blueprint")
 app.add_typer(context_app, name="context")
 app.add_typer(contract_app, name="contract")
@@ -67,24 +46,8 @@ app.add_typer(smoke_app, name="smoke")
 app.add_typer(synthesize_app, name="synthesize")
 app.add_typer(visualize_app, name="visualize")
 
-# ── Backwards-compat aliases for absorbed commands ──────────────────────
-# These were previously top-level; now logically nested but kept as
-# aliases so existing scripts and docs still work.
-
-app.add_typer(bench_app, name="bench", hidden=True)
-app.add_typer(dataset_app, name="dataset", hidden=True)
-app.add_typer(exercise_app, name="exercise", hidden=True)
-app.add_typer(export_app, name="export", hidden=True)
-app.add_typer(pack_app, name="pack", hidden=True)
-app.add_typer(pilot_app, name="pilot", hidden=True)
-app.add_typer(release_app, name="release", hidden=True)
-app.add_typer(rollout_app, name="rollout", hidden=True)
-app.add_typer(scenario_app, name="scenario", hidden=True)
-app.add_typer(scenarios_app, name="scenarios", hidden=True)
-app.add_typer(score_app, name="score", hidden=True)
-app.add_typer(showcase_app, name="showcase", hidden=True)
-app.add_typer(studio_app, name="studio", hidden=True)
-app.add_typer(train_app, name="train", hidden=True)
+from vei.cli.vei_showcase import app as showcase_app
+app.add_typer(showcase_app, name="showcase")
 
 
 if __name__ == "__main__":

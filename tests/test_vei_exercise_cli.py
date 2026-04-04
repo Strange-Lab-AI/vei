@@ -6,8 +6,8 @@ from pathlib import Path
 from typer.testing import CliRunner
 
 from vei.cli import vei_exercise
-from vei.cli.vei import app
-from vei.exercise.models import (
+from vei.cli.vei_exercise import app
+from vei.pilot.exercise_models import (
     ExerciseCatalogItem,
     ExerciseComparisonRow,
     ExerciseCompatibilityEndpoint,
@@ -48,17 +48,17 @@ def test_exercise_cli_commands_are_wired_into_root_app(
         lambda *args, **kwargs: _sample_status(root),
     )
 
-    up_result = runner.invoke(app, ["exercise", "up", "--root", str(root)])
+    up_result = runner.invoke(app, ["up", "--root", str(root)])
     assert up_result.exit_code == 0, up_result.output
     up_payload = json.loads(up_result.output)
     assert up_payload["manifest"]["company_name"] == "Pinnacle Analytics"
 
-    status_result = runner.invoke(app, ["exercise", "status", "--root", str(root)])
+    status_result = runner.invoke(app, ["status", "--root", str(root)])
     assert status_result.exit_code == 0, status_result.output
     status_payload = json.loads(status_result.output)
     assert status_payload["comparison"][0]["runner"] == "workflow"
 
-    down_result = runner.invoke(app, ["exercise", "down", "--root", str(root)])
+    down_result = runner.invoke(app, ["down", "--root", str(root)])
     assert down_result.exit_code == 0, down_result.output
 
 

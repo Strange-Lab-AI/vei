@@ -101,3 +101,24 @@ def show_run(
         resolved_root / "runs" / resolved_run_id / "run_manifest.json"
     )
     _emit(manifest.model_dump(mode="json"), indent)
+
+
+@app.command("export-mission")
+def export_run(
+    root: Path = typer.Option(Path("."), help="Workspace root directory"),
+    run_id: str = typer.Option(..., help="Mission run id"),
+    export_format: str = typer.Option(
+        ...,
+        "--format",
+        help="Export preview to render: rl, eval, or agent-ops",
+    ),
+    indent: int = typer.Option(2, help="Pretty indent"),
+) -> None:
+    """Export a mission run into a downstream-ready preview bundle."""
+    from vei.playable import export_mission_run
+
+    try:
+        payload = export_mission_run(root, run_id=run_id, export_format=export_format)
+    except (ValueError, KeyError) as exc:
+        raise typer.BadParameter(str(exc)) from exc
+    _emit(payload, indent)

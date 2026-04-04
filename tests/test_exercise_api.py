@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from vei.exercise import api as exercise_api
+from vei.pilot import exercise as exercise_api
 from vei.pilot.models import (
     PilotManifest,
     PilotOutcomeSummary,

@@ -7,7 +7,7 @@ import typer
 from pydantic import ValidationError
 
 from vei.context.models import ContextProviderConfig, ContextSnapshot
-from vei.exercise import (
+from vei.pilot.exercise import (
     activate_exercise,
     build_exercise_status,
     start_exercise,

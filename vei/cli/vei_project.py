@@ -6,6 +6,8 @@ from typing import Literal, Optional
 
 import typer
 
+from vei.cli.vei_scenario import app as scenario_app
+
 from vei.workspace.api import (
     compile_workspace,
     create_workspace_from_template,
@@ -28,6 +30,7 @@ app = typer.Typer(
     add_completion=False,
     help="Create, import, review, and compile VEI workspaces.",
 )
+app.add_typer(scenario_app, name="scenario")
 
 
 def _emit(payload: object, indent: int) -> None:

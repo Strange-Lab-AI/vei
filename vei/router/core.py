@@ -15,7 +15,7 @@ from vei.connectors import (
     parse_adapter_mode,
 )
 from vei.monitors import MonitorManager
-from vei.policy import DEFAULT_RULES, PolicyEngine, PromoteMonitorRule
+from vei.router._policy import DEFAULT_RULES, PolicyEngine, PromoteMonitorRule
 from vei.world import (
     DriftEngine,
     Event as StateEvent,

@@ -38,7 +38,7 @@ def test_product_cli_workspace_run_and_inspect_flow(tmp_path: Path) -> None:
 
     preview_result = runner.invoke(
         app,
-        ["scenario", "preview", "--root", str(root)],
+        ["project", "scenario", "preview", "--root", str(root)],
     )
     assert preview_result.exit_code == 0, preview_result.output
     preview_payload = json.loads(preview_result.output)
@@ -249,7 +249,7 @@ def test_product_cli_import_flow_supports_generation_and_provenance(
 
     generate_result = runner.invoke(
         app,
-        ["scenario", "generate", "--root", str(root)],
+        ["project", "scenario", "generate", "--root", str(root)],
     )
     assert generate_result.exit_code == 0, generate_result.output
     generate_payload = json.loads(generate_result.output)
@@ -258,6 +258,7 @@ def test_product_cli_import_flow_supports_generation_and_provenance(
     activate_result = runner.invoke(
         app,
         [
+            "project",
             "scenario",
             "activate",
             "--root",
@@ -528,7 +529,7 @@ def test_product_cli_vertical_variant_commands_and_matrix(tmp_path: Path) -> Non
 
     variants_result = runner.invoke(
         app,
-        ["scenario", "variants", "--root", str(root)],
+        ["project", "scenario", "variants", "--root", str(root)],
     )
     assert variants_result.exit_code == 0, variants_result.output
     assert len(json.loads(variants_result.output)) == 4
@@ -536,6 +537,7 @@ def test_product_cli_vertical_variant_commands_and_matrix(tmp_path: Path) -> Non
     activate_result = runner.invoke(
         app,
         [
+            "project",
             "scenario",
             "activate",
             "--root",
@@ -656,8 +658,7 @@ def test_product_cli_prepares_playable_world_and_exports(tmp_path: Path) -> None
     studio_result = runner.invoke(
         app,
         [
-            "studio",
-            "play",
+            "ui", "play",
             "--root",
             str(root),
             "--world",
@@ -687,8 +688,8 @@ def test_product_cli_prepares_playable_world_and_exports(tmp_path: Path) -> None
     export_result = runner.invoke(
         app,
         [
-            "export",
-            "mission-run",
+            "run",
+            "export-mission",
             "--root",
             str(root),
             "--run-id",
@@ -709,8 +710,7 @@ def test_product_cli_rejects_unknown_playable_world(tmp_path: Path) -> None:
     result = runner.invoke(
         app,
         [
-            "studio",
-            "play",
+            "ui", "play",
             "--root",
             str(root),
             "--world",

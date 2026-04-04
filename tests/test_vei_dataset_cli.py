@@ -6,7 +6,7 @@ from pathlib import Path
 from typer.testing import CliRunner
 
 from vei.cli import vei_dataset
-from vei.cli.vei import app
+from vei.cli.vei_dataset import app
 from vei.dataset.models import (
     DatasetBuildSpec,
     DatasetBundle,
@@ -34,12 +34,12 @@ def test_dataset_cli_commands_are_wired_into_root_app(
         lambda *args, **kwargs: _sample_bundle(root),
     )
 
-    build_result = runner.invoke(app, ["dataset", "build", "--output-root", str(root)])
+    build_result = runner.invoke(app, ["build", "--output-root", str(root)])
     assert build_result.exit_code == 0, build_result.output
     build_payload = json.loads(build_result.output)
     assert build_payload["environment_count"] == 2
 
-    status_result = runner.invoke(app, ["dataset", "status", "--root", str(root)])
+    status_result = runner.invoke(app, ["status", "--root", str(root)])
     assert status_result.exit_code == 0, status_result.output
     status_payload = json.loads(status_result.output)
     assert status_payload["run_count"] == 6

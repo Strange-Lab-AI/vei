@@ -23,7 +23,7 @@ from vei.workspace.api import (
     resolve_workspace_scenario,
 )
 
-from .models import (
+from vei.pilot.exercise_models import (
     ExerciseCatalogItem,
     ExerciseComparisonRow,
     ExerciseCompatibilityEndpoint,

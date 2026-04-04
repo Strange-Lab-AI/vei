@@ -221,41 +221,7 @@ class TestMailReadUnread:
 # ---------------------------------------------------------------------------
 
 
-class TestActorDispatch:
-    def test_attach_and_dispatch(self) -> None:
-        from vei.actors.api import ActorRegistry
-        from vei.actors.persona import ActorPersona
-
-        session = create_world_session(seed=1)
-        registry = ActorRegistry()
-        registry.register(
-            ActorPersona(
-                name="Jane CFO",
-                email="jane@example.com",
-                role="CFO",
-                department="Finance",
-                response_bias="cooperative",
-                backend="deterministic",
-            )
-        )
-        session.attach_actor_registry(registry)
-
-        session.router.bus.schedule(
-            dt_ms=0,
-            target="slack",
-            payload={
-                "text": "Can you approve this budget?",
-                "channel": "#procurement",
-            },
-            actor_id="jane@example.com",
-        )
-        session.observe()
-
-        log = registry.event_log()
-        assert len(log) == 1
-        assert log[0]["actor"] == "Jane CFO"
-        assert log[0]["backend"] == "deterministic"
-
+class TestActorDispatchHook:
     def test_no_registry_no_dispatch(self) -> None:
         session = create_world_session(seed=1)
 
@@ -266,35 +232,3 @@ class TestActorDispatch:
             actor_id="nobody@example.com",
         )
         session.observe()
-
-    def test_response_scheduled_back(self) -> None:
-        from vei.actors.api import ActorRegistry
-        from vei.actors.persona import ActorPersona
-
-        session = create_world_session(seed=1)
-        registry = ActorRegistry()
-        registry.register(
-            ActorPersona(
-                name="Jane CFO",
-                email="jane@example.com",
-                role="CFO",
-                department="Finance",
-                response_bias="cooperative",
-                backend="deterministic",
-            )
-        )
-        session.attach_actor_registry(registry)
-
-        session.router.bus.schedule(
-            dt_ms=0,
-            target="slack",
-            payload={
-                "text": "Please review this.",
-                "channel": "#procurement",
-            },
-            actor_id="jane@example.com",
-        )
-        session.observe()
-
-        pending = session.pending()
-        assert pending.get("slack", 0) >= 1

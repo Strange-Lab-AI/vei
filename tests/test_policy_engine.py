@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from vei.monitors.models import MonitorFinding
-from vei.policy import (
+from vei.router._policy import (
     DEFAULT_RULES,
     PolicyEngine,
     PolicyFinding,

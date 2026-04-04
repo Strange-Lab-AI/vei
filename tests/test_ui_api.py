@@ -7,7 +7,7 @@ from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
 from vei.dataset.models import DatasetBuildSpec, DatasetBundle, DatasetSplitManifest
-from vei.exercise.models import (
+from vei.pilot.exercise_models import (
     ExerciseCatalogItem,
     ExerciseComparisonRow,
     ExerciseManifest,

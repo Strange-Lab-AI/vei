@@ -10,7 +10,7 @@ from fastapi.staticfiles import StaticFiles
 
 from vei import __version__ as vei_version
 from vei.dataset import load_workspace_dataset_bundle
-from vei.exercise import activate_exercise, build_exercise_status
+from vei.pilot.exercise import activate_exercise, build_exercise_status
 from vei.fidelity import get_or_build_workspace_fidelity_report
 from vei.pilot import (
     approve_pilot_orchestrator_approval,

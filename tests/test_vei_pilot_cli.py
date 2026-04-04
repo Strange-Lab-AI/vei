@@ -6,7 +6,7 @@ from pathlib import Path
 from typer.testing import CliRunner
 
 from vei.cli import vei_pilot
-from vei.cli.vei import app
+from vei.cli.vei_pilot import app
 from vei.pilot.models import (
     PilotManifest,
     PilotOutcomeSummary,
@@ -40,17 +40,17 @@ def test_pilot_cli_commands_are_wired_into_root_app(
         lambda *args, **kwargs: _sample_status(root, services_ready=False),
     )
 
-    up_result = runner.invoke(app, ["pilot", "up", "--root", str(root)])
+    up_result = runner.invoke(app, ["up", "--root", str(root)])
     assert up_result.exit_code == 0, up_result.output
     up_payload = json.loads(up_result.output)
     assert up_payload["manifest"]["organization_name"] == "Pinnacle Analytics"
 
-    status_result = runner.invoke(app, ["pilot", "status", "--root", str(root)])
+    status_result = runner.invoke(app, ["status", "--root", str(root)])
     assert status_result.exit_code == 0, status_result.output
     status_payload = json.loads(status_result.output)
     assert status_payload["active_run"] == "external_renewal_run"
 
-    down_result = runner.invoke(app, ["pilot", "down", "--root", str(root)])
+    down_result = runner.invoke(app, ["down", "--root", str(root)])
     assert down_result.exit_code == 0, down_result.output
     down_payload = json.loads(down_result.output)
     assert down_payload["services_ready"] is False
@@ -70,7 +70,6 @@ def test_pilot_up_forwards_orchestrator_options(tmp_path: Path, monkeypatch) -> 
     result = runner.invoke(
         app,
         [
-            "pilot",
             "up",
             "--root",
             str(root),
