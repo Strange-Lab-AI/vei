@@ -4792,3 +4792,153 @@ details.secondary-disclosure summary:focus-visible {
   letter-spacing: 0.05em;
   opacity: 0.6;
 }
+
+/* --- Eval dashboard (Test skin) --- */
+
+.eval-scorecard-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.eval-score-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.eval-score-label {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-soft);
+  font-weight: 600;
+}
+
+.eval-score-value {
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+
+.eval-score-detail {
+  font-size: 0.7rem;
+  color: var(--ink-soft);
+  margin-top: 1px;
+}
+
+.eval-pass {
+  border-color: rgba(102, 187, 106, 0.4);
+}
+
+.eval-pass .eval-score-value {
+  color: #66bb6a;
+}
+
+.eval-fail {
+  border-color: rgba(239, 83, 80, 0.5);
+}
+
+.eval-fail .eval-score-value {
+  color: #ef5350;
+}
+
+.eval-pending .eval-score-value {
+  color: var(--ink-soft);
+}
+
+.eval-predicate-section {
+  margin-bottom: 14px;
+}
+
+.eval-predicate-section .eyebrow {
+  margin-bottom: 6px;
+}
+
+.eval-predicate {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  margin-bottom: 3px;
+}
+
+.eval-predicate-pass {
+  background: rgba(102, 187, 106, 0.08);
+  color: #66bb6a;
+}
+
+.eval-predicate-fail {
+  background: rgba(239, 83, 80, 0.08);
+  color: #ef5350;
+}
+
+.eval-pred-icon {
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+/* --- Run agent form (Test skin) --- */
+
+.eval-agent-form {
+  padding: 16px 20px;
+  border-radius: 10px;
+  background: rgba(38, 166, 154, 0.04);
+  border: 1px solid rgba(38, 166, 154, 0.15);
+  margin-bottom: 16px;
+}
+
+.eval-agent-form h3 {
+  font-size: 0.92rem;
+  margin: 0 0 10px;
+}
+
+.eval-agent-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.eval-agent-fields label {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.eval-agent-fields input,
+.eval-agent-fields textarea {
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  font-size: 0.82rem;
+  font-family: inherit;
+  background: var(--surface);
+}
+
+.eval-agent-fields textarea {
+  grid-column: 1 / -1;
+  min-height: 48px;
+  resize: vertical;
+}
+
+.eval-agent-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.eval-agent-status {
+  font-size: 0.76rem;
+  color: var(--ink-soft);
+}

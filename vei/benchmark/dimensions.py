@@ -51,6 +51,8 @@ def score_enterprise_dimensions(
         dimensions = _score_storage_solutions(calls, state)
     elif manifest.name == "service_ops":
         dimensions = _score_service_ops(calls, state)
+    elif manifest.name == "b2b_saas":
+        dimensions = _score_b2b_saas(calls, state)
     else:
         dimensions = {}
 
@@ -584,6 +586,64 @@ def _score_service_ops(
         "dispatch_recovery": _clamp(dispatch_recovery),
         "billing_safety": _clamp(billing_safety),
         "artifact_follow_through": _clamp(artifact_follow_through),
+    }
+
+
+def _score_b2b_saas(
+    calls: List[Dict[str, Any]], state: WorldState | None
+) -> Dict[str, float]:
+    crm_component = state.components.get("crm", {}) if state else {}
+    ticket_metadata = _component(state, "tickets", "metadata")
+    docs = _component(state, "docs", "docs")
+    slack_channels = _component(state, "slack", "channels")
+
+    stakeholder_alignment = 0.0
+    activities = crm_component.get("activities", [])
+    if isinstance(activities, list) and activities:
+        stakeholder_alignment += 0.5
+    if any(
+        any("renewal" in str(msg.get("text", "")).lower() for msg in ch.get("messages", []))
+        for ch in slack_channels.values()
+    ):
+        stakeholder_alignment += 0.5
+
+    revenue_impact = 0.0
+    if _called(calls, "crm.log_activity"):
+        revenue_impact += 0.4
+    if _called(calls, "crm.update_deal_stage"):
+        revenue_impact += 0.3
+    deals = crm_component.get("deals", {})
+    if isinstance(deals, dict) and any(
+        str(deal.get("stage", "")).lower() not in {"", "lost", "churned"}
+        for deal in deals.values()
+    ):
+        revenue_impact += 0.3
+
+    competitive_defense = 0.0
+    if any(len(meta.get("comments", [])) > 0 for meta in ticket_metadata.values()):
+        competitive_defense += 0.5
+    if any(
+        "integration" in str(doc.get("body", "")).lower()
+        or "recovery" in str(doc.get("body", "")).lower()
+        for doc in docs.values()
+    ):
+        competitive_defense += 0.5
+
+    cross_functional_coordination = 0.0
+    surface_prefixes = ("slack.", "mail.", "jira.", "tickets.", "crm.", "servicedesk.", "docs.")
+    surfaces_hit = set()
+    for call in calls:
+        tool = str(call.get("tool", ""))
+        for prefix in surface_prefixes:
+            if tool.startswith(prefix):
+                surfaces_hit.add(prefix.rstrip("."))
+    cross_functional_coordination = _clamp(len(surfaces_hit) / 4.0)
+
+    return {
+        "stakeholder_alignment": _clamp(stakeholder_alignment),
+        "revenue_impact": _clamp(revenue_impact),
+        "competitive_defense": _clamp(competitive_defense),
+        "cross_functional_coordination": _clamp(cross_functional_coordination),
     }
 
 

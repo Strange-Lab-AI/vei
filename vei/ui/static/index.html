@@ -231,6 +231,27 @@
             </div>
           </div>
           <div id="run-outcome-summary" class="contract-scorecard"></div>
+          <section class="eval-agent-form test-only">
+            <h3>Run your agent against this world</h3>
+            <div class="eval-agent-fields">
+              <label>
+                Provider
+                <input id="eval-provider-input" type="text" value="openai" placeholder="openai, anthropic, ...">
+              </label>
+              <label>
+                Model
+                <input id="eval-model-input" type="text" value="" placeholder="gpt-5, claude-sonnet-4-5, ...">
+              </label>
+              <label>
+                Task
+                <textarea id="eval-task-input" placeholder="Describe what the agent should try to accomplish..."></textarea>
+              </label>
+            </div>
+            <div class="eval-agent-actions">
+              <button id="eval-run-agent-btn" type="button">Run agent</button>
+              <span id="eval-agent-status" class="eval-agent-status"></span>
+            </div>
+          </section>
           <div id="decision-log" class="decision-log"></div>
           <div id="branch-outcome-panel" class="briefing-grid"></div>
           <details class="secondary-disclosure secondary-disclosure-quiet">

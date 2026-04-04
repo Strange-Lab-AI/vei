@@ -241,9 +241,50 @@ function bindControls() {
   document.getElementById("snapshot-to-select").addEventListener("change", () => {
     void updateDiff();
   });
+  document.getElementById("eval-run-agent-btn")?.addEventListener("click", () => {
+    void runEvalAgent();
+  });
 }
 
 bindControls();
+
+async function runEvalAgent() {
+  const provider = document.getElementById("eval-provider-input")?.value?.trim() || "openai";
+  const model = document.getElementById("eval-model-input")?.value?.trim();
+  const task = document.getElementById("eval-task-input")?.value?.trim() || null;
+  const status = document.getElementById("eval-agent-status");
+  if (!model) {
+    if (status) status.textContent = "Enter a model name to run.";
+    return;
+  }
+  const scenarioSelect = document.getElementById("scenario-select");
+  const scenarioName = scenarioSelect?.value || state.workspace?.manifest?.active_scenario || "default";
+  if (status) status.textContent = `Starting ${model} agent...`;
+  try {
+    const created = await getJson("/api/runs", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        scenario_name: scenarioName,
+        runner: "llm",
+        provider,
+        model,
+        task,
+        max_steps: 12,
+      }),
+    });
+    if (status) status.textContent = `Run ${created.run_id} launched. Waiting for results...`;
+    await new Promise((resolve) => setTimeout(resolve, 800));
+    await loadRuns();
+    if (created.run_id) {
+      await selectRun(created.run_id);
+    }
+    await autoCompareForTestSkin();
+    if (status) status.textContent = `Run ${created.run_id} complete. Comparison loaded.`;
+  } catch (error) {
+    if (status) status.textContent = `Agent run failed: ${error?.message || error}`;
+  }
+}
 
 const VALID_SKINS = ["sandbox", "mirror", "test", "train"];
 
