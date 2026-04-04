@@ -225,7 +225,7 @@ def _sample_pilot_status(root: Path) -> PilotStatus:
             archetype="service_ops",
             crisis_name="Dispatch overload",
             studio_url="http://127.0.0.1:3011",
-            pilot_console_url="http://127.0.0.1:3011/pilot",
+            pilot_console_url="http://127.0.0.1:3011/?skin=governor",
             gateway_url="http://127.0.0.1:3020",
             gateway_status_url="http://127.0.0.1:3020/api/twin",
             bearer_token="token-123",
@@ -237,7 +237,7 @@ def _sample_pilot_status(root: Path) -> PilotStatus:
                 )
             ],
             recommended_first_exercise="Read the queue before acting.",
-            sample_client_path="/tmp/pilot_client.py",
+            sample_client_path="/tmp/governor_client.py",
         ),
         runtime=PilotRuntime(
             workspace_root=root,

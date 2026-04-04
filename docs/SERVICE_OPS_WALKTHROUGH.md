@@ -1,6 +1,6 @@
 # VEI Service Operations Pack — Control Plane and What-If Walkthrough
 
-**Clearwater Field Services** is the strongest built-in demo for VEI's current product story: a VIP outage, technician no-show, and billing dispute all collide before 9 AM, while governor-governed agents and a human operator respond through the same control surface.
+**Clearwater Field Services** is the strongest built-in demo for VEI's current product story: a VIP outage, technician no-show, and billing dispute all collide before 9 AM, while governed agents and a human operator respond through the same control surface.
 
 This walkthrough describes the current Studio experience for the `service_ops` pack with governor mode enabled. It focuses on the two demo moments the product now supports well:
 
@@ -90,7 +90,7 @@ The rest of the Company view still shows the full business wall:
 - **Approvals** for business-side requests
 - **Service loop** for the domain-specific service-ops state
 
-Mirror-governed actions show up here as normal business activity. That is the key product trick: the control plane is not a side dashboard disconnected from the company simulation. It governs actions that visibly change the company world.
+Governor-controlled actions show up here as normal business activity. That is the key product trick: the control plane is not a side dashboard disconnected from the company simulation. It governs actions that visibly change the company world.
 
 ---
 
@@ -185,7 +185,7 @@ Use this moment to show that VEI is governing real-looking work, not just visual
 
 1. Start `service_ops` with `--governor-demo`.
 2. Show the mode banner and the situation room.
-3. Point out the three mirror agents and their policy badges.
+3. Point out the three governed agents and their policy badges.
 4. Explain the connector strip: Slack is the live-first story, the other surfaces are still governed but may be read-only or unsupported for live writes.
 5. Let the staged actions play until you can show:
    - one allowed action
@@ -209,10 +209,10 @@ Use this moment to show that VEI can replay the same company from the same start
 ## Running It
 
 ```bash
-# Standard mode (no mirror agents)
+# Standard mode (no governed agents)
 vei quickstart run --world service_ops
 
-# Mirror demo with staged governed agents
+# Governor demo with staged governed agents
 vei quickstart run --world service_ops --governor-demo
 
 # Slack-first live alpha

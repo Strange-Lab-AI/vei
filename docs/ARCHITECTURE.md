@@ -32,7 +32,7 @@ VEI is a deterministic, MCP-native enterprise simulator built around one stable 
 VEI is one kernel with four operating modes sharing the same world session, connector layer, event spine, replay model, and contract scoring:
 
 - **Test / Eval** — run a fixed company world, score an agent, compare scripted vs LLM vs workflow runners
-- **Mirror / Control** — place VEI between agents and enterprise systems; govern, record, and replay what happened
+- **Governor / Control** — place VEI between agents and enterprise systems; govern, record, and replay what happened
 - **Sandbox / What-if** — fork the same world, change policy or actions, compare alternate futures with snapshot comparisons
 - **Train / Data** — turn traces and trajectories into rollouts, demonstrations, and RL-friendly data
 
@@ -63,7 +63,7 @@ Workspace / CLI / UI / SDK / Agent
           └─ governor runtime (agent fleet, approvals, throttles, event feed)
 ```
 
-The router is a transport and tool-dispatch adapter. The twin gateway is an HTTP adapter that exposes provider-shaped compatibility routes and manages mirror agents. Mutable enterprise state belongs to the kernel, not to transport wrappers.
+The router is a transport and tool-dispatch adapter. The twin gateway is an HTTP adapter that exposes provider-shaped compatibility routes and manages governed agents. Mutable enterprise state belongs to the kernel, not to transport wrappers.
 
 ## Product Workflow Layer
 
@@ -110,11 +110,11 @@ Imported identity workspaces now add an earlier preparation ladder:
 
 For the canonical product demo, `vei project identity-demo` wraps that ladder into one opinionated identity/access-governance flow and optionally launches the baseline plus scripted comparison runs for the active generated scenario.
 
-## Mirror / Control Plane Layer
+## Governor / Control Plane Layer
 
 - `vei.governor`
   - `GovernorRuntime` — agent registry, event ingest, approval queue, rate limiting, demo autoplay, snapshot generation
-  - public mirror surface stays in `vei.governor.api`, with internal split across `_config.py`, `_demo.py`, and `_runtime.py`
+  - public governor surface stays in `vei.governor.api`, with internal split across `_config.py`, `_demo.py`, and `_runtime.py`
   - `GovernorAgentSpec` — typed model for registered agents with role, team, allowed surfaces, policy profile, status, `last_action`, `denied_count`, and `throttled_count`
   - `GovernorPendingApproval` / `GovernorPolicyProfile` / `GovernorConnectorStatus` — typed models for held actions, built-in agent permissions, and operator-facing surface status
   - `GovernorRecentEvent` — bounded ring buffer entries for the recent-event feed
@@ -122,10 +122,10 @@ For the canonical product demo, `vei project identity-demo` wraps that ladder in
 - `vei.twin`
   - `CustomerTwinBundle` — builds a customer-shaped twin from a context snapshot and vertical archetype
   - `TwinRuntime` — FastAPI runtime behind `vei.twin.gateway`, with helper, route, and runtime internals separated for the compatibility layer
-  - Mirror decision pipeline: registration, agent mode, allowed surface, policy profile, connector safety, rate limit, then execution
+  - Governor decision pipeline: registration, agent mode, allowed surface, policy profile, connector safety, rate limit, then execution
   - Surface and policy denials, approval-required holds, unsupported live writes, and rate limits are recorded in the run timeline and exposed through provider-shaped responses
 - `vei.pilot`
-  - legacy internal runtime helpers that still back the twin lifecycle while the public surface stays on `vei.twin`
+  - internal launch/runtime helpers that still back the twin lifecycle while the public surface stays on `vei.twin`
   - writes launch manifest, handoff guide, and runtime state
 
 ## Sandbox / What-if Layer

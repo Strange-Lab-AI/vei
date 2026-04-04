@@ -717,7 +717,9 @@ def _build_manifest(
         bundle.metadata.get("preview", {}) if isinstance(bundle.metadata, dict) else {}
     )
     crisis_name = _resolve_crisis_name(preview)
-    sample_client_path = str((_repo_root() / "examples" / "pilot_client.py").resolve())
+    sample_client_path = str(
+        (_repo_root() / "examples" / "governor_client.py").resolve()
+    )
     manifest = PilotManifest(
         workspace_root=bundle.workspace_root,
         workspace_name=bundle.workspace_name,
@@ -753,7 +755,7 @@ def _persist_pilot_manifest(
     manifest = _build_manifest(
         bundle,
         studio_url=studio_url,
-        pilot_console_url=f"{studio_url}/pilot",
+        pilot_console_url=f"{studio_url}/?skin=governor",
         gateway_url=gateway_url,
         orchestrator_config=orchestrator_config,
     )
@@ -770,11 +772,11 @@ def _persist_pilot_manifest(
 
 def _build_snippets(manifest: PilotManifest) -> list[PilotSnippet]:
     env_block = (
-        f'export VEI_PILOT_BASE_URL="{manifest.gateway_url}"\n'
-        f'export VEI_PILOT_TOKEN="{manifest.bearer_token}"\n'
+        f'export VEI_TWIN_BASE_URL="{manifest.gateway_url}"\n'
+        f'export VEI_TWIN_TOKEN="{manifest.bearer_token}"\n'
         'export VEI_AGENT_ID="starter-agent"\n'
         'export VEI_AGENT_NAME="starter-agent"\n'
-        'export VEI_AGENT_ROLE="exercise-runner"'
+        'export VEI_AGENT_ROLE="external-agent"'
     )
     python_snippet = (
         "import json\n"
@@ -801,7 +803,7 @@ def _build_snippets(manifest: PilotManifest) -> list[PilotSnippet]:
         '        "Authorization": f"Bearer {TOKEN}",\n'
         '        "X-VEI-Agent-Id": "starter-agent",\n'
         '        "X-VEI-Agent-Name": "starter-agent",\n'
-        '        "X-VEI-Agent-Role": "exercise-runner",\n'
+        '        "X-VEI-Agent-Role": "external-agent",\n'
         "    },\n"
         ")\n"
         "print(json.loads(urlopen(req).read()))\n"
@@ -816,28 +818,28 @@ def _build_snippets(manifest: PilotManifest) -> list[PilotSnippet]:
         f"curl -H 'Authorization: Bearer {manifest.bearer_token}' "
         "-H 'X-VEI-Agent-Id: starter-agent' "
         "-H 'X-VEI-Agent-Name: starter-agent' "
-        "-H 'X-VEI-Agent-Role: exercise-runner' "
+        "-H 'X-VEI-Agent-Role: external-agent' "
         f"'{manifest.gateway_url}/slack/api/conversations.list'"
     )
     jira_curl = (
         f"curl -H 'Authorization: Bearer {manifest.bearer_token}' "
         "-H 'X-VEI-Agent-Id: starter-agent' "
         "-H 'X-VEI-Agent-Name: starter-agent' "
-        "-H 'X-VEI-Agent-Role: exercise-runner' "
+        "-H 'X-VEI-Agent-Role: external-agent' "
         f"'{manifest.gateway_url}/jira/rest/api/3/search'"
     )
     graph_curl = (
         f"curl -H 'Authorization: Bearer {manifest.bearer_token}' "
         "-H 'X-VEI-Agent-Id: starter-agent' "
         "-H 'X-VEI-Agent-Name: starter-agent' "
-        "-H 'X-VEI-Agent-Role: exercise-runner' "
+        "-H 'X-VEI-Agent-Role: external-agent' "
         f"'{manifest.gateway_url}/graph/v1.0/me/messages'"
     )
     salesforce_curl = (
         f"curl -H 'Authorization: Bearer {manifest.bearer_token}' "
         "-H 'X-VEI-Agent-Id: starter-agent' "
         "-H 'X-VEI-Agent-Name: starter-agent' "
-        "-H 'X-VEI-Agent-Role: exercise-runner' "
+        "-H 'X-VEI-Agent-Role: external-agent' "
         f"'{manifest.gateway_url}/salesforce/services/data/v60.0/query?q=SELECT+Name+FROM+Opportunity'"
     )
     return [
@@ -888,7 +890,7 @@ def _build_snippets(manifest: PilotManifest) -> list[PilotSnippet]:
 
 def _resolve_crisis_name(preview: Any) -> str:
     if not isinstance(preview, dict):
-        return "Customer pilot exercise"
+        return "Customer twin run"
     active_variant = preview.get("active_scenario_variant")
     variants = preview.get("available_scenario_variants")
     if isinstance(active_variant, str) and isinstance(variants, list):
@@ -904,7 +906,7 @@ def _resolve_crisis_name(preview: Any) -> str:
         value = preview.get(key)
         if isinstance(value, str) and value.strip():
             return value
-    return "Customer pilot exercise"
+    return "Customer twin run"
 
 
 def _render_pilot_guide(manifest: PilotManifest) -> str:
@@ -926,17 +928,17 @@ def _render_pilot_guide(manifest: PilotManifest) -> str:
             f"- API key env: `{manifest.orchestrator.api_key_env}`\n\n"
         )
     return (
-        f"# Pilot Guide — {manifest.organization_name}\n\n"
+        f"# Twin Launch Guide — {manifest.organization_name}\n\n"
         f"## What this is\n\n"
         f"- Company: **{manifest.organization_name}**\n"
         f"- Archetype: **{manifest.archetype.replace('_', ' ')}**\n"
         f"- Current crisis: **{manifest.crisis_name}**\n"
         f"- Studio: `{manifest.studio_url}`\n"
-        f"- Operator Console: `{manifest.pilot_console_url}`\n"
+        f"- Control room: `{manifest.pilot_console_url}`\n"
         f"- Gateway: `{manifest.gateway_url}`\n\n"
         f"## Supported surfaces\n\n"
         f"{surface_lines}\n\n"
-        f"## Recommended first exercise\n\n"
+        f"## Recommended first move\n\n"
         f"{manifest.recommended_first_exercise}\n\n"
         f"{orchestrator_lines}"
         f"## Sample client\n\n"
@@ -944,8 +946,8 @@ def _render_pilot_guide(manifest: PilotManifest) -> str:
         f"## Connection snippets\n\n"
         f"{snippets}\n\n"
         "## Reset or finalize\n\n"
-        "- Reset the twin to baseline: use `vei pilot down` then `vei pilot up`, or the reset control in the Operator Console.\n"
-        "- Finalize the current run: use the Operator Console finalize control or `POST /api/twin/finalize` on the gateway.\n"
+        "- Reset the twin to baseline: use `vei twin reset`, or use the reset control in Studio.\n"
+        "- Finalize the current run: use `vei twin finalize`, or use the finalize control in Studio.\n"
     )
 
 
@@ -1189,7 +1191,7 @@ def _build_outcome(
     if gateway_payload is None:
         return PilotOutcomeSummary(
             status="stopped",
-            summary="Pilot services are not fully up yet.",
+            summary="Twin services are not fully up yet.",
         )
     runtime = (
         gateway_payload.get("runtime", {}) if isinstance(gateway_payload, dict) else {}
@@ -1418,7 +1420,7 @@ def _sync_orchestrator_agents_to_mirror(
         )
         if response is None:
             raise RuntimeError(
-                f"failed to sync orchestrator agent into mirror: {agent_id}"
+                f"failed to sync orchestrator agent into governor: {agent_id}"
             )
         synced_agent_count += 1
 
@@ -1442,7 +1444,7 @@ def _sync_orchestrator_agents_to_mirror(
         )
         if response is None:
             raise RuntimeError(
-                f"failed to remove stale orchestrator agent from mirror: {agent_id}"
+                f"failed to remove stale orchestrator agent from governor: {agent_id}"
             )
     return synced_agent_count
 
@@ -1731,7 +1733,7 @@ def _load_mirror_agents(
         timeout_s=4.0,
     )
     if not isinstance(payload, dict):
-        raise RuntimeError("failed to load current mirror agents")
+        raise RuntimeError("failed to load current governor agents")
     agents = payload.get("agents") or []
     if not isinstance(agents, list):
         return []
@@ -2012,7 +2014,7 @@ def _write_json(path: Path, payload: dict[str, Any]) -> None:
 
 
 def _pilot_dir(workspace_root: Path) -> Path:
-    return workspace_root / ".pilot"
+    return workspace_root / ".twin"
 
 
 def _repo_root() -> Path:

@@ -30,37 +30,23 @@ Options: `--world service_ops`, `--governor-demo`, `--connector-mode live`, `--s
 
 ## What This Looks Like
 
-The screenshots below come from a real local VEI run connected to a real local Paperclip company. VEI is not just showing logs here. It is posting guidance into outside work, recording its own intervention, and showing the downstream response inside the same company view.
+The screenshots below come from `vei quickstart run --world service_ops --governor-demo`, so a new teammate can reproduce the same flow locally in one command. VEI is not just showing logs. It is showing the company state, the governed outside agents, and the approval story in one place.
 
-![VEI + Paperclip control room demo](docs/assets/paperclip-control-room/vei-paperclip-demo.gif)
+![VEI governor demo hero](docs/assets/governor-demo/service-ops-governor-hero.png)
 
-[Download the MP4 version](docs/assets/paperclip-control-room/vei-paperclip-demo.mp4)
+### Control Room
 
-### Operator Console
+The control room keeps the outside agents, their permissions, and the company-facing connectors in the same view as the simulated company.
 
-The outside-workforce view: who exists, what they own, and whether VEI can steer the work.
+![VEI governor control room](docs/assets/governor-demo/service-ops-governor-control-room.png)
 
-![VEI operator console](docs/assets/paperclip-control-room/demo-frame-01-pilot-top.png)
+### Governance Feed
 
-### VEI Intervention
+The governance feed shows what VEI allowed, held, and blocked, with the reason attached to the event instead of hiding it in a side log.
 
-VEI's own action appears as `Guided task`, followed by the downstream Paperclip update. The cause-and-effect chain is visible instead of hiding VEI inside generic activity noise.
+![VEI governor activity log](docs/assets/governor-demo/service-ops-governor-activity-log.png)
 
-![VEI intervention in the operator feed](docs/assets/paperclip-control-room/demo-frame-02-pilot-activity.png)
-
-### Company Control Room
-
-The outside workforce is visible inside the company world itself, not only in a side dashboard. Tasks, approvals, interventions, and responses become part of the world state VEI can replay, compare, and branch.
-
-![VEI company control room](docs/assets/paperclip-control-room/demo-frame-03-control-room.png)
-
-### Intervention Story
-
-VEI intervention first, outside response second, all inside one operating picture.
-
-![VEI intervention story in the company view](docs/assets/paperclip-control-room/demo-frame-04-intervention-story.png)
-
-[Full write-up: Paperclip Control Room Report](docs/PAPERCLIP_CONTROL_ROOM_REPORT.md)
+Need the live-orchestrator proof point too? Read the [Paperclip Control Room Report](docs/PAPERCLIP_CONTROL_ROOM_REPORT.md).
 
 ## How It Works
 
@@ -264,7 +250,7 @@ make all      # check → test → llm-live, stops on first failure
 - `examples/sdk_playground_min.py`
 - `examples/mcp_client_stdio_min.py`
 - `examples/rl_train.py`
-- `examples/pilot_client.py`
+- `examples/governor_client.py`
 
 ## Docs
 

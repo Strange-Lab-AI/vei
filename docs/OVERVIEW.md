@@ -1,6 +1,6 @@
 # VEI
 
-VEI is a programmable replica of an entire company's operational software stack. You give it a company description — or connect it to real Slack, Gmail, Jira, and Teams data — and it builds a fully functioning simulated copy of that company with working Slack channels, email threads, ticket queues, CRM pipelines, document stores, identity systems, and more. An agent or a human can then operate inside it: play crisis scenarios, mirror live activity, train on the traces, and synthesize operational artifacts from what happened.
+VEI is a programmable replica of an entire company's operational software stack. You give it a company description — or connect it to real Slack, Gmail, Jira, and Teams data — and it builds a fully functioning simulated copy of that company with working Slack channels, email threads, ticket queues, CRM pipelines, document stores, identity systems, and more. An agent or a human can then operate inside it: play crisis scenarios, steer live activity through the twin gateway, train on the traces, and synthesize operational artifacts from what happened.
 
 It spans hundreds of Python files and tests, a single-page Studio UI, and one unified `vei` CLI for project setup, world simulation, benchmarking, release/export, and evaluation.
 
@@ -11,7 +11,7 @@ Use the root `README.md` for install and operator quickstart. Use this document 
 VEI is best understood as **one kernel with four operating modes**, not as a pile of separate products.
 
 - **Test / Eval** — run a fixed company world, score an agent, and see whether it actually works
-- **Mirror / Control** — place VEI between agents and enterprise systems, or ingest their actions, so VEI can govern, record, and replay what happened
+- **Governor / Control** — place VEI between agents and enterprise systems, or ingest their actions, so VEI can govern, record, and replay what happened
 - **Sandbox / What-if** — fork the same world, change policy or actions, compare alternate futures, and for `service_ops` replay the same starting point with a small set of named policy changes
 - **Train / Data** — turn the same traces and trajectories into rollouts, demonstrations, and RL-friendly data
 
@@ -56,7 +56,7 @@ The contract system defines predicates (what must happen), invariants (what must
 
 A lightweight RL layer provides a Gymnasium-compatible `VEIEnv`, behavior cloning trainer, and BC policy wrapper for learning policies from demonstration traces.
 
-### 5. Synthesis, Twin Gateway, and Mirror Mode
+### 5. Synthesis, Twin Gateway, and Governor Mode
 
 Finished runs produce structured outputs:
 
@@ -73,8 +73,8 @@ Governor mode builds on that gateway in two parallel ways:
 
 Today governor mode ships in two maturity levels:
 
-- **Mirror demo mode** — built-in agent registry plus staged timed activity over simulated worlds, especially `service_ops`, so the control-plane story feels live without real credentials
-- **Mirror live alpha** — Slack-first live pass-through with typed policy profiles, approval holds, and connector-status reporting; unsupported surfaces still serve reads from the last synced twin snapshot, and live writes fail clearly until their adapters exist
+- **Governor demo mode** — built-in agent registry plus staged timed activity over simulated worlds, especially `service_ops`, so the control-room story feels live without real credentials
+- **Governor live alpha** — Slack-first live pass-through with typed policy profiles, approval holds, and connector-status reporting; unsupported surfaces still serve reads from the last synced twin snapshot, and live writes fail clearly until their adapters exist
 
 That last point matters: VEI is authoritative for actions it directly proxies or ingests. Everything else is refreshed by capture or re-sync, not by claiming real-time convergence yet.
 
@@ -84,15 +84,15 @@ The `vei.governor` package provides the runtime that makes governor mode work:
 
 - **`GovernorRuntime`** — manages the agent registry, event ingest, demo autoplay, approval queue, rate limiting, and snapshot generation. Each registered agent is a `GovernorAgentSpec` with typed fields for role, team, allowed surfaces, policy profile, status, `last_action`, `denied_count`, and `throttled_count`.
 - **Typed policy profiles** — every registered agent resolves to one of four built-in profiles: `observer`, `operator`, `approver`, or `admin`. Those profiles decide whether reads, safe writes, and risky writes are allowed, denied, or held for approval.
-- **Mirror decision pipeline** — the twin gateway evaluates registration, agent mode, allowed surfaces, policy profile, connector safety, and lightweight rate limits before it executes a governed action. The `record_only` path intentionally bypasses enforcement so passive observation agents can report telemetry without policy gating.
-- **Approval queue and recent-event feed** — risky actions can pause in a pending-approval state instead of executing immediately. The runtime keeps a bounded ring buffer of recent mirror events (`GovernorRecentEvent`) so the Studio control plane can show blocked, held, throttled, and executed activity without rescanning full history.
-- **`GovernorRuntimeSnapshot`** — a typed snapshot of the mirror fleet state including agents, resolved policy profiles, pending approvals, connector status, denial counts, throttle counts, config, and the recent event feed.
+- **Governor decision pipeline** — the twin gateway evaluates registration, agent mode, allowed surfaces, policy profile, connector safety, and lightweight rate limits before it executes a governed action. The `record_only` path intentionally bypasses enforcement so passive observation agents can report telemetry without policy gating.
+- **Approval queue and recent-event feed** — risky actions can pause in a pending-approval state instead of executing immediately. The runtime keeps a bounded ring buffer of recent governor events (`GovernorRecentEvent`) so the Studio control plane can show blocked, held, throttled, and executed activity without rescanning full history.
+- **`GovernorRuntimeSnapshot`** — a typed snapshot of the governed fleet state including agents, resolved policy profiles, pending approvals, connector status, denial counts, throttle counts, config, and the recent event feed.
 
 ## The UI
 
 A single-page Studio interface with three main views:
 
-- **Company view** — "Living company" panels showing every surface (Slack, Mail, Docs, Tickets, CRM, etc.) updating in real time as the simulation runs. A cascade replay system auto-plays changes panel by panel. Changed systems are highlighted. When governor mode is active, a **mode indicator banner** appears ("Mirror Mode — agents governed by control plane") and the **Control Plane panel** shows registered agents, policy badges, connector status, an approval queue, inline agent controls, and a readable activity log.
+- **Company view** — "Living company" panels showing every surface (Slack, Mail, Docs, Tickets, CRM, etc.) updating in real time as the simulation runs. A cascade replay system auto-plays changes panel by panel. Changed systems are highlighted. When governor mode is active, a **mode indicator banner** appears ("Governor demo" or the live connector mode) and the **Control Plane panel** shows registered agents, policy badges, connector status, an approval queue, inline agent controls, and a readable activity log.
 - **Crisis view** — Structured analysis of what went wrong and why it matters, with crisis description, impact assessment, and failure consequences.
 - **Outcome view** — Contract evaluation (pass/fail, success checks, policy overrides), decision audit trail, and a **Compare Paths** button that opens a side-by-side view of how two runs differ. The **Snapshots** card shows every world-state checkpoint with **"Fork from here"** buttons for branching a new playable mission from any historical state. A **Compare snapshots** button compares the selected snapshot pair and shows what changed between them, grouped by domain with humanized labels. For `service_ops`, a **`Try Different Policy`** flow opens a compact what-if form, replays from the same starting snapshot, and lands directly in compare mode.
 - **Connect panel** — Shows which live data sources are configured with status indicators and one-click capture.
@@ -163,9 +163,9 @@ vei twin build --root _vei_out/twins/acme --snapshot acme_snapshot.json --organi
 vei ui serve --root _vei_out/twins/acme
 ```
 
-The twin builder merges your captured data with the closest vertical archetype (it picks based on which data surfaces are present) and produces a workspace you can run scenarios against, play missions in, mirror into, or generate training data from.
+The twin builder merges your captured data with the closest vertical archetype (it picks based on which data surfaces are present) and produces a workspace you can run scenarios against, play missions in, govern live traffic through, or generate training data from.
 
-If you want the mirror experience without real credentials yet, build the same twin with staged demo activity:
+If you want the governor experience without real credentials yet, build the same twin with staged demo activity:
 
 ```bash
 vei twin build \
