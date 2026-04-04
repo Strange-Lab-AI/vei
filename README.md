@@ -84,6 +84,8 @@ VEI simulates a complete enterprise environment — every software system, every
 5. Actions flow through MCP tools, resolve to capability-graph mutations, and produce side effects across every surface simultaneously
 6. The entire run is recorded as an append-only event spine — replayable, branchable, and gradeable
 
+**Why it's deterministic:** No LLM calls happen inside the simulation. Vendor email replies are picked from pre-written template lists using a seeded RNG. Slack approval checks use regex. CRM, tickets, and docs are pure CRUD with state machines. Scenario seed data (channels, threads, org charts, CRM records) is all static. Same seed = same world — the only variable in an eval is the agent being tested. An optional actor system can use an LLM for NPC responses, but the default backend is template-based and deterministic.
+
 ### Architecture
 
 ```text
@@ -192,6 +194,13 @@ vei ui serve --root _vei_out/workspaces/identity_demo
 For the full step-by-step path: `vei project validate-import`, `review-import`, `scaffold-overrides`, `normalize`, `import`, `scenario generate`, `scenario activate`, `run start`.
 
 ### Benchmarking
+
+VEI provides four runner types that form a performance ladder over the same scenario:
+
+- **scripted** — hardcoded behavior tree. Fixed sequence of tool calls. Deterministic baseline floor; if scripted can't solve it, the scenario is probably broken.
+- **workflow** — declarative step graph with post-condition assertions. The reference solution — what a correct playthrough looks like.
+- **bc** (behavior cloning) — learned policy from demonstration data. Picks tools by frequency statistics. Deterministic but data-driven.
+- **llm** — real LLM agent via MCP stdio. Observes the world, reasons, calls tools. Non-deterministic, requires API keys.
 
 ```bash
 # Family-level benchmark

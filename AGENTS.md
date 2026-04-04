@@ -275,6 +275,38 @@ USE the bd tool instead of markdown for all new work. We only and always track w
 - `_vei_out/` and `.artifacts/`: run artifacts, traces, logs (gitignored).
 - `pyproject.toml`: package, extras, and console scripts.
 
+### How the Simulation Works
+The world kernel (`vei/world/session.py` + `vei/router/core.py`) is fully deterministic. No LLM calls happen inside the simulation — all tool responses are computed from rules, templates, and a seeded RNG:
+- **Mail**: vendor replies are picked from pre-written template lists using `bus.rng.randint()`.
+- **Slack**: budget approvals are checked via regex; derailment events fire based on `rng.next_float() < derail_prob`.
+- **CRM, Tickets, Docs**: pure CRUD with validation and state machines.
+- **Seed data**: vertical packs (`vei/verticals/packs_*.py`) are static data structures — pre-written channels, threads, tickets, org charts.
+- **Actors**: an optional `ActorRegistry` (`vei/actors/`) provides NPC responses. The default backend is deterministic (template-based, keyed by content hash). An opt-in `LLMActorBackend` exists but is not the default.
+
+Same seed = same world. The only variable in an eval is the agent being tested.
+
+### Eval System and Runner Types
+The eval system (`vei eval`) runs agents through scenarios and scores them. Four runner types provide a performance ladder:
+- **scripted** — hardcoded behavior tree (`vei/behavior/policy.py`). Fixed sequence of tool calls. Deterministic baseline floor.
+- **workflow** — declarative step graph with assertions (`vei/benchmark/workflows.py`). Each step names a tool call and post-conditions. The reference solution.
+- **bc** (behavior cloning) — learned policy trained from demonstration data (`vei/rl/policy_bc.py`). Selects tools by frequency statistics. Deterministic but data-driven.
+- **llm** — real LLM agent via MCP stdio (`vei/cli/vei_llm_test.py`). Subprocess connects to the world, fetches tools, and runs an observe→reason→act loop. Non-deterministic, requires API keys.
+
+Key eval commands:
+- `vei eval benchmark --runner workflow --family security_containment` — run a benchmark family
+- `vei eval demo --family security_containment` — side-by-side baseline vs comparison runner
+- `vei eval suite` — run all families with workflow baseline
+- `vei eval showcase` — curated complex multi-system examples
+- `vei eval-frontier run --model gpt-5 --scenario-set reasoning` — hard frontier scenarios with multi-dimensional scoring
+
+Scoring is multi-layered: raw task success → policy compliance → domain-specific dimensions (evidence preservation, blast radius, comms correctness, etc.) → composite score with 0.7 threshold for frontier scenarios. Optional LLM-as-judge for communication quality.
+
+### Fidelity and Calibration
+- **Fidelity checks** (`vei inspect fidelity`): validate that each twin adapter behaves like a real service — writes return success and show up in state, invalid operations fail explicitly, history is preserved.
+- **Scenario variants**: the ablation mechanism. Each vertical ships variants that inject faults (vendor no-show, deadline compression, capacity fragmentation) onto the same base world. Running the same agent across variants tests sensitivity.
+- **Quality filter** (`vei/quality/`): scores generated workflows on realism and structural novelty before including them in benchmarks.
+- **Contracts**: separate oracle state from agent-visible observation, so scoring measures what the agent actually saw.
+
 ### Build, Test, and Dev Commands
 - Install (with extras): `pip install -e ".[llm,browser,sse]"`
 - Repo validation: `make check && make test`
