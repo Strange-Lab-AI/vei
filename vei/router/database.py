@@ -106,6 +106,7 @@ class DatabaseSim:
             cursor=cursor,
             default_limit=self._DEFAULT_LIMIT,
             max_limit=self._MAX_LIMIT,
+            error_code="db.invalid_cursor",
         )
 
     def describe_table(self, table: str) -> Dict[str, Any]:
@@ -130,7 +131,11 @@ class DatabaseSim:
         if sort_by:
             rows.sort(key=lambda r: sortable(r.get(sort_by)), reverse=bool(descending))
         total = len(rows)
-        start = decode_cursor(cursor) if cursor else max(0, int(offset))
+        start = (
+            decode_cursor(cursor, error_code="db.invalid_cursor")
+            if cursor
+            else max(0, int(offset))
+        )
         page_limit = normalize_limit(limit, default=20, max_limit=self._MAX_LIMIT)
         end = start + page_limit
         sliced = rows[start:end]

@@ -153,7 +153,7 @@ class OktaSim:
             key=lambda row: _sort_key(row.get(sort_key)),
             reverse=sort_dir.lower() != "asc",
         )
-        start = decode_cursor(cursor)
+        start = decode_cursor(cursor, error_code="okta.invalid_cursor")
         page_limit = normalize_limit(limit)
         sliced = payload[start : start + page_limit]
         next_cursor = (
@@ -270,7 +270,7 @@ class OktaSim:
             key=lambda row: _sort_key(row.get(sort_key)),
             reverse=sort_dir.lower() != "asc",
         )
-        start = decode_cursor(cursor)
+        start = decode_cursor(cursor, error_code="okta.invalid_cursor")
         page_limit = normalize_limit(limit)
         sliced = payload[start : start + page_limit]
         next_cursor = (
@@ -331,7 +331,7 @@ class OktaSim:
             key=lambda row: _sort_key(row.get(sort_key)),
             reverse=sort_dir.lower() != "asc",
         )
-        start = decode_cursor(cursor)
+        start = decode_cursor(cursor, error_code="okta.invalid_cursor")
         page_limit = normalize_limit(limit)
         sliced = payload[start : start + page_limit]
         next_cursor = (

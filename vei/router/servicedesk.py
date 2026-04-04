@@ -143,7 +143,7 @@ class ServiceDeskSim:
             key=lambda row: sortable(row.get(sort_field)),
             reverse=sort_dir.lower() != "asc",
         )
-        start = decode_cursor(cursor)
+        start = decode_cursor(cursor, error_code="servicedesk.invalid_cursor")
         page_limit = normalize_limit(
             limit, default=self._DEFAULT_LIMIT, max_limit=self._MAX_LIMIT
         )
@@ -233,7 +233,7 @@ class ServiceDeskSim:
             key=lambda row: sortable(row.get(sort_field)),
             reverse=sort_dir.lower() != "asc",
         )
-        start = decode_cursor(cursor)
+        start = decode_cursor(cursor, error_code="servicedesk.invalid_cursor")
         page_limit = normalize_limit(
             limit, default=self._DEFAULT_LIMIT, max_limit=self._MAX_LIMIT
         )

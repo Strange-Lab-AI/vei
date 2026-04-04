@@ -4,10 +4,19 @@ from typing import Any, Callable, Dict, List, Optional
 
 from vei.world.api import Scenario
 
-from ._pagination import decode_cursor, encode_cursor, normalize_limit, sortable
+from ._pagination import decode_cursor, encode_cursor, normalize_limit
 from .errors import MCPError
 from .tool_providers import PrefixToolProvider
 from .tool_registry import ToolSpec
+
+
+def _ga_sortable(value: Any) -> Any:
+    """Google Admin sort key: lowercase strings, bools as ints."""
+    if value is None:
+        return ""
+    if isinstance(value, bool):
+        return int(value)
+    return str(value).lower()
 
 
 def _default_oauth_apps() -> Dict[str, Dict[str, Any]]:
@@ -115,7 +124,7 @@ class GoogleAdminSim:
             else "name"
         )
         rows.sort(
-            key=lambda row: sortable(row.get(sort_field)),
+            key=lambda row: _ga_sortable(row.get(sort_field)),
             reverse=sort_dir.lower() != "asc",
         )
         return _page(rows, limit=limit, cursor=cursor, key="apps")
@@ -196,7 +205,7 @@ class GoogleAdminSim:
             )
         sort_field = sort_by if sort_by in {"title", "owner", "visibility"} else "title"
         rows.sort(
-            key=lambda row: sortable(row.get(sort_field)),
+            key=lambda row: _ga_sortable(row.get(sort_field)),
             reverse=sort_dir.lower() != "asc",
         )
         return _page(rows, limit=limit, cursor=cursor, key="shares")
@@ -336,7 +345,9 @@ def _page(
     cursor: Optional[str],
     key: str,
 ) -> Dict[str, Any]:
-    start = decode_cursor(cursor, prefix="idx")
+    start = decode_cursor(
+        cursor, prefix="idx", error_code="google_admin.invalid_cursor"
+    )
     page_limit = normalize_limit(
         limit,
         default=GoogleAdminSim._DEFAULT_LIMIT,

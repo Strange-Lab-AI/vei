@@ -272,10 +272,10 @@ def _page(
     if rows:
         sort_field = sort_by if sort_by in rows[0] else next(iter(rows[0]))
         rows.sort(
-            key=lambda row: sortable(row.get(sort_field)),
+            key=lambda row: sortable(row.get(sort_field), lowercase=True),
             reverse=sort_dir.lower() != "asc",
         )
-    start = decode_cursor(cursor, prefix="idx")
+    start = decode_cursor(cursor, prefix="idx", error_code="datadog.invalid_cursor")
     page_limit = normalize_limit(
         limit, default=DatadogSim._DEFAULT_LIMIT, max_limit=DatadogSim._MAX_LIMIT
     )

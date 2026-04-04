@@ -330,10 +330,10 @@ def _page(
         sort_by if sort_by in rows[0] else next(iter(rows[0]), "") if rows else ""
     )
     rows.sort(
-        key=lambda row: sortable(row.get(sort_field)),
+        key=lambda row: sortable(row.get(sort_field), lowercase=True),
         reverse=sort_dir.lower() != "asc",
     )
-    start = decode_cursor(cursor, prefix="idx")
+    start = decode_cursor(cursor, prefix="idx", error_code="siem.invalid_cursor")
     page_limit = normalize_limit(
         limit, default=SiemSim._DEFAULT_LIMIT, max_limit=SiemSim._MAX_LIMIT
     )
