@@ -172,6 +172,33 @@ _FAMILY_CATALOG: Dict[str, BenchmarkFamilyManifest] = {
         ],
         tags=["vertical", "storage", "capacity", "quotes"],
     ),
+    "b2b_saas": BenchmarkFamilyManifest(
+        name="b2b_saas",
+        title="B2B SaaS Renewal",
+        description=(
+            "Protect a high-value enterprise renewal under integration failure, "
+            "champion departure, and competitive pressure."
+        ),
+        workflow_name="b2b_saas",
+        primary_workflow_variant="enterprise_renewal_risk",
+        workflow_variants=[
+            "enterprise_renewal_risk",
+            "support_escalation_spiral",
+            "pricing_negotiation_deadlock",
+        ],
+        scenario_names=[
+            "enterprise_renewal_risk",
+            "support_escalation_spiral",
+            "pricing_negotiation_deadlock",
+        ],
+        primary_dimensions=[
+            "stakeholder_alignment",
+            "revenue_impact",
+            "competitive_defense",
+            "cross_functional_coordination",
+        ],
+        tags=["saas", "renewal", "revenue"],
+    ),
     "service_ops": BenchmarkFamilyManifest(
         name="service_ops",
         title="Service Operations",
