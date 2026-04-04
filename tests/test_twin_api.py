@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from json import JSONDecodeError
 from pathlib import Path
 from time import monotonic, sleep
 from threading import Event, Thread
@@ -50,6 +51,41 @@ def _register_proxy_agent(
         "x-vei-agent-id": agent_id,
         "x-vei-agent-name": response.json()["name"],
     }
+
+
+def _wait_for_workspace_governor_status(
+    client: TestClient,
+    *,
+    attempts: int = 20,
+    delay_s: float = 0.2,
+) -> dict[str, object]:
+    last_payload: dict[str, object] | None = None
+    last_error: JSONDecodeError | None = None
+
+    for _ in range(attempts):
+        response = client.get("/api/workspace/governor")
+        try:
+            payload = response.json()
+        except JSONDecodeError as exc:
+            last_error = exc
+            sleep(delay_s)
+            continue
+
+        if isinstance(payload, dict):
+            last_payload = payload
+            if (
+                payload.get("pending_demo_steps") == 0
+                and payload.get("autoplay_running") is False
+            ):
+                return payload
+
+        sleep(delay_s)
+
+    if last_payload is not None:
+        return last_payload
+    if last_error is not None:
+        raise last_error
+    raise AssertionError("workspace governor status never returned a JSON object")
 
 
 def test_build_customer_twin_creates_workspace_and_preserves_external_context(
@@ -797,7 +833,7 @@ def test_workspace_mirror_marks_autoplay_stopped_after_demo_finishes(
         gateway_mirror = gateway_client.get(
             "/api/governor", headers=auth_headers
         ).json()
-        workspace_mirror = ui_client.get("/api/workspace/governor").json()
+        workspace_mirror = _wait_for_workspace_governor_status(ui_client)
 
         assert gateway_mirror["pending_demo_steps"] == 0
         assert gateway_mirror["autoplay_running"] is False
