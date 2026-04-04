@@ -90,8 +90,14 @@ def build_customer_twin(
 
     resolved_name = organization_name or resolved_snapshot.organization_name
     resolved_domain = organization_domain or resolved_snapshot.organization_domain
+    normalized_snapshot = resolved_snapshot.model_copy(
+        update={
+            "organization_name": resolved_name,
+            "organization_domain": resolved_domain,
+        }
+    )
     twin_asset = build_customer_twin_asset(
-        resolved_snapshot,
+        normalized_snapshot,
         mold=resolved_mold,
         organization_name=resolved_name,
         organization_domain=resolved_domain,
@@ -136,7 +142,7 @@ def build_customer_twin(
 
     snapshot_path = workspace_root / "context_snapshot.json"
     snapshot_path.write_text(
-        resolved_snapshot.model_dump_json(indent=2),
+        normalized_snapshot.model_dump_json(indent=2),
         encoding="utf-8",
     )
 
@@ -165,6 +171,10 @@ def build_customer_twin(
         metadata={
             "preview": preview_workspace_scenario(workspace_root),
             "source_providers": [item.provider for item in resolved_snapshot.sources],
+            "normalized_identity": {
+                "organization_name": resolved_name,
+                "organization_domain": resolved_domain,
+            },
             "governor": governor_metadata_payload(resolved_mirror),
         },
     )

@@ -90,6 +90,7 @@ def quickstart_command(
     try:
         start_twin(
             root,
+            organization_name=getattr(state, "world_name", None),
             archetype=world,  # type: ignore[arg-type]
             gateway_port=gateway_port,
             studio_port=studio_port,

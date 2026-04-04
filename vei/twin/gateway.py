@@ -1,4 +1,7 @@
+from . import _gateway_adapters as _adapter_impl
+from . import _gateway_routes as _route_impl
 from . import _runtime as _runtime_impl
+from ._gateway_adapters import dispatch_request as _dispatch_request
 from ._helpers import (
     _blocked_live_operations,
     _channel_for_focus,
@@ -46,30 +49,28 @@ from ._helpers import (
 )
 from ._runtime import TwinRuntime
 
-_dispatch_request = _runtime_impl._dispatch_request
-
 
 def create_twin_gateway_app(root):
-    _runtime_impl._dispatch_request = _dispatch_request
+    _route_impl.dispatch_request = _dispatch_request
     return _runtime_impl.create_twin_gateway_app(root)
 
 
 def _jira_search(runtime, request, params):
-    original = _runtime_impl._dispatch_request
-    _runtime_impl._dispatch_request = _dispatch_request
+    original = _adapter_impl.dispatch_request
+    _adapter_impl.dispatch_request = _dispatch_request
     try:
-        return _runtime_impl._jira_search(runtime, request, params)
+        return _adapter_impl.jira_search(runtime, request, params)
     finally:
-        _runtime_impl._dispatch_request = original
+        _adapter_impl.dispatch_request = original
 
 
 def _salesforce_query(runtime, request, query):
-    original = _runtime_impl._dispatch_request
-    _runtime_impl._dispatch_request = _dispatch_request
+    original = _adapter_impl.dispatch_request
+    _adapter_impl.dispatch_request = _dispatch_request
     try:
-        return _runtime_impl._salesforce_query(runtime, request, query)
+        return _adapter_impl.salesforce_query(runtime, request, query)
     finally:
-        _runtime_impl._dispatch_request = original
+        _adapter_impl.dispatch_request = original
 
 
 __all__ = [

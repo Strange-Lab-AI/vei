@@ -15,6 +15,9 @@ VEI is a programmable replica of a company's entire operational software stack. 
 
 Every mode shares the same world session, event spine, contract scoring, and replay model. The world simulation is the substrate; the modes are lenses on top.
 
+**Start with one path:** `quickstart` -> Studio -> `twin status` / `project show` -> `eval`.
+That path is the clearest proof that VEI is working as a company twin, not just as a pile of commands.
+
 ## Try It Now
 
 ```bash
@@ -55,11 +58,11 @@ VEI simulates a complete enterprise environment — every software system, every
 **Software surfaces:** Slack, Email, Browser, Docs, Spreadsheet, Tickets, CRM, ERP, Okta-style identity, ServiceDesk, Google Admin, SIEM, Datadog, PagerDuty, feature flags, HRIS, and Jira-style issues. One move in one system can trigger visible changes across all the others.
 
 **Built-in company worlds:**
+- **Clearwater Field Services** (Service Ops) — VIP outage, technician no-show, and billing dispute colliding
 - **Pinnacle Analytics** (B2B SaaS) — $480K enterprise renewal at risk
 - **Harbor Point Management** (Real Estate) — flagship tenant opening under pressure
 - **Northstar Growth** (Marketing Agency) — campaign launch with approval and pacing risk
 - **Atlas Storage Systems** (Storage/Logistics) — strategic customer quote with fragmented capacity
-- **Clearwater Field Services** (Service Ops) — VIP outage, technician no-show, and billing dispute colliding
 
 ### The Simulation Loop
 
@@ -116,7 +119,35 @@ Agent ──MCP──► VEI Router                       External Agent ──H
 
 For MCP-native agents, connect directly: `python -m vei.router`
 
-## Recipes
+## Core Path
+
+### 1. Start the company
+
+```bash
+vei quickstart run --world service_ops
+```
+
+This is the main entry point. It prepares the company, starts Studio, starts the Twin Gateway, and gives you one coherent world to inspect.
+
+### 2. Inspect the twin and workspace
+
+```bash
+vei twin status --root <workspace-root>
+vei project show --root <workspace-root>
+```
+
+Use these to confirm the company identity, scenario, surfaces, and compiled workspace all agree before you start deeper testing.
+
+### 3. Run an evaluation
+
+```bash
+vei eval benchmark --runner workflow --family security_containment \
+  --artifacts-root _vei_out/benchmark --run-id security_workflow
+```
+
+Once the company is up and the twin looks right, this is the next important proof: can an agent or policy actually complete the work and satisfy the contract?
+
+## Advanced Paths
 
 ### Run a live LLM episode
 
@@ -247,12 +278,12 @@ make all      # check → test → llm-live, stops on first failure
 
 ## CLI Surface
 
-- **Start here:** `vei quickstart run` · `vei ui serve` · `vei studio play`
+- **Primary path:** `vei quickstart run` -> `vei twin status` -> `vei project show` -> `vei eval`
 - **Twin and governor:** `vei twin build|serve|status|up|down|reset|finalize|sync`
-- **Context and synthesis:** `vei context capture|hydrate|diff` · `vei synthesize runbook|training-set|agent-config`
-- **Workspace lifecycle:** `vei project|contract|scenario|run|inspect|showcase`
-- **Benchmarking:** `vei eval benchmark|demo|suite|showcase` · `vei bench list|run|scorecard`
-- **Expert tools:** `vei world` · `vei blueprint` · `vei visualize` · `vei rollout` · `vei train` · `vei release`
+- **Workspace lifecycle:** `vei project|contract|scenario|run|inspect`
+- **Benchmarking:** `vei eval benchmark|demo|suite`
+- **Advanced workflows:** `vei ui serve` · `vei studio play` · `vei context capture|hydrate|diff` · `vei synthesize runbook|training-set|agent-config`
+- **Expert tools:** `vei showcase` · `vei visualize` · `vei world` · `vei blueprint` · `vei rollout` · `vei train` · `vei release`
 
 ## Examples
 

@@ -28,6 +28,7 @@ from vei.twin.models import (
     CustomerTwinBundle,
     TwinGatewayConfig,
 )
+from vei.workspace.api import create_workspace_from_template
 
 
 def test_start_pilot_writes_handoff_files_and_status(
@@ -257,6 +258,37 @@ def test_ensure_twin_bundle_rejects_live_demo_combo(
             gateway_token="pilot-token",
             rebuild=True,
         )
+
+
+def test_ensure_twin_bundle_uses_existing_workspace_identity(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "existing_service_ops_workspace"
+    create_workspace_from_template(
+        root=root,
+        source_kind="vertical",
+        source_ref="service_ops",
+    )
+
+    bundle = pilot_api._ensure_twin_bundle(
+        root,
+        snapshot=None,
+        provider_configs=None,
+        organization_name=None,
+        organization_domain="",
+        archetype="service_ops",
+        scenario_variant=None,
+        contract_variant=None,
+        connector_mode="sim",
+        governor_demo=False,
+        governor_demo_interval_ms=1500,
+        gateway_token="pilot-token",
+        rebuild=False,
+    )
+
+    assert bundle.organization_name == "Clearwater Field Services"
+    assert bundle.organization_domain == "clearwater-field-services.example.com"
+    assert "Clearwater Field Services" in bundle.summary
 
 
 def test_start_pilot_rebuild_stops_existing_services_first(

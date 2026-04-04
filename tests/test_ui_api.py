@@ -7,12 +7,14 @@ from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
 from vei.dataset.models import DatasetBuildSpec, DatasetBundle, DatasetSplitManifest
+from vei.pilot import api as pilot_api
 from vei.pilot.exercise_models import (
     ExerciseCatalogItem,
     ExerciseComparisonRow,
     ExerciseManifest,
 )
 from vei.imports.api import get_import_package_example_path
+from vei.playable import prepare_playable_workspace
 from vei.twin.models import (
     TwinLaunchManifest,
     TwinLaunchRuntime,
@@ -119,6 +121,88 @@ def test_ui_api_start_run_returns_generated_run_id(tmp_path: Path, monkeypatch) 
     run_response = client.get(f"/api/runs/{payload['run_id']}")
     assert run_response.status_code == 200
     assert run_response.json()["status"] == "ok"
+
+
+def test_ui_api_quickstart_service_ops_payloads_keep_one_company_identity(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    root = tmp_path / "service_ops_quickstart"
+    alive_pids: set[int] = set()
+
+    def fake_spawn(command: list[str], *, log_path: Path) -> int:
+        pid = 5100 + len(alive_pids)
+        alive_pids.add(pid)
+        return pid
+
+    def fake_stop(pid: int) -> None:
+        alive_pids.discard(pid)
+
+    def fake_service_alive(service) -> bool:
+        return service.pid in alive_pids
+
+    def fake_wait(_: str, *, timeout_s: float = 20.0) -> None:
+        return None
+
+    def fake_fetch(url: str):
+        if url.endswith("/healthz"):
+            return {"ok": True}
+        if url.endswith("/api/workspace"):
+            return {"manifest": {"name": "service_ops"}}
+        if url.endswith("/api/twin"):
+            return {
+                "runtime": {
+                    "run_id": "external_service_ops_run",
+                    "status": "running",
+                    "request_count": 1,
+                },
+                "manifest": {
+                    "contract": {
+                        "ok": True,
+                        "issue_count": 0,
+                    }
+                },
+            }
+        if url.endswith("/api/twin/history"):
+            return []
+        if url.endswith("/api/twin/surfaces"):
+            return {"current_tension": "Dispatch is under pressure.", "panels": []}
+        return None
+
+    monkeypatch.setattr(pilot_api, "_spawn_service", fake_spawn)
+    monkeypatch.setattr(pilot_api, "_stop_pid", fake_stop)
+    monkeypatch.setattr(pilot_api, "_service_alive", fake_service_alive)
+    monkeypatch.setattr(pilot_api, "_wait_for_ready", fake_wait)
+    monkeypatch.setattr(pilot_api, "_fetch_json", fake_fetch)
+
+    state = prepare_playable_workspace(
+        root,
+        world="service_ops",
+        mission="service_day_collision",
+    )
+    pilot_api.start_pilot(
+        root,
+        organization_name=state.world_name,
+        archetype="service_ops",
+        gateway_port=3320,
+        studio_port=3311,
+    )
+
+    client = TestClient(ui_api.create_ui_app(root))
+
+    workspace_response = client.get("/api/workspace")
+    playable_response = client.get("/api/playable")
+    governor_response = client.get("/api/workspace/governor")
+
+    assert workspace_response.status_code == 200
+    assert playable_response.status_code == 200
+    assert governor_response.status_code == 200
+    assert workspace_response.json()["manifest"]["title"] == "Clearwater Field Services"
+    assert playable_response.json()["world_name"] == "Clearwater Field Services"
+    assert (
+        governor_response.json()["manifest"]["organization_name"]
+        == "Clearwater Field Services"
+    )
 
 
 def test_ui_api_serves_cross_run_diff_over_http(tmp_path: Path) -> None:

@@ -27,6 +27,7 @@ def test_quickstart_reports_invalid_live_demo_combo(
     fake_state = SimpleNamespace(
         mission=SimpleNamespace(mission_name="service_day_collision"),
         run_id="human_play_123",
+        world_name="Clearwater Field Services",
     )
 
     monkeypatch.setattr(
@@ -71,6 +72,7 @@ def test_quickstart_uses_shared_twin_launcher(
     fake_state = SimpleNamespace(
         mission=SimpleNamespace(mission_name="service_day_collision"),
         run_id="human_play_123",
+        world_name="Clearwater Field Services",
     )
     captured: dict[str, object] = {}
 
@@ -119,6 +121,7 @@ def test_quickstart_uses_shared_twin_launcher(
     assert result.exit_code == 0, result.output
     assert captured["args"] == (root,)
     assert captured["kwargs"]["archetype"] == "service_ops"
+    assert captured["kwargs"]["organization_name"] == "Clearwater Field Services"
     assert captured["kwargs"]["studio_port"] == 3311
     assert captured["kwargs"]["gateway_port"] == 3312
     assert captured["kwargs"]["governor_demo"] is True

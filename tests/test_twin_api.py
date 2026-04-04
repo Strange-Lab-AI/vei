@@ -137,6 +137,30 @@ def test_build_customer_twin_creates_workspace_and_preserves_external_context(
     assert "jordan.blake@apexfinancial.example.com" in addresses
 
 
+def test_build_customer_twin_normalizes_snapshot_identity_to_bundle_identity(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "customer_twin_identity"
+
+    bundle = build_customer_twin(
+        root,
+        snapshot=_sample_snapshot(),
+        organization_name="Renamed Service Ops",
+        organization_domain="renamed.example.com",
+    )
+
+    saved_snapshot = ContextSnapshot.model_validate_json(
+        (root / "context_snapshot.json").read_text(encoding="utf-8")
+    )
+
+    assert bundle.organization_name == "Renamed Service Ops"
+    assert bundle.organization_domain == "renamed.example.com"
+    assert saved_snapshot.organization_name == bundle.organization_name
+    assert saved_snapshot.organization_domain == bundle.organization_domain
+    assert load_workspace(root).title == bundle.organization_name
+    assert load_workspace_blueprint_asset(root).title == bundle.organization_name
+
+
 def test_twin_gateway_routes_expose_company_state_and_record_external_actions(
     tmp_path: Path,
 ) -> None:

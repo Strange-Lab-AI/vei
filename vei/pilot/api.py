@@ -625,9 +625,11 @@ def _ensure_twin_bundle(
         resolved_domain = organization_domain
     resolved_snapshot = snapshot
     if resolved_snapshot is None and provider_configs is None:
-        if (workspace_root / "workspace.json").exists():
+        existing_workspace = _safe_load_workspace(workspace_root)
+        if existing_workspace is not None:
             return _build_existing_workspace_twin_bundle(
                 workspace_root,
+                workspace=existing_workspace,
                 archetype=archetype,
                 scenario_variant=scenario_variant,
                 contract_variant=contract_variant,
@@ -670,6 +672,7 @@ def _ensure_twin_bundle(
 def _build_existing_workspace_twin_bundle(
     workspace_root: Path,
     *,
+    workspace=None,
     archetype: TwinArchetype,
     scenario_variant: str | None,
     contract_variant: str | None,
@@ -679,7 +682,13 @@ def _build_existing_workspace_twin_bundle(
     gateway_token: str | None,
     ui_skin: str,
 ) -> CustomerTwinBundle:
-    workspace = load_workspace(workspace_root)
+    workspace = workspace or load_workspace(workspace_root)
+    preview = preview_workspace_scenario(workspace_root)
+    resolved_name, resolved_domain = _resolve_workspace_identity(
+        workspace_root,
+        workspace=workspace,
+        preview=preview,
+    )
     resolved_archetype = str(workspace.source_ref or "").strip() or str(archetype)
     governor_config = default_governor_workspace_config(
         connector_mode=connector_mode,
@@ -698,8 +707,8 @@ def _build_existing_workspace_twin_bundle(
     bundle = CustomerTwinBundle(
         workspace_root=workspace_root,
         workspace_name=workspace.name,
-        organization_name=workspace.title or workspace.name,
-        organization_domain="",
+        organization_name=resolved_name,
+        organization_domain=resolved_domain,
         mold=ContextMoldConfig(
             archetype=resolved_archetype,  # type: ignore[arg-type]
             scenario_variant=scenario_variant,
@@ -733,16 +742,81 @@ def _build_existing_workspace_twin_bundle(
             ),
         ),
         summary=(
-            f"{workspace.title or workspace.name} is ready as a governed twin "
+            f"{resolved_name} is ready as a governed twin "
             "workspace with compatibility routes for enterprise connectors."
         ),
         metadata={
-            "preview": preview_workspace_scenario(workspace_root),
+            "preview": preview,
             "governor": governor_metadata_payload(governor_config),
         },
     )
     _write_json(workspace_root / "twin_manifest.json", bundle.model_dump(mode="json"))
     return bundle
+
+
+def _safe_load_workspace(workspace_root: Path):
+    try:
+        return load_workspace(workspace_root)
+    except FileNotFoundError:
+        return None
+
+
+def _resolve_workspace_identity(
+    workspace_root: Path,
+    *,
+    workspace,
+    preview: dict[str, Any],
+) -> tuple[str, str]:
+    workspace_name = str(workspace.title or workspace.name or "").strip()
+    compiled = (
+        preview.get("compiled_blueprint", {})
+        if isinstance(preview.get("compiled_blueprint"), dict)
+        else {}
+    )
+    compiled_name = str(compiled.get("title") or "").strip()
+    if compiled_name and compiled_name != workspace_name:
+        raise ValueError(
+            "workspace identity mismatch: workspace title does not match compiled blueprint title"
+        )
+
+    customer_metadata = (
+        workspace.metadata.get("customer_twin", {})
+        if isinstance(workspace.metadata, dict)
+        else {}
+    )
+    metadata_name = str(customer_metadata.get("organization_name") or "").strip()
+    metadata_domain = str(customer_metadata.get("organization_domain") or "").strip()
+    if metadata_name and metadata_name != workspace_name:
+        raise ValueError(
+            "workspace identity mismatch: workspace title does not match saved twin metadata"
+        )
+
+    resolved_name = metadata_name or workspace_name
+    resolved_domain = metadata_domain
+
+    snapshot_path = workspace_root / "context_snapshot.json"
+    if snapshot_path.exists():
+        snapshot = ContextSnapshot.model_validate_json(
+            snapshot_path.read_text(encoding="utf-8")
+        )
+        snapshot_name = snapshot.organization_name.strip()
+        snapshot_domain = snapshot.organization_domain.strip()
+        if snapshot_name and snapshot_name != resolved_name:
+            raise ValueError(
+                "workspace identity mismatch: workspace title does not match context snapshot organization"
+            )
+        if snapshot_domain:
+            if resolved_domain and snapshot_domain != resolved_domain:
+                raise ValueError(
+                    "workspace identity mismatch: saved twin metadata does not match context snapshot domain"
+                )
+            resolved_domain = snapshot_domain
+
+    if not resolved_name:
+        raise ValueError("workspace identity is missing a company name")
+    if not resolved_domain:
+        resolved_domain = _default_domain(resolved_name)
+    return resolved_name, resolved_domain
 
 
 def _build_manifest(
