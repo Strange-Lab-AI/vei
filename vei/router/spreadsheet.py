@@ -5,6 +5,7 @@ from typing import Any, Callable, Dict, List, Optional
 
 from vei.world import Scenario, SpreadsheetSheet, SpreadsheetWorkbook
 
+from ._pagination import decode_cursor, encode_cursor, normalize_limit, sortable
 from .errors import MCPError
 from .tool_providers import PrefixToolProvider
 from .tool_registry import ToolSpec
@@ -245,7 +246,7 @@ class SpreadsheetSim:
         )
         rows = list(sheet.get("rows", []))
         rows.sort(
-            key=lambda row: _sortable(row.get(column)),
+            key=lambda row: sortable(row.get(column)),
             reverse=normalized_direction == "desc",
         )
         sheet["rows"] = rows
@@ -531,14 +532,20 @@ def _page(
     if rows:
         sort_field = sort_by if sort_by in rows[0] else next(iter(rows[0]))
         rows.sort(
-            key=lambda row: _sortable(row.get(sort_field)),
+            key=lambda row: sortable(row.get(sort_field)),
             reverse=sort_dir.lower() != "asc",
         )
-    start = _decode_cursor(cursor)
-    page_limit = _normalize_limit(limit)
+    start = decode_cursor(cursor, prefix="idx")
+    page_limit = normalize_limit(
+        limit,
+        default=SpreadsheetSim._DEFAULT_LIMIT,
+        max_limit=SpreadsheetSim._MAX_LIMIT,
+    )
     sliced = rows[start : start + page_limit]
     next_cursor = (
-        _encode_cursor(start + page_limit) if (start + page_limit) < len(rows) else None
+        encode_cursor(start + page_limit, prefix="idx")
+        if (start + page_limit) < len(rows)
+        else None
     )
     return {
         key: sliced,
@@ -547,29 +554,6 @@ def _page(
         "next_cursor": next_cursor,
         "has_more": next_cursor is not None,
     }
-
-
-def _normalize_limit(limit: Optional[int]) -> int:
-    if limit is None:
-        return SpreadsheetSim._DEFAULT_LIMIT
-    return max(1, min(int(limit), SpreadsheetSim._MAX_LIMIT))
-
-
-def _encode_cursor(index: int) -> str:
-    return f"idx:{index}"
-
-
-def _decode_cursor(cursor: Optional[str]) -> int:
-    if not cursor:
-        return 0
-    if not cursor.startswith("idx:"):
-        raise MCPError("spreadsheet.invalid_cursor", f"Invalid cursor: {cursor}")
-    try:
-        return max(0, int(cursor.split(":", 1)[1]))
-    except ValueError as exc:
-        raise MCPError(
-            "spreadsheet.invalid_cursor", f"Invalid cursor: {cursor}"
-        ) from exc
 
 
 def _workbook_to_dict(value: Any, *, workbook_id: str) -> Dict[str, Any]:
@@ -668,9 +652,3 @@ def _jsonable(value: Any) -> Any:
     if isinstance(value, list):
         return [_jsonable(item) for item in value]
     return value
-
-
-def _sortable(value: Any) -> Any:
-    if value is None:
-        return ""
-    return str(value).lower()

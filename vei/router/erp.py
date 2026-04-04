@@ -3,6 +3,10 @@ from __future__ import annotations
 from typing import Any, Dict, List, Optional
 
 from vei.world.api import Scenario
+from ._pagination import (
+    sortable,
+    page_rows,
+)
 from .errors import MCPError
 
 
@@ -131,7 +135,7 @@ class ErpSim:
             else "created_ms"
         )
         rows.sort(
-            key=lambda row: _sortable(row.get(sort_field)),
+            key=lambda row: sortable(row.get(sort_field)),
             reverse=sort_dir.lower() != "asc",
         )
 
@@ -146,7 +150,7 @@ class ErpSim:
         )
         if is_legacy:
             return rows
-        return _page_rows(rows, key="purchase_orders", limit=limit, cursor=cursor)
+        return page_rows(rows, key="purchase_orders", limit=limit, cursor=cursor)
 
     def receive_goods(self, po_id: str, lines: List[Dict[str, Any]]) -> Dict[str, Any]:
         po = self.pos.get(po_id)
@@ -282,7 +286,7 @@ class ErpSim:
             else "updated_ms"
         )
         rows.sort(
-            key=lambda row: _sortable(row.get(sort_field)),
+            key=lambda row: sortable(row.get(sort_field)),
             reverse=sort_dir.lower() != "asc",
         )
         is_legacy = (
@@ -296,7 +300,7 @@ class ErpSim:
         )
         if is_legacy:
             return rows
-        return _page_rows(rows, key="invoices", limit=limit, cursor=cursor)
+        return page_rows(rows, key="invoices", limit=limit, cursor=cursor)
 
     def match_three_way(
         self, po_id: str, invoice_id: str, receipt_id: Optional[str] = None
@@ -369,61 +373,3 @@ class ErpSim:
         elif paid_c > 0:
             inv["status"] = "PARTIALLY_PAID"
         return {"status": inv["status"], "paid_amount": inv["paid_amount"]}
-
-
-def _normalize_limit(
-    limit: int | None, *, default: int = 25, max_limit: int = 200
-) -> int:
-    if limit is None:
-        return default
-    if limit < 1:
-        return 1
-    return min(max_limit, int(limit))
-
-
-def _decode_cursor(cursor: str | None) -> int:
-    if not cursor:
-        return 0
-    if not cursor.startswith("ofs:"):
-        raise MCPError("invalid_cursor", "Cursor must use 'ofs:<offset>' format")
-    try:
-        value = int(cursor.split(":", 1)[1])
-    except ValueError as exc:
-        raise MCPError("invalid_cursor", f"Invalid cursor: {cursor}") from exc
-    return max(0, value)
-
-
-def _encode_cursor(offset: int) -> str:
-    return f"ofs:{max(0, int(offset))}"
-
-
-def _page_rows(
-    rows: List[Dict[str, Any]],
-    *,
-    key: str,
-    limit: int | None,
-    cursor: str | None,
-) -> Dict[str, Any]:
-    page_limit = _normalize_limit(
-        limit, default=ErpSim._DEFAULT_LIMIT, max_limit=ErpSim._MAX_LIMIT
-    )
-    start = _decode_cursor(cursor)
-    sliced = rows[start : start + page_limit]
-    next_cursor = (
-        _encode_cursor(start + page_limit) if (start + page_limit) < len(rows) else None
-    )
-    return {
-        key: sliced,
-        "count": len(sliced),
-        "total": len(rows),
-        "next_cursor": next_cursor,
-        "has_more": next_cursor is not None,
-    }
-
-
-def _sortable(value: object) -> object:
-    if value is None:
-        return ""
-    if isinstance(value, (int, float, str)):
-        return value
-    return str(value)

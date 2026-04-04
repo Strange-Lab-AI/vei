@@ -2,6 +2,13 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
 
+from ._pagination import (
+    decode_cursor,
+    encode_cursor,
+    normalize_limit,
+    page_rows,
+    sortable,
+)
 from .errors import MCPError
 from vei.world.api import Scenario
 
@@ -80,7 +87,7 @@ class DatabaseSim:
             rows = [row for row in rows if needle in str(row.get("table", "")).lower()]
         sort_field = sort_by if sort_by in {"table", "row_count"} else "table"
         rows.sort(
-            key=lambda row: _sortable(row.get(sort_field)),
+            key=lambda row: sortable(row.get(sort_field)),
             reverse=sort_dir.lower() != "asc",
         )
         is_legacy = (
@@ -92,7 +99,14 @@ class DatabaseSim:
         )
         if is_legacy:
             return rows
-        return _page_rows(rows, key="tables", limit=limit, cursor=cursor)
+        return page_rows(
+            rows,
+            key="tables",
+            limit=limit,
+            cursor=cursor,
+            default_limit=self._DEFAULT_LIMIT,
+            max_limit=self._MAX_LIMIT,
+        )
 
     def describe_table(self, table: str) -> Dict[str, Any]:
         rows = self._table(table)
@@ -114,16 +128,16 @@ class DatabaseSim:
         if filters:
             rows = [row for row in rows if _matches_filters(row, filters)]
         if sort_by:
-            rows.sort(key=lambda r: _sortable(r.get(sort_by)), reverse=bool(descending))
+            rows.sort(key=lambda r: sortable(r.get(sort_by)), reverse=bool(descending))
         total = len(rows)
-        start = _decode_cursor(cursor) if cursor else max(0, int(offset))
-        page_limit = _normalize_limit(limit, default=20, max_limit=self._MAX_LIMIT)
+        start = decode_cursor(cursor) if cursor else max(0, int(offset))
+        page_limit = normalize_limit(limit, default=20, max_limit=self._MAX_LIMIT)
         end = start + page_limit
         sliced = rows[start:end]
         if columns:
             keep = [str(col) for col in columns]
             sliced = [{k: v for k, v in row.items() if k in keep} for row in sliced]
-        next_cursor = _encode_cursor(end) if end < total else None
+        next_cursor = encode_cursor(end) if end < total else None
         return {
             "table": table,
             "rows": sliced,
@@ -245,62 +259,6 @@ def _matches_filters(row: Dict[str, Any], filters: Dict[str, Any]) -> bool:
         if value != expected:
             return False
     return True
-
-
-def _sortable(value: Any) -> Any:
-    if value is None:
-        return ""
-    if isinstance(value, (int, float, str)):
-        return value
-    return str(value)
-
-
-def _normalize_limit(limit: Optional[int], *, default: int, max_limit: int) -> int:
-    if limit is None:
-        return default
-    if limit < 1:
-        return 1
-    return min(max_limit, int(limit))
-
-
-def _decode_cursor(cursor: Optional[str]) -> int:
-    if not cursor:
-        return 0
-    if not cursor.startswith("ofs:"):
-        raise MCPError("db.invalid_cursor", f"Invalid cursor: {cursor}")
-    try:
-        value = int(cursor.split(":", 1)[1])
-    except ValueError as exc:
-        raise MCPError("db.invalid_cursor", f"Invalid cursor: {cursor}") from exc
-    return max(0, value)
-
-
-def _encode_cursor(offset: int) -> str:
-    return f"ofs:{max(0, int(offset))}"
-
-
-def _page_rows(
-    rows: List[Dict[str, Any]],
-    *,
-    key: str,
-    limit: Optional[int],
-    cursor: Optional[str],
-) -> Dict[str, Any]:
-    page_limit = _normalize_limit(
-        limit, default=DatabaseSim._DEFAULT_LIMIT, max_limit=DatabaseSim._MAX_LIMIT
-    )
-    start = _decode_cursor(cursor)
-    sliced = rows[start : start + page_limit]
-    next_cursor = (
-        _encode_cursor(start + page_limit) if (start + page_limit) < len(rows) else None
-    )
-    return {
-        key: sliced,
-        "count": len(sliced),
-        "total": len(rows),
-        "next_cursor": next_cursor,
-        "has_more": next_cursor is not None,
-    }
 
 
 def _compare_numeric(actual: Any, expected: Any, *, op: str) -> bool:

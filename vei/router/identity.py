@@ -17,6 +17,7 @@ from vei.world import (
     Scenario,
 )
 
+from ._pagination import decode_cursor, encode_cursor, normalize_limit
 from .errors import MCPError
 from .tool_providers import PrefixToolProvider
 from .tool_registry import ToolSpec
@@ -79,9 +80,6 @@ def _default_app_seeds() -> Dict[str, IdentityApplicationSeed]:
 
 class OktaSim:
     """Deterministic Okta-like identity emulator."""
-
-    _DEFAULT_LIMIT = 25
-    _MAX_LIMIT = 200
 
     def __init__(self, scenario: Optional[Scenario] = None):
         user_seeds = (
@@ -155,13 +153,11 @@ class OktaSim:
             key=lambda row: _sort_key(row.get(sort_key)),
             reverse=sort_dir.lower() != "asc",
         )
-        start = _decode_cursor(cursor)
-        page_limit = _normalize_limit(
-            limit, default=self._DEFAULT_LIMIT, max_limit=self._MAX_LIMIT
-        )
+        start = decode_cursor(cursor)
+        page_limit = normalize_limit(limit)
         sliced = payload[start : start + page_limit]
         next_cursor = (
-            _encode_cursor(start + page_limit)
+            encode_cursor(start + page_limit)
             if (start + page_limit) < len(payload)
             else None
         )
@@ -274,13 +270,11 @@ class OktaSim:
             key=lambda row: _sort_key(row.get(sort_key)),
             reverse=sort_dir.lower() != "asc",
         )
-        start = _decode_cursor(cursor)
-        page_limit = _normalize_limit(
-            limit, default=self._DEFAULT_LIMIT, max_limit=self._MAX_LIMIT
-        )
+        start = decode_cursor(cursor)
+        page_limit = normalize_limit(limit)
         sliced = payload[start : start + page_limit]
         next_cursor = (
-            _encode_cursor(start + page_limit)
+            encode_cursor(start + page_limit)
             if (start + page_limit) < len(payload)
             else None
         )
@@ -337,13 +331,11 @@ class OktaSim:
             key=lambda row: _sort_key(row.get(sort_key)),
             reverse=sort_dir.lower() != "asc",
         )
-        start = _decode_cursor(cursor)
-        page_limit = _normalize_limit(
-            limit, default=self._DEFAULT_LIMIT, max_limit=self._MAX_LIMIT
-        )
+        start = decode_cursor(cursor)
+        page_limit = normalize_limit(limit)
         sliced = payload[start : start + page_limit]
         next_cursor = (
-            _encode_cursor(start + page_limit)
+            encode_cursor(start + page_limit)
             if (start + page_limit) < len(payload)
             else None
         )
@@ -527,30 +519,6 @@ class OktaToolProvider(PrefixToolProvider):
             return handler(**payload)
         except TypeError as exc:  # pragma: no cover - surfaced via MCPError
             raise MCPError("invalid_args", str(exc)) from exc
-
-
-def _normalize_limit(limit: Optional[int], *, default: int, max_limit: int) -> int:
-    if limit is None:
-        return default
-    if limit < 1:
-        return 1
-    return min(max_limit, int(limit))
-
-
-def _decode_cursor(cursor: Optional[str]) -> int:
-    if not cursor:
-        return 0
-    if not cursor.startswith("ofs:"):
-        raise MCPError("okta.invalid_cursor", f"Invalid cursor: {cursor}")
-    try:
-        value = int(cursor.split(":", 1)[1])
-    except ValueError as exc:
-        raise MCPError("okta.invalid_cursor", f"Invalid cursor: {cursor}") from exc
-    return max(0, value)
-
-
-def _encode_cursor(offset: int) -> str:
-    return f"ofs:{max(0, int(offset))}"
 
 
 def _sort_key(value: object) -> str:

@@ -4,6 +4,8 @@ from typing import Any, Dict, List, Optional
 
 from vei.world import Document, Scenario
 
+from ._pagination import normalize_limit, decode_cursor, encode_cursor, sortable
+
 
 class DocsSim:
     """Deterministic docs twin with enterprise-style metadata and pagination."""
@@ -81,7 +83,7 @@ class DocsSim:
         )
         reverse = sort_dir.lower() != "asc"
         rows.sort(
-            key=lambda row: _sortable(row.get(sort_field)),
+            key=lambda row: sortable(row.get(sort_field)),
             reverse=reverse,
         )
 
@@ -106,13 +108,13 @@ class DocsSim:
                 for row in rows
             ]
 
-        page_limit = _normalize_limit(
+        page_limit = normalize_limit(
             limit, default=self._DEFAULT_LIMIT, max_limit=self._MAX_LIMIT
         )
-        start = _decode_cursor(cursor)
+        start = decode_cursor(cursor)
         sliced = rows[start : start + page_limit]
         next_cursor = (
-            _encode_cursor(start + page_limit)
+            encode_cursor(start + page_limit)
             if (start + page_limit) < len(rows)
             else None
         )
@@ -227,17 +229,17 @@ class DocsSim:
                         "tags": payload["tags"],
                     }
                 )
-        hits.sort(key=lambda row: _sortable(row.get("title")))
+        hits.sort(key=lambda row: sortable(row.get("title")))
 
         legacy = limit == 20 and cursor is None
         if legacy:
             return hits[:limit]
 
-        page_limit = _normalize_limit(limit, default=20, max_limit=self._MAX_LIMIT)
-        start = _decode_cursor(cursor)
+        page_limit = normalize_limit(limit, default=20, max_limit=self._MAX_LIMIT)
+        start = decode_cursor(cursor)
         sliced = hits[start : start + page_limit]
         next_cursor = (
-            _encode_cursor(start + page_limit)
+            encode_cursor(start + page_limit)
             if (start + page_limit) < len(hits)
             else None
         )
@@ -338,35 +340,3 @@ class DocsSim:
     def _now_ms(self) -> int:
         self._clock_ms += 1
         return self._clock_ms
-
-
-def _normalize_limit(limit: Optional[int], *, default: int, max_limit: int) -> int:
-    if limit is None:
-        return default
-    if limit < 1:
-        return 1
-    return min(max_limit, int(limit))
-
-
-def _decode_cursor(cursor: Optional[str]) -> int:
-    if not cursor:
-        return 0
-    if not cursor.startswith("ofs:"):
-        raise ValueError("invalid cursor")
-    try:
-        value = int(cursor.split(":", 1)[1])
-    except ValueError as exc:
-        raise ValueError("invalid cursor") from exc
-    return max(0, value)
-
-
-def _encode_cursor(offset: int) -> str:
-    return f"ofs:{max(0, int(offset))}"
-
-
-def _sortable(value: object) -> object:
-    if value is None:
-        return ""
-    if isinstance(value, (int, float, str)):
-        return value
-    return str(value)

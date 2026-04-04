@@ -4,6 +4,8 @@ from typing import Any, Dict, List, Optional
 
 from vei.world import Scenario, Ticket
 
+from ._pagination import normalize_limit, decode_cursor, encode_cursor, sortable
+
 
 class TicketsSim:
     """Deterministic ticketing twin with lifecycle and pagination semantics."""
@@ -86,7 +88,7 @@ class TicketsSim:
             else "updated_ms"
         )
         reverse = sort_dir.lower() != "asc"
-        rows.sort(key=lambda row: _sortable(row.get(sort_field)), reverse=reverse)
+        rows.sort(key=lambda row: sortable(row.get(sort_field)), reverse=reverse)
 
         is_legacy = (
             status is None
@@ -101,13 +103,13 @@ class TicketsSim:
         if is_legacy:
             return rows
 
-        page_limit = _normalize_limit(
+        page_limit = normalize_limit(
             limit, default=self._DEFAULT_LIMIT, max_limit=self._MAX_LIMIT
         )
-        start = _decode_cursor(cursor)
+        start = decode_cursor(cursor)
         sliced = rows[start : start + page_limit]
         next_cursor = (
-            _encode_cursor(start + page_limit)
+            encode_cursor(start + page_limit)
             if (start + page_limit) < len(rows)
             else None
         )
@@ -374,35 +376,3 @@ class TicketsSim:
     def _now_ms(self) -> int:
         self._clock_ms += 1
         return self._clock_ms
-
-
-def _normalize_limit(limit: Optional[int], *, default: int, max_limit: int) -> int:
-    if limit is None:
-        return default
-    if limit < 1:
-        return 1
-    return min(max_limit, int(limit))
-
-
-def _decode_cursor(cursor: Optional[str]) -> int:
-    if not cursor:
-        return 0
-    if not cursor.startswith("ofs:"):
-        raise ValueError("invalid cursor")
-    try:
-        value = int(cursor.split(":", 1)[1])
-    except ValueError as exc:
-        raise ValueError("invalid cursor") from exc
-    return max(0, value)
-
-
-def _encode_cursor(offset: int) -> str:
-    return f"ofs:{max(0, int(offset))}"
-
-
-def _sortable(value: object) -> object:
-    if value is None:
-        return ""
-    if isinstance(value, (int, float, str)):
-        return value
-    return str(value)

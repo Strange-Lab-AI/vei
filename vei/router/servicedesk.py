@@ -4,6 +4,7 @@ from typing import Any, Callable, Dict, List, Optional
 
 from vei.world import Scenario, ServiceDeskIncident, ServiceDeskRequest
 
+from ._pagination import normalize_limit, decode_cursor, encode_cursor, sortable
 from .errors import MCPError
 from .tool_providers import PrefixToolProvider
 from .tool_registry import ToolSpec
@@ -139,16 +140,16 @@ class ServiceDeskSim:
             sort_by if sort_by in {"id", "status", "priority", "assignee"} else "id"
         )
         rows.sort(
-            key=lambda row: _sortable(row.get(sort_field)),
+            key=lambda row: sortable(row.get(sort_field)),
             reverse=sort_dir.lower() != "asc",
         )
-        start = _decode_cursor(cursor)
-        page_limit = _normalize_limit(
+        start = decode_cursor(cursor)
+        page_limit = normalize_limit(
             limit, default=self._DEFAULT_LIMIT, max_limit=self._MAX_LIMIT
         )
         sliced = rows[start : start + page_limit]
         next_cursor = (
-            _encode_cursor(start + page_limit)
+            encode_cursor(start + page_limit)
             if (start + page_limit) < len(rows)
             else None
         )
@@ -229,16 +230,16 @@ class ServiceDeskSim:
             )
         sort_field = sort_by if sort_by in {"id", "status", "requester"} else "id"
         rows.sort(
-            key=lambda row: _sortable(row.get(sort_field)),
+            key=lambda row: sortable(row.get(sort_field)),
             reverse=sort_dir.lower() != "asc",
         )
-        start = _decode_cursor(cursor)
-        page_limit = _normalize_limit(
+        start = decode_cursor(cursor)
+        page_limit = normalize_limit(
             limit, default=self._DEFAULT_LIMIT, max_limit=self._MAX_LIMIT
         )
         sliced = rows[start : start + page_limit]
         next_cursor = (
-            _encode_cursor(start + page_limit)
+            encode_cursor(start + page_limit)
             if (start + page_limit) < len(rows)
             else None
         )
@@ -292,40 +293,6 @@ class ServiceDeskSim:
                 {"author": "agent", "body": comment}
             )
         return {"request_id": request_id, "status": request["status"]}
-
-
-def _normalize_limit(limit: Optional[int], *, default: int, max_limit: int) -> int:
-    if limit is None:
-        return default
-    if limit < 1:
-        return 1
-    return min(max_limit, int(limit))
-
-
-def _decode_cursor(cursor: Optional[str]) -> int:
-    if not cursor:
-        return 0
-    if not cursor.startswith("ofs:"):
-        raise MCPError("servicedesk.invalid_cursor", f"Invalid cursor: {cursor}")
-    try:
-        value = int(cursor.split(":", 1)[1])
-    except ValueError as exc:
-        raise MCPError(
-            "servicedesk.invalid_cursor", f"Invalid cursor: {cursor}"
-        ) from exc
-    return max(0, value)
-
-
-def _encode_cursor(offset: int) -> str:
-    return f"ofs:{max(0, int(offset))}"
-
-
-def _sortable(value: object) -> object:
-    if value is None:
-        return ""
-    if isinstance(value, (int, float, str)):
-        return value
-    return str(value)
 
 
 class ServiceDeskToolProvider(PrefixToolProvider):

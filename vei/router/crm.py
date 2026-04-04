@@ -3,6 +3,10 @@ from __future__ import annotations
 from typing import Any, Dict, List, Optional
 
 from vei.world.api import Scenario
+from ._pagination import (
+    sortable,
+    page_rows,
+)
 from .errors import MCPError
 
 
@@ -135,7 +139,7 @@ class CrmSim:
             sort_by if sort_by in {"created_ms", "email", "last_name"} else "created_ms"
         )
         rows.sort(
-            key=lambda row: _sortable(row.get(sort_field)),
+            key=lambda row: sortable(row.get(sort_field)),
             reverse=sort_dir.lower() != "asc",
         )
 
@@ -150,7 +154,7 @@ class CrmSim:
         )
         if is_legacy:
             return rows
-        return _page_rows(rows, limit=limit, cursor=cursor, key="contacts")
+        return page_rows(rows, limit=limit, cursor=cursor, key="contacts")
 
     # Companies
     def create_company(self, name: str, domain: str | None = None) -> Dict[str, Any]:
@@ -205,7 +209,7 @@ class CrmSim:
             ]
         sort_field = sort_by if sort_by in {"name", "domain", "created_ms"} else "name"
         rows.sort(
-            key=lambda row: _sortable(row.get(sort_field)),
+            key=lambda row: sortable(row.get(sort_field)),
             reverse=sort_dir.lower() != "asc",
         )
 
@@ -219,7 +223,7 @@ class CrmSim:
         )
         if is_legacy:
             return rows
-        return _page_rows(rows, limit=limit, cursor=cursor, key="companies")
+        return page_rows(rows, limit=limit, cursor=cursor, key="companies")
 
     # Associations
     def associate_contact_company(
@@ -297,7 +301,7 @@ class CrmSim:
             else "updated_ms"
         )
         rows.sort(
-            key=lambda row: _sortable(row.get(sort_field)),
+            key=lambda row: sortable(row.get(sort_field)),
             reverse=sort_dir.lower() != "asc",
         )
 
@@ -313,7 +317,7 @@ class CrmSim:
         )
         if is_legacy:
             return rows
-        return _page_rows(rows, limit=limit, cursor=cursor, key="deals")
+        return page_rows(rows, limit=limit, cursor=cursor, key="deals")
 
     def update_deal_stage(self, id: str, stage: str) -> Dict[str, Any]:
         d = self.deals.get(id)
@@ -394,64 +398,6 @@ class CrmSim:
         if not normalized:
             raise MCPError("invalid_stage", f"Unsupported stage: {stage}")
         return normalized
-
-
-def _normalize_limit(
-    limit: int | None, *, default: int = 25, max_limit: int = 200
-) -> int:
-    if limit is None:
-        return default
-    if limit < 1:
-        return 1
-    return min(max_limit, int(limit))
-
-
-def _decode_cursor(cursor: str | None) -> int:
-    if not cursor:
-        return 0
-    if not cursor.startswith("ofs:"):
-        raise MCPError("invalid_cursor", "Cursor must use 'ofs:<offset>' format")
-    try:
-        value = int(cursor.split(":", 1)[1])
-    except ValueError as exc:
-        raise MCPError("invalid_cursor", f"Invalid cursor: {cursor}") from exc
-    return max(0, value)
-
-
-def _encode_cursor(offset: int) -> str:
-    return f"ofs:{max(0, int(offset))}"
-
-
-def _page_rows(
-    rows: List[Dict[str, Any]],
-    *,
-    limit: int | None,
-    cursor: str | None,
-    key: str,
-) -> Dict[str, Any]:
-    page_limit = _normalize_limit(
-        limit, default=CrmSim._DEFAULT_LIMIT, max_limit=CrmSim._MAX_LIMIT
-    )
-    start = _decode_cursor(cursor)
-    sliced = rows[start : start + page_limit]
-    next_cursor = (
-        _encode_cursor(start + page_limit) if (start + page_limit) < len(rows) else None
-    )
-    return {
-        key: sliced,
-        "count": len(sliced),
-        "total": len(rows),
-        "next_cursor": next_cursor,
-        "has_more": next_cursor is not None,
-    }
-
-
-def _sortable(value: object) -> object:
-    if value is None:
-        return ""
-    if isinstance(value, (int, float, str)):
-        return value
-    return str(value)
 
 
 def _next_seq(rows: Dict[str, Dict[str, Any]], *, prefix: str) -> int:

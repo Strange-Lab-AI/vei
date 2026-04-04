@@ -4,6 +4,7 @@ from typing import Any, Callable, Dict, List, Optional
 
 from vei.world.api import Scenario
 
+from ._pagination import decode_cursor, encode_cursor, normalize_limit, sortable
 from .errors import MCPError
 from .tool_providers import PrefixToolProvider
 from .tool_registry import ToolSpec
@@ -114,7 +115,7 @@ class GoogleAdminSim:
             else "name"
         )
         rows.sort(
-            key=lambda row: _sortable(row.get(sort_field)),
+            key=lambda row: sortable(row.get(sort_field)),
             reverse=sort_dir.lower() != "asc",
         )
         return _page(rows, limit=limit, cursor=cursor, key="apps")
@@ -195,7 +196,7 @@ class GoogleAdminSim:
             )
         sort_field = sort_by if sort_by in {"title", "owner", "visibility"} else "title"
         rows.sort(
-            key=lambda row: _sortable(row.get(sort_field)),
+            key=lambda row: sortable(row.get(sort_field)),
             reverse=sort_dir.lower() != "asc",
         )
         return _page(rows, limit=limit, cursor=cursor, key="shares")
@@ -335,11 +336,17 @@ def _page(
     cursor: Optional[str],
     key: str,
 ) -> Dict[str, Any]:
-    start = _decode_cursor(cursor)
-    page_limit = _normalize_limit(limit)
+    start = decode_cursor(cursor, prefix="idx")
+    page_limit = normalize_limit(
+        limit,
+        default=GoogleAdminSim._DEFAULT_LIMIT,
+        max_limit=GoogleAdminSim._MAX_LIMIT,
+    )
     sliced = rows[start : start + page_limit]
     next_cursor = (
-        _encode_cursor(start + page_limit) if (start + page_limit) < len(rows) else None
+        encode_cursor(start + page_limit, prefix="idx")
+        if (start + page_limit) < len(rows)
+        else None
     )
     return {
         key: sliced,
@@ -348,34 +355,3 @@ def _page(
         "next_cursor": next_cursor,
         "has_more": next_cursor is not None,
     }
-
-
-def _normalize_limit(limit: Optional[int]) -> int:
-    if limit is None:
-        return GoogleAdminSim._DEFAULT_LIMIT
-    return max(1, min(int(limit), GoogleAdminSim._MAX_LIMIT))
-
-
-def _encode_cursor(index: int) -> str:
-    return f"idx:{index}"
-
-
-def _decode_cursor(cursor: Optional[str]) -> int:
-    if not cursor:
-        return 0
-    if not cursor.startswith("idx:"):
-        raise MCPError("google_admin.invalid_cursor", f"Invalid cursor: {cursor}")
-    try:
-        return max(0, int(cursor.split(":", 1)[1]))
-    except ValueError as exc:
-        raise MCPError(
-            "google_admin.invalid_cursor", f"Invalid cursor: {cursor}"
-        ) from exc
-
-
-def _sortable(value: Any) -> Any:
-    if value is None:
-        return ""
-    if isinstance(value, bool):
-        return int(value)
-    return str(value).lower()
