@@ -278,6 +278,28 @@ The experiment command writes a bundle with JSON and Markdown summaries plus per
 
 In Studio, the same flow is available as a search-first loop: find a real historical event, materialize it, then run the counterfactual and inspect the saved comparison.
 
+<details>
+<summary>Concrete Enron example: Debra Perlingiere -> Cargill Master Agreement</summary>
+
+**What happened**
+
+On September 27, 2000, Debra Perlingiere sent a real `Master Agreement` draft from Enron Legal to `kathy_gerken@cargill.com`. In VEI, we branch just before that send, so the original email becomes the first event in the historical future that can either play out as it did in history or be replaced by a counterfactual path.
+
+**What we changed**
+
+We asked: what if Debra had kept the draft inside Enron, asked Gerald Nemec for legal review first, and held the outside send until that review came back?
+
+**How the two compare paths work**
+
+The LLM path does not rewrite the whole company. It generates a bounded continuation on that one thread, limited to real thread participants and allowed recipient addresses, then delivers those messages through VEI's mail environment.
+
+The E-JEPA path does not write emails. When the local JEPA runtime is available, VEI trains a local forecast around the selected branch point and predicts how the rest of the thread changes in structure, such as outside sharing and risk. If that runtime is unavailable, VEI falls back to the proxy forecast described above.
+
+**What the result showed**
+
+In the final saved run, the historical path had 84 follow-up events after the branch point. The LLM path produced 3 internal follow-up emails: Debra asked Gerald for review, Gerald replied with legal edits, and Debra told internal teammates the Cargill send was on hold. In that same run, the real E-JEPA path predicted lower risk (`1.0 -> 0.983`) and 29 fewer outside-addressed sends. The saved bundle for that example lives under `_vei_out/whatif_live_runs_20260405_final/master_agreement_internal_review`.
+</details>
+
 ## Use It As A Library
 
 ```bash
