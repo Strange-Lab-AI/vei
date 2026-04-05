@@ -141,17 +141,20 @@ For the canonical product demo, `vei project identity-demo` wraps that ladder in
   - `get_service_ops_policy_bundle()` / `replay_service_ops_with_policy_delta()` — service-ops-only what-if replay over four named policy knobs from the initial snapshot
 - `vei.whatif`
   - `load_world()` — build a typed historical world from an archive-backed source such as Enron Rosetta
+  - `search_events()` — find exact branch points by actor, participant, thread, event type, or subject text before materializing a replay workspace
   - `run_whatif()` — deterministic whole-history policy analysis over the imported event corpus
-  - `materialize_episode()` — turn one selected historical thread into a strict mail-first replay workspace
+  - `materialize_episode()` — turn one selected historical event into a strict mail-first replay workspace that branches just before that event
   - `replay_episode_baseline()` — schedule the saved historical future into the world kernel for comparison
   - `run_llm_counterfactual()` — bounded LLM email continuation on the selected thread after divergence
-  - `run_ejepa_proxy_counterfactual()` — explicit forecast adapter for KPI/risk deltas; not a trained checkpoint-backed E-JEPA model yet
+  - `run_ejepa_counterfactual()` — real local JEPA-backed forecast over the branch point when the sibling runtime is available, using a deterministic local training slice around that branch point
+  - `run_ejepa_proxy_counterfactual()` — proxy fallback for KPI/risk deltas when the JEPA runtime is unavailable or errors
   - `run_counterfactual_experiment()` — one-command orchestration for selection, episode materialization, baseline replay, continuation, and artifact writing
 - `vei.ui.api`
   - stable public surface over grouped route registrars for workspace/governor, playable, run, and imports/context endpoints
   - `GET /api/runs/diff-cross` — HTTP endpoint for cross-run snapshot comparison
   - `POST /api/missions/{run_id}/branch` with optional `snapshot_id` — fork from any snapshot via the UI
   - `GET /api/runs/{run_id}/policy-knobs` / `POST /api/runs/{run_id}/replay-with-policy` — service-ops policy replay endpoints used by the Studio outcome flow
+  - `GET /api/workspace/whatif` / `POST /api/workspace/whatif/search` / `POST /api/workspace/whatif/open` / `POST /api/workspace/whatif/run` — search-first historical what-if flow used by the Studio workspace view
   - Studio browser code is loaded as ordered plain scripts (`studio-core.js`, `studio-compare.js`, `studio-company.js`, `studio-outcome.js`, `studio-bootstrap.js`) rather than one giant frontend file
 
 ## Context and Synthesis Layer

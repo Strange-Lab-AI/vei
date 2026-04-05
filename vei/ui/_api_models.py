@@ -2,12 +2,14 @@ from __future__ import annotations
 
 import http.client
 import json
+import os
 from pathlib import Path
 from typing import Any, Mapping
 
 from fastapi import HTTPException
 from pydantic import BaseModel
 
+from vei.whatif.models import WhatIfExperimentMode
 from vei.twin import load_customer_twin
 from vei.workspace.api import show_workspace
 from vei.run.api import list_run_manifests
@@ -88,6 +90,42 @@ class OrchestratorApprovalDecisionRequest(BaseModel):
     decision_note: str | None = None
 
 
+class WhatIfSearchRequest(BaseModel):
+    source: str = "enron"
+    actor: str | None = None
+    participant: str | None = None
+    thread_id: str | None = None
+    event_type: str | None = None
+    query: str | None = None
+    flagged_only: bool = False
+    limit: int = 10
+    max_events: int | None = None
+
+
+class WhatIfOpenRequest(BaseModel):
+    source: str = "enron"
+    event_id: str | None = None
+    thread_id: str | None = None
+    label: str | None = None
+    max_events: int | None = None
+
+
+class WhatIfRunRequest(BaseModel):
+    source: str = "enron"
+    prompt: str
+    label: str
+    event_id: str | None = None
+    thread_id: str | None = None
+    mode: WhatIfExperimentMode = "both"
+    max_events: int | None = None
+    model: str = "gpt-5-mini"
+    provider: str = "openai"
+    ejepa_epochs: int = 4
+    ejepa_batch_size: int = 64
+    ejepa_force_retrain: bool = False
+    ejepa_device: str | None = None
+
+
 CONTEXT_PROVIDER_ENV_VARS = {
     "slack": "VEI_SLACK_TOKEN",
     "google": "VEI_GOOGLE_TOKEN",
@@ -133,6 +171,33 @@ def build_context_provider_status(
 def context_capture_org_name(workspace_root: Path) -> str:
     workspace = show_workspace(workspace_root)
     return workspace.manifest.title or workspace.manifest.name or "Unknown"
+
+
+def resolve_whatif_rosetta_dir(workspace_root: Path) -> Path | None:
+    candidates: list[Path] = []
+    configured = os.environ.get("VEI_WHATIF_ROSETTA_DIR")
+    if configured and configured.strip():
+        candidates.append(Path(configured).expanduser())
+    candidates.append(workspace_root / "rosetta")
+    candidates.append(
+        workspace_root.parent
+        / "human_v_llm_messages_experiment"
+        / "experiments"
+        / "org_simulator"
+        / "rosetta"
+    )
+    candidates.append(
+        workspace_root.parent.parent
+        / "human_v_llm_messages_experiment"
+        / "experiments"
+        / "org_simulator"
+        / "rosetta"
+    )
+    for candidate in candidates:
+        resolved = candidate.expanduser().resolve()
+        if (resolved / "enron_rosetta_events_metadata.parquet").exists():
+            return resolved
+    return None
 
 
 def load_workspace_governor_payload(root: Path) -> dict[str, Any]:

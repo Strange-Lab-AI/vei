@@ -26,16 +26,14 @@ VEI also supports a more grounded historical version of the sandbox story: take 
 The first version of that flow is mail-first:
 
 - a whole-history explorer can scan archive-backed datasets such as the Enron Rosetta event tables
-- a selected thread can then be materialized into a strict historical workspace
-- that workspace replays real past messages up to the branch point and schedules the later historical messages as the baseline future
+- a selected historical event can then be materialized into a strict historical workspace
+- that workspace replays real past messages up to just before the chosen event and schedules the chosen event plus the later historical messages as the baseline future
 - only after that branch point does VEI run counterfactual continuation logic
 
 Two compare paths exist today:
 
 - **LLM actor continuation** — bounded email-only continuation on the affected thread
-- **Forecast adapter** — an E-JEPA-style proxy forecaster that estimates risk and volume deltas from the same intervention
-
-That second path is intentionally described as a forecast adapter, not a learned world model yet.
+- **E-JEPA forecast** — a real local JEPA-backed forecaster when the sibling `ARP_Jepa_exp` runtime is available, trained on a deterministic local slice around the chosen branch point, with an automatic proxy fallback otherwise
 
 ## The Five Layers
 

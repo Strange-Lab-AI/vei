@@ -724,7 +724,7 @@ function togglePlayback() {
 }
 
 async function loadWorkspace() {
-  const [workspace, storyArtifacts, playableArtifacts, scenarios, importSummary, identityFlow, importSources, importNormalization, importReview, generatedImportScenarios, provenanceIndex, governorWorkspace] = await Promise.all([
+  const [workspace, storyArtifacts, playableArtifacts, scenarios, importSummary, identityFlow, importSources, importNormalization, importReview, generatedImportScenarios, provenanceIndex, governorWorkspace, whatIfStatus] = await Promise.all([
     getJson("/api/workspace"),
     fetchStoryArtifacts(),
     fetchPlayableArtifacts(),
@@ -737,6 +737,7 @@ async function loadWorkspace() {
     getJson("/api/imports/scenarios").catch(() => []),
     getJson("/api/imports/provenance").catch(() => []),
     getJson("/api/workspace/governor").catch(() => ({})),
+    getJson("/api/workspace/whatif").catch(() => ({ available: false })),
   ]);
   state.workspace = workspace;
   applyGovernorWorkspaceStatus(governorWorkspace);
@@ -760,6 +761,7 @@ async function loadWorkspace() {
   state.importReview = importReview;
   state.generatedImportScenarios = generatedImportScenarios;
   state.provenanceIndex = provenanceIndex;
+  state.whatIfStatus = whatIfStatus;
   renderWorkspaceHero();
   renderImportSummary();
   renderExportsPanel();
@@ -768,6 +770,9 @@ async function loadWorkspace() {
   renderMissionSummary();
   renderMissionPlay();
   renderFidelityPanel();
+  if (typeof renderWhatIfStudio === "function") {
+    renderWhatIfStudio();
+  }
   if (scenarios.length > 0) {
     const activeName = workspace?.manifest?.active_scenario || scenarios[0].name;
     document.getElementById("scenario-select").value = activeName;

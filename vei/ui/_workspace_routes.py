@@ -1,11 +1,18 @@
 from __future__ import annotations
 
 from pathlib import Path
+from re import sub
 from typing import Any
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
 
+from vei.whatif import (
+    load_world,
+    materialize_episode,
+    run_counterfactual_experiment,
+    search_events,
+)
 from vei.verticals import (
     load_workspace_exports_preview,
     load_workspace_presentation,
@@ -19,15 +26,143 @@ from ._api_models import (
     GovernorSituationActivateRequest,
     OrchestratorApprovalDecisionRequest,
     OrchestratorTaskCommentRequest,
+    WhatIfOpenRequest,
+    WhatIfRunRequest,
+    WhatIfSearchRequest,
     gateway_json_request,
     load_workspace_workforce_payload,
+    resolve_whatif_rosetta_dir,
 )
 
 
 def register_workspace_routes(app: FastAPI, root: Path, *, deps: Any) -> None:
+    def _resolve_whatif_source(source: str, *, max_events: int | None = None):
+        normalized = (source or "enron").strip().lower()
+        if normalized != "enron":
+            raise HTTPException(status_code=400, detail="only enron is supported today")
+        rosetta_dir = resolve_whatif_rosetta_dir(root)
+        if rosetta_dir is None:
+            raise HTTPException(
+                status_code=404,
+                detail="enron Rosetta tables are not configured for this workspace",
+            )
+        try:
+            world = load_world(
+                source="enron",
+                rosetta_dir=rosetta_dir,
+                max_events=max_events,
+            )
+        except Exception as exc:  # noqa: BLE001
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        return world, rosetta_dir
+
+    def _whatif_artifacts_root() -> Path:
+        path = root / ".artifacts" / "whatif_ui"
+        path.mkdir(parents=True, exist_ok=True)
+        return path
+
+    def _slug(value: str) -> str:
+        cleaned = sub(r"[^a-z0-9]+", "-", value.lower()).strip("-")
+        return cleaned or "whatif"
+
     @app.get("/api/workspace")
     def api_workspace() -> JSONResponse:
         return JSONResponse(show_workspace(root).model_dump(mode="json"))
+
+    @app.get("/api/workspace/whatif")
+    def api_workspace_whatif_status() -> JSONResponse:
+        rosetta_dir = resolve_whatif_rosetta_dir(root)
+        return JSONResponse(
+            {
+                "available": rosetta_dir is not None,
+                "source": "enron",
+                "rosetta_dir": str(rosetta_dir) if rosetta_dir is not None else None,
+            }
+        )
+
+    @app.post("/api/workspace/whatif/search")
+    def api_workspace_whatif_search(request: WhatIfSearchRequest) -> JSONResponse:
+        world, rosetta_dir = _resolve_whatif_source(
+            request.source,
+            max_events=request.max_events,
+        )
+        result = search_events(
+            world,
+            actor=request.actor,
+            participant=request.participant,
+            thread_id=request.thread_id,
+            event_type=request.event_type,
+            query=request.query,
+            flagged_only=request.flagged_only,
+            limit=request.limit,
+        )
+        payload = result.model_dump(mode="json")
+        payload["rosetta_dir"] = str(rosetta_dir)
+        return JSONResponse(payload)
+
+    @app.post("/api/workspace/whatif/open")
+    def api_workspace_whatif_open(request: WhatIfOpenRequest) -> JSONResponse:
+        if not request.event_id and not request.thread_id:
+            raise HTTPException(
+                status_code=400,
+                detail="event_id or thread_id is required",
+            )
+        world, rosetta_dir = _resolve_whatif_source(
+            request.source,
+            max_events=request.max_events,
+        )
+        label = request.label or request.event_id or request.thread_id or "episode"
+        episode_root = _whatif_artifacts_root() / "episodes" / _slug(label)
+        try:
+            materialization = materialize_episode(
+                world,
+                root=episode_root,
+                event_id=request.event_id,
+                thread_id=request.thread_id,
+            )
+        except Exception as exc:  # noqa: BLE001
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        return JSONResponse(
+            {
+                "source": request.source,
+                "rosetta_dir": str(rosetta_dir),
+                "episode_root": str(episode_root),
+                "materialization": materialization.model_dump(mode="json"),
+            }
+        )
+
+    @app.post("/api/workspace/whatif/run")
+    def api_workspace_whatif_run(request: WhatIfRunRequest) -> JSONResponse:
+        if not request.event_id and not request.thread_id:
+            raise HTTPException(
+                status_code=400,
+                detail="event_id or thread_id is required",
+            )
+        world, rosetta_dir = _resolve_whatif_source(
+            request.source,
+            max_events=request.max_events,
+        )
+        try:
+            result = run_counterfactual_experiment(
+                world,
+                artifacts_root=_whatif_artifacts_root() / "experiments",
+                label=request.label,
+                counterfactual_prompt=request.prompt,
+                event_id=request.event_id,
+                thread_id=request.thread_id,
+                mode=request.mode,
+                provider=request.provider,
+                model=request.model,
+                ejepa_epochs=request.ejepa_epochs,
+                ejepa_batch_size=request.ejepa_batch_size,
+                ejepa_force_retrain=request.ejepa_force_retrain,
+                ejepa_device=request.ejepa_device,
+            )
+        except Exception as exc:  # noqa: BLE001
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        payload = result.model_dump(mode="json")
+        payload["rosetta_dir"] = str(rosetta_dir)
+        return JSONResponse(payload)
 
     @app.get("/api/workspace/governor")
     def api_workspace_governor() -> JSONResponse:

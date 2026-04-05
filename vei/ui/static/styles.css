@@ -2423,6 +2423,153 @@ body.developer-mode .studio-nav-button.developer-only {
   border-color: rgba(30, 108, 242, 0.3);
 }
 
+.whatif-card {
+  display: grid;
+  gap: 16px;
+}
+
+.whatif-status,
+.whatif-results,
+.whatif-selection,
+.whatif-open-result,
+.whatif-experiment-result {
+  display: grid;
+  gap: 12px;
+}
+
+.whatif-status-pill,
+.whatif-open-card,
+.whatif-selection-card,
+.whatif-summary-card,
+.whatif-empty {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(8, 12, 22, 0.6);
+  border-radius: 18px;
+  padding: 14px 16px;
+}
+
+.whatif-status-pill,
+.whatif-open-card,
+.whatif-summary-card,
+.whatif-empty {
+  display: grid;
+  gap: 6px;
+}
+
+.whatif-controls,
+.whatif-runner {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 2fr) minmax(140px, 0.6fr) auto;
+  align-items: end;
+}
+
+.whatif-runner {
+  grid-template-columns: minmax(220px, 0.8fr) minmax(0, 2fr) auto;
+}
+
+.whatif-field {
+  display: grid;
+  gap: 6px;
+  font-size: 0.92rem;
+}
+
+.whatif-field span {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.whatif-field input,
+.whatif-field textarea {
+  width: 100%;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(5, 10, 20, 0.75);
+  color: #f7f8fa;
+  padding: 12px 14px;
+  font: inherit;
+}
+
+.whatif-field textarea {
+  resize: vertical;
+  min-height: 112px;
+}
+
+.whatif-field-wide {
+  min-width: 0;
+}
+
+.whatif-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.whatif-result-list {
+  display: grid;
+  gap: 10px;
+}
+
+.whatif-result-item {
+  text-align: left;
+  display: grid;
+  gap: 4px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(8, 12, 22, 0.6);
+  color: inherit;
+}
+
+.whatif-result-item:hover {
+  border-color: rgba(255, 255, 255, 0.18);
+  transform: translateY(-1px);
+}
+
+.whatif-result-title {
+  font-weight: 700;
+}
+
+.whatif-result-meta,
+.whatif-result-caption,
+.whatif-artifacts span {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.92rem;
+}
+
+.whatif-selection-head,
+.whatif-selection-grid,
+.whatif-summary-grid,
+.whatif-artifacts {
+  display: grid;
+  gap: 10px;
+}
+
+.whatif-selection-grid {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.whatif-snippet {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: rgba(255, 255, 255, 0.82);
+  background: rgba(3, 7, 14, 0.7);
+  border-radius: 14px;
+  padding: 12px;
+  font: 0.9rem/1.45 "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+}
+
+.whatif-summary-grid {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+@media (max-width: 960px) {
+  .whatif-controls,
+  .whatif-runner {
+    grid-template-columns: 1fr;
+  }
+}
+
 .diff-controls {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

@@ -337,6 +337,25 @@ def _strict_full_flow_complete(progress: Dict[str, Any]) -> bool:
     )
 
 
+def _should_bypass_strict_planning(
+    progress: Dict[str, Any],
+    strict_action: Tuple[str, Dict[str, Any]] | None,
+) -> bool:
+    if strict_action is None:
+        return False
+    if not bool(progress.get("email_parsed", False)):
+        return False
+    return strict_action[0] in {
+        "docs.create",
+        "docs.update",
+        "tickets.create",
+        "tickets.update",
+        "tickets.transition",
+        "crm.create_deal",
+        "crm.log_activity",
+    }
+
+
 class EpisodeFailure(RuntimeError):
     def __init__(self, message: str, transcript: list[dict]):
         super().__init__(message)
@@ -784,10 +803,13 @@ async def run_episode(
                         raise TimeoutError(
                             f"episode timed out after {episode_timeout_s}s at step {step}"
                         )
+                    strict_progress: Dict[str, Any] | None = None
+                    strict_action: Tuple[str, Dict[str, Any]] | None = None
                     if strict_full_flow:
-                        progress_now = _full_flow_progress(transcript)
-                        if _strict_full_flow_complete(progress_now):
+                        strict_progress = _full_flow_progress(transcript)
+                        if _strict_full_flow_complete(strict_progress):
                             break
+                        strict_action = _strict_full_flow_action(strict_progress)
 
                     obs_raw = await _with_timeout(
                         call_mcp_tool(session, "vei.observe", {}),
@@ -1014,65 +1036,80 @@ async def run_episode(
                             visible_tools,
                         )
 
-                    plan_started_at = time.monotonic()
-                    plan_result = await _with_timeout(
-                        plan_once_with_usage(
-                            provider=eff_provider,
-                            model=model,
-                            system=base_prompt,
-                            user=user,
-                            plan_schema=plan_schema,
-                            timeout_s=step_timeout_s,
-                            openai_base_url=openai_base_url
-                            or os.environ.get("OPENAI_BASE_URL"),
-                            openai_api_key=openai_api_key
-                            or os.environ.get("OPENAI_API_KEY"),
-                            anthropic_api_key=anthropic_api_key
-                            or os.environ.get("ANTHROPIC_API_KEY"),
-                            google_api_key=google_api_key
-                            or os.environ.get("GOOGLE_API_KEY"),
-                            openrouter_api_key=openrouter_api_key
-                            or os.environ.get("OPENROUTER_API_KEY"),
-                            tool_schemas=(
-                                provider_schemas
-                                if eff_provider == "anthropic"
-                                else None
-                            ),
-                            alias_map=(
-                                provider_alias_map
-                                if eff_provider == "anthropic"
-                                else None
-                            ),
-                        ),
-                        step_timeout_s + 5,
-                        "plan_once",
-                    )
-                    llm_calls += 1
-                    llm_prompt_tokens += int(plan_result.usage.prompt_tokens)
-                    llm_completion_tokens += int(plan_result.usage.completion_tokens)
-                    llm_total_tokens += int(plan_result.usage.total_tokens)
-                    llm_latencies_ms.append(
-                        int((time.monotonic() - plan_started_at) * 1000)
-                    )
-                    if plan_result.usage.estimated_cost_usd is None:
-                        llm_cost_complete = False
-                    else:
-                        llm_cost_usd += float(plan_result.usage.estimated_cost_usd)
-                    plan = plan_result.plan
-
-                    if eff_provider == "anthropic" and provider_alias_map:
-                        tool_alias = plan.get("tool")
-                        if tool_alias in provider_alias_map:
-                            plan["tool"] = provider_alias_map[tool_alias]
-
-                    tool = str(plan.get("tool", "vei.observe"))
-                    args = (
-                        plan.get("args", {})
-                        if isinstance(plan.get("args"), dict)
-                        else {}
-                    )
+                    tool = "vei.observe"
+                    args: Dict[str, Any] = {}
                     model_tool = tool
                     model_args = dict(args)
+                    if _should_bypass_strict_planning(
+                        strict_progress or {},
+                        strict_action,
+                    ):
+                        assert strict_action is not None
+                        tool, args = strict_action
+                        model_tool = tool
+                        model_args = dict(args)
+                    else:
+                        plan_started_at = time.monotonic()
+                        plan_result = await _with_timeout(
+                            plan_once_with_usage(
+                                provider=eff_provider,
+                                model=model,
+                                system=base_prompt,
+                                user=user,
+                                plan_schema=plan_schema,
+                                timeout_s=step_timeout_s,
+                                openai_base_url=openai_base_url
+                                or os.environ.get("OPENAI_BASE_URL"),
+                                openai_api_key=openai_api_key
+                                or os.environ.get("OPENAI_API_KEY"),
+                                anthropic_api_key=anthropic_api_key
+                                or os.environ.get("ANTHROPIC_API_KEY"),
+                                google_api_key=google_api_key
+                                or os.environ.get("GOOGLE_API_KEY"),
+                                openrouter_api_key=openrouter_api_key
+                                or os.environ.get("OPENROUTER_API_KEY"),
+                                tool_schemas=(
+                                    provider_schemas
+                                    if eff_provider == "anthropic"
+                                    else None
+                                ),
+                                alias_map=(
+                                    provider_alias_map
+                                    if eff_provider == "anthropic"
+                                    else None
+                                ),
+                            ),
+                            step_timeout_s + 5,
+                            "plan_once",
+                        )
+                        llm_calls += 1
+                        llm_prompt_tokens += int(plan_result.usage.prompt_tokens)
+                        llm_completion_tokens += int(
+                            plan_result.usage.completion_tokens
+                        )
+                        llm_total_tokens += int(plan_result.usage.total_tokens)
+                        llm_latencies_ms.append(
+                            int((time.monotonic() - plan_started_at) * 1000)
+                        )
+                        if plan_result.usage.estimated_cost_usd is None:
+                            llm_cost_complete = False
+                        else:
+                            llm_cost_usd += float(plan_result.usage.estimated_cost_usd)
+                        plan = plan_result.plan
+
+                        if eff_provider == "anthropic" and provider_alias_map:
+                            tool_alias = plan.get("tool")
+                            if tool_alias in provider_alias_map:
+                                plan["tool"] = provider_alias_map[tool_alias]
+
+                        tool = str(plan.get("tool", "vei.observe"))
+                        args = (
+                            plan.get("args", {})
+                            if isinstance(plan.get("args"), dict)
+                            else {}
+                        )
+                        model_tool = tool
+                        model_args = dict(args)
 
                     if _is_no_progress(tool, args, prev_tool):
                         no_progress_streak += 1
@@ -1093,15 +1130,12 @@ async def run_episode(
                             override_reason = "forced_tick_fallback"
                             no_progress_streak = 0
 
-                    if strict_full_flow:
-                        progress = _full_flow_progress(transcript)
-                        strict_action = _strict_full_flow_action(progress)
-                        if strict_action is not None:
-                            strict_tool, strict_args = strict_action
-                            if tool != strict_tool or args != strict_args:
-                                tool, args = strict_tool, strict_args
-                                override_reason = "strict_full_flow_override"
-                                no_progress_streak = 0
+                    if strict_full_flow and strict_action is not None:
+                        strict_tool, strict_args = strict_action
+                        if tool != strict_tool or args != strict_args:
+                            tool, args = strict_tool, strict_args
+                            override_reason = "strict_full_flow_override"
+                            no_progress_streak = 0
 
                     action_record: Dict[str, Any] = {"tool": tool, "args": args}
                     if override_reason:

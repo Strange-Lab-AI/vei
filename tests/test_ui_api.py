@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from types import SimpleNamespace
 
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
+import pyarrow as pa
+import pyarrow.parquet as pq
 
 from vei.dataset.models import DatasetBuildSpec, DatasetBundle, DatasetSplitManifest
 from vei.pilot import api as pilot_api
@@ -41,6 +44,55 @@ class _ImmediateThread:
     def start(self) -> None:
         if self._target is not None:
             self._target()
+
+
+def _write_rosetta_fixture(root: Path) -> None:
+    root.mkdir(parents=True, exist_ok=True)
+    metadata_rows = [
+        {
+            "event_id": "evt-001",
+            "timestamp": "2001-05-01T10:00:00Z",
+            "actor_id": "jeff.skilling@enron.com",
+            "target_id": "outside@lawfirm.com",
+            "event_type": "message",
+            "thread_task_id": "thr-external",
+            "artifacts": json.dumps(
+                {
+                    "subject": "Draft term sheet",
+                    "to_recipients": ["outside@lawfirm.com"],
+                    "to_count": 1,
+                    "has_attachment_reference": True,
+                }
+            ),
+        },
+        {
+            "event_id": "evt-002",
+            "timestamp": "2001-05-01T10:05:00Z",
+            "actor_id": "sara.shackleton@enron.com",
+            "target_id": "ops.review@enron.com",
+            "event_type": "assignment",
+            "thread_task_id": "thr-external",
+            "artifacts": json.dumps(
+                {
+                    "subject": "Draft term sheet",
+                    "to_recipients": ["ops.review@enron.com"],
+                    "to_count": 1,
+                }
+            ),
+        },
+    ]
+    content_rows = [
+        {"event_id": "evt-001", "content": "External draft attached for review."},
+        {"event_id": "evt-002", "content": "Assigning ops review before we proceed."},
+    ]
+    pq.write_table(
+        pa.Table.from_pylist(metadata_rows),
+        root / "enron_rosetta_events_metadata.parquet",
+    )
+    pq.write_table(
+        pa.Table.from_pylist(content_rows),
+        root / "enron_rosetta_events_content.parquet",
+    )
 
 
 def test_ui_api_serves_workspace_and_run_details(tmp_path: Path) -> None:
@@ -121,6 +173,120 @@ def test_ui_api_start_run_returns_generated_run_id(tmp_path: Path, monkeypatch) 
     run_response = client.get(f"/api/runs/{payload['run_id']}")
     assert run_response.status_code == 200
     assert run_response.json()["status"] == "ok"
+
+
+def test_ui_api_whatif_search_and_open_routes(tmp_path: Path, monkeypatch) -> None:
+    root = tmp_path / "workspace"
+    create_workspace_from_template(
+        root=root,
+        source_kind="example",
+        source_ref="acquired_user_cutover",
+    )
+    rosetta_dir = tmp_path / "rosetta"
+    _write_rosetta_fixture(rosetta_dir)
+    monkeypatch.setenv("VEI_WHATIF_ROSETTA_DIR", str(rosetta_dir))
+
+    client = TestClient(ui_api.create_ui_app(root))
+
+    status_response = client.get("/api/workspace/whatif")
+    assert status_response.status_code == 200
+    assert status_response.json()["available"] is True
+
+    search_response = client.post(
+        "/api/workspace/whatif/search",
+        json={"source": "enron", "query": "Jeff Skilling draft term sheet"},
+    )
+    assert search_response.status_code == 200
+    payload = search_response.json()
+    assert payload["match_count"] == 1
+    assert payload["matches"][0]["event"]["event_id"] == "evt-001"
+    assert (
+        payload["matches"][0]["event"]["snippet"]
+        == "External draft attached for review."
+    )
+
+    open_response = client.post(
+        "/api/workspace/whatif/open",
+        json={"source": "enron", "event_id": "evt-001", "label": "term-sheet"},
+    )
+    assert open_response.status_code == 200
+    open_payload = open_response.json()
+    assert open_payload["materialization"]["branch_event_id"] == "evt-001"
+    assert open_payload["materialization"]["future_event_count"] == 2
+
+
+def test_ui_api_whatif_run_route_returns_experiment_payload(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    root = tmp_path / "workspace"
+    create_workspace_from_template(
+        root=root,
+        source_kind="example",
+        source_ref="acquired_user_cutover",
+    )
+    rosetta_dir = tmp_path / "rosetta"
+    _write_rosetta_fixture(rosetta_dir)
+    monkeypatch.setenv("VEI_WHATIF_ROSETTA_DIR", str(rosetta_dir))
+
+    def fake_run_counterfactual_experiment(*args, **kwargs):
+        assert "forecast_backend" not in kwargs
+        assert "allow_proxy_fallback" not in kwargs
+        return SimpleNamespace(
+            model_dump=lambda mode="json": {
+                "label": kwargs["label"],
+                "baseline": {
+                    "delivered_event_count": 1,
+                    "forecast": {"future_external_event_count": 1},
+                },
+                "llm_result": {
+                    "status": "ok",
+                    "summary": "Internal review replaces the outside send.",
+                    "delivered_event_count": 2,
+                },
+                "forecast_result": {
+                    "backend": "e_jepa",
+                    "summary": "Risk drops and outside sends fall.",
+                    "baseline": {"risk_score": 1.0},
+                    "predicted": {"risk_score": 0.8},
+                },
+                "materialization": {
+                    "branch_event": {
+                        "event_id": "evt-001",
+                        "subject": "Draft term sheet",
+                        "actor_id": "jeff.skilling@enron.com",
+                        "target_id": "outside@lawfirm.com",
+                    }
+                },
+                "artifacts": {
+                    "result_json_path": "result.json",
+                    "overview_markdown_path": "overview.md",
+                },
+            }
+        )
+
+    monkeypatch.setattr(
+        workspace_routes,
+        "run_counterfactual_experiment",
+        fake_run_counterfactual_experiment,
+    )
+
+    client = TestClient(ui_api.create_ui_app(root))
+    response = client.post(
+        "/api/workspace/whatif/run",
+        json={
+            "source": "enron",
+            "event_id": "evt-001",
+            "label": "term-sheet alternate path",
+            "prompt": "What if Jeff had kept the term sheet internal?",
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["label"] == "term-sheet alternate path"
+    assert payload["llm_result"]["status"] == "ok"
+    assert payload["forecast_result"]["backend"] == "e_jepa"
 
 
 def test_ui_api_quickstart_service_ops_payloads_keep_one_company_identity(

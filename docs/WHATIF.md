@@ -5,9 +5,16 @@ VEI now supports a mail-first historical what-if workflow for archive-backed dat
 The flow has four steps:
 
 1. Explore the whole history to see what a rule or intervention would have touched.
-2. Pick one affected thread.
-3. Materialize that thread into a strict historical workspace.
+2. Pick one exact historical event.
+3. Materialize that event's thread into a strict historical workspace.
 4. Compare the baseline future against one or more counterfactual paths.
+
+Studio now supports this same loop directly:
+
+1. search the archive for a real historical moment
+2. choose one event from the results
+3. materialize the baseline workspace
+4. run the counterfactual and inspect the saved comparison bundle
 
 ## Why this shape
 
@@ -16,7 +23,7 @@ VEI does not try to turn an entire historical corpus into one giant always-runni
 Instead, the system uses two connected layers:
 
 - **Whole-history analysis** for broad questions such as “what would this policy have caught?”
-- **Thread-level replay** for one chosen moment, where VEI can branch, replay, and compare outcomes inside a normal world workspace
+- **Event-level replay** for one chosen moment, where VEI can branch, replay, and compare outcomes inside a normal world workspace
 
 This keeps the whole-history pass deterministic and cheap while still giving us a true replay environment for the interesting moment.
 
@@ -24,8 +31,8 @@ This keeps the whole-history pass deterministic and cheap while still giving us 
 
 When VEI opens a historical episode, it builds a mail-first workspace from the selected thread:
 
-- past messages become the initial mail state
-- later historical messages become scheduled replay events
+- messages before the selected event become the initial mail state
+- the selected event and later historical messages become scheduled replay events
 - observed thread participants become identity records
 - policy-relevant annotations stay attached for analysis and scoring
 
@@ -42,11 +49,13 @@ There are two compare paths today:
 - **LLM actor continuation**
   - bounded email-only continuation on the affected thread
   - limited to the known thread participants and allowed recipients
+  - defaults to `gpt-5-mini` so the interactive run completes quickly and predictably
   - useful for “what would someone have said or done next?”
-- **Forecast adapter**
-  - E-JEPA-style proxy forecast for risk and volume deltas
+- **E-JEPA forecast**
+  - real checkpoint-backed forecast for risk and volume deltas when the local `ARP_Jepa_exp` runtime is available
+  - trained on a deterministic local slice of related threads around the chosen branch point, so the forecast stays tied to the exact decision you are changing
+  - falls back to the proxy forecast only when that runtime is missing or errors
   - useful for “how much would this likely reduce exposure, escalation, or follow-up volume?”
-  - this is a forecast adapter today, not a trained checkpoint-backed E-JEPA model
 
 ## CLI
 
@@ -57,11 +66,19 @@ vei whatif explore \
   --scenario compliance_gateway \
   --format markdown
 
-# Build a replayable episode from one thread
+# Search for exact branch points
+vei whatif events \
+  --rosetta-dir /path/to/rosetta \
+  --actor vince.kaminski \
+  --query "btu weekly" \
+  --flagged-only \
+  --format markdown
+
+# Build a replayable episode from one exact event
 vei whatif open-episode \
   --rosetta-dir /path/to/rosetta \
   --root _vei_out/whatif/enron_case \
-  --thread-id thr_1234
+  --event-id evt_1234
 
 # Replay the historical future
 vei whatif replay \
@@ -72,9 +89,13 @@ vei whatif replay \
 vei whatif experiment \
   --rosetta-dir /path/to/rosetta \
   --artifacts-root _vei_out/whatif_experiments \
-  --label early_legal_quarantine \
-  --selection-scenario compliance_gateway \
-  --counterfactual-prompt "Loop in compliance, pause forwarding, and keep this internal."
+  --label master_agreement_internal_review \
+  --event-id evt_1234 \
+  --model gpt-5-mini \
+  --forecast-backend e_jepa \
+  --ejepa-epochs 1 \
+  --ejepa-batch-size 64 \
+  --counterfactual-prompt "Keep the draft inside Enron, loop in Gerald Nemec for legal review, and hold the outside send until the clean version is approved."
 ```
 
 ## Artifacts
@@ -86,5 +107,7 @@ vei whatif experiment \
 - LLM path JSON
 - forecast path JSON
 - the strict replay workspace used for the run
+
+The forecast bundle is written as `whatif_ejepa_result.json` when the real JEPA path runs, or `whatif_ejepa_proxy_result.json` when the fallback path is used.
 
 This makes it easy to inspect the result in Studio later, compare runs, or hand the output to another tool.

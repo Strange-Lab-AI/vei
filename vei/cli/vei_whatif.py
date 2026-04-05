@@ -6,16 +6,19 @@ from pathlib import Path
 import typer
 
 from vei.whatif import (
+    default_forecast_backend,
     list_supported_scenarios,
     load_experiment_result,
     load_world,
     materialize_episode,
     replay_episode_baseline,
+    search_events,
     run_counterfactual_experiment,
     run_whatif,
 )
 from vei.whatif.render import (
     render_episode,
+    render_event_search,
     render_experiment,
     render_replay,
     render_result,
@@ -106,12 +109,14 @@ def open_episode_command(
         ..., help="Directory holding Rosetta parquet files"
     ),
     root: Path = typer.Option(..., help="Workspace root for the replayable episode"),
-    thread_id: str = typer.Option(..., help="Thread to materialize"),
+    thread_id: str | None = typer.Option(None, help="Thread to materialize"),
     event_id: str | None = typer.Option(None, help="Optional branch event override"),
     format: str = typer.Option("json", help="Output format: json | markdown"),
 ) -> None:
-    """Build a strict historical workspace from one thread and save its future baseline."""
+    """Build a strict historical workspace from one event or thread."""
 
+    if thread_id is None and event_id is None:
+        raise typer.BadParameter("Provide --thread-id or --event-id")
     world = load_world(source=source, rosetta_dir=rosetta_dir)
     materialization = materialize_episode(
         world,
@@ -123,6 +128,56 @@ def open_episode_command(
         render_episode(materialization)
         if format == "markdown"
         else materialization.model_dump(mode="json")
+    )
+    _emit(payload, format=format)
+
+
+@app.command("events")
+def events_command(
+    source: str = typer.Option("enron", help="What-if source (currently: enron)"),
+    rosetta_dir: Path = typer.Option(
+        ..., help="Directory holding Rosetta parquet files"
+    ),
+    actor: str | None = typer.Option(None, help="Filter by sender email fragment"),
+    participant: str | None = typer.Option(
+        None,
+        help="Filter by any participant or recipient email fragment",
+    ),
+    thread_id: str | None = typer.Option(None, help="Filter by thread id"),
+    event_type: str | None = typer.Option(None, help="Filter by event type"),
+    query: str | None = typer.Option(
+        None,
+        help="Match against event id, subject, actors, and recipients",
+    ),
+    flagged_only: bool = typer.Option(
+        False,
+        help="Only return events with policy-relevant flags",
+    ),
+    max_events: int | None = typer.Option(None, help="Optional event cap"),
+    limit: int = typer.Option(20, help="Maximum number of events to return"),
+    format: str = typer.Option("json", help="Output format: json | markdown"),
+) -> None:
+    """Search historical events so you can branch from an exact point in time."""
+
+    world = load_world(
+        source=source,
+        rosetta_dir=rosetta_dir,
+        max_events=max_events,
+    )
+    result = search_events(
+        world,
+        actor=actor,
+        participant=participant,
+        thread_id=thread_id,
+        event_type=event_type,
+        query=query,
+        flagged_only=flagged_only,
+        limit=limit,
+    )
+    payload = (
+        render_event_search(result)
+        if format == "markdown"
+        else result.model_dump(mode="json")
     )
     _emit(payload, format=format)
 
@@ -176,20 +231,49 @@ def experiment_command(
         None,
         help="Optional explicit thread override",
     ),
+    event_id: str | None = typer.Option(
+        None,
+        help="Optional explicit branch event override",
+    ),
     mode: str = typer.Option(
         "both",
-        help="Experiment mode: llm | e_jepa_proxy | both",
+        help="Experiment mode: llm | e_jepa | e_jepa_proxy | both",
+    ),
+    forecast_backend: str = typer.Option(
+        "auto",
+        help="Forecast backend: auto | e_jepa | e_jepa_proxy",
     ),
     provider: str = typer.Option("openai", help="LLM provider for the actor path"),
-    model: str = typer.Option("gpt-5", help="LLM model for the actor path"),
+    model: str = typer.Option(
+        "gpt-5-mini",
+        help="LLM model for the actor path",
+    ),
     seed: int = typer.Option(42042, help="Deterministic seed"),
+    ejepa_epochs: int = typer.Option(4, help="Training epochs for the JEPA backend"),
+    ejepa_batch_size: int = typer.Option(
+        64,
+        help="Batch size for the JEPA backend",
+    ),
+    ejepa_force_retrain: bool = typer.Option(
+        False,
+        help="Retrain the JEPA cache instead of reusing an existing checkpoint",
+    ),
+    ejepa_device: str | None = typer.Option(
+        None,
+        help="Optional device override for the JEPA backend",
+    ),
     format: str = typer.Option("json", help="Output format: json | markdown"),
 ) -> None:
     """Run a full what-if experiment and write result artifacts."""
 
     normalized_mode = mode.strip().lower()
-    if normalized_mode not in {"llm", "e_jepa_proxy", "both"}:
-        raise typer.BadParameter("mode must be one of: llm, e_jepa_proxy, both")
+    if normalized_mode not in {"llm", "e_jepa", "e_jepa_proxy", "both"}:
+        raise typer.BadParameter("mode must be one of: llm, e_jepa, e_jepa_proxy, both")
+    normalized_forecast_backend = forecast_backend.strip().lower()
+    if normalized_forecast_backend not in {"auto", "e_jepa", "e_jepa_proxy"}:
+        raise typer.BadParameter(
+            "forecast-backend must be one of: auto, e_jepa, e_jepa_proxy"
+        )
     world = load_world(source=source, rosetta_dir=rosetta_dir)
     result = run_counterfactual_experiment(
         world,
@@ -199,10 +283,20 @@ def experiment_command(
         selection_scenario=selection_scenario,
         selection_prompt=selection_prompt,
         thread_id=thread_id,
+        event_id=event_id,
         mode=normalized_mode,
+        forecast_backend=(
+            default_forecast_backend()
+            if normalized_forecast_backend == "auto"
+            else normalized_forecast_backend
+        ),
         provider=provider,
         model=model,
         seed=seed,
+        ejepa_epochs=ejepa_epochs,
+        ejepa_batch_size=ejepa_batch_size,
+        ejepa_force_retrain=ejepa_force_retrain,
+        ejepa_device=ejepa_device,
     )
     payload = (
         render_experiment(result)

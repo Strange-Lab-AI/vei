@@ -192,6 +192,50 @@
           </details>
         </section>
 
+        <section class="card whatif-card" data-studio-view="company">
+          <div class="section-header">
+            <div>
+              <p class="eyebrow">Historical What-If</p>
+              <h2>Pick a real Enron moment and ask what might have happened differently</h2>
+              <p class="metric-detail">
+                Search the archive, choose a real event, then compare the historical baseline with the alternate path.
+              </p>
+            </div>
+          </div>
+          <div id="whatif-status" class="whatif-status"></div>
+          <div class="whatif-controls">
+            <label class="whatif-field whatif-field-wide">
+              <span>Find a moment</span>
+              <input id="whatif-query-input" type="text" placeholder="Debra Perlingiere Master Agreement Cargill" />
+            </label>
+            <label class="whatif-field">
+              <span>Max results</span>
+              <input id="whatif-limit-input" type="number" min="1" max="20" value="6" />
+            </label>
+            <div class="whatif-actions">
+              <button id="whatif-search-btn" type="button">Search history</button>
+            </div>
+          </div>
+          <div id="whatif-results" class="whatif-results"></div>
+          <div id="whatif-selection" class="whatif-selection"></div>
+          <div class="whatif-runner">
+            <label class="whatif-field">
+              <span>Scenario label</span>
+              <input id="whatif-label-input" type="text" placeholder="Master Agreement internal review" />
+            </label>
+            <label class="whatif-field whatif-field-wide">
+              <span>Counterfactual</span>
+              <textarea id="whatif-prompt-input" rows="4" placeholder="What if Debra had kept the draft inside Enron, looped in Gerald Nemec for legal review, and waited for an approved clean draft before sending anything to Cargill?"></textarea>
+            </label>
+            <div class="whatif-actions">
+              <button id="whatif-open-btn" type="button">Materialize baseline</button>
+              <button id="whatif-run-btn" type="button">Run counterfactual</button>
+            </div>
+          </div>
+          <div id="whatif-open-result" class="whatif-open-result"></div>
+          <div id="whatif-experiment-result" class="whatif-experiment-result"></div>
+        </section>
+
         <!-- ========== TAB: CRISIS ========== -->
         <section class="card briefing-card crisis-card" data-studio-view="crisis">
           <div class="section-header">
@@ -425,6 +469,7 @@
     <script src="/static/studio-core.js"></script>
     <script src="/static/studio-compare.js"></script>
     <script src="/static/studio-company.js"></script>
+    <script src="/static/studio-whatif.js"></script>
     <script src="/static/studio-outcome.js"></script>
     <script src="/static/studio-bootstrap.js"></script>
   </body>

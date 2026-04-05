@@ -11,6 +11,7 @@ from vei.cli.vei_llm_test import (
     _full_flow_progress,
     _normalize_result,
     _select_progress_action,
+    _should_bypass_strict_planning,
     _strict_full_flow_action,
     _strict_full_flow_complete,
     app as llm_app,
@@ -236,6 +237,53 @@ def test_strict_full_flow_complete_requires_all_full_subgoals() -> None:
     assert _strict_full_flow_complete(progress) is True
     progress["crm_logged"] = False
     assert _strict_full_flow_complete(progress) is False
+
+
+def test_should_bypass_strict_planning_only_after_quote_is_parsed() -> None:
+    early_progress = {
+        "citations": True,
+        "approval_with_amount": True,
+        "email_sent": True,
+        "email_parsed": False,
+        "doc_logged": False,
+        "ticket_updated": False,
+        "crm_logged": False,
+    }
+    late_progress = {
+        **early_progress,
+        "email_parsed": True,
+    }
+
+    assert (
+        _should_bypass_strict_planning(
+            early_progress,
+            (
+                "docs.create",
+                {"title": "Vendor quote summary"},
+            ),
+        )
+        is False
+    )
+    assert (
+        _should_bypass_strict_planning(
+            late_progress,
+            (
+                "docs.create",
+                {"title": "Vendor quote summary"},
+            ),
+        )
+        is True
+    )
+    assert (
+        _should_bypass_strict_planning(
+            late_progress,
+            (
+                "mail.list",
+                {},
+            ),
+        )
+        is False
+    )
 
 
 def test_llm_cli_writes_summary_artifact(

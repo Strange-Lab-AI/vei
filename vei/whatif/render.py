@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from .models import (
     WhatIfEpisodeMaterialization,
+    WhatIfEventSearchResult,
     WhatIfExperimentResult,
     WhatIfForecastResult,
     WhatIfLLMReplayResult,
@@ -9,6 +10,13 @@ from .models import (
     WhatIfResult,
     WhatIfWorld,
 )
+
+
+def _preview(text: str, *, limit: int = 280) -> str:
+    stripped = " ".join(text.split())
+    if len(stripped) <= limit:
+        return stripped
+    return stripped[: limit - 3].rstrip() + "..."
 
 
 def render_world_summary(world: WhatIfWorld) -> str:
@@ -75,19 +83,53 @@ def render_result(result: WhatIfResult) -> str:
     return "\n".join(lines)
 
 
+def render_event_search(result: WhatIfEventSearchResult) -> str:
+    lines = [
+        "# What-If Event Search",
+        "",
+        f"- Matches: {result.match_count}",
+        f"- Returned: {len(result.matches)}",
+        f"- Truncated: {'yes' if result.truncated else 'no'}",
+    ]
+    if result.filters:
+        lines.extend(["", "## Filters"])
+        for key, value in result.filters.items():
+            lines.append(f"- {key}: {value}")
+    lines.extend(["", "## Events"])
+    if not result.matches:
+        lines.append("- No matching events.")
+        return "\n".join(lines)
+    for match in result.matches:
+        reasons = ", ".join(match.reason_labels) or "none"
+        lines.append(
+            f"- `{match.event.event_id}` {match.event.timestamp} "
+            f"{match.event.actor_id} -> "
+            f"{', '.join(match.event.to_recipients) or match.event.target_id or '(none)'} | "
+            f"{match.event.subject} | flags: {reasons}"
+        )
+    return "\n".join(lines)
+
+
 def render_episode(materialization: WhatIfEpisodeMaterialization) -> str:
-    return "\n".join(
-        [
-            "# What-If Episode Materialized",
-            "",
-            f"- Workspace: {materialization.workspace_root}",
-            f"- Thread: `{materialization.thread_id}`",
-            f"- Branch event: `{materialization.branch_event_id}`",
-            f"- Seeded historical messages: {materialization.history_message_count}",
-            f"- Scheduled future events: {materialization.future_event_count}",
-            f"- Forecast risk score: {materialization.forecast.risk_score}",
-        ]
-    )
+    lines = [
+        "# What-If Episode Materialized",
+        "",
+        f"- Workspace: {materialization.workspace_root}",
+        f"- Thread: `{materialization.thread_id}`",
+        f"- Branch event: `{materialization.branch_event_id}`",
+        f"- Branch actor: `{materialization.branch_event.actor_id}`",
+        f"- Branch type: {materialization.branch_event.event_type}",
+        f"- Seeded historical messages: {materialization.history_message_count}",
+        f"- Scheduled future events: {materialization.future_event_count}",
+        f"- Forecast risk score: {materialization.forecast.risk_score}",
+    ]
+    if materialization.baseline_future_preview:
+        lines.extend(["", "## Baseline Future Preview"])
+        for event in materialization.baseline_future_preview[:3]:
+            lines.append(
+                f"- `{event.event_id}` {event.event_type} from `{event.actor_id}`: {event.subject}"
+            )
+    return "\n".join(lines)
 
 
 def render_replay(summary: WhatIfReplaySummary) -> str:
@@ -104,6 +146,12 @@ def render_replay(summary: WhatIfReplaySummary) -> str:
         lines.extend(["", "## Top Subjects"])
         for subject in summary.top_subjects:
             lines.append(f"- {subject}")
+    if summary.baseline_future_preview:
+        lines.extend(["", "## Baseline Preview"])
+        for event in summary.baseline_future_preview[:3]:
+            lines.append(
+                f"- `{event.event_id}` {event.event_type} from `{event.actor_id}`: {event.subject}"
+            )
     return "\n".join(lines)
 
 
@@ -134,8 +182,11 @@ def render_llm_result(result: WhatIfLLMReplayResult) -> str:
 
 
 def render_forecast_result(result: WhatIfForecastResult) -> str:
+    title = (
+        "# E-JEPA Forecast" if result.backend == "e_jepa" else "# E-JEPA Proxy Forecast"
+    )
     lines = [
-        "# E-JEPA Proxy Forecast",
+        title,
         "",
         f"- Status: {result.status}",
         f"- Summary: {result.summary}",
@@ -144,6 +195,8 @@ def render_forecast_result(result: WhatIfForecastResult) -> str:
         f"- Escalation delta: {result.delta.escalation_delta}",
         f"- External-send delta: {result.delta.external_event_delta}",
     ]
+    if result.surprise_score is not None:
+        lines.append(f"- Surprise score: {result.surprise_score}")
     if result.notes:
         lines.extend(["", "## Notes"])
         for note in result.notes:
@@ -152,34 +205,70 @@ def render_forecast_result(result: WhatIfForecastResult) -> str:
 
 
 def render_experiment(result: WhatIfExperimentResult) -> str:
+    branch_event = result.materialization.branch_event
+    original_recipient = (
+        ", ".join(branch_event.to_recipients)
+        or branch_event.target_id
+        or "(none recorded)"
+    )
     lines = [
         f"# {result.label}",
         "",
         f"- Selected thread: `{result.intervention.thread_id}`",
+        f"- Branch event: `{result.intervention.branch_event_id}`",
+        f"- Changed actor: `{branch_event.actor_id}`",
+        f"- Historical event type: {branch_event.event_type}",
+        f"- Historical subject: {branch_event.subject}",
         f"- Counterfactual prompt: {result.intervention.prompt}",
         f"- Baseline scheduled events: {result.baseline.scheduled_event_count}",
         f"- Baseline delivered events: {result.baseline.delivered_event_count}",
         f"- Baseline risk score: {result.baseline.forecast.risk_score}",
     ]
+    lines.extend(
+        [
+            "",
+            "## Changed Event",
+            f"- When: {branch_event.timestamp}",
+            f"- Historical sender: `{branch_event.actor_id}`",
+            f"- Historical recipient: `{original_recipient}`",
+            f"- Historical subject: {branch_event.subject}",
+        ]
+    )
+    if branch_event.snippet:
+        lines.append(f"- Historical excerpt: {_preview(branch_event.snippet)}")
+    if result.materialization.baseline_future_preview:
+        lines.extend(["", "## Historical Future"])
+        for event in result.materialization.baseline_future_preview[:3]:
+            lines.append(
+                f"- `{event.event_id}` {event.event_type} from `{event.actor_id}`: {event.subject}"
+            )
     if result.llm_result is not None:
         lines.extend(
             [
                 "",
-                "## LLM Actor",
+                "## Counterfactual Rollout",
                 f"- Status: {result.llm_result.status}",
                 f"- Summary: {result.llm_result.summary}",
                 f"- Delivered messages: {result.llm_result.delivered_event_count}",
                 f"- Inbox count: {result.llm_result.inbox_count}",
             ]
         )
+        for message in result.llm_result.messages[:3]:
+            lines.append(
+                f"- `{message.actor_id}` -> `{message.to}` after {message.delay_ms} ms: {message.subject}"
+            )
+            lines.append(f"  { _preview(message.body_text, limit=180) }")
     if result.forecast_result is not None:
         lines.extend(
             [
                 "",
-                "## E-JEPA Proxy",
+                "## Predicted Outcome",
                 f"- Status: {result.forecast_result.status}",
+                f"- Backend: {result.forecast_result.backend}",
                 f"- Summary: {result.forecast_result.summary}",
                 f"- Predicted risk: {result.forecast_result.predicted.risk_score}",
+                f"- External-send delta: {result.forecast_result.delta.external_event_delta}",
+                f"- Escalation delta: {result.forecast_result.delta.escalation_delta}",
             ]
         )
     lines.extend(

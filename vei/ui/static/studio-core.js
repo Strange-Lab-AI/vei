@@ -50,6 +50,11 @@ const state = {
   importReview: null,
   generatedImportScenarios: [],
   provenanceIndex: [],
+  whatIfStatus: null,
+  whatIfSearchResult: null,
+  whatIfSelectedEvent: null,
+  whatIfOpenResult: null,
+  whatIfExperimentResult: null,
   selectedObjectRef: null,
   runs: [],
   activeRunId: null,
@@ -96,7 +101,21 @@ studio.state = state;
 async function getJson(path, options = {}) {
   const response = await fetch(path, options);
   if (!response.ok) {
-    throw new Error(`Request failed: ${response.status}`);
+    let detail = `Request failed: ${response.status}`;
+    try {
+      const payload = await response.json();
+      if (payload?.detail) {
+        detail = String(payload.detail);
+      }
+    } catch {
+      try {
+        const text = await response.text();
+        if (text) {
+          detail = text;
+        }
+      } catch {}
+    }
+    throw new Error(detail);
   }
   return await response.json();
 }

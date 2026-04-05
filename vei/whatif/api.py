@@ -2,8 +2,6 @@ from __future__ import annotations
 
 import asyncio
 import json
-from collections import Counter
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Sequence
 
@@ -26,13 +24,13 @@ except Exception:  # pragma: no cover
 
 from .models import (
     WhatIfActorImpact,
-    WhatIfActorProfile,
-    WhatIfArtifactFlags,
     WhatIfConsequence,
     WhatIfEpisodeManifest,
     WhatIfEpisodeMaterialization,
     WhatIfEvent,
+    WhatIfEventSearchResult,
     WhatIfForecast,
+    WhatIfForecastBackend,
     WhatIfForecastDelta,
     WhatIfForecastResult,
     WhatIfExperimentArtifacts,
@@ -49,14 +47,27 @@ from .models import (
     WhatIfThreadImpact,
     WhatIfThreadSummary,
     WhatIfWorld,
-    WhatIfWorldSummary,
 )
+from .corpus import (
+    CONTENT_NOTICE,
+    ENRON_DOMAIN,
+    choose_branch_event,
+    display_name,
+    event_by_id,
+    event_reason_labels,
+    event_reference,
+    has_external_recipients,
+    hydrate_event_snippets,
+    load_enron_world,
+    safe_int,
+    search_events as search_world_events,
+    thread_events,
+    thread_subject,
+    touches_executive,
+)
+from .ejepa import default_forecast_backend, run_ejepa_counterfactual
+from .interventions import intervention_tags
 
-_ENRON_DOMAIN = "enron.com"
-_CONTENT_NOTICE = (
-    "Historical email bodies are built from Rosetta excerpts and event metadata. "
-    "They are grounded, but they are not full original messages."
-)
 _SUPPORTED_SCENARIOS: dict[str, WhatIfScenario] = {
     "compliance_gateway": WhatIfScenario(
         scenario_id="compliance_gateway",
@@ -106,7 +117,6 @@ _SUPPORTED_SCENARIOS: dict[str, WhatIfScenario] = {
         ],
     ),
 }
-_EXECUTIVE_MARKERS = ("skilling", "lay", "fastow", "kean")
 
 
 def list_supported_scenarios() -> list[WhatIfScenario]:
@@ -120,95 +130,41 @@ def load_world(
     time_window: tuple[str, str] | None = None,
     custodian_filter: Sequence[str] | None = None,
     max_events: int | None = None,
+    include_content: bool = False,
 ) -> WhatIfWorld:
     normalized_source = source.strip().lower()
     if normalized_source != "enron":
         raise ValueError(f"unsupported what-if source: {source}")
-
-    try:
-        import pyarrow.parquet as pq
-    except ImportError as exc:  # pragma: no cover - guarded by dependency
-        raise RuntimeError(
-            "pyarrow is required for `vei whatif` parquet loading"
-        ) from exc
-
-    base = Path(rosetta_dir).expanduser().resolve()
-    metadata_path = base / "enron_rosetta_events_metadata.parquet"
-    content_path = base / "enron_rosetta_events_content.parquet"
-    if not metadata_path.exists():
-        raise ValueError(f"metadata parquet not found: {metadata_path}")
-    if not content_path.exists():
-        raise ValueError(f"content parquet not found: {content_path}")
-
-    metadata_rows = pq.read_table(
-        metadata_path,
-        columns=[
-            "event_id",
-            "timestamp",
-            "actor_id",
-            "target_id",
-            "event_type",
-            "thread_task_id",
-            "artifacts",
-        ],
-    ).to_pylist()
-    content_rows = pq.read_table(
-        content_path,
-        columns=["event_id", "content"],
-    ).to_pylist()
-    content_by_id = {
-        str(row.get("event_id", "")): str(row.get("content", "") or "")
-        for row in content_rows
-    }
-
-    time_bounds = _resolve_time_window(time_window)
-    custodian_tokens = {item.strip().lower() for item in custodian_filter or [] if item}
-    events: list[WhatIfEvent] = []
-    for row in metadata_rows:
-        event = _build_event(row, content_by_id.get(str(row.get("event_id", "")), ""))
-        if event is None:
-            continue
-        if time_bounds is not None and not (
-            time_bounds[0] <= event.timestamp_ms <= time_bounds[1]
-        ):
-            continue
-        if custodian_tokens and not _matches_custodian_filter(event, custodian_tokens):
-            continue
-        events.append(event)
-
-    events.sort(key=lambda item: (item.timestamp_ms, item.event_id))
-    if max_events is not None:
-        events = events[: max(0, int(max_events))]
-
-    threads = _build_thread_summaries(events)
-    actors = _build_actor_profiles(events)
-    summary = WhatIfWorldSummary(
-        source="enron",
-        event_count=len(events),
-        thread_count=len(threads),
-        actor_count=len(actors),
-        custodian_count=len(
-            {
-                custodian
-                for actor in actors
-                for custodian in actor.custodian_ids
-                if custodian
-            }
-        ),
-        first_timestamp=events[0].timestamp if events else "",
-        last_timestamp=events[-1].timestamp if events else "",
-        event_type_counts=dict(Counter(event.event_type for event in events)),
-        key_actor_ids=[actor.actor_id for actor in actors[:5]],
-    )
-    return WhatIfWorld(
-        source="enron",
-        rosetta_dir=base,
-        summary=summary,
+    return load_enron_world(
+        rosetta_dir=rosetta_dir,
         scenarios=list_supported_scenarios(),
-        actors=actors,
-        threads=threads,
-        events=events,
-        metadata={"content_notice": _CONTENT_NOTICE},
+        time_window=time_window,
+        custodian_filter=custodian_filter,
+        max_events=max_events,
+        include_content=include_content,
+    )
+
+
+def search_events(
+    world: WhatIfWorld,
+    *,
+    actor: str | None = None,
+    participant: str | None = None,
+    thread_id: str | None = None,
+    event_type: str | None = None,
+    query: str | None = None,
+    flagged_only: bool = False,
+    limit: int = 20,
+) -> WhatIfEventSearchResult:
+    return search_world_events(
+        world,
+        actor=actor,
+        participant=participant,
+        thread_id=thread_id,
+        event_type=event_type,
+        query=query,
+        flagged_only=flagged_only,
+        limit=limit,
     )
 
 
@@ -272,37 +228,51 @@ def materialize_episode(
     world: WhatIfWorld,
     *,
     root: str | Path,
-    thread_id: str,
+    thread_id: str | None = None,
     event_id: str | None = None,
     organization_name: str = "Enron Corporation",
-    organization_domain: str = _ENRON_DOMAIN,
+    organization_domain: str = ENRON_DOMAIN,
 ) -> WhatIfEpisodeMaterialization:
     workspace_root = Path(root).expanduser().resolve()
-    thread_events = _thread_events(world.events, thread_id)
-    if not thread_events:
-        raise ValueError(f"thread not found in world: {thread_id}")
+    selected_thread_id = thread_id
+    if selected_thread_id is None:
+        if not event_id:
+            raise ValueError("provide thread_id or event_id")
+        selected_event = event_by_id(world.events, event_id)
+        if selected_event is None:
+            raise ValueError(f"event not found in world: {event_id}")
+        selected_thread_id = selected_event.thread_id
+    thread_history = thread_events(world.events, selected_thread_id)
+    if not thread_history:
+        raise ValueError(f"thread not found in world: {selected_thread_id}")
+    thread_history = hydrate_event_snippets(
+        rosetta_dir=world.rosetta_dir,
+        events=thread_history,
+    )
 
-    branch_event = _choose_branch_event(thread_events, requested_event_id=event_id)
-    past_events = [
-        event
-        for event in thread_events
-        if event.timestamp_ms <= branch_event.timestamp_ms
-    ]
-    future_events = [
-        event
-        for event in thread_events
-        if event.timestamp_ms > branch_event.timestamp_ms
-    ]
-    if past_events and past_events[-1].event_id != branch_event.event_id:
-        past_events.append(branch_event)
-    thread_subject = _thread_subject(
-        world.threads, thread_id, fallback=branch_event.subject
+    branch_event = choose_branch_event(thread_history, requested_event_id=event_id)
+    branch_index = next(
+        (
+            index
+            for index, event in enumerate(thread_history)
+            if event.event_id == branch_event.event_id
+        ),
+        None,
+    )
+    if branch_index is None:
+        raise ValueError(f"branch event not found in thread: {branch_event.event_id}")
+    past_events = list(thread_history[:branch_index])
+    future_events = list(thread_history[branch_index:])
+    selected_thread_subject = thread_subject(
+        world.threads,
+        selected_thread_id,
+        fallback=branch_event.subject,
     )
 
     archive_threads = [
         {
-            "thread_id": thread_id,
-            "subject": thread_subject,
+            "thread_id": selected_thread_id,
+            "subject": selected_thread_subject,
             "category": "historical",
             "messages": [
                 _archive_message_payload(event, base_time_ms=index * 1000)
@@ -320,7 +290,7 @@ def materialize_episode(
         if actor.actor_id
         in {
             value
-            for event in thread_events
+            for event in thread_history
             for value in {event.actor_id, event.target_id}
             if value
         }
@@ -333,9 +303,9 @@ def materialize_episode(
         metadata={
             "whatif": {
                 "source": world.source,
-                "thread_id": thread_id,
+                "thread_id": selected_thread_id,
                 "branch_event_id": branch_event.event_id,
-                "content_notice": _CONTENT_NOTICE,
+                "content_notice": CONTENT_NOTICE,
             }
         },
     )
@@ -354,7 +324,7 @@ def materialize_episode(
         overwrite=True,
     )
     baseline_dataset = _baseline_dataset(
-        thread_subject=thread_subject,
+        thread_subject=selected_thread_subject,
         branch_event=branch_event,
         future_events=future_events,
     )
@@ -370,22 +340,24 @@ def materialize_episode(
         workspace_root=workspace_root,
         organization_name=organization_name,
         organization_domain=organization_domain,
-        thread_id=thread_id,
-        thread_subject=thread_subject,
+        thread_id=selected_thread_id,
+        thread_subject=selected_thread_subject,
         branch_event_id=branch_event.event_id,
         branch_timestamp=branch_event.timestamp,
+        branch_event=event_reference(branch_event),
         history_message_count=len(past_events),
         future_event_count=len(future_events),
         baseline_dataset_path=str(baseline_dataset_path.relative_to(workspace_root)),
-        content_notice=_CONTENT_NOTICE,
+        content_notice=CONTENT_NOTICE,
         actor_ids=sorted(
             {
                 actor_id
-                for event in thread_events
+                for event in thread_history
                 for actor_id in {event.actor_id, event.target_id}
                 if actor_id
             }
         ),
+        baseline_future_preview=[event_reference(event) for event in future_events[:5]],
         forecast=forecast,
     )
     manifest_path = workspace_root / "whatif_episode_manifest.json"
@@ -398,10 +370,12 @@ def materialize_episode(
         workspace_root=workspace_root,
         organization_name=organization_name,
         organization_domain=organization_domain,
-        thread_id=thread_id,
+        thread_id=selected_thread_id,
         branch_event_id=branch_event.event_id,
+        branch_event=manifest.branch_event,
         history_message_count=len(past_events),
         future_event_count=len(future_events),
+        baseline_future_preview=list(manifest.baseline_future_preview),
         forecast=forecast,
     )
 
@@ -456,6 +430,7 @@ def replay_episode_baseline(
         pending_events=pending_events,
         inbox_count=len(inbox),
         top_subjects=top_subjects,
+        baseline_future_preview=list(manifest.baseline_future_preview),
         forecast=manifest.forecast,
     )
 
@@ -472,7 +447,7 @@ def forecast_episode(events: Sequence[WhatIfEvent]) -> WhatIfForecast:
     )
     future_approval_count = sum(1 for event in events if event.event_type == "approval")
     future_external_event_count = sum(
-        1 for event in events if _has_external_recipients(event.flags.to_recipients)
+        1 for event in events if has_external_recipients(event.flags.to_recipients)
     )
     risk_score = min(
         1.0,
@@ -489,6 +464,7 @@ def forecast_episode(events: Sequence[WhatIfEvent]) -> WhatIfForecast:
         "externally addressed messages."
     )
     return WhatIfForecast(
+        backend="historical",
         future_event_count=future_event_count,
         future_escalation_count=future_escalation_count,
         future_assignment_count=future_assignment_count,
@@ -504,7 +480,7 @@ def run_llm_counterfactual(
     *,
     prompt: str,
     provider: str = "openai",
-    model: str = "gpt-5",
+    model: str = "gpt-5-mini",
     seed: int = 42042,
 ) -> WhatIfLLMReplayResult:
     load_dotenv(override=True)
@@ -518,7 +494,7 @@ def run_llm_counterfactual(
     )
     recipient_scope, recipient_notes = _apply_recipient_scope(
         allowed_recipients,
-        tags=_intervention_tags(prompt),
+        tags=intervention_tags(prompt),
     )
     system = (
         "You are simulating a bounded counterfactual continuation on a historical "
@@ -636,7 +612,7 @@ def run_ejepa_proxy_counterfactual(
         update={"backend": "e_jepa_proxy"},
         deep=True,
     )
-    tags = _intervention_tags(prompt)
+    tags = intervention_tags(prompt)
     notes: list[str] = []
 
     event_shift = 0
@@ -732,19 +708,42 @@ def run_counterfactual_experiment(
     selection_scenario: str | None = None,
     selection_prompt: str | None = None,
     thread_id: str | None = None,
+    event_id: str | None = None,
     mode: WhatIfExperimentMode = "both",
+    forecast_backend: WhatIfForecastBackend | None = None,
+    allow_proxy_fallback: bool = True,
     provider: str = "openai",
-    model: str = "gpt-5",
+    model: str = "gpt-5-mini",
     seed: int = 42042,
+    ejepa_epochs: int = 4,
+    ejepa_batch_size: int = 64,
+    ejepa_force_retrain: bool = False,
+    ejepa_device: str | None = None,
 ) -> WhatIfExperimentResult:
-    selection = run_whatif(
-        world,
-        scenario=selection_scenario,
-        prompt=selection_prompt,
+    selection = (
+        run_whatif(
+            world,
+            scenario=selection_scenario,
+            prompt=selection_prompt,
+        )
+        if selection_scenario or selection_prompt
+        else _selection_for_specific_event(
+            world,
+            thread_id=thread_id,
+            event_id=event_id,
+            prompt=counterfactual_prompt,
+        )
     )
-    selected_thread_id = thread_id or (
-        selection.top_threads[0].thread_id if selection.top_threads else None
-    )
+    selected_thread_id = thread_id
+    if selected_thread_id is None and event_id:
+        selected_event = event_by_id(world.events, event_id)
+        if selected_event is None:
+            raise ValueError(f"event not found in world: {event_id}")
+        selected_thread_id = selected_event.thread_id
+    if selected_thread_id is None:
+        selected_thread_id = (
+            selection.top_threads[0].thread_id if selection.top_threads else None
+        )
     if not selected_thread_id:
         raise ValueError("no matching thread available for the counterfactual run")
 
@@ -754,6 +753,7 @@ def run_counterfactual_experiment(
         world,
         root=workspace_root,
         thread_id=selected_thread_id,
+        event_id=event_id,
     )
     baseline = replay_episode_baseline(
         workspace_root,
@@ -770,18 +770,54 @@ def run_counterfactual_experiment(
             seed=seed,
         )
     forecast_result: WhatIfForecastResult | None = None
-    if mode in {"e_jepa_proxy", "both"}:
-        forecast_result = run_ejepa_proxy_counterfactual(
-            workspace_root,
-            prompt=counterfactual_prompt,
-        )
+    resolved_forecast_backend = forecast_backend or (
+        mode if mode in {"e_jepa", "e_jepa_proxy"} else default_forecast_backend()
+    )
+    if mode in {"e_jepa", "e_jepa_proxy", "both"}:
+        if resolved_forecast_backend == "e_jepa":
+            forecast_result = run_ejepa_counterfactual(
+                workspace_root,
+                prompt=counterfactual_prompt,
+                source_dir=world.rosetta_dir,
+                thread_id=selected_thread_id,
+                branch_event_id=materialization.branch_event_id,
+                llm_messages=llm_result.messages if llm_result is not None else None,
+                epochs=ejepa_epochs,
+                batch_size=ejepa_batch_size,
+                force_retrain=ejepa_force_retrain,
+                device=ejepa_device,
+            )
+            if forecast_result.status == "error" and allow_proxy_fallback:
+                proxy_result = run_ejepa_proxy_counterfactual(
+                    workspace_root,
+                    prompt=counterfactual_prompt,
+                )
+                proxy_result.notes.insert(
+                    0,
+                    "Real E-JEPA forecast failed, so this experiment fell back to the proxy forecast.",
+                )
+                if forecast_result.error:
+                    proxy_result.notes.append(
+                        f"Original E-JEPA error: {forecast_result.error}"
+                    )
+                forecast_result = proxy_result
+        else:
+            forecast_result = run_ejepa_proxy_counterfactual(
+                workspace_root,
+                prompt=counterfactual_prompt,
+            )
 
     result_path = root / "whatif_experiment_result.json"
     overview_path = root / "whatif_experiment_overview.md"
     llm_path = root / "whatif_llm_result.json" if llm_result is not None else None
-    forecast_path = (
-        root / "whatif_ejepa_proxy_result.json" if forecast_result is not None else None
-    )
+    forecast_path = None
+    if forecast_result is not None:
+        forecast_filename = (
+            "whatif_ejepa_result.json"
+            if forecast_result.backend == "e_jepa"
+            else "whatif_ejepa_proxy_result.json"
+        )
+        forecast_path = root / forecast_filename
     root.mkdir(parents=True, exist_ok=True)
 
     artifacts = WhatIfExperimentArtifacts(
@@ -837,196 +873,115 @@ def load_experiment_result(root: str | Path) -> WhatIfExperimentResult:
     )
 
 
-def _build_event(row: dict[str, Any], content: str) -> WhatIfEvent | None:
-    event_id = str(row.get("event_id", "")).strip()
-    if not event_id:
-        return None
-    timestamp = row.get("timestamp")
-    timestamp_ms = _timestamp_to_ms(timestamp)
-    timestamp_text = _timestamp_to_text(timestamp)
-    artifacts = _artifact_flags(row.get("artifacts"))
-    thread_id = str(row.get("thread_task_id", "") or event_id)
-    subject = artifacts.subject or artifacts.norm_subject or thread_id
-    return WhatIfEvent(
-        event_id=event_id,
-        timestamp=timestamp_text,
-        timestamp_ms=timestamp_ms,
-        actor_id=str(row.get("actor_id", "") or ""),
-        target_id=str(row.get("target_id", "") or ""),
-        event_type=str(row.get("event_type", "") or ""),
-        thread_id=thread_id,
-        subject=subject,
-        snippet=str(content or ""),
-        flags=artifacts,
-    )
-
-
-def _artifact_flags(raw: Any) -> WhatIfArtifactFlags:
-    if isinstance(raw, str):
-        try:
-            payload = json.loads(raw)
-        except json.JSONDecodeError:
-            payload = {}
-    elif isinstance(raw, dict):
-        payload = dict(raw)
-    else:
-        payload = {}
-
-    return WhatIfArtifactFlags(
-        consult_legal_specialist=bool(payload.get("consult_legal_specialist", False)),
-        consult_trading_specialist=bool(
-            payload.get("consult_trading_specialist", False)
-        ),
-        has_attachment_reference=bool(payload.get("has_attachment_reference", False)),
-        is_escalation=bool(payload.get("is_escalation", False)),
-        is_forward=bool(payload.get("is_forward", False)),
-        is_reply=bool(payload.get("is_reply", False)),
-        cc_count=_safe_int(payload.get("cc_count")),
-        bcc_count=_safe_int(payload.get("bcc_count")),
-        to_count=_safe_int(payload.get("to_count")),
-        to_recipients=_string_list(payload.get("to_recipients")),
-        cc_recipients=_string_list(payload.get("cc_recipients")),
-        subject=str(payload.get("subject", "") or ""),
-        norm_subject=str(payload.get("norm_subject", "") or ""),
-        body_sha1=str(payload.get("body_sha1", "") or ""),
-        custodian_id=str(payload.get("custodian_id", "") or ""),
-        message_id=str(payload.get("message_id", "") or ""),
-        folder=str(payload.get("folder", "") or ""),
-        source=str(payload.get("source", "") or ""),
-    )
-
-
-def _build_thread_summaries(events: Sequence[WhatIfEvent]) -> list[WhatIfThreadSummary]:
-    buckets: dict[str, dict[str, Any]] = {}
-    for event in events:
-        bucket = buckets.setdefault(
-            event.thread_id,
-            {
-                "thread_id": event.thread_id,
-                "subject": event.subject or event.thread_id,
-                "event_count": 0,
-                "actor_ids": set(),
-                "first_timestamp": event.timestamp,
-                "last_timestamp": event.timestamp,
-                "legal_event_count": 0,
-                "trading_event_count": 0,
-                "escalation_event_count": 0,
-                "assignment_event_count": 0,
-                "approval_event_count": 0,
-                "forward_event_count": 0,
-                "attachment_event_count": 0,
-                "external_recipient_event_count": 0,
-                "event_type_counts": Counter(),
-            },
-        )
-        bucket["event_count"] += 1
-        bucket["actor_ids"].add(event.actor_id)
-        if event.target_id:
-            bucket["actor_ids"].add(event.target_id)
-        bucket["last_timestamp"] = event.timestamp
-        if event.flags.consult_legal_specialist:
-            bucket["legal_event_count"] += 1
-        if event.flags.consult_trading_specialist:
-            bucket["trading_event_count"] += 1
-        if event.flags.is_escalation or event.event_type == "escalation":
-            bucket["escalation_event_count"] += 1
-        if event.event_type == "assignment":
-            bucket["assignment_event_count"] += 1
-        if event.event_type == "approval":
-            bucket["approval_event_count"] += 1
-        if event.flags.is_forward:
-            bucket["forward_event_count"] += 1
-        if event.flags.has_attachment_reference:
-            bucket["attachment_event_count"] += 1
-        if _has_external_recipients(event.flags.to_recipients):
-            bucket["external_recipient_event_count"] += 1
-        bucket["event_type_counts"][event.event_type] += 1
-
-    threads = [
-        WhatIfThreadSummary(
-            thread_id=payload["thread_id"],
-            subject=payload["subject"],
-            event_count=payload["event_count"],
-            actor_ids=sorted(actor_id for actor_id in payload["actor_ids"] if actor_id),
-            first_timestamp=payload["first_timestamp"],
-            last_timestamp=payload["last_timestamp"],
-            legal_event_count=payload["legal_event_count"],
-            trading_event_count=payload["trading_event_count"],
-            escalation_event_count=payload["escalation_event_count"],
-            assignment_event_count=payload["assignment_event_count"],
-            approval_event_count=payload["approval_event_count"],
-            forward_event_count=payload["forward_event_count"],
-            attachment_event_count=payload["attachment_event_count"],
-            external_recipient_event_count=payload["external_recipient_event_count"],
-            event_type_counts=dict(payload["event_type_counts"]),
-        )
-        for payload in buckets.values()
-    ]
-    return sorted(threads, key=lambda item: (-item.event_count, item.thread_id))
-
-
-def _build_actor_profiles(events: Sequence[WhatIfEvent]) -> list[WhatIfActorProfile]:
-    buckets: dict[str, dict[str, Any]] = {}
-    for event in events:
-        _touch_actor(
-            buckets,
-            actor_id=event.actor_id,
-            sent=True,
-            flagged=_event_is_flagged(event),
-            custodian_id=event.flags.custodian_id,
-        )
-        _touch_actor(
-            buckets,
-            actor_id=event.target_id,
-            received=True,
-        )
-    actors = [
-        WhatIfActorProfile(
-            actor_id=actor_id,
-            email=actor_id,
-            display_name=_display_name(actor_id),
-            custodian_ids=sorted(payload["custodian_ids"]),
-            event_count=payload["event_count"],
-            sent_count=payload["sent_count"],
-            received_count=payload["received_count"],
-            flagged_event_count=payload["flagged_event_count"],
-        )
-        for actor_id, payload in buckets.items()
-        if actor_id
-    ]
-    return sorted(actors, key=lambda item: (-item.event_count, item.actor_id))
-
-
-def _touch_actor(
-    buckets: dict[str, dict[str, Any]],
+def _selection_for_specific_event(
+    world: WhatIfWorld,
     *,
-    actor_id: str,
-    sent: bool = False,
-    received: bool = False,
-    flagged: bool = False,
-    custodian_id: str = "",
-) -> None:
-    if not actor_id:
-        return
-    bucket = buckets.setdefault(
-        actor_id,
-        {
-            "event_count": 0,
-            "sent_count": 0,
-            "received_count": 0,
-            "flagged_event_count": 0,
-            "custodian_ids": set(),
-        },
+    thread_id: str | None,
+    event_id: str | None,
+    prompt: str,
+) -> WhatIfResult:
+    if event_id:
+        event = event_by_id(world.events, event_id)
+        if event is None:
+            raise ValueError(f"event not found in world: {event_id}")
+        selected_thread_id = event.thread_id
+    elif thread_id:
+        selected_thread_id = thread_id
+        event = None
+    else:
+        raise ValueError("provide selection criteria or an explicit event/thread")
+
+    scenario = _resolve_scenario_from_specific_event(
+        prompt=prompt,
+        event=event,
     )
-    bucket["event_count"] += 1
-    if sent:
-        bucket["sent_count"] += 1
-    if received:
-        bucket["received_count"] += 1
-    if flagged:
-        bucket["flagged_event_count"] += 1
-    if custodian_id:
-        bucket["custodian_ids"].add(custodian_id)
+    matching_thread = next(
+        (thread for thread in world.threads if thread.thread_id == selected_thread_id),
+        None,
+    )
+    if matching_thread is None:
+        raise ValueError(f"thread not found in world: {selected_thread_id}")
+    matching_events = [
+        item for item in world.events if item.thread_id == selected_thread_id
+    ]
+    return WhatIfResult(
+        scenario=scenario,
+        prompt=prompt,
+        world_summary=world.summary,
+        matched_event_count=len(matching_events),
+        affected_thread_count=1,
+        affected_actor_count=len(matching_thread.actor_ids),
+        blocked_forward_count=sum(
+            1 for item in matching_events if item.flags.is_forward
+        ),
+        blocked_escalation_count=sum(
+            1
+            for item in matching_events
+            if item.flags.is_escalation or item.event_type == "escalation"
+        ),
+        delayed_assignment_count=sum(
+            1 for item in matching_events if item.event_type == "assignment"
+        ),
+        timeline_impact="Counterfactual replay from one explicit historical event.",
+        top_threads=[
+            WhatIfThreadImpact(
+                thread_id=matching_thread.thread_id,
+                subject=matching_thread.subject,
+                affected_event_count=matching_thread.event_count,
+                participant_count=len(matching_thread.actor_ids),
+                reasons=["explicit_branch_point"],
+            )
+        ],
+        top_actors=[
+            WhatIfActorImpact(
+                actor_id=actor_id,
+                display_name=display_name(actor_id),
+                affected_event_count=sum(
+                    1
+                    for item in matching_events
+                    if actor_id in {item.actor_id, item.target_id}
+                ),
+                affected_thread_count=1,
+                reasons=["explicit_branch_point"],
+            )
+            for actor_id in matching_thread.actor_ids[:5]
+        ],
+        top_consequences=[
+            WhatIfConsequence(
+                thread_id=matching_thread.thread_id,
+                subject=matching_thread.subject,
+                detail="This experiment was pinned to one explicit branch point.",
+                severity="medium",
+            )
+        ],
+        decision_branches=list(scenario.decision_branches),
+    )
+
+
+def _resolve_scenario_from_specific_event(
+    *,
+    prompt: str,
+    event: WhatIfEvent | None,
+) -> WhatIfScenario:
+    try:
+        return _resolve_scenario(scenario=None, prompt=prompt)
+    except ValueError:
+        if event is None:
+            return _SUPPORTED_SCENARIOS["compliance_gateway"]
+        if event.flags.has_attachment_reference and has_external_recipients(
+            event.flags.to_recipients
+        ):
+            return _SUPPORTED_SCENARIOS["external_dlp"]
+        if (
+            event.flags.consult_legal_specialist
+            or event.flags.consult_trading_specialist
+        ):
+            return _SUPPORTED_SCENARIOS["compliance_gateway"]
+        if event.flags.is_escalation or event.event_type == "escalation":
+            return _SUPPORTED_SCENARIOS["escalation_firewall"]
+        if event.event_type == "assignment":
+            return _SUPPORTED_SCENARIOS["approval_chain_enforcement"]
+        return _SUPPORTED_SCENARIOS["compliance_gateway"]
 
 
 def _resolve_scenario(
@@ -1081,7 +1036,7 @@ def _matched_events_for_scenario(
         return [
             event
             for event in events
-            if _touches_executive(event)
+            if touches_executive(event)
             and (
                 event.flags.is_escalation
                 or event.flags.is_forward
@@ -1094,7 +1049,7 @@ def _matched_events_for_scenario(
             event
             for event in events
             if event.flags.has_attachment_reference
-            and _has_external_recipients(event.flags.to_recipients)
+            and has_external_recipients(event.flags.to_recipients)
         ]
 
     if scenario_id == "approval_chain_enforcement":
@@ -1121,11 +1076,11 @@ def _build_actor_impacts(events: Sequence[WhatIfEvent]) -> list[WhatIfActorImpac
         )
         bucket["count"] += 1
         bucket["threads"].add(event.thread_id)
-        bucket["reasons"].update(_event_reason_labels(event))
+        bucket["reasons"].update(event_reason_labels(event))
     impacts = [
         WhatIfActorImpact(
             actor_id=actor_id,
-            display_name=_display_name(actor_id),
+            display_name=display_name(actor_id),
             affected_event_count=payload["count"],
             affected_thread_count=len(payload["threads"]),
             reasons=sorted(payload["reasons"]),
@@ -1151,7 +1106,7 @@ def _build_thread_impacts(
             {"count": 0, "reasons": set()},
         )
         bucket["count"] += 1
-        bucket["reasons"].update(_event_reason_labels(event))
+        bucket["reasons"].update(event_reason_labels(event))
     impacts: list[WhatIfThreadImpact] = []
     for thread_id, payload in counts.items():
         thread = thread_by_id.get(thread_id)
@@ -1223,52 +1178,6 @@ def _timeline_impact(
     if scenario_id == "external_dlp":
         return "Holds external attachment sends until review completes."
     return "Requires approval before the next assignment handoff proceeds."
-
-
-def _thread_events(events: Sequence[WhatIfEvent], thread_id: str) -> list[WhatIfEvent]:
-    return [
-        event
-        for event in sorted(events, key=lambda item: (item.timestamp_ms, item.event_id))
-        if event.thread_id == thread_id
-    ]
-
-
-def _choose_branch_event(
-    events: Sequence[WhatIfEvent],
-    *,
-    requested_event_id: str | None,
-) -> WhatIfEvent:
-    if not events:
-        raise ValueError("cannot choose a branch event from an empty thread")
-    if requested_event_id:
-        for event in events:
-            if event.event_id == requested_event_id:
-                return event
-        raise ValueError(f"branch event not found in thread: {requested_event_id}")
-    if len(events) == 1:
-        return events[0]
-    prioritized = [
-        event
-        for event in events[:-1]
-        if event.flags.is_escalation
-        or event.flags.is_forward
-        or event.event_type in {"assignment", "approval", "reply"}
-    ]
-    if prioritized:
-        return prioritized[0]
-    return events[max(0, (len(events) // 2) - 1)]
-
-
-def _thread_subject(
-    threads: Sequence[WhatIfThreadSummary],
-    thread_id: str,
-    *,
-    fallback: str,
-) -> str:
-    for thread in threads:
-        if thread.thread_id == thread_id:
-            return thread.subject
-    return fallback or thread_id
 
 
 def _archive_message_payload(
@@ -1358,27 +1267,6 @@ def _primary_recipient(event: WhatIfEvent) -> str:
     return "archive@enron.com"
 
 
-def _event_reason_labels(event: WhatIfEvent) -> list[str]:
-    labels: list[str] = []
-    if event.flags.consult_legal_specialist:
-        labels.append("legal")
-    if event.flags.consult_trading_specialist:
-        labels.append("trading")
-    if event.flags.has_attachment_reference:
-        labels.append("attachment")
-    if event.flags.is_forward:
-        labels.append("forward")
-    if event.flags.is_escalation or event.event_type == "escalation":
-        labels.append("escalation")
-    if event.event_type == "assignment":
-        labels.append("assignment")
-    if event.event_type == "approval":
-        labels.append("approval")
-    if _has_external_recipients(event.flags.to_recipients):
-        labels.append("external_recipient")
-    return labels
-
-
 def _thread_reason_labels(
     thread: WhatIfThreadSummary,
     scenario_id: WhatIfScenarioId,
@@ -1390,109 +1278,6 @@ def _thread_reason_labels(
     if scenario_id == "external_dlp":
         return ["attachment", "external_recipient"]
     return ["assignment_without_approval"]
-
-
-def _event_is_flagged(event: WhatIfEvent) -> bool:
-    return bool(_event_reason_labels(event))
-
-
-def _touches_executive(event: WhatIfEvent) -> bool:
-    haystack = " ".join(
-        [
-            event.actor_id.lower(),
-            event.target_id.lower(),
-            " ".join(value.lower() for value in event.flags.to_recipients),
-            " ".join(value.lower() for value in event.flags.cc_recipients),
-        ]
-    )
-    return any(marker in haystack for marker in _EXECUTIVE_MARKERS)
-
-
-def _has_external_recipients(recipients: Sequence[str]) -> bool:
-    for recipient in recipients:
-        if "@" not in recipient:
-            continue
-        if not recipient.lower().endswith(f"@{_ENRON_DOMAIN}"):
-            return True
-    return False
-
-
-def _matches_custodian_filter(
-    event: WhatIfEvent,
-    tokens: set[str],
-) -> bool:
-    if event.flags.custodian_id.lower() in tokens:
-        return True
-    return event.actor_id.lower() in tokens or event.target_id.lower() in tokens
-
-
-def _resolve_time_window(
-    time_window: tuple[str, str] | None,
-) -> tuple[int, int] | None:
-    if time_window is None:
-        return None
-    start_raw, end_raw = time_window
-    return (_parse_time_value(start_raw), _parse_time_value(end_raw))
-
-
-def _parse_time_value(value: str) -> int:
-    parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
-    return int(parsed.timestamp() * 1000)
-
-
-def _timestamp_to_ms(value: Any) -> int:
-    if value is None:
-        return 0
-    if isinstance(value, datetime):
-        return int(value.timestamp() * 1000)
-    if isinstance(value, (int, float)):
-        return int(value)
-    text = str(value)
-    if not text:
-        return 0
-    parsed = datetime.fromisoformat(text.replace("Z", "+00:00"))
-    return int(parsed.timestamp() * 1000)
-
-
-def _timestamp_to_text(value: Any) -> str:
-    if value is None:
-        return ""
-    if isinstance(value, datetime):
-        if value.tzinfo is None:
-            value = value.replace(tzinfo=timezone.utc)
-        return value.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
-    text = str(value)
-    if not text:
-        return ""
-    try:
-        parsed = datetime.fromisoformat(text.replace("Z", "+00:00"))
-    except ValueError:
-        return text
-    if parsed.tzinfo is None:
-        parsed = parsed.replace(tzinfo=timezone.utc)
-    return parsed.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
-
-
-def _display_name(actor_id: str) -> str:
-    token = actor_id.split("@", 1)[0].replace(".", " ").replace("_", " ").strip()
-    if not token:
-        return actor_id
-    return " ".join(part.capitalize() for part in token.split())
-
-
-def _safe_int(value: Any) -> int:
-    try:
-        return int(value)
-    except Exception:
-        return 0
-
-
-def _string_list(value: Any) -> list[str]:
-    if isinstance(value, list):
-        return [str(item) for item in value if str(item)]
-    if value in (None, ""):
-        return []
-    return [str(value)]
 
 
 def _load_episode_context(root: Path) -> dict[str, Any]:
@@ -1576,6 +1361,14 @@ def _llm_counterfactual_prompt(
         [
             f"Thread subject: {manifest.thread_subject}",
             f"Branch event id: {manifest.branch_event_id}",
+            "Historical event being changed:",
+            (
+                f"- From: {manifest.branch_event.actor_id}\n"
+                f"  To: {', '.join(manifest.branch_event.to_recipients) or manifest.branch_event.target_id}\n"
+                f"  Type: {manifest.branch_event.event_type}\n"
+                f"  Subject: {manifest.branch_event.subject}\n"
+                f"  Excerpt: {manifest.branch_event.snippet}"
+            ),
             "Allowed actors:",
             ", ".join(allowed_actors),
             "Allowed recipients:",
@@ -1607,27 +1400,34 @@ def _normalize_llm_messages(
         else []
     )
     actor_fallback = allowed_actors[0] if allowed_actors else "counterfactual@enron.com"
-    recipient_fallback = allowed_recipients[0] if allowed_recipients else actor_fallback
+    recipient_fallback = _preferred_recipient_fallback(
+        allowed_recipients,
+        default=actor_fallback,
+    )
 
     for index, raw in enumerate(raw_messages[:3]):
         if not isinstance(raw, dict):
             continue
         actor_id = str(raw.get("actor_id", actor_fallback)).strip()
         if actor_id not in allowed_actors:
-            actor_id = actor_fallback
+            resolved_actor = _resolve_allowed_identity(actor_id, allowed_actors)
+            actor_id = resolved_actor or actor_fallback
             notes.append(
                 f"Message {index + 1} used a non-participant actor; it was clamped to {actor_id}."
             )
         recipient = str(raw.get("to", recipient_fallback)).strip()
         if recipient not in allowed_recipients:
-            recipient = recipient_fallback
+            resolved_recipient = _resolve_allowed_identity(
+                recipient, allowed_recipients
+            )
+            recipient = resolved_recipient or recipient_fallback
             notes.append(
                 f"Message {index + 1} used a non-thread recipient; it was clamped to {recipient}."
             )
         body_text = str(raw.get("body_text", "")).strip()
         if not body_text:
             continue
-        delay_ms = max(1000, _safe_int(raw.get("delay_ms", (index + 1) * 1000)))
+        delay_ms = max(1000, safe_int(raw.get("delay_ms", (index + 1) * 1000)))
         normalized.append(
             WhatIfLLMGeneratedMessage(
                 actor_id=actor_id,
@@ -1653,6 +1453,63 @@ def _message_subject(value: Any, *, fallback: str) -> str:
     return f"Re: {fallback}"
 
 
+def _preferred_recipient_fallback(
+    recipients: Sequence[str],
+    *,
+    default: str,
+) -> str:
+    for recipient in recipients:
+        if (
+            recipient
+            and recipient.lower().endswith(f"@{ENRON_DOMAIN}")
+            and not recipient.lower().startswith("group:")
+        ):
+            return recipient
+    return recipients[0] if recipients else default
+
+
+def _resolve_allowed_identity(
+    raw_value: str,
+    allowed_values: Sequence[str],
+) -> str | None:
+    normalized = raw_value.strip().lower()
+    if not normalized:
+        return None
+    for allowed in allowed_values:
+        if normalized == allowed.lower():
+            return allowed
+
+    wanted_tokens = _identity_tokens(normalized)
+    if not wanted_tokens:
+        return None
+
+    best_match: str | None = None
+    best_score = 0
+    for allowed in allowed_values:
+        candidate_tokens = _identity_tokens(allowed.lower())
+        overlap = len(wanted_tokens & candidate_tokens)
+        if overlap == 0:
+            continue
+        if normalized in allowed.lower() or allowed.lower() in normalized:
+            overlap += 2
+        if overlap > best_score:
+            best_match = allowed
+            best_score = overlap
+    return best_match
+
+
+def _identity_tokens(value: str) -> set[str]:
+    cleaned = (
+        value.replace("@", " ")
+        .replace(".", " ")
+        .replace("_", " ")
+        .replace("-", " ")
+        .replace("<", " ")
+        .replace(">", " ")
+    )
+    return {token for token in cleaned.split() if len(token) >= 2}
+
+
 def _counterfactual_args(plan: dict[str, Any]) -> dict[str, Any]:
     raw_args = plan.get("args")
     if isinstance(raw_args, dict):
@@ -1676,7 +1533,7 @@ def _apply_recipient_scope(
     internal_recipients = [
         recipient
         for recipient in result
-        if recipient.lower().endswith(f"@{_ENRON_DOMAIN}")
+        if recipient.lower().endswith(f"@{ENRON_DOMAIN}")
     ]
     internal_only = bool(
         {
@@ -1702,45 +1559,6 @@ def _baseline_tick_ms(dataset_path: Path) -> int:
     if not dataset.events:
         return 0
     return max(event.time_ms for event in dataset.events) + 1000
-
-
-def _intervention_tags(prompt: str) -> set[str]:
-    lowered = prompt.strip().lower()
-    tags: set[str] = set()
-    if any(token in lowered for token in ("legal", "compliance")):
-        tags.update({"legal", "compliance"})
-    if any(token in lowered for token in ("hold", "pause", "stop forward", "freeze")):
-        tags.update({"hold", "pause_forward"})
-    if any(
-        token in lowered
-        for token in (
-            "reply immediately",
-            "respond immediately",
-            "same day",
-            "right away",
-        )
-    ):
-        tags.add("reply_immediately")
-    if any(token in lowered for token in ("owner", "ownership", "clarify owner")):
-        tags.add("clarify_owner")
-    if any(
-        token in lowered
-        for token in ("executive gate", "route through", "sign-off", "approval")
-    ):
-        tags.add("executive_gate")
-    if any(token in lowered for token in ("remove attachment", "strip attachment")):
-        tags.add("attachment_removed")
-    if any(
-        token in lowered
-        for token in (
-            "remove external",
-            "pull the outside recipient",
-            "internal only",
-            "outside recipient",
-        )
-    ):
-        tags.add("external_removed")
-    return tags
 
 
 def _forecast_summary_from_counts(forecast: WhatIfForecast) -> str:
@@ -1769,13 +1587,30 @@ def _render_experiment_overview(result: WhatIfExperimentResult) -> str:
         f"# {result.label}",
         "",
         f"Thread: `{result.intervention.thread_id}`",
+        f"Branch event: `{result.intervention.branch_event_id}`",
+        f"Changed actor: `{result.materialization.branch_event.actor_id}`",
+        f"Historical event type: {result.materialization.branch_event.event_type}",
+        f"Historical subject: {result.materialization.branch_event.subject}",
         f"Prompt: {result.intervention.prompt}",
+        "",
+        "## Historical Event",
+        f"- Timestamp: {result.materialization.branch_event.timestamp}",
+        f"- To: {', '.join(result.materialization.branch_event.to_recipients) or result.materialization.branch_event.target_id or '(none)'}",
+        f"- Forward: {'yes' if result.materialization.branch_event.is_forward else 'no'}",
+        f"- Escalation: {'yes' if result.materialization.branch_event.is_escalation else 'no'}",
+        f"- Attachment: {'yes' if result.materialization.branch_event.has_attachment_reference else 'no'}",
         "",
         "## Baseline",
         f"- Scheduled historical future events: {result.baseline.scheduled_event_count}",
         f"- Delivered historical future events: {result.baseline.delivered_event_count}",
         f"- Baseline forecast risk score: {result.baseline.forecast.risk_score}",
     ]
+    if result.materialization.baseline_future_preview:
+        lines.extend(["- First baseline events:"])
+        for event in result.materialization.baseline_future_preview[:3]:
+            lines.append(
+                f"  - `{event.event_id}` {event.event_type} from `{event.actor_id}`: {event.subject}"
+            )
     if result.llm_result is not None:
         lines.extend(
             [
@@ -1787,15 +1622,22 @@ def _render_experiment_overview(result: WhatIfExperimentResult) -> str:
                 f"- Inbox count: {result.llm_result.inbox_count}",
             ]
         )
+        for message in result.llm_result.messages[:3]:
+            lines.append(
+                f"- `{message.actor_id}` -> `{message.to}` after {message.delay_ms} ms: {message.subject}"
+            )
     if result.forecast_result is not None:
         lines.extend(
             [
                 "",
-                "## E-JEPA Proxy Forecast",
+                "## Forecast",
                 f"- Status: {result.forecast_result.status}",
+                f"- Backend: {result.forecast_result.backend}",
                 f"- Summary: {result.forecast_result.summary}",
                 f"- Baseline risk: {result.forecast_result.baseline.risk_score}",
                 f"- Predicted risk: {result.forecast_result.predicted.risk_score}",
+                f"- External-send delta: {result.forecast_result.delta.external_event_delta}",
+                f"- Escalation delta: {result.forecast_result.delta.escalation_delta}",
             ]
         )
     return "\n".join(lines)

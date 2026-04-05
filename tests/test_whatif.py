@@ -17,10 +17,18 @@ from vei.whatif import (
     load_world,
     materialize_episode,
     replay_episode_baseline,
+    search_events,
     run_counterfactual_experiment,
     run_ejepa_proxy_counterfactual,
     run_llm_counterfactual,
     run_whatif,
+)
+from vei.whatif.ejepa import _default_cache_root
+from vei.whatif.models import (
+    WhatIfEventReference,
+    WhatIfForecast,
+    WhatIfForecastDelta,
+    WhatIfForecastResult,
 )
 
 
@@ -171,16 +179,18 @@ def test_materialize_episode_builds_mail_only_workspace_and_replay(
     )
     replay = replay_episode_baseline(workspace_root, tick_ms=1500)
 
-    assert materialization.history_message_count == 2
-    assert materialization.future_event_count == 1
+    assert materialization.history_message_count == 1
+    assert materialization.future_event_count == 2
     assert manifest.thread_id == "thr-legal-trading"
     assert manifest.branch_event_id == "evt-002"
+    assert manifest.branch_event.actor_id == "sara.shackleton@enron.com"
+    assert "Forwarding with trading context attached." in manifest.branch_event.snippet
     assert [surface.name for surface in bundle.gateway.surfaces] == ["graph"]
     assert bundle.organization_domain == "enron.com"
-    assert len(dataset.events) == 1
+    assert len(dataset.events) == 2
     assert dataset.events[0].payload["thread_id"] == "thr-legal-trading"
-    assert replay.scheduled_event_count == 1
-    assert replay.delivered_event_count == 1
+    assert replay.scheduled_event_count == 2
+    assert replay.delivered_event_count == 2
     assert replay.inbox_count >= 3
 
 
@@ -221,7 +231,8 @@ def test_vei_whatif_cli_explore_and_open_episode(tmp_path: Path) -> None:
     )
     assert open_result.exit_code == 0, open_result.output
     open_payload = json.loads(open_result.output)
-    assert open_payload["future_event_count"] == 1
+    assert open_payload["future_event_count"] == 2
+    assert open_payload["branch_event"]["event_id"] == "evt-002"
 
     replay_result = runner.invoke(
         cli_app,
@@ -236,8 +247,93 @@ def test_vei_whatif_cli_explore_and_open_episode(tmp_path: Path) -> None:
     )
     assert replay_result.exit_code == 0, replay_result.output
     replay_payload = json.loads(replay_result.output)
-    assert replay_payload["scheduled_event_count"] == 1
-    assert replay_payload["delivered_event_count"] == 1
+    assert replay_payload["scheduled_event_count"] == 2
+    assert replay_payload["delivered_event_count"] == 2
+
+    events_result = runner.invoke(
+        cli_app,
+        [
+            "whatif",
+            "events",
+            "--rosetta-dir",
+            str(rosetta_dir),
+            "--actor",
+            "jeff.skilling",
+            "--query",
+            "draft term sheet",
+            "--flagged-only",
+        ],
+    )
+    assert events_result.exit_code == 0, events_result.output
+    events_payload = json.loads(events_result.output)
+    assert events_payload["match_count"] == 1
+    assert events_payload["matches"][0]["event"]["event_id"] == "evt-005"
+
+
+def test_search_events_finds_exact_branch_points(tmp_path: Path) -> None:
+    rosetta_dir = tmp_path / "rosetta"
+    _write_rosetta_fixture(rosetta_dir)
+    world = load_world(source="enron", rosetta_dir=rosetta_dir)
+    result = search_events(
+        world,
+        actor="jeff.skilling",
+        query="draft term sheet",
+        flagged_only=True,
+    )
+
+    assert result.match_count == 1
+    assert result.matches[0].event.event_id == "evt-005"
+    assert result.matches[0].reason_labels == ["attachment", "external_recipient"]
+    assert "External draft attached for review." in result.matches[0].event.snippet
+
+
+def test_search_events_matches_human_name_queries(tmp_path: Path) -> None:
+    rosetta_dir = tmp_path / "rosetta"
+    _write_rosetta_fixture(rosetta_dir)
+    world = load_world(source="enron", rosetta_dir=rosetta_dir)
+
+    result = search_events(
+        world,
+        query="Jeff Skilling draft term sheet",
+    )
+
+    assert result.match_count == 1
+    assert result.matches[0].event.event_id == "evt-005"
+
+
+def test_ejepa_cache_root_changes_with_branch_event() -> None:
+    source_dir = Path("/tmp/enron_rosetta")
+
+    first = _default_cache_root(
+        source_dir,
+        thread_id="thr-master-agreement",
+        branch_event_id="evt-001",
+    )
+    second = _default_cache_root(
+        source_dir,
+        thread_id="thr-master-agreement",
+        branch_event_id="evt-002",
+    )
+
+    assert first != second
+
+
+def test_materialize_episode_can_branch_from_explicit_event_id(tmp_path: Path) -> None:
+    rosetta_dir = tmp_path / "rosetta"
+    _write_rosetta_fixture(rosetta_dir)
+    world = load_world(source="enron", rosetta_dir=rosetta_dir)
+
+    workspace_root = tmp_path / "episode_by_event"
+    materialization = materialize_episode(
+        world,
+        root=workspace_root,
+        event_id="evt-005",
+    )
+
+    assert materialization.thread_id == "thr-external"
+    assert materialization.branch_event_id == "evt-005"
+    assert materialization.history_message_count == 0
+    assert materialization.future_event_count == 1
 
 
 def test_llm_and_forecast_counterfactual_paths_write_artifacts(
@@ -375,6 +471,51 @@ def test_llm_counterfactual_clamps_external_recipient_for_internal_only_prompt(
     assert any("internal Enron participants" in note for note in result.notes)
 
 
+def test_llm_counterfactual_fuzzy_matches_named_participants(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    rosetta_dir = tmp_path / "rosetta"
+    _write_rosetta_fixture(rosetta_dir)
+    world = load_world(source="enron", rosetta_dir=rosetta_dir)
+    workspace_root = tmp_path / "episode_fuzzy"
+    materialize_episode(world, root=workspace_root, thread_id="thr-legal-trading")
+
+    async def fake_plan_once_with_usage(**_: object) -> PlanResult:
+        return PlanResult(
+            plan={
+                "tool": "emit_counterfactual",
+                "args": {
+                    "summary": "Sara sends the note to Mark by name.",
+                    "messages": [
+                        {
+                            "actor_id": "Sara Shackleton",
+                            "to": "Mark Taylor",
+                            "subject": "Re: Gas Position Limits",
+                            "body_text": "Please pause this until we finish review.",
+                            "delay_ms": 1000,
+                        }
+                    ],
+                },
+            },
+            usage=PlanUsage(provider="openai", model="gpt-5"),
+        )
+
+    monkeypatch.setattr(
+        "vei.whatif.api.providers.plan_once_with_usage",
+        fake_plan_once_with_usage,
+    )
+
+    result = run_llm_counterfactual(
+        workspace_root,
+        prompt="Keep this internal and pause the handoff.",
+    )
+
+    assert result.status == "ok"
+    assert result.messages[0].actor_id == "sara.shackleton@enron.com"
+    assert result.messages[0].to == "mark.taylor@enron.com"
+
+
 def test_vei_whatif_cli_experiment(tmp_path: Path, monkeypatch) -> None:
     rosetta_dir = tmp_path / "rosetta"
     _write_rosetta_fixture(rosetta_dir)
@@ -443,4 +584,101 @@ def test_vei_whatif_cli_experiment(tmp_path: Path, monkeypatch) -> None:
         ],
     )
     assert show_result.exit_code == 0, show_result.output
-    assert "LLM Actor" in show_result.output
+    assert "Counterfactual Rollout" in show_result.output
+
+
+def test_counterfactual_experiment_can_use_ejepa_backend(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    rosetta_dir = tmp_path / "rosetta"
+    _write_rosetta_fixture(rosetta_dir)
+    world = load_world(source="enron", rosetta_dir=rosetta_dir)
+
+    async def fake_plan_once_with_usage(**_: object) -> PlanResult:
+        return PlanResult(
+            plan={
+                "tool": "emit_counterfactual",
+                "args": {
+                    "summary": "Hold the outside send and keep the thread internal.",
+                    "messages": [
+                        {
+                            "actor_id": "jeff.skilling@enron.com",
+                            "to": "jeff.skilling@enron.com",
+                            "subject": "Re: Draft term sheet",
+                            "body_text": "Keep this inside until legal clears it.",
+                            "delay_ms": 1000,
+                        }
+                    ],
+                },
+            },
+            usage=PlanUsage(provider="openai", model="gpt-5"),
+        )
+
+    monkeypatch.setattr(
+        "vei.whatif.api.providers.plan_once_with_usage",
+        fake_plan_once_with_usage,
+    )
+
+    def fake_run_ejepa_counterfactual(
+        *_: object, **kwargs: object
+    ) -> WhatIfForecastResult:
+        assert kwargs["epochs"] == 2
+        assert kwargs["batch_size"] == 16
+        assert kwargs["force_retrain"] is True
+        assert kwargs["device"] == "cpu"
+        return WhatIfForecastResult(
+            status="ok",
+            backend="e_jepa",
+            prompt="Keep this internal.",
+            summary="Real E-JEPA forecast completed.",
+            baseline=WhatIfForecast(
+                backend="historical",
+                future_event_count=1,
+                future_external_event_count=1,
+                risk_score=0.5,
+            ),
+            predicted=WhatIfForecast(
+                backend="e_jepa",
+                future_event_count=1,
+                future_external_event_count=0,
+                risk_score=0.2,
+            ),
+            delta=WhatIfForecastDelta(
+                risk_score_delta=-0.3,
+                external_event_delta=-1,
+            ),
+            branch_event=WhatIfEventReference(
+                event_id="evt-005",
+                timestamp="2001-05-01T10:00:04Z",
+                actor_id="jeff.skilling@enron.com",
+                event_type="message",
+                thread_id="thr-external",
+                subject="Draft term sheet",
+            ),
+            notes=["Used the real E-JEPA backend path."],
+        )
+
+    monkeypatch.setattr(
+        "vei.whatif.api.run_ejepa_counterfactual",
+        fake_run_ejepa_counterfactual,
+    )
+
+    experiment = run_counterfactual_experiment(
+        world,
+        artifacts_root=tmp_path / "artifacts",
+        label="ejepa_hold",
+        counterfactual_prompt="Keep this internal.",
+        event_id="evt-005",
+        mode="both",
+        forecast_backend="e_jepa",
+        ejepa_epochs=2,
+        ejepa_batch_size=16,
+        ejepa_force_retrain=True,
+        ejepa_device="cpu",
+    )
+
+    assert experiment.forecast_result is not None
+    assert experiment.forecast_result.backend == "e_jepa"
+    assert experiment.artifacts.forecast_json_path is not None
+    assert experiment.artifacts.forecast_json_path.name == "whatif_ejepa_result.json"

@@ -242,11 +242,19 @@ vei whatif explore \
   --scenario compliance_gateway \
   --format markdown
 
-# Materialize one replayable thread into a strict mail-only workspace
+# Find exact branch points by person, thread, or subject
+vei whatif events \
+  --rosetta-dir /path/to/rosetta \
+  --actor vince.kaminski \
+  --query "btu weekly" \
+  --flagged-only \
+  --format markdown
+
+# Materialize one replayable branch point into a strict mail-only workspace
 vei whatif open-episode \
   --rosetta-dir /path/to/rosetta \
   --root _vei_out/whatif/enron_case \
-  --thread-id thr_1234
+  --event-id evt_1234
 
 # Replay the saved historical future
 vei whatif replay --root _vei_out/whatif/enron_case --tick-ms 600000
@@ -255,14 +263,20 @@ vei whatif replay --root _vei_out/whatif/enron_case --tick-ms 600000
 vei whatif experiment \
   --rosetta-dir /path/to/rosetta \
   --artifacts-root _vei_out/whatif_experiments \
-  --label early_legal_quarantine \
-  --selection-scenario compliance_gateway \
-  --counterfactual-prompt "Loop in compliance, pause forwarding, and keep this internal."
+  --label master_agreement_internal_review \
+  --event-id evt_1234 \
+  --model gpt-5-mini \
+  --forecast-backend e_jepa \
+  --ejepa-epochs 1 \
+  --ejepa-batch-size 64 \
+  --counterfactual-prompt "Keep the draft inside Enron, loop in Gerald Nemec for legal review, and hold the outside send until the clean version is approved."
 ```
 
-This flow is designed for archive-backed mail worlds such as the Enron Rosetta tables. VEI first answers broad “what would this have touched?” questions over the full history, then turns one selected thread into a replayable mail-first workspace. The replay stays honest to the source data: no fake Slack history is invented, and email bodies are based on the available historical excerpts rather than claiming full originals.
+This flow is designed for archive-backed mail worlds such as the Enron Rosetta tables. VEI first answers broad “what would this have touched?” questions over the full history, then lets you search for a concrete event by actor, thread, or subject, and finally turns that historical event into a replayable mail-first workspace. The workspace branches just before that event, so the event itself becomes the first thing in the baseline future or the first thing a counterfactual path can replace. The replay stays honest to the source data: no fake Slack history is invented, and email bodies are based on the available historical excerpts rather than claiming full originals.
 
-The experiment command writes a bundle with JSON and Markdown summaries plus per-path outputs under `_vei_out/whatif_experiments`. The LLM path generates bounded follow-up emails on the selected thread. The forecast path is an explicit E-JEPA-style proxy forecaster today, not a trained checkpoint-backed model.
+The experiment command writes a bundle with JSON and Markdown summaries plus per-path outputs under `_vei_out/whatif_experiments`. The LLM path generates bounded follow-up emails on the selected thread. The forecast path can now use a real local E-JEPA runtime when the sibling `ARP_Jepa_exp` repo is available, and it falls back to the proxy forecaster only when that runtime is missing or errors. For exact-event forecasting, the JEPA adapter now trains on a deterministic local slice of related threads around the chosen branch point instead of trying to relearn the whole archive every time.
+
+In Studio, the same flow is available as a search-first loop: find a real historical event, materialize it, then run the counterfactual and inspect the saved comparison.
 
 ## Use It As A Library
 

@@ -13,7 +13,8 @@ WhatIfScenarioId = Literal[
     "approval_chain_enforcement",
 ]
 WhatIfRenderFormat = Literal["json", "markdown"]
-WhatIfExperimentMode = Literal["llm", "e_jepa_proxy", "both"]
+WhatIfExperimentMode = Literal["llm", "e_jepa", "e_jepa_proxy", "both"]
+WhatIfForecastBackend = Literal["e_jepa", "e_jepa_proxy"]
 
 
 class WhatIfArtifactFlags(BaseModel):
@@ -151,7 +152,7 @@ class WhatIfResult(BaseModel):
 
 
 class WhatIfForecast(BaseModel):
-    backend: Literal["heuristic", "e_jepa_proxy"] = "heuristic"
+    backend: Literal["historical", "heuristic", "e_jepa", "e_jepa_proxy"] = "historical"
     future_event_count: int = 0
     future_escalation_count: int = 0
     future_assignment_count: int = 0
@@ -161,8 +162,41 @@ class WhatIfForecast(BaseModel):
     summary: str = ""
 
 
+class WhatIfEventReference(BaseModel):
+    event_id: str
+    timestamp: str
+    actor_id: str
+    target_id: str = ""
+    event_type: str
+    thread_id: str
+    subject: str = ""
+    snippet: str = ""
+    to_recipients: list[str] = Field(default_factory=list)
+    cc_recipients: list[str] = Field(default_factory=list)
+    has_attachment_reference: bool = False
+    is_forward: bool = False
+    is_reply: bool = False
+    is_escalation: bool = False
+
+
+class WhatIfEventMatch(BaseModel):
+    event: WhatIfEventReference
+    match_reasons: list[str] = Field(default_factory=list)
+    reason_labels: list[str] = Field(default_factory=list)
+    thread_event_count: int = 0
+    participant_count: int = 0
+
+
+class WhatIfEventSearchResult(BaseModel):
+    source: WhatIfSourceName = "enron"
+    filters: dict[str, str | int | bool] = Field(default_factory=dict)
+    match_count: int = 0
+    truncated: bool = False
+    matches: list[WhatIfEventMatch] = Field(default_factory=list)
+
+
 class WhatIfEpisodeManifest(BaseModel):
-    version: Literal["1"] = "1"
+    version: Literal["1", "2"] = "2"
     source: WhatIfSourceName = "enron"
     source_dir: Path
     workspace_root: Path
@@ -172,11 +206,13 @@ class WhatIfEpisodeManifest(BaseModel):
     thread_subject: str
     branch_event_id: str
     branch_timestamp: str
+    branch_event: WhatIfEventReference
     history_message_count: int = 0
     future_event_count: int = 0
     baseline_dataset_path: str
     content_notice: str
     actor_ids: list[str] = Field(default_factory=list)
+    baseline_future_preview: list[WhatIfEventReference] = Field(default_factory=list)
     forecast: WhatIfForecast = Field(default_factory=WhatIfForecast)
 
 
@@ -190,8 +226,10 @@ class WhatIfEpisodeMaterialization(BaseModel):
     organization_domain: str
     thread_id: str
     branch_event_id: str
+    branch_event: WhatIfEventReference
     history_message_count: int = 0
     future_event_count: int = 0
+    baseline_future_preview: list[WhatIfEventReference] = Field(default_factory=list)
     forecast: WhatIfForecast = Field(default_factory=WhatIfForecast)
 
 
@@ -204,6 +242,7 @@ class WhatIfReplaySummary(BaseModel):
     pending_events: dict[str, int] = Field(default_factory=dict)
     inbox_count: int = 0
     top_subjects: list[str] = Field(default_factory=list)
+    baseline_future_preview: list[WhatIfEventReference] = Field(default_factory=list)
     forecast: WhatIfForecast = Field(default_factory=WhatIfForecast)
 
 
@@ -259,14 +298,28 @@ class WhatIfForecastDelta(BaseModel):
     external_event_delta: int = 0
 
 
+class WhatIfForecastArtifacts(BaseModel):
+    cache_root: Path | None = None
+    dataset_root: Path | None = None
+    checkpoint_path: Path | None = None
+    decoder_path: Path | None = None
+
+
 class WhatIfForecastResult(BaseModel):
     status: Literal["ok", "skipped", "error"] = "ok"
-    backend: Literal["e_jepa_proxy"] = "e_jepa_proxy"
+    backend: Literal["e_jepa", "e_jepa_proxy"] = "e_jepa_proxy"
     prompt: str
     summary: str = ""
     baseline: WhatIfForecast = Field(default_factory=WhatIfForecast)
     predicted: WhatIfForecast = Field(default_factory=WhatIfForecast)
     delta: WhatIfForecastDelta = Field(default_factory=WhatIfForecastDelta)
+    branch_event: WhatIfEventReference | None = None
+    horizon_event_count: int = 0
+    surprise_score: float | None = None
+    current_state_summary: dict[str, float] = Field(default_factory=dict)
+    predicted_state_summary: dict[str, float] = Field(default_factory=dict)
+    actual_state_summary: dict[str, float] = Field(default_factory=dict)
+    artifacts: WhatIfForecastArtifacts | None = None
     notes: list[str] = Field(default_factory=list)
     error: str | None = None
 
@@ -280,7 +333,7 @@ class WhatIfExperimentArtifacts(BaseModel):
 
 
 class WhatIfExperimentResult(BaseModel):
-    version: Literal["1"] = "1"
+    version: Literal["1", "2"] = "2"
     mode: WhatIfExperimentMode = "both"
     label: str
     intervention: WhatIfInterventionSpec

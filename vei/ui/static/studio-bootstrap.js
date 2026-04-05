@@ -244,6 +244,15 @@ function bindControls() {
   document.getElementById("eval-run-agent-btn")?.addEventListener("click", () => {
     void runEvalAgent();
   });
+  document.getElementById("whatif-search-btn")?.addEventListener("click", () => {
+    void searchWhatIfEvents();
+  });
+  document.getElementById("whatif-open-btn")?.addEventListener("click", () => {
+    void materializeWhatIfEpisode();
+  });
+  document.getElementById("whatif-run-btn")?.addEventListener("click", () => {
+    void runWhatIfExperimentFromUI();
+  });
 }
 
 bindControls();

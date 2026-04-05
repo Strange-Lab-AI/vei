@@ -39,6 +39,9 @@ from ._api_models import (
     RunLaunchRequest,
     ScenarioActivateRequest,
     ServiceOpsPolicyReplayRequest,
+    WhatIfOpenRequest,
+    WhatIfRunRequest,
+    WhatIfSearchRequest,
 )
 from ._imports_routes import register_imports_routes
 from ._playable_routes import register_playable_routes
@@ -78,6 +81,9 @@ __all__ = [
     "RunLaunchRequest",
     "ScenarioActivateRequest",
     "ServiceOpsPolicyReplayRequest",
+    "WhatIfOpenRequest",
+    "WhatIfRunRequest",
+    "WhatIfSearchRequest",
     "create_ui_app",
 ]
 
