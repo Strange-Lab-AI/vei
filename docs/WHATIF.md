@@ -155,6 +155,13 @@ Those scores come from later email evidence that the archive can actually suppor
 - conflict heat
 - artifact churn
 
+All trained model families use the same boundary for this benchmark:
+
+- pre-branch thread history only
+- structured candidate action only
+
+The current JEPA benchmark path now reads the pre-branch event sequence as well as the summary features and action schema. That keeps the JEPA comparison aligned with the stronger history-based transformer baselines instead of leaving JEPA on a weaker compressed input.
+
 ### Benchmark commands
 
 ```bash
@@ -203,6 +210,17 @@ vei whatif benchmark eval \
 - judged counterfactual ranking metrics
 - audit coverage and agreement metrics
 - rollout stress metrics only as a separate section
+
+### Current model state
+
+The current saved Enron reset build uses 24 held-out cases with 4 candidate actions each. On the current 2-epoch comparison run, the held-out decision checks came out like this:
+
+- `treatment_transformer`: `83/120`
+- `sequence_transformer`: `75/120`
+- `jepa_latent`: `73/120`
+- `ft_transformer`: `30/120`
+
+On the factual question of whether anything goes outside after the branch point, all four models stayed close at about `0.98` AUROC.
 
 ### Important constraint
 

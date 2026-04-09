@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pyarrow as pa
 import pyarrow.parquet as pq
+import pytest
 from typer.testing import CliRunner
 
 from vei.cli.vei import app as cli_app
@@ -71,6 +72,14 @@ from vei.whatif.benchmark_business import (
     list_business_objective_packs,
     score_business_objective,
     summarize_observed_evidence,
+)
+from vei.whatif.benchmark_bridge import (
+    _BenchmarkPreprocessor,
+    _EVIDENCE_TARGET_NAMES,
+    _SEQUENCE_NUMERIC_WIDTH,
+    _SEQUENCE_TOKEN_LIMIT,
+    _TorchTrainer,
+    _action_vector_width,
 )
 from vei.whatif.ranking import (
     aggregate_outcome_signals,
@@ -2403,6 +2412,66 @@ def test_branch_point_benchmark_train_and_eval_round_trip_with_stub_runtime(
     assert eval_result.audit_summary.completed_count == len(audit_records)
     assert loaded_eval.model_id == "jepa_latent"
     assert eval_result.artifacts.eval_result_path.exists()
+
+
+def test_jepa_benchmark_model_uses_prebranch_sequence_signal() -> None:
+    torch = pytest.importorskip("torch")
+    torch.manual_seed(42042)
+    preprocessor = _BenchmarkPreprocessor(
+        summary_feature_names=["history_event_count"],
+        summary_mean=[0.0],
+        summary_std=[1.0],
+        action_tag_names=["hold"],
+        event_type_names=["__summary__", "message"],
+        target_mean=[0.0] * len(_EVIDENCE_TARGET_NAMES),
+        target_std=[1.0] * len(_EVIDENCE_TARGET_NAMES),
+    )
+    trainer = _TorchTrainer(model_id="jepa_latent", preprocessor=preprocessor)
+    model = trainer.build_model(device="cpu")
+    model.eval()
+
+    summary = torch.zeros((1, 1), dtype=torch.float32)
+    action = torch.zeros(
+        (1, _action_vector_width(preprocessor)),
+        dtype=torch.float32,
+    )
+    base_categorical = torch.zeros(
+        (1, _SEQUENCE_TOKEN_LIMIT, 3),
+        dtype=torch.long,
+    )
+    base_numeric = torch.zeros(
+        (1, _SEQUENCE_TOKEN_LIMIT, _SEQUENCE_NUMERIC_WIDTH),
+        dtype=torch.float32,
+    )
+    changed_categorical = base_categorical.clone()
+    changed_numeric = base_numeric.clone()
+    changed_categorical[0, 0, 0] = 1
+    changed_categorical[0, 0, 1] = 1
+    changed_categorical[0, 0, 2] = 1
+    changed_numeric[0, 0, 0] = 2.0
+    changed_numeric[0, 0, 1] = 1.0
+    changed_numeric[0, 0, 3] = 1.0
+    changed_numeric[0, 1, 10] = 1.0
+
+    with torch.no_grad():
+        base_outputs = model(summary, action, base_categorical, base_numeric)
+        changed_outputs = model(
+            summary,
+            action,
+            changed_categorical,
+            changed_numeric,
+        )
+
+    assert (
+        torch.abs(
+            base_outputs["binary_logits"] - changed_outputs["binary_logits"]
+        ).max()
+        > 1e-6
+    )
+    assert (
+        torch.abs(base_outputs["regression"] - changed_outputs["regression"]).max()
+        > 1e-6
+    )
 
 
 def test_vei_whatif_cli_benchmark_commands(tmp_path: Path, monkeypatch) -> None:

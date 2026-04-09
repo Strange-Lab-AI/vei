@@ -74,6 +74,12 @@ It contains 24 fixed Enron branch points across these case families:
 
 Each held-out case has 4 candidate actions.
 
+The current benchmark build uses:
+
+- 24 held-out Enron cases
+- 4 candidate actions per case
+- 120 pairwise-style dominance checks in the headline ranking table
+
 ## Judge path
 
 The benchmark keeps factual forecasting and counterfactual ranking separate.
@@ -88,6 +94,25 @@ Counterfactual ranking uses a locked LLM judge over case dossiers only:
 - one audit queue for low-confidence or sampled cases
 
 The judge does not see rollout futures.
+
+## Model families
+
+The benchmark currently trains four model families on the same pre-branch contract:
+
+- `jepa_latent`
+- `ft_transformer`
+- `sequence_transformer`
+- `treatment_transformer`
+
+They all predict the same later-email evidence heads and the same business proxy scores.
+
+The JEPA benchmark path now reads:
+
+- the pre-branch event sequence
+- the pre-branch summary features
+- the structured action schema
+
+That keeps the JEPA comparison on the same historical information as the stronger history-based baselines.
 
 ## CLI
 
@@ -153,3 +178,18 @@ Evaluation writes:
 
 - `model_runs/<model_id>/eval_result.json`
 - `model_runs/<model_id>/predictions.jsonl`
+
+## Current comparison result
+
+The current saved 2-epoch comparison run over the Enron reset build produced these held-out decision scores:
+
+| Model | Passed checks | Total checks | Pass rate |
+|---|---:|---:|---:|
+| `treatment_transformer` | `83` | `120` | `0.692` |
+| `sequence_transformer` | `75` | `120` | `0.625` |
+| `jepa_latent` | `73` | `120` | `0.608` |
+| `ft_transformer` | `30` | `120` | `0.250` |
+
+On the simpler factual task of predicting whether anything goes outside after the branch point, all four models stayed close at about `0.98` AUROC.
+
+The practical read is that the earlier JEPA gap was partly a benchmark-shape problem. Once JEPA reads the real pre-branch event history as well as the summary features and action schema, it lands close to the history-based sequence model and well ahead of the tabular baseline on this Enron benchmark.

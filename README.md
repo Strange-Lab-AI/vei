@@ -349,6 +349,17 @@ vei whatif benchmark eval \
   --audit-records-path /path/to/completed_audit_records.json
 ```
 
+The current Enron business-outcome benchmark uses 24 held-out cases with 4 candidate actions each. All model families now see only the pre-branch history plus the structured action. The JEPA benchmark path now reads the pre-branch event sequence as well as the summary features and action schema, so the comparison is on the same historical signal instead of on a weaker compressed input.
+
+On the current 2-epoch comparison run over the saved `enron_business_outcome_reset_smoke` build, the held-out decision checks came out like this:
+
+- `treatment_transformer`: `83/120`
+- `sequence_transformer`: `75/120`
+- `jepa_latent`: `73/120`
+- `ft_transformer`: `30/120`
+
+On the simpler factual task of predicting whether anything goes outside after the branch point, all four stayed close at about `0.98` AUROC. The important read is that the earlier JEPA gap was partly a setup problem. Once JEPA reads the real pre-branch history too, it lands close to the sequence model and well ahead of the tabular baseline on this Enron benchmark.
+
 ## Use It As A Library
 
 ```bash

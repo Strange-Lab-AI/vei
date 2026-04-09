@@ -829,12 +829,39 @@ class _TorchTrainer:
         action_dim = _action_vector_width(self.preprocessor)
         target_dim = len(_EVIDENCE_TARGET_NAMES)
         latent_dim = 96
+        event_type_count = max(len(self.preprocessor.event_type_names), 1)
 
         class JEPAOutcomeModel(nn.Module):
             def __init__(self) -> None:
                 super().__init__()
-                self.context_encoder = nn.Sequential(
+                self.phase_embedding = nn.Embedding(len(_PHASE_VALUES), latent_dim)
+                self.event_embedding = nn.Embedding(event_type_count, latent_dim)
+                self.scope_embedding = nn.Embedding(
+                    len(_RECIPIENT_SCOPE_VALUES),
+                    latent_dim,
+                )
+                self.numeric_projection = nn.Linear(
+                    _SEQUENCE_NUMERIC_WIDTH,
+                    latent_dim,
+                )
+                encoder_layer = nn.TransformerEncoderLayer(
+                    d_model=latent_dim,
+                    nhead=4,
+                    dim_feedforward=192,
+                    batch_first=True,
+                    dropout=0.1,
+                )
+                self.sequence_encoder = nn.TransformerEncoder(
+                    encoder_layer,
+                    num_layers=2,
+                )
+                self.summary_action_encoder = nn.Sequential(
                     nn.Linear(summary_dim + action_dim, 192),
+                    nn.ReLU(),
+                    nn.Linear(192, latent_dim),
+                )
+                self.context_encoder = nn.Sequential(
+                    nn.Linear(latent_dim * 2, 192),
                     nn.ReLU(),
                     nn.Linear(192, latent_dim),
                 )
@@ -860,8 +887,19 @@ class _TorchTrainer:
                 target_binary: Any | None = None,
                 target_regression: Any | None = None,
             ) -> dict[str, Any]:
-                del token_categorical, token_numeric
-                context = self.context_encoder(self._concat([summary, action], dim=1))
+                summary_action = self.summary_action_encoder(
+                    self._concat([summary, action], dim=1)
+                )
+                sequence_tokens = (
+                    self.phase_embedding(token_categorical[:, :, 0])
+                    + self.event_embedding(token_categorical[:, :, 1])
+                    + self.scope_embedding(token_categorical[:, :, 2])
+                    + self.numeric_projection(token_numeric)
+                )
+                sequence_state = self.sequence_encoder(sequence_tokens).mean(dim=1)
+                context = self.context_encoder(
+                    self._concat([summary_action, sequence_state], dim=1)
+                )
                 predicted_latent = self.predictor(context)
                 result = {
                     "binary_logits": self.binary_head(predicted_latent).squeeze(-1),
