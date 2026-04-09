@@ -9,7 +9,7 @@ from typing import Any, Mapping
 from fastapi import HTTPException
 from pydantic import BaseModel
 
-from vei.whatif.models import WhatIfExperimentMode
+from vei.whatif.models import WhatIfExperimentMode, WhatIfObjectivePackId
 from vei.twin import load_customer_twin
 from vei.workspace.api import show_workspace
 from vei.run.api import list_run_manifests
@@ -120,6 +120,29 @@ class WhatIfRunRequest(BaseModel):
     max_events: int | None = None
     model: str = "gpt-5-mini"
     provider: str = "openai"
+    ejepa_epochs: int = 4
+    ejepa_batch_size: int = 64
+    ejepa_force_retrain: bool = False
+    ejepa_device: str | None = None
+
+
+class WhatIfRankCandidateRequest(BaseModel):
+    label: str | None = None
+    prompt: str
+
+
+class WhatIfRankRequest(BaseModel):
+    source: str = "enron"
+    label: str
+    objective_pack_id: WhatIfObjectivePackId = "contain_exposure"
+    candidates: list[WhatIfRankCandidateRequest]
+    event_id: str | None = None
+    thread_id: str | None = None
+    rollout_count: int = 4
+    max_events: int | None = None
+    model: str = "gpt-5-mini"
+    provider: str = "openai"
+    shadow_forecast_backend: str = "auto"
     ejepa_epochs: int = 4
     ejepa_batch_size: int = 64
     ejepa_force_retrain: bool = False

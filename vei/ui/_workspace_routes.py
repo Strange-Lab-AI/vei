@@ -8,11 +8,15 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
 
 from vei.whatif import (
+    default_forecast_backend,
+    list_objective_packs,
     load_world,
     materialize_episode,
     run_counterfactual_experiment,
+    run_ranked_counterfactual_experiment,
     search_events,
 )
+from vei.whatif.models import WhatIfCandidateIntervention
 from vei.verticals import (
     load_workspace_exports_preview,
     load_workspace_presentation,
@@ -27,6 +31,7 @@ from ._api_models import (
     OrchestratorApprovalDecisionRequest,
     OrchestratorTaskCommentRequest,
     WhatIfOpenRequest,
+    WhatIfRankRequest,
     WhatIfRunRequest,
     WhatIfSearchRequest,
     gateway_json_request,
@@ -77,6 +82,9 @@ def register_workspace_routes(app: FastAPI, root: Path, *, deps: Any) -> None:
                 "available": rosetta_dir is not None,
                 "source": "enron",
                 "rosetta_dir": str(rosetta_dir) if rosetta_dir is not None else None,
+                "objective_packs": [
+                    pack.model_dump(mode="json") for pack in list_objective_packs()
+                ],
             }
         )
 
@@ -153,6 +161,62 @@ def register_workspace_routes(app: FastAPI, root: Path, *, deps: Any) -> None:
                 mode=request.mode,
                 provider=request.provider,
                 model=request.model,
+                ejepa_epochs=request.ejepa_epochs,
+                ejepa_batch_size=request.ejepa_batch_size,
+                ejepa_force_retrain=request.ejepa_force_retrain,
+                ejepa_device=request.ejepa_device,
+            )
+        except Exception as exc:  # noqa: BLE001
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        payload = result.model_dump(mode="json")
+        payload["rosetta_dir"] = str(rosetta_dir)
+        return JSONResponse(payload)
+
+    @app.post("/api/workspace/whatif/rank")
+    def api_workspace_whatif_rank(request: WhatIfRankRequest) -> JSONResponse:
+        if not request.event_id and not request.thread_id:
+            raise HTTPException(
+                status_code=400,
+                detail="event_id or thread_id is required",
+            )
+        if not request.candidates:
+            raise HTTPException(
+                status_code=400,
+                detail="at least one candidate is required",
+            )
+        world, rosetta_dir = _resolve_whatif_source(
+            request.source,
+            max_events=request.max_events,
+        )
+        normalized_shadow_backend = request.shadow_forecast_backend.strip().lower()
+        if normalized_shadow_backend not in {"auto", "e_jepa", "e_jepa_proxy"}:
+            raise HTTPException(
+                status_code=400,
+                detail="shadow_forecast_backend must be auto, e_jepa, or e_jepa_proxy",
+            )
+        try:
+            result = run_ranked_counterfactual_experiment(
+                world,
+                artifacts_root=_whatif_artifacts_root() / "ranked",
+                label=request.label,
+                objective_pack_id=request.objective_pack_id,
+                candidate_interventions=[
+                    WhatIfCandidateIntervention(
+                        label=(candidate.label or candidate.prompt[:40]).strip(),
+                        prompt=candidate.prompt,
+                    )
+                    for candidate in request.candidates
+                ],
+                event_id=request.event_id,
+                thread_id=request.thread_id,
+                rollout_count=request.rollout_count,
+                provider=request.provider,
+                model=request.model,
+                shadow_forecast_backend=(
+                    default_forecast_backend()
+                    if normalized_shadow_backend == "auto"
+                    else normalized_shadow_backend
+                ),
                 ejepa_epochs=request.ejepa_epochs,
                 ejepa_batch_size=request.ejepa_batch_size,
                 ejepa_force_retrain=request.ejepa_force_retrain,

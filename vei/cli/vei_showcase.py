@@ -7,7 +7,9 @@ import typer
 
 from vei.playable import run_playable_showcase
 from vei.verticals import (
+    BusinessWorldDemoSpec,
     get_vertical_pack_manifest,
+    prepare_business_world_demo,
 )
 from vei.verticals.demo import (
     VerticalShowcaseSpec,
@@ -239,6 +241,84 @@ def story_command(
         )
     except ValueError as exc:
         raise typer.BadParameter(str(exc)) from exc
+    typer.echo(json.dumps(result.model_dump(mode="json"), indent=2))
+
+
+@app.command("business-world")
+def business_world_command(
+    root: Path = typer.Option(
+        Path("_vei_out/showcase"),
+        help="Root directory for generated business-world demo bundles",
+    ),
+    run_id: str = typer.Option(
+        "business_world_demo",
+        help="Business-world demo bundle identifier",
+    ),
+    scenario_variant: str = typer.Option(
+        "service_day_collision",
+        help="Scenario variant for the service_ops story bundle",
+    ),
+    contract_variant: str = typer.Option(
+        "protect_sla",
+        help="Contract variant for the service_ops story bundle",
+    ),
+    compare_runner: str = typer.Option(
+        "scripted",
+        help="Comparison runner for the service_ops story bundle: scripted|bc|llm",
+    ),
+    overwrite: bool = typer.Option(
+        True,
+        help="Recreate the service_ops story workspace before running",
+    ),
+    seed: int = typer.Option(42042, help="Seed for reproducibility"),
+    max_steps: int = typer.Option(18, help="Max steps for comparison runs"),
+    compare_model: str | None = typer.Option(
+        None, help="Model name when compare-runner=llm"
+    ),
+    compare_provider: str | None = typer.Option(
+        None, help="Provider name when compare-runner=llm"
+    ),
+    compare_bc_model: Path | None = typer.Option(
+        None,
+        exists=True,
+        readable=True,
+        help="BC policy file when compare-runner=bc",
+    ),
+    historical_root: Path | None = typer.Option(
+        None,
+        exists=True,
+        readable=True,
+        help="Optional saved historical what-if result root for the Enron capstone",
+    ),
+    historical_rosetta_dir: Path | None = typer.Option(
+        None,
+        exists=True,
+        file_okay=False,
+        help="Optional Rosetta directory for serving the saved Enron workspace in Studio",
+    ),
+) -> None:
+    normalized_runner = _resolve_compare_runner(
+        compare_runner,
+        compare_model=compare_model,
+        compare_bc_model=compare_bc_model,
+    )
+    result = prepare_business_world_demo(
+        BusinessWorldDemoSpec(
+            root=root,
+            run_id=run_id,
+            scenario_variant=scenario_variant,
+            contract_variant=contract_variant,
+            compare_runner=normalized_runner,  # type: ignore[arg-type]
+            overwrite=overwrite,
+            seed=seed,
+            max_steps=max_steps,
+            compare_model=compare_model,
+            compare_provider=compare_provider,
+            compare_bc_model_path=compare_bc_model,
+            historical_result_root=historical_root,
+            historical_rosetta_dir=historical_rosetta_dir,
+        )
+    )
     typer.echo(json.dumps(result.model_dump(mode="json"), indent=2))
 
 

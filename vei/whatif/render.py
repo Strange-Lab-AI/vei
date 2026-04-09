@@ -1,11 +1,17 @@
 from __future__ import annotations
 
 from .models import (
+    WhatIfBenchmarkBuildResult,
+    WhatIfBenchmarkEvalResult,
+    WhatIfBenchmarkJudgeResult,
+    WhatIfBenchmarkTrainResult,
     WhatIfEpisodeMaterialization,
     WhatIfEventSearchResult,
     WhatIfExperimentResult,
     WhatIfForecastResult,
     WhatIfLLMReplayResult,
+    WhatIfPackRunResult,
+    WhatIfRankedExperimentResult,
     WhatIfReplaySummary,
     WhatIfResult,
     WhatIfWorld,
@@ -283,4 +289,313 @@ def render_experiment(result: WhatIfExperimentResult) -> str:
         lines.append(f"- LLM JSON: {result.artifacts.llm_json_path}")
     if result.artifacts.forecast_json_path is not None:
         lines.append(f"- Forecast JSON: {result.artifacts.forecast_json_path}")
+    return "\n".join(lines)
+
+
+def render_ranked_experiment(result: WhatIfRankedExperimentResult) -> str:
+    branch = result.materialization.branch_event
+    lines = [
+        f"# {result.label}",
+        "",
+        f"- Objective: {result.objective_pack.title}",
+        f"- Historical subject: {branch.subject}",
+        f"- Recommended candidate: {result.recommended_candidate_label or '(none)'}",
+        f"- Baseline delivered events: {result.baseline.delivered_event_count}",
+        "",
+        "## Ranked Candidates",
+    ]
+    if not result.candidates:
+        lines.append("- No candidates were scored.")
+        return "\n".join(lines)
+    for candidate in result.candidates:
+        lines.extend(
+            [
+                f"- Rank {candidate.rank}: {candidate.intervention.label}",
+                f"  Score {candidate.outcome_score.overall_score} across {candidate.rollout_count} rollouts",
+                f"  {candidate.reason}",
+                (
+                    f"  Signals: exposure={candidate.average_outcome_signals.exposure_risk}, "
+                    f"delay={candidate.average_outcome_signals.delay_risk}, "
+                    f"relationship={candidate.average_outcome_signals.relationship_protection}"
+                ),
+            ]
+        )
+        if candidate.shadow is not None:
+            lines.append(
+                f"  Shadow {candidate.shadow.backend}: {candidate.shadow.outcome_score.overall_score}"
+            )
+    lines.extend(
+        [
+            "",
+            "## Artifacts",
+            f"- Result JSON: {result.artifacts.result_json_path}",
+            f"- Overview Markdown: {result.artifacts.overview_markdown_path}",
+        ]
+    )
+    return "\n".join(lines)
+
+
+def render_research_pack_run(result: WhatIfPackRunResult) -> str:
+    lines = [
+        f"# {result.pack.title}",
+        "",
+        result.pack.summary,
+        "",
+        f"- Pack id: `{result.pack.pack_id}`",
+        f"- Integrated backends: {', '.join(result.integrated_backends)}",
+        f"- Pilot backends: {', '.join(result.pilot_backends)}",
+        (
+            "- Dataset rows: "
+            f"historical={result.dataset.historical_row_count}, "
+            f"evaluation={result.dataset.evaluation_row_count}"
+        ),
+        (
+            f"- Hypothesis pass rate: {result.hypothesis_pass_rate:.3f} "
+            f"({result.hypothesis_pass_count}/{result.hypothesis_total_count})"
+        ),
+        "",
+        "## Cases",
+    ]
+    for case in result.cases:
+        lines.extend(
+            [
+                f"### {case.case.title}",
+                f"- Event: `{case.case.event_id}`",
+                f"- Thread: `{case.materialization.thread_id}`",
+                f"- Historical subject: {case.materialization.branch_event.subject}",
+            ]
+        )
+        for objective in case.objectives:
+            lines.extend(
+                [
+                    "",
+                    f"#### {objective.objective_pack.title}",
+                    f"- Expected order matched: {'yes' if objective.expected_order_ok else 'no'}",
+                    (
+                        "- Recommended by LLM rollouts: "
+                        f"{objective.recommended_candidate_label or '(none)'}"
+                    ),
+                ]
+            )
+            for backend, label in objective.backend_recommendations.items():
+                lines.append(f"- {backend}: {label}")
+            for candidate in objective.candidates:
+                lines.extend(
+                    [
+                        f"- Rank {candidate.rank}: {candidate.candidate.label}",
+                        f"  Expected: {candidate.expected_hypothesis}",
+                        (
+                            "  Score "
+                            f"{candidate.outcome_score.overall_score} "
+                            f"with stability {candidate.rank_stability:.3f}"
+                        ),
+                    ]
+                )
+                for backend_score in candidate.backend_scores:
+                    lines.append(
+                        "  "
+                        f"{backend_score.backend}: rank {backend_score.rank}, "
+                        f"score {backend_score.outcome_score.overall_score}, "
+                        f"status {backend_score.status}"
+                    )
+        lines.append("")
+    lines.extend(
+        [
+            "## Artifacts",
+            f"- Result JSON: {result.artifacts.result_json_path}",
+            f"- Scoreboard Markdown: {result.artifacts.overview_markdown_path}",
+            f"- Dataset root: {result.artifacts.dataset_root}",
+            f"- Pilot note: {result.artifacts.pilot_markdown_path}",
+        ]
+    )
+    return "\n".join(lines)
+
+
+def render_benchmark_build(result: WhatIfBenchmarkBuildResult) -> str:
+    lines = [
+        f"# {result.label}",
+        "",
+        "- Benchmark type: branch-point ranking v2",
+        f"- Held-out pack: `{result.heldout_pack_id}`",
+        f"- Train rows: {result.dataset.split_row_counts.get('train', 0)}",
+        f"- Validation rows: {result.dataset.split_row_counts.get('validation', 0)}",
+        f"- Test rows: {result.dataset.split_row_counts.get('test', 0)}",
+        f"- Held-out cases: {len(result.cases)}",
+        "",
+        "## Held-Out Cases",
+    ]
+    for case in result.cases:
+        lines.extend(
+            [
+                f"- {case.title}",
+                f"  Event `{case.event_id}` in thread `{case.thread_id}`",
+                f"  Family: {case.case_family}",
+                f"  Candidates: {', '.join(candidate.label for candidate in case.candidates)}",
+            ]
+        )
+    lines.extend(
+        [
+            "",
+            "## Artifacts",
+            f"- Build manifest: {result.artifacts.manifest_path}",
+            f"- Held-out cases: {result.artifacts.heldout_cases_path}",
+            f"- Judge template: {result.artifacts.judge_template_path}",
+            f"- Audit template: {result.artifacts.audit_template_path}",
+            f"- Dossiers: {result.artifacts.dossier_root}",
+        ]
+    )
+    return "\n".join(lines)
+
+
+def render_benchmark_judge(result: WhatIfBenchmarkJudgeResult) -> str:
+    lines = [
+        f"# {result.judge_model}",
+        "",
+        f"- Build root: {result.build_root}",
+        f"- Judged case-objectives: {len(result.judgments)}",
+        f"- Audit queue: {len(result.audit_queue)}",
+    ]
+    if result.notes:
+        lines.extend(["", "## Notes"])
+        for note in result.notes:
+            lines.append(f"- {note}")
+    lines.extend(["", "## Judgments"])
+    for judgment in result.judgments:
+        lines.append(
+            f"- {judgment.case_id} / {judgment.objective_pack_id}: "
+            f"{', '.join(judgment.ordered_candidate_ids)}"
+        )
+    lines.extend(
+        [
+            "",
+            "## Artifacts",
+            f"- Judge result: {result.artifacts.result_path}",
+            f"- Audit queue: {result.artifacts.audit_queue_path}",
+        ]
+    )
+    return "\n".join(lines)
+
+
+def render_benchmark_train(result: WhatIfBenchmarkTrainResult) -> str:
+    lines = [
+        f"# {result.model_id}",
+        "",
+        f"- Train loss: {result.train_loss}",
+        f"- Validation loss: {result.validation_loss}",
+        f"- Epochs: {result.epoch_count}",
+        f"- Train rows: {result.train_row_count}",
+        f"- Validation rows: {result.validation_row_count}",
+    ]
+    if result.notes:
+        lines.extend(["", "## Notes"])
+        for note in result.notes:
+            lines.append(f"- {note}")
+    lines.extend(
+        [
+            "",
+            "## Artifacts",
+            f"- Model: {result.artifacts.model_path}",
+            f"- Metadata: {result.artifacts.metadata_path}",
+            f"- Train result: {result.artifacts.train_result_path}",
+        ]
+    )
+    return "\n".join(lines)
+
+
+def render_benchmark_eval(result: WhatIfBenchmarkEvalResult) -> str:
+    metrics = result.observed_metrics
+    lines = [
+        f"# {result.model_id}",
+        "",
+        "## Observed Future Forecasting",
+        f"- AUROC any external spread: {metrics.auroc_any_external_spread}",
+        f"- Brier any external spread: {metrics.brier_any_external_spread}",
+        f"- Calibration error: {metrics.calibration_error_any_external_spread}",
+        "",
+        "## Counterfactual Ranking",
+        (
+            "- Dominance checks: "
+            f"{result.dominance_summary.passed_checks}/{result.dominance_summary.total_checks} "
+            f"({result.dominance_summary.pass_rate:.3f})"
+        ),
+        f"- Judged rankings: {result.judge_summary.judgment_count if result.judge_summary.available else 0}",
+        f"- Audit records: {result.audit_summary.completed_count if result.audit_summary.available else 0}",
+    ]
+    if metrics.evidence_head_mae:
+        lines.extend(["", "## Evidence Head Error"])
+        for name, value in sorted(metrics.evidence_head_mae.items()):
+            lines.append(f"- {name}: {value}")
+    if metrics.business_head_mae:
+        lines.extend(["", "## Business Head Error"])
+        for name, value in sorted(metrics.business_head_mae.items()):
+            lines.append(f"- {name}: {value}")
+    if metrics.objective_score_mae:
+        lines.extend(["", "## Objective Score Error"])
+        for name, value in sorted(metrics.objective_score_mae.items()):
+            lines.append(f"- {name}: {value}")
+    if result.judge_summary.available:
+        lines.extend(
+            [
+                "",
+                "## Judge Summary",
+                f"- Top-1 agreement: {result.judge_summary.top1_agreement}",
+                f"- Pairwise accuracy: {result.judge_summary.pairwise_accuracy}",
+                f"- Kendall tau: {result.judge_summary.kendall_tau}",
+                f"- Uncertain rankings: {result.judge_summary.uncertainty_count}",
+                f"- Low-confidence rankings: {result.judge_summary.low_confidence_count}",
+            ]
+        )
+    if result.audit_summary.available:
+        lines.extend(
+            [
+                "",
+                "## Audit Summary",
+                f"- Audit queue: {result.audit_summary.queue_count}",
+                f"- Completed audits: {result.audit_summary.completed_count}",
+                f"- Agreement rate: {result.audit_summary.agreement_rate}",
+            ]
+        )
+    if result.panel_summary.available:
+        lines.extend(
+            [
+                "",
+                "## Legacy Panel Summary",
+                f"- Panel judgments: {result.panel_summary.judgment_count}",
+                f"- Top-1 agreement: {result.panel_summary.top1_agreement}",
+                f"- Pairwise accuracy: {result.panel_summary.pairwise_accuracy}",
+                f"- Kendall tau: {result.panel_summary.kendall_tau}",
+            ]
+        )
+    if result.rollout_stress_summary.available:
+        lines.extend(
+            [
+                "",
+                "## Rollout Stress Test",
+                (
+                    "- Rollout agreement: "
+                    f"{result.rollout_stress_summary.agreement_count}/"
+                    f"{result.rollout_stress_summary.compared_case_objectives} "
+                    f"({result.rollout_stress_summary.agreement_rate})"
+                ),
+            ]
+        )
+    lines.extend(["", "## Held-Out Cases"])
+    for case in result.cases:
+        lines.append(f"### {case.case.title}")
+        for objective in case.objectives:
+            lines.extend(
+                [
+                    f"- {objective.objective_pack.title}: {objective.recommended_candidate_label}",
+                    f"  Expected order matched: {'yes' if objective.expected_order_ok else 'no'}",
+                    f"  Candidate count: {len(objective.candidates)}",
+                ]
+            )
+    lines.extend(
+        [
+            "",
+            "## Artifacts",
+            f"- Eval result: {result.artifacts.eval_result_path}",
+            f"- Predictions: {result.artifacts.prediction_jsonl_path}",
+        ]
+    )
     return "\n".join(lines)

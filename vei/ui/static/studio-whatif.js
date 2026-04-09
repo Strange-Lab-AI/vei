@@ -22,12 +22,29 @@ function whatIfDefaultPrompt(event) {
   return `What if ${actor} had handled "${subject}" differently at this point?`;
 }
 
+function whatIfDefaultCandidates(event) {
+  if (!event) return "";
+  const subject = event.subject || "this thread";
+  return [
+    `Keep "${subject}" internal, add legal review, and pause the outside send.`,
+    `Send a short status update immediately, clarify the owner, and keep the next step moving.`,
+    `Acknowledge the issue, ask for confirmation, and limit follow-up to one clear owner.`,
+  ].join("\n");
+}
+
+function whatIfObjectivePacks() {
+  return Array.isArray(state.whatIfStatus?.objective_packs)
+    ? state.whatIfStatus.objective_packs
+    : [];
+}
+
 function renderWhatIfStudio() {
   const statusNode = document.getElementById("whatif-status");
   const resultsNode = document.getElementById("whatif-results");
   const selectionNode = document.getElementById("whatif-selection");
   const openNode = document.getElementById("whatif-open-result");
   const resultNode = document.getElementById("whatif-experiment-result");
+  const objectiveSelect = document.getElementById("whatif-objective-select");
   if (!statusNode || !resultsNode || !selectionNode || !openNode || !resultNode) {
     return;
   }
@@ -53,6 +70,21 @@ function renderWhatIfStudio() {
       <span>${escapeHtml(status.rosetta_dir || "Enron Rosetta source")}</span>
     </div>
   `;
+  if (objectiveSelect) {
+    const packs = whatIfObjectivePacks();
+    const currentValue = objectiveSelect.value || "contain_exposure";
+    objectiveSelect.innerHTML = packs.length
+      ? packs
+          .map(
+            (pack) =>
+              `<option value="${escapeHtml(pack.pack_id)}">${escapeHtml(pack.title)}</option>`
+          )
+          .join("")
+      : `<option value="contain_exposure">Contain Exposure</option>`;
+    objectiveSelect.value = packs.some((pack) => pack.pack_id === currentValue)
+      ? currentValue
+      : "contain_exposure";
+  }
 
   const searchResult = state.whatIfSearchResult;
   if (searchResult?.error) {
@@ -93,14 +125,19 @@ function renderWhatIfStudio() {
         state.whatIfSelectedEvent = match;
         state.whatIfOpenResult = null;
         state.whatIfExperimentResult = null;
+        state.whatIfRankedResult = null;
         const event = match.event || {};
         const labelInput = document.getElementById("whatif-label-input");
         const promptInput = document.getElementById("whatif-prompt-input");
+        const candidatesInput = document.getElementById("whatif-candidates-input");
         if (labelInput && !labelInput.value.trim()) {
           labelInput.value = whatIfDefaultLabel(event);
         }
         if (promptInput && !promptInput.value.trim()) {
           promptInput.value = whatIfDefaultPrompt(event);
+        }
+        if (candidatesInput && !candidatesInput.value.trim()) {
+          candidatesInput.value = whatIfDefaultCandidates(event);
         }
         renderWhatIfStudio();
       });
@@ -147,6 +184,52 @@ function renderWhatIfStudio() {
         <span>${escapeHtml(materialization.history_message_count || 0)} prior messages · ${escapeHtml(materialization.future_event_count || 0)} future events</span>
       </div>
     `;
+  }
+
+  const ranked = state.whatIfRankedResult;
+  if (ranked) {
+    if (ranked.error) {
+      resultNode.innerHTML = `
+        <div class="whatif-summary-card">
+          <p class="eyebrow">Ranked what-if failed</p>
+          <strong>${escapeHtml(ranked.label || "Ranked historical what-if")}</strong>
+          <span>${escapeHtml(ranked.error)}</span>
+        </div>
+      `;
+      return;
+    }
+    const objective = ranked.objective_pack || {};
+    const candidates = Array.isArray(ranked.candidates) ? ranked.candidates : [];
+    resultNode.innerHTML = `
+      <div class="whatif-summary-card is-recommended">
+        <p class="eyebrow">Recommended option</p>
+        <strong>${escapeHtml(ranked.recommended_candidate_label || "No recommendation")}</strong>
+        <span>${escapeHtml(objective.title || "Objective")}</span>
+      </div>
+      <div class="whatif-ranked-list">
+        ${candidates
+          .map((candidate) => {
+            const score = candidate.outcome_score?.overall_score ?? "n/a";
+            const shadowScore = candidate.shadow?.outcome_score?.overall_score;
+            return `
+              <div class="whatif-summary-card ${candidate.rank === 1 ? "is-recommended" : ""}">
+                <p class="eyebrow">Rank ${escapeHtml(candidate.rank || "n/a")}</p>
+                <strong>${escapeHtml(candidate.intervention?.label || "")}</strong>
+                <span>${escapeHtml(candidate.reason || "")}</span>
+                <span>Score ${escapeHtml(score)} across ${escapeHtml(candidate.rollout_count || 0)} rollouts</span>
+                <span>Exposure ${escapeHtml(candidate.average_outcome_signals?.exposure_risk ?? "n/a")} · Delay ${escapeHtml(candidate.average_outcome_signals?.delay_risk ?? "n/a")} · Relationship ${escapeHtml(candidate.average_outcome_signals?.relationship_protection ?? "n/a")}</span>
+                ${shadowScore != null ? `<span>Shadow ${escapeHtml(candidate.shadow?.backend || "forecast")} ${escapeHtml(shadowScore)}</span>` : ""}
+              </div>
+            `;
+          })
+          .join("")}
+      </div>
+      <div class="whatif-artifacts">
+        <span><strong>Saved result</strong> ${escapeHtml(ranked.artifacts?.result_json_path || "")}</span>
+        <span><strong>Saved summary</strong> ${escapeHtml(ranked.artifacts?.overview_markdown_path || "")}</span>
+      </div>
+    `;
+    return;
   }
 
   const experiment = state.whatIfExperimentResult;
@@ -226,6 +309,7 @@ async function searchWhatIfEvents() {
     state.whatIfSelectedEvent = null;
     state.whatIfOpenResult = null;
     state.whatIfExperimentResult = null;
+    state.whatIfRankedResult = null;
   } catch (error) {
     state.whatIfSearchResult = {
       matches: [],
@@ -271,6 +355,7 @@ async function runWhatIfExperimentFromUI() {
     statusNode.innerHTML = `<div class="whatif-status-pill"><strong>Running</strong><span>${escapeHtml(label)}</span></div>`;
   }
   try {
+    state.whatIfRankedResult = null;
     state.whatIfExperimentResult = await getJson("/api/workspace/whatif/run", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -297,7 +382,57 @@ async function runWhatIfExperimentFromUI() {
   });
 }
 
+async function runRankedWhatIfFromUI() {
+  const event = whatIfSelectedEventPayload();
+  if (!event) return;
+  const label = document.getElementById("whatif-label-input")?.value?.trim() || whatIfDefaultLabel(event);
+  const objectivePackId = document.getElementById("whatif-objective-select")?.value || "contain_exposure";
+  const rolloutCount = Number(document.getElementById("whatif-rollout-count-input")?.value || 4);
+  const rawCandidates = document.getElementById("whatif-candidates-input")?.value || "";
+  const candidates = rawCandidates
+    .split("\n")
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .map((prompt, index) => ({
+      label: `Option ${index + 1}`,
+      prompt,
+    }));
+  if (!candidates.length) return;
+  const statusNode = document.getElementById("whatif-status");
+  if (statusNode) {
+    statusNode.innerHTML = `<div class="whatif-status-pill"><strong>Ranking</strong><span>${escapeHtml(label)}</span></div>`;
+  }
+  try {
+    state.whatIfExperimentResult = null;
+    state.whatIfRankedResult = await getJson("/api/workspace/whatif/rank", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        source: "enron",
+        event_id: event.event_id,
+        thread_id: event.thread_id,
+        label,
+        objective_pack_id: objectivePackId,
+        rollout_count: rolloutCount,
+        candidates,
+      }),
+    });
+  } catch (error) {
+    state.whatIfRankedResult = {
+      label,
+      artifacts: {},
+      error: error?.message || String(error),
+    };
+  }
+  renderWhatIfStudio();
+  document.getElementById("whatif-experiment-result")?.scrollIntoView({
+    behavior: "smooth",
+    block: "start",
+  });
+}
+
 window.renderWhatIfStudio = renderWhatIfStudio;
 window.searchWhatIfEvents = searchWhatIfEvents;
 window.materializeWhatIfEpisode = materializeWhatIfEpisode;
 window.runWhatIfExperimentFromUI = runWhatIfExperimentFromUI;
+window.runRankedWhatIfFromUI = runRankedWhatIfFromUI;

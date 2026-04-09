@@ -190,7 +190,13 @@ def test_ui_api_whatif_search_and_open_routes(tmp_path: Path, monkeypatch) -> No
 
     status_response = client.get("/api/workspace/whatif")
     assert status_response.status_code == 200
-    assert status_response.json()["available"] is True
+    status_payload = status_response.json()
+    assert status_payload["available"] is True
+    assert {pack["pack_id"] for pack in status_payload["objective_packs"]} == {
+        "contain_exposure",
+        "reduce_delay",
+        "protect_relationship",
+    }
 
     search_response = client.post(
         "/api/workspace/whatif/search",
@@ -287,6 +293,120 @@ def test_ui_api_whatif_run_route_returns_experiment_payload(
     assert payload["label"] == "term-sheet alternate path"
     assert payload["llm_result"]["status"] == "ok"
     assert payload["forecast_result"]["backend"] == "e_jepa"
+
+
+def test_ui_api_whatif_rank_route_returns_ranked_payload(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    root = tmp_path / "workspace"
+    create_workspace_from_template(
+        root=root,
+        source_kind="example",
+        source_ref="acquired_user_cutover",
+    )
+    rosetta_dir = tmp_path / "rosetta"
+    _write_rosetta_fixture(rosetta_dir)
+    monkeypatch.setenv("VEI_WHATIF_ROSETTA_DIR", str(rosetta_dir))
+
+    def fake_run_ranked_counterfactual_experiment(*args, **kwargs):
+        assert kwargs["objective_pack_id"] == "contain_exposure"
+        assert kwargs["rollout_count"] == 4
+        assert kwargs["shadow_forecast_backend"] == "e_jepa_proxy"
+        assert [item.label for item in kwargs["candidate_interventions"]] == [
+            "Hold internal",
+            "Send outside",
+        ]
+        return SimpleNamespace(
+            model_dump=lambda mode="json": {
+                "label": kwargs["label"],
+                "objective_pack": {
+                    "pack_id": "contain_exposure",
+                    "title": "Contain Exposure",
+                },
+                "recommended_candidate_label": "Hold internal",
+                "candidates": [
+                    {
+                        "rank": 1,
+                        "intervention": {
+                            "label": "Hold internal",
+                            "prompt": "Keep this internal.",
+                        },
+                        "rollout_count": 4,
+                        "reason": "Best for contain exposure because it keeps the thread internal.",
+                        "outcome_score": {
+                            "objective_pack_id": "contain_exposure",
+                            "overall_score": 0.91,
+                        },
+                        "shadow": {
+                            "backend": "e_jepa_proxy",
+                            "outcome_score": {
+                                "objective_pack_id": "contain_exposure",
+                                "overall_score": 0.62,
+                            },
+                        },
+                    },
+                    {
+                        "rank": 2,
+                        "intervention": {
+                            "label": "Send outside",
+                            "prompt": "Send it now.",
+                        },
+                        "rollout_count": 4,
+                        "reason": "Lower-ranked because it leaves more exposure in the simulated branches.",
+                        "outcome_score": {
+                            "objective_pack_id": "contain_exposure",
+                            "overall_score": 0.34,
+                        },
+                        "shadow": {
+                            "backend": "e_jepa_proxy",
+                            "outcome_score": {
+                                "objective_pack_id": "contain_exposure",
+                                "overall_score": 0.81,
+                            },
+                        },
+                    },
+                ],
+                "artifacts": {
+                    "result_json_path": "ranked-result.json",
+                    "overview_markdown_path": "ranked-overview.md",
+                },
+            }
+        )
+
+    monkeypatch.setattr(
+        workspace_routes,
+        "run_ranked_counterfactual_experiment",
+        fake_run_ranked_counterfactual_experiment,
+    )
+
+    client = TestClient(ui_api.create_ui_app(root))
+    response = client.post(
+        "/api/workspace/whatif/rank",
+        json={
+            "source": "enron",
+            "event_id": "evt-001",
+            "label": "ranked term-sheet options",
+            "objective_pack_id": "contain_exposure",
+            "shadow_forecast_backend": "e_jepa_proxy",
+            "candidates": [
+                {
+                    "label": "Hold internal",
+                    "prompt": "Keep this internal.",
+                },
+                {
+                    "label": "Send outside",
+                    "prompt": "Send it now.",
+                },
+            ],
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["recommended_candidate_label"] == "Hold internal"
+    assert payload["candidates"][0]["rank"] == 1
+    assert payload["candidates"][0]["shadow"]["backend"] == "e_jepa_proxy"
 
 
 def test_ui_api_quickstart_service_ops_payloads_keep_one_company_identity(

@@ -572,17 +572,15 @@ Criteria:
 Communications:
 {comm_text}
 
-Respond with ONLY a number between 0.0 and 1.0 representing the overall quality."""
+    Respond with ONLY a number between 0.0 and 1.0 representing the overall quality."""
 
     try:
-        client = OpenAI()
-        response = client.chat.completions.create(
+        score_text = run_llm_judge_prompt(
+            prompt,
             model=model,
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.3,
             max_tokens=10,
+            temperature=0.3,
         )
-        score_text = response.choices[0].message.content.strip()
         score = float(score_text)
         return max(0.0, min(1.0, score))
     except Exception:
@@ -590,3 +588,31 @@ Respond with ONLY a number between 0.0 and 1.0 representing the overall quality.
         return compute_communication_quality(
             records, scenario_metadata, use_llm_judge=False
         )
+
+
+def run_llm_judge_prompt(
+    prompt: str,
+    *,
+    model: str,
+    max_tokens: int,
+    temperature: float | None = None,
+    json_mode: bool = False,
+) -> str:
+    if not HAS_OPENAI:
+        raise RuntimeError("OpenAI client is not available")
+    client = OpenAI()
+    response_format = {"type": "json_object"} if json_mode else None
+    request: Dict[str, Any] = {
+        "model": model,
+        "messages": [{"role": "user", "content": prompt}],
+        "max_tokens": max_tokens,
+    }
+    if response_format is not None:
+        request["response_format"] = response_format
+    if temperature is not None:
+        request["temperature"] = temperature
+    response = client.chat.completions.create(**request)
+    content = response.choices[0].message.content
+    if content is None:
+        raise RuntimeError("judge returned empty content")
+    return content.strip()

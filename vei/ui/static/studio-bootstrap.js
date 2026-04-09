@@ -253,6 +253,9 @@ function bindControls() {
   document.getElementById("whatif-run-btn")?.addEventListener("click", () => {
     void runWhatIfExperimentFromUI();
   });
+  document.getElementById("whatif-rank-btn")?.addEventListener("click", () => {
+    void runRankedWhatIfFromUI();
+  });
 }
 
 bindControls();

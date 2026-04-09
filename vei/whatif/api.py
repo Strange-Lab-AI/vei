@@ -24,6 +24,8 @@ except Exception:  # pragma: no cover
 
 from .models import (
     WhatIfActorImpact,
+    WhatIfCandidateIntervention,
+    WhatIfCandidateRanking,
     WhatIfConsequence,
     WhatIfEpisodeManifest,
     WhatIfEpisodeMaterialization,
@@ -36,7 +38,13 @@ from .models import (
     WhatIfExperimentArtifacts,
     WhatIfExperimentMode,
     WhatIfExperimentResult,
+    WhatIfObjectivePackId,
+    WhatIfOutcomeSignals,
     WhatIfReplaySummary,
+    WhatIfRankedExperimentArtifacts,
+    WhatIfRankedExperimentResult,
+    WhatIfRankedRolloutResult,
+    WhatIfShadowOutcomeScore,
     WhatIfInterventionSpec,
     WhatIfLLMGeneratedMessage,
     WhatIfLLMReplayResult,
@@ -67,6 +75,16 @@ from .corpus import (
 )
 from .ejepa import default_forecast_backend, run_ejepa_counterfactual
 from .interventions import intervention_tags
+from .ranking import (
+    aggregate_outcome_signals,
+    get_objective_pack,
+    list_objective_packs as list_historical_objective_packs,
+    recommendation_reason,
+    score_outcome_signals,
+    sort_candidates_for_rank,
+    summarize_forecast_branch,
+    summarize_llm_branch,
+)
 
 _SUPPORTED_SCENARIOS: dict[str, WhatIfScenario] = {
     "compliance_gateway": WhatIfScenario(
@@ -121,6 +139,10 @@ _SUPPORTED_SCENARIOS: dict[str, WhatIfScenario] = {
 
 def list_supported_scenarios() -> list[WhatIfScenario]:
     return list(_SUPPORTED_SCENARIOS.values())
+
+
+def list_objective_packs():
+    return list_historical_objective_packs()
 
 
 def load_world(
@@ -864,6 +886,193 @@ def run_counterfactual_experiment(
     return result
 
 
+def run_ranked_counterfactual_experiment(
+    world: WhatIfWorld,
+    *,
+    artifacts_root: str | Path,
+    label: str,
+    objective_pack_id: WhatIfObjectivePackId | str,
+    candidate_interventions: Sequence[str | WhatIfCandidateIntervention],
+    selection_scenario: str | None = None,
+    selection_prompt: str | None = None,
+    thread_id: str | None = None,
+    event_id: str | None = None,
+    rollout_count: int = 4,
+    provider: str = "openai",
+    model: str = "gpt-5-mini",
+    seed: int = 42042,
+    shadow_forecast_backend: WhatIfForecastBackend | None = None,
+    allow_proxy_fallback: bool = True,
+    ejepa_epochs: int = 4,
+    ejepa_batch_size: int = 64,
+    ejepa_force_retrain: bool = False,
+    ejepa_device: str | None = None,
+) -> WhatIfRankedExperimentResult:
+    if rollout_count < 1 or rollout_count > 16:
+        raise ValueError("rollout_count must be between 1 and 16")
+
+    normalized_candidates = _normalize_candidate_interventions(candidate_interventions)
+    if not normalized_candidates:
+        raise ValueError("at least one candidate intervention is required")
+    if len(normalized_candidates) > 5:
+        raise ValueError("ranked what-if supports at most 5 candidate interventions")
+
+    objective_pack = get_objective_pack(str(objective_pack_id))
+    selection = (
+        run_whatif(
+            world,
+            scenario=selection_scenario,
+            prompt=selection_prompt,
+        )
+        if selection_scenario or selection_prompt
+        else _selection_for_specific_event(
+            world,
+            thread_id=thread_id,
+            event_id=event_id,
+            prompt=normalized_candidates[0].prompt,
+        )
+    )
+    selected_thread_id = thread_id
+    if selected_thread_id is None and event_id:
+        selected_event = event_by_id(world.events, event_id)
+        if selected_event is None:
+            raise ValueError(f"event not found in world: {event_id}")
+        selected_thread_id = selected_event.thread_id
+    if selected_thread_id is None:
+        selected_thread_id = (
+            selection.top_threads[0].thread_id if selection.top_threads else None
+        )
+    if not selected_thread_id:
+        raise ValueError("no matching thread available for the counterfactual run")
+
+    root = Path(artifacts_root).expanduser().resolve() / _slug(label)
+    workspace_root = root / "workspace"
+    materialization = materialize_episode(
+        world,
+        root=workspace_root,
+        thread_id=selected_thread_id,
+        event_id=event_id,
+    )
+    baseline = replay_episode_baseline(
+        workspace_root,
+        tick_ms=_baseline_tick_ms(materialization.baseline_dataset_path),
+        seed=seed,
+    )
+
+    candidate_results: list[WhatIfCandidateRanking] = []
+    resolved_shadow_backend = shadow_forecast_backend or default_forecast_backend()
+    for candidate_index, intervention in enumerate(normalized_candidates):
+        rollouts: list[WhatIfRankedRolloutResult] = []
+        rollout_signals: list[WhatIfOutcomeSignals] = []
+        first_rollout: WhatIfLLMReplayResult | None = None
+        for rollout_index in range(rollout_count):
+            rollout_seed = seed + (candidate_index * 100) + rollout_index
+            llm_result = run_llm_counterfactual(
+                workspace_root,
+                prompt=intervention.prompt,
+                provider=provider,
+                model=model,
+                seed=rollout_seed,
+            )
+            if first_rollout is None:
+                first_rollout = llm_result
+            outcome_signals = summarize_llm_branch(
+                branch_event=materialization.branch_event,
+                llm_result=llm_result,
+            )
+            outcome_score = score_outcome_signals(
+                pack=objective_pack,
+                outcome=outcome_signals,
+            )
+            rollout_signals.append(outcome_signals)
+            rollouts.append(
+                WhatIfRankedRolloutResult(
+                    rollout_index=rollout_index + 1,
+                    seed=rollout_seed,
+                    llm_result=llm_result,
+                    outcome_signals=outcome_signals,
+                    outcome_score=outcome_score,
+                )
+            )
+
+        average_signals = aggregate_outcome_signals(rollout_signals)
+        outcome_score = score_outcome_signals(
+            pack=objective_pack,
+            outcome=average_signals,
+        )
+        shadow = _run_ranked_shadow_score(
+            world=world,
+            workspace_root=workspace_root,
+            materialization=materialization,
+            objective_pack=objective_pack,
+            prompt=intervention.prompt,
+            llm_result=first_rollout,
+            forecast_backend=resolved_shadow_backend,
+            allow_proxy_fallback=allow_proxy_fallback,
+            ejepa_epochs=ejepa_epochs,
+            ejepa_batch_size=ejepa_batch_size,
+            ejepa_force_retrain=ejepa_force_retrain,
+            ejepa_device=ejepa_device,
+        )
+        candidate_results.append(
+            WhatIfCandidateRanking(
+                intervention=intervention,
+                rollout_count=len(rollouts),
+                average_outcome_signals=average_signals,
+                outcome_score=outcome_score,
+                reason="",
+                rollouts=rollouts,
+                shadow=shadow,
+            )
+        )
+
+    ordered_labels = sort_candidates_for_rank(
+        [
+            (
+                item.intervention.label,
+                item.average_outcome_signals,
+                item.outcome_score,
+            )
+            for item in candidate_results
+        ]
+    )
+    rank_map = {label: index + 1 for index, label in enumerate(ordered_labels)}
+    recommended_label = ordered_labels[0] if ordered_labels else ""
+    for item in candidate_results:
+        item.rank = rank_map[item.intervention.label]
+        item.reason = _candidate_ranking_reason(
+            candidate=item,
+            objective_pack_id=objective_pack.pack_id,
+            is_best=item.intervention.label == recommended_label,
+        )
+    candidate_results.sort(key=lambda item: item.rank)
+
+    result_path = root / "whatif_ranked_result.json"
+    overview_path = root / "whatif_ranked_overview.md"
+    root.mkdir(parents=True, exist_ok=True)
+    artifacts = WhatIfRankedExperimentArtifacts(
+        root=root,
+        result_json_path=result_path,
+        overview_markdown_path=overview_path,
+    )
+    result = WhatIfRankedExperimentResult(
+        label=label,
+        objective_pack=objective_pack,
+        selection=selection,
+        materialization=materialization,
+        baseline=baseline,
+        candidates=candidate_results,
+        recommended_candidate_label=recommended_label,
+        artifacts=artifacts,
+    )
+    result_path.write_text(result.model_dump_json(indent=2), encoding="utf-8")
+    overview_path.write_text(
+        _render_ranked_experiment_overview(result),
+        encoding="utf-8",
+    )
+    return result
+
+
 def load_experiment_result(root: str | Path) -> WhatIfExperimentResult:
     result_path = Path(root).expanduser().resolve() / "whatif_experiment_result.json"
     if not result_path.exists():
@@ -871,6 +1080,130 @@ def load_experiment_result(root: str | Path) -> WhatIfExperimentResult:
     return WhatIfExperimentResult.model_validate_json(
         result_path.read_text(encoding="utf-8")
     )
+
+
+def load_ranked_experiment_result(root: str | Path) -> WhatIfRankedExperimentResult:
+    result_path = Path(root).expanduser().resolve() / "whatif_ranked_result.json"
+    if not result_path.exists():
+        raise ValueError(f"ranked what-if result not found: {result_path}")
+    return WhatIfRankedExperimentResult.model_validate_json(
+        result_path.read_text(encoding="utf-8")
+    )
+
+
+def _normalize_candidate_interventions(
+    values: Sequence[str | WhatIfCandidateIntervention],
+) -> list[WhatIfCandidateIntervention]:
+    normalized: list[WhatIfCandidateIntervention] = []
+    for index, value in enumerate(values, start=1):
+        if isinstance(value, WhatIfCandidateIntervention):
+            prompt = value.prompt.strip()
+            label = value.label.strip() or _candidate_label(prompt, index=index)
+        else:
+            prompt = str(value).strip()
+            label = _candidate_label(prompt, index=index)
+        if not prompt:
+            continue
+        normalized.append(
+            WhatIfCandidateIntervention(
+                label=label,
+                prompt=prompt,
+            )
+        )
+    return normalized
+
+
+def _candidate_label(prompt: str, *, index: int) -> str:
+    cleaned = " ".join(prompt.split())
+    if not cleaned:
+        return f"Option {index}"
+    words = cleaned.split()
+    preview = " ".join(words[:5])
+    if len(words) > 5:
+        preview += "..."
+    return preview
+
+
+def _run_ranked_shadow_score(
+    *,
+    world: WhatIfWorld,
+    workspace_root: Path,
+    materialization: WhatIfEpisodeMaterialization,
+    objective_pack,
+    prompt: str,
+    llm_result: WhatIfLLMReplayResult | None,
+    forecast_backend: WhatIfForecastBackend,
+    allow_proxy_fallback: bool,
+    ejepa_epochs: int,
+    ejepa_batch_size: int,
+    ejepa_force_retrain: bool,
+    ejepa_device: str | None,
+) -> WhatIfShadowOutcomeScore:
+    if forecast_backend == "e_jepa":
+        forecast_result = run_ejepa_counterfactual(
+            workspace_root,
+            prompt=prompt,
+            source_dir=world.rosetta_dir,
+            thread_id=materialization.thread_id,
+            branch_event_id=materialization.branch_event_id,
+            llm_messages=llm_result.messages if llm_result is not None else None,
+            epochs=ejepa_epochs,
+            batch_size=ejepa_batch_size,
+            force_retrain=ejepa_force_retrain,
+            device=ejepa_device,
+        )
+        if forecast_result.status == "error" and allow_proxy_fallback:
+            proxy_result = run_ejepa_proxy_counterfactual(
+                workspace_root,
+                prompt=prompt,
+            )
+            proxy_result.notes.insert(
+                0,
+                "Real E-JEPA shadow scoring failed, so this candidate used the proxy forecast.",
+            )
+            if forecast_result.error:
+                proxy_result.notes.append(
+                    f"Original E-JEPA error: {forecast_result.error}"
+                )
+            forecast_result = proxy_result
+    else:
+        forecast_result = run_ejepa_proxy_counterfactual(
+            workspace_root,
+            prompt=prompt,
+        )
+
+    outcome_signals = summarize_forecast_branch(forecast_result)
+    outcome_score = score_outcome_signals(
+        pack=objective_pack,
+        outcome=outcome_signals,
+    )
+    return WhatIfShadowOutcomeScore(
+        backend=forecast_result.backend,
+        outcome_signals=outcome_signals,
+        outcome_score=outcome_score,
+        forecast_result=forecast_result,
+    )
+
+
+def _candidate_ranking_reason(
+    *,
+    candidate: WhatIfCandidateRanking,
+    objective_pack_id: WhatIfObjectivePackId,
+    is_best: bool,
+) -> str:
+    if is_best:
+        objective_pack = get_objective_pack(objective_pack_id)
+        return recommendation_reason(
+            pack=objective_pack,
+            outcome=candidate.average_outcome_signals,
+            score=candidate.outcome_score,
+            rollout_count=candidate.rollout_count,
+        )
+    if objective_pack_id == "contain_exposure":
+        return "Lower-ranked because it leaves more exposure in the simulated branches."
+    if objective_pack_id == "reduce_delay":
+        return "Lower-ranked because it still carries a slower follow-up pattern."
+    return "Lower-ranked because it protects the relationship less consistently."
 
 
 def _selection_for_specific_event(
@@ -1640,6 +1973,44 @@ def _render_experiment_overview(result: WhatIfExperimentResult) -> str:
                 f"- Escalation delta: {result.forecast_result.delta.escalation_delta}",
             ]
         )
+    return "\n".join(lines)
+
+
+def _render_ranked_experiment_overview(result: WhatIfRankedExperimentResult) -> str:
+    branch_event = result.materialization.branch_event
+    lines = [
+        f"# {result.label}",
+        "",
+        f"Objective: {result.objective_pack.title}",
+        f"Selected thread: `{result.materialization.thread_id}`",
+        f"Branch event: `{result.materialization.branch_event_id}`",
+        f"Historical subject: {branch_event.subject}",
+        f"Recommended candidate: {result.recommended_candidate_label or '(none)'}",
+        "",
+        "## Historical Baseline",
+        f"- Delivered historical future events: {result.baseline.delivered_event_count}",
+        f"- Historical risk score: {result.baseline.forecast.risk_score}",
+        "",
+        "## Ranked Candidates",
+    ]
+    for candidate in result.candidates:
+        lines.extend(
+            [
+                f"- Rank {candidate.rank}: {candidate.intervention.label}",
+                f"  - Score: {candidate.outcome_score.overall_score}",
+                f"  - Prompt: {candidate.intervention.prompt}",
+                f"  - Reason: {candidate.reason}",
+                (
+                    f"  - Signals: exposure={candidate.average_outcome_signals.exposure_risk}, "
+                    f"delay={candidate.average_outcome_signals.delay_risk}, "
+                    f"relationship={candidate.average_outcome_signals.relationship_protection}"
+                ),
+            ]
+        )
+        if candidate.shadow is not None:
+            lines.append(
+                f"  - Shadow ({candidate.shadow.backend}): {candidate.shadow.outcome_score.overall_score}"
+            )
     return "\n".join(lines)
 
 

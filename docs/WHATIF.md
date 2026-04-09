@@ -111,3 +111,85 @@ vei whatif experiment \
 The forecast bundle is written as `whatif_ejepa_result.json` when the real JEPA path runs, or `whatif_ejepa_proxy_result.json` when the fallback path is used.
 
 This makes it easy to inspect the result in Studio later, compare runs, or hand the output to another tool.
+
+## Enron business-outcome benchmark
+
+The historical replay flow above is for one branch point and one saved comparison. The Enron benchmark is for repeated measurement across many branch points.
+
+This benchmark answers a different question:
+
+- given only the history before the branch point
+- and one structured candidate action
+- what later business-relevant email evidence becomes more or less likely
+
+The benchmark keeps the older replay and ranked what-if flows intact. It adds a separate benchmark path for business-facing proxy outcomes:
+
+- `enterprise_risk`
+- `commercial_position_proxy`
+- `org_strain_proxy`
+- `stakeholder_trust`
+- `execution_drag`
+
+Those scores come from later email evidence that the archive can actually support:
+
+- outside spread
+- legal burden
+- executive heat
+- coordination load
+- decision drag
+- trust or repair language
+- conflict heat
+- artifact churn
+
+### Benchmark commands
+
+```bash
+# Build the factual dataset and the held-out Enron case pack
+vei whatif benchmark build \
+  --rosetta-dir /path/to/rosetta \
+  --artifacts-root _vei_out/whatif_benchmarks/branch_point_ranking_v2 \
+  --label enron_business_outcome_reset
+
+# Train one model family
+vei whatif benchmark train \
+  --root _vei_out/whatif_benchmarks/branch_point_ranking_v2/enron_business_outcome_reset \
+  --model-id jepa_latent
+
+# Judge the held-out counterfactual cases from dossiers only
+vei whatif benchmark judge \
+  --root _vei_out/whatif_benchmarks/branch_point_ranking_v2/enron_business_outcome_reset \
+  --model gpt-4.1-mini
+
+# Evaluate the trained model against factual futures and judged rankings
+vei whatif benchmark eval \
+  --root _vei_out/whatif_benchmarks/branch_point_ranking_v2/enron_business_outcome_reset \
+  --model-id jepa_latent \
+  --judged-rankings-path _vei_out/whatif_benchmarks/branch_point_ranking_v2/enron_business_outcome_reset/judge_result.json \
+  --audit-records-path /path/to/completed_audit_records.json
+```
+
+### What gets written
+
+`vei whatif benchmark build` writes:
+
+- factual train, validation, and test rows built from observed Enron futures
+- a held-out Enron case pack
+- one dossier per case and per business objective
+- a judged-ranking template
+- an audit template
+
+`vei whatif benchmark judge` writes:
+
+- `judge_result.json`
+- `audit_queue.json`
+
+`vei whatif benchmark eval` writes:
+
+- factual forecasting metrics
+- judged counterfactual ranking metrics
+- audit coverage and agreement metrics
+- rollout stress metrics only as a separate section
+
+### Important constraint
+
+This benchmark stays honest about the source data. Enron email can support business proxies. It does not support true profit ground truth or true HR outcome ground truth.

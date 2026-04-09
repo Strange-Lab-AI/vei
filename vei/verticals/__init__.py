@@ -51,33 +51,51 @@ __all__ = [
     "load_workspace_exports_preview",
     "load_workspace_presentation",
     "load_workspace_story_manifest",
+    "BusinessWorldDemoBundle",
+    "BusinessWorldDemoSpec",
+    "load_business_world_demo_bundle",
     "overlay_summaries",
+    "prepare_business_world_demo",
     "prepare_vertical_demo",
     "prepare_vertical_story",
+    "render_business_world_demo_guide",
     "run_vertical_showcase",
     "run_vertical_variant_matrix",
 ]
 
+_FAULT_EXPORTS = {"apply_fault_overlays", "overlay_summaries"}
+_DEMO_EXPORTS = {
+    "VerticalDemoResult",
+    "VerticalDemoSpec",
+    "VerticalShowcaseResult",
+    "VerticalShowcaseSpec",
+    "VerticalVariantMatrixResult",
+    "VerticalVariantMatrixSpec",
+    "load_workspace_exports_preview",
+    "load_workspace_presentation",
+    "load_workspace_story_manifest",
+    "prepare_vertical_demo",
+    "prepare_vertical_story",
+    "run_vertical_showcase",
+    "run_vertical_variant_matrix",
+}
+_BUSINESS_WORLD_EXPORTS = {
+    "BusinessWorldDemoBundle",
+    "BusinessWorldDemoSpec",
+    "load_business_world_demo_bundle",
+    "prepare_business_world_demo",
+    "render_business_world_demo_guide",
+}
+
 
 def __getattr__(name: str) -> Any:  # pragma: no cover - thin import facade
-    if name in {"apply_fault_overlays", "overlay_summaries"}:
+    if name in _FAULT_EXPORTS:
         module = import_module("vei.verticals.faults")
         return getattr(module, name)
-    if name in {
-        "VerticalDemoResult",
-        "VerticalDemoSpec",
-        "VerticalShowcaseResult",
-        "VerticalShowcaseSpec",
-        "VerticalVariantMatrixResult",
-        "VerticalVariantMatrixSpec",
-        "load_workspace_exports_preview",
-        "load_workspace_presentation",
-        "load_workspace_story_manifest",
-        "prepare_vertical_demo",
-        "prepare_vertical_story",
-        "run_vertical_showcase",
-        "run_vertical_variant_matrix",
-    }:
+    if name in _DEMO_EXPORTS:
         module = import_module("vei.verticals.demo")
+        return getattr(module, name)
+    if name in _BUSINESS_WORLD_EXPORTS:
+        module = import_module("vei.verticals.business_world_demo")
         return getattr(module, name)
     raise AttributeError(name)

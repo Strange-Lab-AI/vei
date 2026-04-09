@@ -2479,6 +2479,7 @@ body.developer-mode .studio-nav-button.developer-only {
 }
 
 .whatif-field input,
+.whatif-field select,
 .whatif-field textarea {
   width: 100%;
   border-radius: 14px;
@@ -2492,6 +2493,10 @@ body.developer-mode .studio-nav-button.developer-only {
 .whatif-field textarea {
   resize: vertical;
   min-height: 112px;
+}
+
+.whatif-runner-ranked {
+  grid-template-columns: minmax(180px, 0.8fr) minmax(160px, 0.6fr) minmax(0, 2fr) auto;
 }
 
 .whatif-field-wide {
@@ -2561,6 +2566,16 @@ body.developer-mode .studio-nav-button.developer-only {
 
 .whatif-summary-grid {
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.whatif-ranked-list {
+  display: grid;
+  gap: 10px;
+}
+
+.whatif-summary-card.is-recommended {
+  border-color: rgba(30, 108, 242, 0.35);
+  box-shadow: 0 0 0 1px rgba(30, 108, 242, 0.15) inset;
 }
 
 @media (max-width: 960px) {

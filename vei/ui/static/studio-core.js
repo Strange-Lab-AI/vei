@@ -55,6 +55,7 @@ const state = {
   whatIfSelectedEvent: null,
   whatIfOpenResult: null,
   whatIfExperimentResult: null,
+  whatIfRankedResult: null,
   selectedObjectRef: null,
   runs: [],
   activeRunId: null,

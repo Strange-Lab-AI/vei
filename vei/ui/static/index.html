@@ -232,6 +232,23 @@
               <button id="whatif-run-btn" type="button">Run counterfactual</button>
             </div>
           </div>
+          <div class="whatif-runner whatif-runner-ranked">
+            <label class="whatif-field">
+              <span>Objective</span>
+              <select id="whatif-objective-select"></select>
+            </label>
+            <label class="whatif-field">
+              <span>Rollouts per option</span>
+              <input id="whatif-rollout-count-input" type="number" min="1" max="16" value="4" />
+            </label>
+            <label class="whatif-field whatif-field-wide">
+              <span>Candidate moves</span>
+              <textarea id="whatif-candidates-input" rows="5" placeholder="One candidate move per line"></textarea>
+            </label>
+            <div class="whatif-actions">
+              <button id="whatif-rank-btn" type="button">Rank options</button>
+            </div>
+          </div>
           <div id="whatif-open-result" class="whatif-open-result"></div>
           <div id="whatif-experiment-result" class="whatif-experiment-result"></div>
         </section>

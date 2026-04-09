@@ -300,6 +300,47 @@ The E-JEPA path does not write emails. When the local JEPA runtime is available,
 In the final saved run, the historical path had 84 follow-up events after the branch point. The LLM path produced 3 internal follow-up emails: Debra asked Gerald for review, Gerald replied with legal edits, and Debra told internal teammates the Cargill send was on hold. In that same run, the real E-JEPA path predicted lower risk (`1.0 -> 0.983`) and 29 fewer outside-addressed sends. The saved bundle for that example lives under `_vei_out/whatif_live_runs_20260405_final/master_agreement_internal_review`.
 </details>
 
+### Enron business-outcome benchmark
+
+VEI also supports a separate Enron-only benchmark for the harder question: from one real business state, does a candidate action make things better or worse for the business.
+
+This benchmark uses only the history before the chosen decision point plus a structured action description. The models then predict later email evidence that can actually be observed in the archive, such as outside spread, legal burden, executive heat, coordination load, trust signals, and execution drag. VEI turns that evidence into five business-facing proxy scores:
+
+- `enterprise_risk`
+- `commercial_position_proxy`
+- `org_strain_proxy`
+- `stakeholder_trust`
+- `execution_drag`
+
+The held-out Enron pack is judged separately from rollout generation. Each held-out case gets one dossier per business objective, the locked LLM judge ranks the candidate actions from the pre-branch dossier alone, and the benchmark keeps an audit queue for low-confidence or sampled cases.
+
+```bash
+# Build the pre-branch Enron benchmark dataset and held-out case pack
+vei whatif benchmark build \
+  --rosetta-dir /path/to/rosetta \
+  --artifacts-root _vei_out/whatif_benchmarks/branch_point_ranking_v2 \
+  --label enron_business_outcome_reset
+
+# Train one model family on observed Enron futures
+vei whatif benchmark train \
+  --root _vei_out/whatif_benchmarks/branch_point_ranking_v2/enron_business_outcome_reset \
+  --model-id jepa_latent
+
+# Judge the held-out counterfactual cases
+vei whatif benchmark judge \
+  --root _vei_out/whatif_benchmarks/branch_point_ranking_v2/enron_business_outcome_reset \
+  --model gpt-4.1-mini
+
+# Evaluate one trained model against factual futures and judged rankings
+vei whatif benchmark eval \
+  --root _vei_out/whatif_benchmarks/branch_point_ranking_v2/enron_business_outcome_reset \
+  --model-id jepa_latent \
+  --judged-rankings-path _vei_out/whatif_benchmarks/branch_point_ranking_v2/enron_business_outcome_reset/judge_result.json \
+  --audit-records-path /path/to/completed_audit_records.json
+```
+
+The live smoke artifact for this benchmark is currently under `_vei_out/whatif_benchmarks/branch_point_ranking_v2/enron_business_outcome_reset_smoke`.
+
 ## Use It As A Library
 
 ```bash
@@ -350,6 +391,7 @@ make all      # check → test → llm-live, stops on first failure
 - **Twin and governor:** `vei twin build|serve|status|up|down|reset|finalize|sync`
 - **Workspace lifecycle:** `vei project|contract|scenario|run|inspect`
 - **Benchmarking:** `vei eval benchmark|demo|suite`
+- **Historical what-if and Enron benchmark:** `vei whatif experiment|rank|benchmark`
 - **Advanced workflows:** `vei ui serve` · `vei studio play` · `vei context capture|hydrate|diff` · `vei synthesize runbook|training-set|agent-config`
 - **Expert tools:** `vei showcase` · `vei visualize` · `vei world` · `vei blueprint` · `vei rollout` · `vei train` · `vei release`
 
@@ -364,7 +406,10 @@ make all      # check → test → llm-live, stops on first failure
 
 - **[OVERVIEW.md](docs/OVERVIEW.md)** — what VEI is, who it's for, how to connect your data
 - **[ARCHITECTURE.md](docs/ARCHITECTURE.md)** — module structure and data flow
+- **[WHATIF.md](docs/WHATIF.md)** — historical replay, ranked what-if, and Enron benchmark flows
+- **[ENRON_BUSINESS_OUTCOME_BENCHMARK.md](docs/ENRON_BUSINESS_OUTCOME_BENCHMARK.md)** — Enron benchmark setup, objectives, judge loop, and artifact layout
 - **[SERVICE_OPS_WALKTHROUGH.md](docs/SERVICE_OPS_WALKTHROUGH.md)** — visual walkthrough of the control plane
+- **[BUSINESS_WORLD_DEMO.md](docs/BUSINESS_WORLD_DEMO.md)** — guided business world demo with Enron capstone
 
 ## License
 

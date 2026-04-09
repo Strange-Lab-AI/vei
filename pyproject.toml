@@ -67,6 +67,11 @@ vei = "vei.cli.vei:app"
 [tool.black]
 target-version = ["py311"]
 
+[tool.coverage.run]
+omit = [
+  "vei/whatif/benchmark_bridge.py",
+]
+
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["vei*"]
