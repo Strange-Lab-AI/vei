@@ -2441,7 +2441,11 @@ body.developer-mode .studio-nav-button.developer-only {
 .whatif-open-card,
 .whatif-selection-card,
 .whatif-summary-card,
-.whatif-empty {
+.whatif-empty,
+.whatif-scene-hero,
+.whatif-scene-panel,
+.whatif-event-card,
+.whatif-option-card {
   border: 1px solid rgba(255, 255, 255, 0.08);
   background: rgba(8, 12, 22, 0.6);
   border-radius: 18px;
@@ -2457,11 +2461,16 @@ body.developer-mode .studio-nav-button.developer-only {
 }
 
 .whatif-controls,
+.whatif-playbar,
 .whatif-runner {
   display: grid;
   gap: 12px;
   grid-template-columns: minmax(0, 2fr) minmax(140px, 0.6fr) auto;
   align-items: end;
+}
+
+.whatif-playbar {
+  grid-template-columns: minmax(180px, 0.8fr) minmax(160px, 0.6fr) auto;
 }
 
 .whatif-runner {
@@ -2525,6 +2534,13 @@ body.developer-mode .studio-nav-button.developer-only {
   color: inherit;
 }
 
+.whatif-result-item.is-selected,
+.whatif-summary-card.is-recommended,
+.whatif-option-card.is-selected {
+  border-color: rgba(30, 108, 242, 0.35);
+  box-shadow: 0 0 0 1px rgba(30, 108, 242, 0.15) inset;
+}
+
 .whatif-result-item:hover {
   border-color: rgba(255, 255, 255, 0.18);
   transform: translateY(-1px);
@@ -2553,6 +2569,145 @@ body.developer-mode .studio-nav-button.developer-only {
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
 }
 
+.whatif-scene-shell,
+.whatif-scene-grid,
+.whatif-thread-panel,
+.whatif-thread-head,
+.whatif-option-grid,
+.whatif-chip-row,
+.whatif-summary-flags {
+  display: grid;
+  gap: 12px;
+}
+
+.whatif-chip-row,
+.whatif-summary-flags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.whatif-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.76);
+}
+
+.whatif-chip.is-selected {
+  border-color: rgba(255, 180, 84, 0.35);
+  color: rgba(255, 222, 179, 0.96);
+}
+
+.whatif-scene-hero,
+.whatif-scene-panel,
+.whatif-option-card {
+  display: grid;
+  gap: 8px;
+}
+
+.whatif-scene-copy {
+  display: grid;
+  gap: 6px;
+}
+
+.whatif-scene-copy strong,
+.whatif-thread-head strong {
+  font-size: 1.02rem;
+}
+
+.whatif-scene-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.whatif-thread-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.whatif-event-list {
+  display: grid;
+  gap: 10px;
+}
+
+.whatif-event-card {
+  padding: 12px 14px;
+}
+
+.whatif-event-card.is-current {
+  border-color: rgba(30, 108, 242, 0.28);
+}
+
+.whatif-event-snippet {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.82);
+  line-height: 1.45;
+  white-space: pre-wrap;
+}
+
+.whatif-option-grid {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.whatif-option-card {
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+}
+
+.whatif-custom-move {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+  padding: 16px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.whatif-custom-move.is-selected {
+  border-color: rgba(255, 180, 84, 0.35);
+  box-shadow: 0 0 0 1px rgba(255, 180, 84, 0.14) inset;
+}
+
+.whatif-custom-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.whatif-custom-actions button {
+  width: fit-content;
+}
+
+.whatif-option-card:hover {
+  border-color: rgba(255, 255, 255, 0.18);
+  transform: translateY(-1px);
+}
+
+.whatif-option-badge {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.whatif-option-title {
+  font-size: 0.98rem;
+}
+
+.whatif-option-summary {
+  color: rgba(255, 255, 255, 0.74);
+  line-height: 1.45;
+}
+
 .whatif-snippet {
   margin: 0;
   white-space: pre-wrap;
@@ -2573,15 +2728,28 @@ body.developer-mode .studio-nav-button.developer-only {
   gap: 10px;
 }
 
-.whatif-summary-card.is-recommended {
-  border-color: rgba(30, 108, 242, 0.35);
-  box-shadow: 0 0 0 1px rgba(30, 108, 242, 0.15) inset;
+.whatif-summary-card.is-picked {
+  border-color: rgba(255, 180, 84, 0.35);
+  box-shadow: 0 0 0 1px rgba(255, 180, 84, 0.14) inset;
+}
+
+.whatif-advanced summary {
+  cursor: pointer;
 }
 
 @media (max-width: 960px) {
   .whatif-controls,
+  .whatif-playbar,
   .whatif-runner {
     grid-template-columns: 1fr;
+  }
+
+  .whatif-scene-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .whatif-thread-head {
+    flex-direction: column;
   }
 }
 

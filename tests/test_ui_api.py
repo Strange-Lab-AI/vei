@@ -485,6 +485,75 @@ def test_ui_api_whatif_routes_support_generic_mail_archive(
     assert open_payload["materialization"]["branch_event_id"] == "py-msg-002"
 
 
+def test_ui_api_whatif_scene_route_returns_playable_enron_decision(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    root = tmp_path / "workspace"
+    create_workspace_from_template(
+        root=root,
+        source_kind="example",
+        source_ref="acquired_user_cutover",
+    )
+    rosetta_dir = tmp_path / "rosetta"
+    _write_rosetta_fixture(rosetta_dir)
+    monkeypatch.setenv("VEI_WHATIF_ROSETTA_DIR", str(rosetta_dir))
+
+    client = TestClient(ui_api.create_ui_app(root))
+    response = client.post(
+        "/api/workspace/whatif/scene",
+        json={"source": "enron", "event_id": "evt-001"},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["source"] == "enron"
+    assert payload["thread_id"] == "thr-external"
+    assert payload["branch_event_id"] == "evt-001"
+    assert payload["branch_summary"].startswith("Jeff Skilling is about to send")
+    assert payload["historical_action_summary"].startswith(
+        "Historically, Jeff Skilling"
+    )
+    assert payload["future_event_count"] == 2
+    assert len(payload["candidate_options"]) == 3
+    assert payload["candidate_options"][0]["label"] == "Hold for internal review"
+
+
+def test_ui_api_whatif_scene_route_supports_generic_mail_archive(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    root = tmp_path / "workspace"
+    create_workspace_from_template(
+        root=root,
+        source_kind="example",
+        source_ref="acquired_user_cutover",
+    )
+    archive_path = _write_mail_archive_fixture(tmp_path / "mail_archive")
+    monkeypatch.setenv("VEI_WHATIF_SOURCE_DIR", str(archive_path))
+    monkeypatch.setenv("VEI_WHATIF_SOURCE", "mail_archive")
+
+    client = TestClient(ui_api.create_ui_app(root))
+    response = client.post(
+        "/api/workspace/whatif/scene",
+        json={"source": "auto", "thread_id": "py-legal-001"},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["source"] == "mail_archive"
+    assert payload["organization_name"] == "Py Corp"
+    assert payload["branch_event_id"] == "py-msg-002"
+    assert payload["history_message_count"] == 1
+    assert payload["candidate_options"][0]["label"] == "Keep the loop tight"
+    assert payload["candidate_options"][0]["prompt"].startswith(
+        'Keep "Pricing addendum" in a tight internal loop'
+    )
+    assert payload["decision_question"] == (
+        'What should the company do at this point in "Pricing addendum"?'
+    )
+
+
 def test_ui_api_historical_workspace_prefers_saved_mail_archive(
     tmp_path: Path,
     monkeypatch,
@@ -541,6 +610,21 @@ def test_ui_api_historical_workspace_prefers_saved_mail_archive(
     search_payload = search_response.json()
     assert search_payload["match_count"] == 3
     assert search_payload["matches"][0]["event"]["timestamp"].startswith("2026-03-01")
+
+    scene_response = client.post(
+        "/api/workspace/whatif/scene",
+        json={
+            "source": "auto",
+            "event_id": "py-msg-002",
+            "thread_id": "py-legal-001",
+        },
+    )
+    assert scene_response.status_code == 200
+    scene_payload = scene_response.json()
+    assert scene_payload["organization_name"] == "Py Corp"
+    assert scene_payload["branch_event_id"] == "py-msg-002"
+    assert scene_payload["history_preview"][0]["actor_id"] == "emma@pycorp.example.com"
+    assert scene_payload["historical_future_preview"][0]["event_id"] == "py-msg-002"
 
 
 def test_ui_api_historical_workspace_prefers_manifest_rosetta_dir(

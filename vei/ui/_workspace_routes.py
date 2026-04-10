@@ -12,6 +12,8 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
 
 from vei.whatif import (
+    build_decision_scene,
+    build_saved_decision_scene,
     default_forecast_backend,
     list_objective_packs,
     load_branch_point_benchmark_build_result,
@@ -43,6 +45,7 @@ from ._api_models import (
     WhatIfOpenRequest,
     WhatIfRankRequest,
     WhatIfRunRequest,
+    WhatIfSceneRequest,
     WhatIfSearchRequest,
     gateway_json_request,
     load_workspace_historical_summary,
@@ -164,6 +167,40 @@ def register_workspace_routes(app: FastAPI, root: Path, *, deps: Any) -> None:
                 "materialization": materialization.model_dump(mode="json"),
             }
         )
+
+    @app.post("/api/workspace/whatif/scene")
+    def api_workspace_whatif_scene(request: WhatIfSceneRequest) -> JSONResponse:
+        if not request.event_id and not request.thread_id:
+            raise HTTPException(
+                status_code=400,
+                detail="event_id or thread_id is required",
+            )
+        historical = load_workspace_historical_summary(root)
+        matches_saved_branch = historical is not None and (
+            (not request.event_id or request.event_id == historical.branch_event_id)
+            and (not request.thread_id or request.thread_id == historical.thread_id)
+        )
+        if matches_saved_branch:
+            try:
+                scene = build_saved_decision_scene(root)
+            except Exception as exc:  # noqa: BLE001
+                raise HTTPException(status_code=400, detail=str(exc)) from exc
+            return JSONResponse(scene.model_dump(mode="json"))
+        world, source_dir = _resolve_whatif_source(
+            request.source,
+            max_events=request.max_events,
+        )
+        try:
+            scene = build_decision_scene(
+                world,
+                event_id=request.event_id,
+                thread_id=request.thread_id,
+            )
+        except Exception as exc:  # noqa: BLE001
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        payload = scene.model_dump(mode="json")
+        payload["source_dir"] = str(source_dir)
+        return JSONResponse(payload)
 
     @app.post("/api/workspace/whatif/run")
     def api_workspace_whatif_run(request: WhatIfRunRequest) -> JSONResponse:

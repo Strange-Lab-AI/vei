@@ -196,10 +196,10 @@
         <section class="card whatif-card" data-studio-view="company">
           <div class="section-header">
             <div>
-              <p class="eyebrow">Historical What-If</p>
-              <h2>Pick a real historical moment and ask what might have happened differently</h2>
+              <p class="eyebrow">Historical Decision</p>
+              <h2>Branch from a real company moment, pick an action, and score the alternate paths</h2>
               <p class="metric-detail">
-                Search the archive, choose a real event, then compare the historical baseline with the alternate path.
+                Search the archive, load one decision scene, then compare your choice against the other plausible moves.
               </p>
             </div>
           </div>
@@ -219,21 +219,7 @@
           </div>
           <div id="whatif-results" class="whatif-results"></div>
           <div id="whatif-selection" class="whatif-selection"></div>
-          <div class="whatif-runner">
-            <label class="whatif-field">
-              <span>Scenario label</span>
-              <input id="whatif-label-input" type="text" placeholder="Internal legal review before outside send" />
-            </label>
-            <label class="whatif-field whatif-field-wide">
-              <span>Counterfactual</span>
-              <textarea id="whatif-prompt-input" rows="4" placeholder="What if the sender had kept the draft internal, asked legal for one more review, and waited before sending it outside?"></textarea>
-            </label>
-            <div class="whatif-actions">
-              <button id="whatif-open-btn" type="button">Materialize baseline</button>
-              <button id="whatif-run-btn" type="button">Run counterfactual</button>
-            </div>
-          </div>
-          <div class="whatif-runner whatif-runner-ranked">
+          <div class="whatif-playbar">
             <label class="whatif-field">
               <span>Objective</span>
               <select id="whatif-objective-select"></select>
@@ -242,14 +228,33 @@
               <span>Rollouts per option</span>
               <input id="whatif-rollout-count-input" type="number" min="1" max="16" value="4" />
             </label>
-            <label class="whatif-field whatif-field-wide">
-              <span>Candidate moves</span>
-              <textarea id="whatif-candidates-input" rows="5" placeholder="One candidate move per line"></textarea>
-            </label>
             <div class="whatif-actions">
-              <button id="whatif-rank-btn" type="button">Rank options</button>
+              <button id="whatif-rank-btn" type="button">Score this decision</button>
             </div>
           </div>
+          <details class="secondary-disclosure secondary-disclosure-quiet whatif-advanced">
+            <summary>Advanced controls</summary>
+            <div class="whatif-runner">
+              <label class="whatif-field">
+                <span>Scenario label</span>
+                <input id="whatif-label-input" type="text" placeholder="Internal legal review before outside send" />
+              </label>
+              <label class="whatif-field whatif-field-wide">
+                <span>Counterfactual</span>
+                <textarea id="whatif-prompt-input" rows="4" placeholder="What if the sender had kept the draft internal, asked legal for one more review, and waited before sending it outside?"></textarea>
+              </label>
+              <div class="whatif-actions">
+                <button id="whatif-open-btn" type="button">Materialize baseline</button>
+                <button id="whatif-run-btn" type="button">Run single counterfactual</button>
+              </div>
+            </div>
+            <div class="whatif-runner whatif-runner-ranked">
+              <label class="whatif-field whatif-field-wide">
+                <span>Candidate moves</span>
+                <textarea id="whatif-candidates-input" rows="5" placeholder="Label | candidate move"></textarea>
+              </label>
+            </div>
+          </details>
           <div id="whatif-open-result" class="whatif-open-result"></div>
           <div id="whatif-experiment-result" class="whatif-experiment-result"></div>
         </section>

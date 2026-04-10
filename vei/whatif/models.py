@@ -420,6 +420,34 @@ class WhatIfCandidateIntervention(BaseModel):
     prompt: str
 
 
+class WhatIfDecisionOption(BaseModel):
+    option_id: str
+    label: str
+    summary: str = ""
+    prompt: str
+
+
+class WhatIfDecisionScene(BaseModel):
+    source: WhatIfSourceName = "enron"
+    organization_name: str
+    organization_domain: str
+    thread_id: str
+    thread_subject: str
+    branch_event_id: str
+    branch_event: WhatIfEventReference
+    history_message_count: int = 0
+    future_event_count: int = 0
+    content_notice: str = ""
+    branch_summary: str = ""
+    historical_action_summary: str = ""
+    historical_outcome_summary: str = ""
+    stakes_summary: str = ""
+    decision_question: str = ""
+    history_preview: list[WhatIfEventReference] = Field(default_factory=list)
+    historical_future_preview: list[WhatIfEventReference] = Field(default_factory=list)
+    candidate_options: list[WhatIfDecisionOption] = Field(default_factory=list)
+
+
 class WhatIfOutcomeSignals(BaseModel):
     exposure_risk: float = 0.0
     delay_risk: float = 0.0

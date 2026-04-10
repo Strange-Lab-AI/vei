@@ -775,6 +775,9 @@ async function loadWorkspace() {
   if (typeof renderWhatIfStudio === "function") {
     renderWhatIfStudio();
   }
+  if (typeof primeWhatIfSceneFromHistoricalWorkspace === "function") {
+    void primeWhatIfSceneFromHistoricalWorkspace();
+  }
   if (scenarios.length > 0) {
     const activeName = workspace?.manifest?.active_scenario || scenarios[0].name;
     document.getElementById("scenario-select").value = activeName;

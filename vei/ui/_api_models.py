@@ -116,6 +116,13 @@ class WhatIfOpenRequest(BaseModel):
     max_events: int | None = None
 
 
+class WhatIfSceneRequest(BaseModel):
+    source: str = "auto"
+    event_id: str | None = None
+    thread_id: str | None = None
+    max_events: int | None = None
+
+
 class WhatIfRunRequest(BaseModel):
     source: str = "auto"
     prompt: str
