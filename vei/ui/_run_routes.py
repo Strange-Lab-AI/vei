@@ -27,11 +27,14 @@ from vei.run.api import (
 )
 
 from ._api_models import RunLaunchRequest
+from ._root_mode import root_has_workspace
 
 
 def register_run_routes(app: FastAPI, root: Path, *, deps: Any) -> None:
     @app.get("/api/runs")
     def api_runs() -> JSONResponse:
+        if not root_has_workspace(root):
+            return JSONResponse([])
         manifests = [
             manifest.model_dump(mode="json") for manifest in list_run_manifests(root)
         ]
@@ -39,6 +42,11 @@ def register_run_routes(app: FastAPI, root: Path, *, deps: Any) -> None:
 
     @app.post("/api/runs")
     def api_start_run(request: RunLaunchRequest) -> JSONResponse:
+        if not root_has_workspace(root):
+            raise HTTPException(
+                status_code=404,
+                detail="run controls are unavailable for benchmark roots",
+            )
         launch = request.model_copy(deep=True)
         try:
             normalized_runner = normalize_runner(launch.runner)

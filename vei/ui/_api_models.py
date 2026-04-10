@@ -7,12 +7,13 @@ from pathlib import Path
 from typing import Any, Mapping
 
 from fastapi import HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from vei.whatif import load_episode_manifest
 from vei.whatif.models import (
     WhatIfEventReference,
     WhatIfExperimentMode,
+    WhatIfJudgedPairwiseComparison,
     WhatIfObjectivePackId,
 )
 from vei.twin import load_customer_twin
@@ -152,6 +153,16 @@ class WhatIfRankRequest(BaseModel):
     ejepa_batch_size: int = 64
     ejepa_force_retrain: bool = False
     ejepa_device: str | None = None
+
+
+class AuditSubmitRequest(BaseModel):
+    reviewer_id: str = ""
+    ordered_candidate_ids: list[str]
+    pairwise_comparisons: list[WhatIfJudgedPairwiseComparison] = Field(
+        default_factory=list
+    )
+    confidence: float | None = Field(default=None, ge=0.0, le=1.0)
+    notes: str = ""
 
 
 class WorkspaceHistoricalSummary(BaseModel):

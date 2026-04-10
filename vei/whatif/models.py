@@ -743,7 +743,7 @@ class WhatIfJudgedPairwiseComparison(BaseModel):
     left_candidate_id: str
     right_candidate_id: str
     preferred_candidate_id: str = ""
-    confidence: float | None = None
+    confidence: float | None = Field(default=None, ge=0.0, le=1.0)
     evidence_references: list[str] = Field(default_factory=list)
     rationale: str = ""
 
@@ -766,8 +766,14 @@ class WhatIfJudgedRanking(BaseModel):
 class WhatIfAuditRecord(BaseModel):
     case_id: str
     objective_pack_id: WhatIfBusinessObjectivePackId
+    submission_id: str = ""
+    submitted_at: str = ""
     reviewer_id: str = ""
     ordered_candidate_ids: list[str] = Field(default_factory=list)
+    pairwise_comparisons: list[WhatIfJudgedPairwiseComparison] = Field(
+        default_factory=list
+    )
+    confidence: float | None = Field(default=None, ge=0.0, le=1.0)
     status: Literal["pending", "completed"] = "pending"
     agreement_with_judge: bool | None = None
     notes: str = ""

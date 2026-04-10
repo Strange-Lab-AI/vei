@@ -33,16 +33,21 @@ from ._api_models import (
     build_context_provider_status,
     context_capture_org_name,
 )
+from ._root_mode import root_has_workspace
 
 
 def register_imports_routes(app: FastAPI, root: Path) -> None:
     @app.get("/api/imports/summary")
     def api_import_summary() -> JSONResponse:
+        if not root_has_workspace(root):
+            return JSONResponse({})
         summary = show_workspace(root).imports
         return JSONResponse(summary.model_dump(mode="json") if summary else {})
 
     @app.get("/api/identity/flow")
     def api_identity_flow() -> JSONResponse:
+        if not root_has_workspace(root):
+            return JSONResponse({})
         try:
             payload = build_identity_flow_summary(root)
         except ValueError:
@@ -51,6 +56,8 @@ def register_imports_routes(app: FastAPI, root: Path) -> None:
 
     @app.get("/api/imports/sources")
     def api_import_sources() -> JSONResponse:
+        if not root_has_workspace(root):
+            return JSONResponse({"sources": [], "syncs": []})
         return JSONResponse(
             {
                 "sources": [
@@ -66,16 +73,22 @@ def register_imports_routes(app: FastAPI, root: Path) -> None:
 
     @app.get("/api/imports/normalization")
     def api_import_normalization() -> JSONResponse:
+        if not root_has_workspace(root):
+            return JSONResponse({})
         report = load_workspace_import_report(root)
         return JSONResponse(report.model_dump(mode="json") if report else {})
 
     @app.get("/api/imports/review")
     def api_import_review() -> JSONResponse:
+        if not root_has_workspace(root):
+            return JSONResponse({})
         review = load_workspace_import_review(root)
         return JSONResponse(review.model_dump(mode="json") if review else {})
 
     @app.get("/api/imports/scenarios")
     def api_import_scenarios() -> JSONResponse:
+        if not root_has_workspace(root):
+            return JSONResponse([])
         return JSONResponse(
             [
                 item.model_dump(mode="json")
@@ -85,6 +98,8 @@ def register_imports_routes(app: FastAPI, root: Path) -> None:
 
     @app.get("/api/imports/provenance")
     def api_import_provenance(object_ref: str | None = None) -> JSONResponse:
+        if not root_has_workspace(root):
+            return JSONResponse([])
         return JSONResponse(
             [
                 item.model_dump(mode="json")
@@ -94,16 +109,25 @@ def register_imports_routes(app: FastAPI, root: Path) -> None:
 
     @app.get("/api/scenarios")
     def api_scenarios() -> JSONResponse:
+        if not root_has_workspace(root):
+            return JSONResponse([])
         return JSONResponse(
             [item.model_dump(mode="json") for item in list_workspace_scenarios(root)]
         )
 
     @app.get("/api/scenario-variants")
     def api_scenario_variants() -> JSONResponse:
+        if not root_has_workspace(root):
+            return JSONResponse([])
         return JSONResponse(list_workspace_scenario_variants(root))
 
     @app.post("/api/scenarios/activate")
     def api_activate_scenario(request: ScenarioActivateRequest) -> JSONResponse:
+        if not root_has_workspace(root):
+            raise HTTPException(
+                status_code=404,
+                detail="scenario controls are unavailable for benchmark roots",
+            )
         if bool(request.scenario_name) == bool(request.variant):
             raise HTTPException(
                 status_code=400,
@@ -128,12 +152,19 @@ def register_imports_routes(app: FastAPI, root: Path) -> None:
 
     @app.get("/api/contract-variants")
     def api_contract_variants() -> JSONResponse:
+        if not root_has_workspace(root):
+            return JSONResponse([])
         return JSONResponse(list_workspace_contract_variants(root))
 
     @app.post("/api/contract-variants/activate")
     def api_activate_contract_variant(
         request: ContractActivateRequest,
     ) -> JSONResponse:
+        if not root_has_workspace(root):
+            raise HTTPException(
+                status_code=404,
+                detail="contract controls are unavailable for benchmark roots",
+            )
         try:
             contract = activate_workspace_contract_variant(root, request.variant)
         except (KeyError, ValueError) as exc:
@@ -142,10 +173,20 @@ def register_imports_routes(app: FastAPI, root: Path) -> None:
 
     @app.get("/api/scenarios/{scenario_name}/preview")
     def api_scenario_preview(scenario_name: str) -> JSONResponse:
+        if not root_has_workspace(root):
+            raise HTTPException(
+                status_code=404,
+                detail="scenario previews are unavailable for benchmark roots",
+            )
         return JSONResponse(preview_workspace_scenario(root, scenario_name))
 
     @app.get("/api/scenarios/{scenario_name}/contract")
     def api_contract(scenario_name: str) -> JSONResponse:
+        if not root_has_workspace(root):
+            raise HTTPException(
+                status_code=404,
+                detail="scenario contracts are unavailable for benchmark roots",
+            )
         return JSONResponse(
             load_workspace_contract(root, scenario_name).model_dump(mode="json")
         )

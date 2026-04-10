@@ -339,10 +339,10 @@ function renderSkinSwitcher(activeSkin) {
 }
 
 const SKIN_NAV_LABELS = {
-  sandbox: ["Company", "Crisis", "Outcome"],
-  governor: ["Control Room", "Fleet", "Governance"],
-  test:    ["World", "Runs", "Eval"],
-  train:   ["World", "Corpus", "Export"],
+  sandbox: ["Company", "Crisis", "Outcome", "Audit"],
+  governor: ["Control Room", "Fleet", "Governance", "Audit"],
+  test:    ["World", "Runs", "Eval", "Audit"],
+  train:   ["World", "Corpus", "Export", "Audit"],
 };
 
 const SKIN_HINTS = {

@@ -745,6 +745,9 @@ function setStudioView(view) {
   document.querySelectorAll(".studio-nav-button").forEach((node) => {
     node.classList.toggle("active", node.dataset.studioView === state.studioView);
   });
+  if (state.studioView === "audit" && typeof loadAuditQueue === "function") {
+    loadAuditQueue();
+  }
 }
 
 function toggleDeveloperMode() {

@@ -39,9 +39,19 @@ from vei.workspace.api import (
 )
 from vei.whatif import load_world, materialize_episode
 from vei.whatif.models import (
+    WhatIfAuditRecord,
+    WhatIfBenchmarkBuildArtifacts,
+    WhatIfBenchmarkBuildResult,
+    WhatIfBenchmarkCandidate,
+    WhatIfBenchmarkCase,
+    WhatIfBenchmarkDatasetManifest,
+    WhatIfBenchmarkJudgeArtifacts,
+    WhatIfBenchmarkJudgeResult,
     WhatIfEpisodeManifest,
     WhatIfEventReference,
     WhatIfForecast,
+    WhatIfJudgedPairwiseComparison,
+    WhatIfJudgedRanking,
 )
 
 
@@ -151,6 +161,158 @@ def _write_mail_archive_fixture(root: Path) -> Path:
         encoding="utf-8",
     )
     return archive_path
+
+
+def _write_benchmark_audit_fixture(
+    root: Path,
+    *,
+    include_judge: bool = True,
+) -> None:
+    root.mkdir(parents=True, exist_ok=True)
+    dataset_root = root / "dataset"
+    dataset_root.mkdir(parents=True, exist_ok=True)
+    dossier_root = root / "dossiers" / "case_master_agreement"
+    dossier_root.mkdir(parents=True, exist_ok=True)
+    dossier_path = dossier_root / "minimize_enterprise_risk.md"
+    dossier_path.write_text(
+        "# Master Agreement\n\nReview the internal hold against the external send.",
+        encoding="utf-8",
+    )
+
+    candidate_ids = [
+        "legal_hold_internal",
+        "narrow_external_status",
+        "broad_external_send",
+    ]
+    build = WhatIfBenchmarkBuildResult(
+        label="enron_benchmark_audit",
+        heldout_pack_id="enron_fixture_pack",
+        dataset=WhatIfBenchmarkDatasetManifest(
+            root=dataset_root,
+            heldout_cases_path=str(root / "heldout_cases.json"),
+            judge_template_path=str(root / "judged_ranking_template.json"),
+            audit_template_path=str(root / "audit_record_template.json"),
+            dossier_root=str(root / "dossiers"),
+        ),
+        cases=[
+            WhatIfBenchmarkCase(
+                case_id="case_master_agreement",
+                title="Master Agreement",
+                event_id="enron_branch_001",
+                thread_id="thr_master_agreement",
+                summary="Review the draft before it goes outside Enron.",
+                case_family="legal_review",
+                branch_event=WhatIfEventReference(
+                    event_id="enron_branch_001",
+                    timestamp="2000-09-27T13:42:00Z",
+                    actor_id="debra.perlingiere@enron.com",
+                    target_id="kathy_gerken@cargill.com",
+                    event_type="message",
+                    thread_id="thr_master_agreement",
+                    subject="Master Agreement",
+                    snippet="Attached for your review is a draft Master Agreement.",
+                ),
+                objective_dossier_paths={"minimize_enterprise_risk": str(dossier_path)},
+                candidates=[
+                    WhatIfBenchmarkCandidate(
+                        candidate_id="legal_hold_internal",
+                        label="Legal hold internal",
+                        prompt="Keep the draft inside Enron and ask legal for review.",
+                    ),
+                    WhatIfBenchmarkCandidate(
+                        candidate_id="narrow_external_status",
+                        label="Narrow external status",
+                        prompt="Send a short status note without the draft.",
+                    ),
+                    WhatIfBenchmarkCandidate(
+                        candidate_id="broad_external_send",
+                        label="Broad external send",
+                        prompt="Send the draft now and widen circulation.",
+                    ),
+                ],
+            )
+        ],
+        artifacts=WhatIfBenchmarkBuildArtifacts(
+            root=root,
+            manifest_path=root / "branch_point_benchmark_build.json",
+            heldout_cases_path=root / "heldout_cases.json",
+            judge_template_path=root / "judged_ranking_template.json",
+            audit_template_path=root / "audit_record_template.json",
+            dossier_root=root / "dossiers",
+        ),
+    )
+    build.artifacts.manifest_path.write_text(
+        build.model_dump_json(indent=2),
+        encoding="utf-8",
+    )
+    build.artifacts.heldout_cases_path.write_text("[]", encoding="utf-8")
+    build.artifacts.judge_template_path.write_text("[]", encoding="utf-8")
+    build.artifacts.audit_template_path.write_text("[]", encoding="utf-8")
+
+    if not include_judge:
+        return
+
+    pairwise = [
+        WhatIfJudgedPairwiseComparison(
+            left_candidate_id="legal_hold_internal",
+            right_candidate_id="narrow_external_status",
+            preferred_candidate_id="legal_hold_internal",
+            confidence=0.7,
+            rationale="The draft stays inside Enron.",
+        ),
+        WhatIfJudgedPairwiseComparison(
+            left_candidate_id="legal_hold_internal",
+            right_candidate_id="broad_external_send",
+            preferred_candidate_id="legal_hold_internal",
+            confidence=0.7,
+            rationale="Broad circulation raises external spread.",
+        ),
+        WhatIfJudgedPairwiseComparison(
+            left_candidate_id="narrow_external_status",
+            right_candidate_id="broad_external_send",
+            preferred_candidate_id="narrow_external_status",
+            confidence=0.65,
+            rationale="A status note is narrower than a full draft send.",
+        ),
+    ]
+    judge_result = WhatIfBenchmarkJudgeResult(
+        build_root=root,
+        judge_model="gpt-4.1-mini",
+        judgments=[
+            WhatIfJudgedRanking(
+                case_id="case_master_agreement",
+                objective_pack_id="minimize_enterprise_risk",
+                judge_id="judge-1",
+                judge_model="gpt-4.1-mini",
+                ordered_candidate_ids=candidate_ids,
+                pairwise_comparisons=pairwise,
+                confidence=0.72,
+            )
+        ],
+        audit_queue=[
+            WhatIfAuditRecord(
+                case_id="case_master_agreement",
+                objective_pack_id="minimize_enterprise_risk",
+                status="pending",
+            )
+        ],
+        artifacts=WhatIfBenchmarkJudgeArtifacts(
+            root=root,
+            result_path=root / "judge_result.json",
+            audit_queue_path=root / "audit_queue.json",
+        ),
+    )
+    judge_result.artifacts.result_path.write_text(
+        judge_result.model_dump_json(indent=2),
+        encoding="utf-8",
+    )
+    judge_result.artifacts.audit_queue_path.write_text(
+        json.dumps(
+            [item.model_dump(mode="json") for item in judge_result.audit_queue],
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
 
 
 def test_ui_api_serves_workspace_and_run_details(tmp_path: Path) -> None:
@@ -1218,6 +1380,190 @@ def test_ui_api_exposes_historical_workspace_without_vertical_story(
     fidelity_response = client.get("/api/fidelity")
     assert fidelity_response.status_code == 200
     assert fidelity_response.json() == {}
+
+
+def test_ui_api_supports_benchmark_audit_root(tmp_path: Path) -> None:
+    root = tmp_path / "benchmark-audit-ui"
+    _write_benchmark_audit_fixture(root)
+
+    client = TestClient(ui_api.create_ui_app(root))
+
+    workspace_response = client.get("/api/workspace")
+    assert workspace_response.status_code == 200
+    workspace_payload = workspace_response.json()
+    assert workspace_payload["manifest"]["metadata"]["ui_mode"] == "benchmark_audit"
+
+    scenarios_response = client.get("/api/scenarios")
+    assert scenarios_response.status_code == 200
+    assert scenarios_response.json() == []
+
+    runs_response = client.get("/api/runs")
+    assert runs_response.status_code == 200
+    assert runs_response.json() == []
+
+    audit_response = client.get("/api/workspace/whatif/audit")
+    assert audit_response.status_code == 200
+    audit_payload = audit_response.json()
+    assert audit_payload["total"] == 1
+    assert audit_payload["items"][0]["case_id"] == "case_master_agreement"
+    assert "Master Agreement" in audit_payload["items"][0]["dossier_text"]
+
+
+def test_ui_api_returns_empty_audit_queue_until_judge_results_exist(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "benchmark-audit-build-only"
+    _write_benchmark_audit_fixture(root, include_judge=False)
+
+    client = TestClient(ui_api.create_ui_app(root))
+
+    audit_response = client.get("/api/workspace/whatif/audit")
+    assert audit_response.status_code == 200
+    assert audit_response.json() == {"items": [], "total": 0}
+
+
+def test_ui_api_audit_submission_preserves_all_completed_records(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "benchmark-audit-submit"
+    _write_benchmark_audit_fixture(root)
+
+    client = TestClient(ui_api.create_ui_app(root))
+    route = (
+        "/api/workspace/whatif/audit/" "case_master_agreement/minimize_enterprise_risk"
+    )
+    first_response = client.post(
+        route,
+        json={
+            "reviewer_id": "auditor-1",
+            "ordered_candidate_ids": [
+                "legal_hold_internal",
+                "narrow_external_status",
+                "broad_external_send",
+            ],
+            "pairwise_comparisons": [
+                {
+                    "left_candidate_id": "legal_hold_internal",
+                    "right_candidate_id": "narrow_external_status",
+                    "preferred_candidate_id": "legal_hold_internal",
+                    "confidence": 0.8,
+                    "rationale": "Keep the draft inside Enron.",
+                },
+                {
+                    "left_candidate_id": "legal_hold_internal",
+                    "right_candidate_id": "broad_external_send",
+                    "preferred_candidate_id": "legal_hold_internal",
+                    "confidence": 0.8,
+                    "rationale": "Outside spread rises with the broad send.",
+                },
+                {
+                    "left_candidate_id": "narrow_external_status",
+                    "right_candidate_id": "broad_external_send",
+                    "preferred_candidate_id": "narrow_external_status",
+                    "confidence": 0.7,
+                    "rationale": "A status note stays narrower.",
+                },
+            ],
+            "confidence": 0.8,
+            "notes": "First review",
+        },
+    )
+    assert first_response.status_code == 200
+    assert first_response.json()["agreement_with_judge"] is True
+
+    second_response = client.post(
+        route,
+        json={
+            "reviewer_id": "auditor-2",
+            "ordered_candidate_ids": [
+                "narrow_external_status",
+                "legal_hold_internal",
+                "broad_external_send",
+            ],
+            "pairwise_comparisons": [
+                {
+                    "left_candidate_id": "legal_hold_internal",
+                    "right_candidate_id": "narrow_external_status",
+                    "preferred_candidate_id": "narrow_external_status",
+                    "confidence": 0.6,
+                    "rationale": "A quick note keeps the thread moving.",
+                },
+                {
+                    "left_candidate_id": "legal_hold_internal",
+                    "right_candidate_id": "broad_external_send",
+                    "preferred_candidate_id": "legal_hold_internal",
+                    "confidence": 0.7,
+                    "rationale": "The broad send still looks riskiest.",
+                },
+                {
+                    "left_candidate_id": "narrow_external_status",
+                    "right_candidate_id": "broad_external_send",
+                    "preferred_candidate_id": "narrow_external_status",
+                    "confidence": 0.7,
+                    "rationale": "The note stays narrower than the draft.",
+                },
+            ],
+            "confidence": 0.65,
+            "notes": "Second review",
+        },
+    )
+    assert second_response.status_code == 200
+    assert second_response.json()["agreement_with_judge"] is False
+
+    completed_records = json.loads(
+        (root / "completed_audit_records.json").read_text(encoding="utf-8")
+    )
+    assert len(completed_records) == 2
+    assert [item["reviewer_id"] for item in completed_records] == [
+        "auditor-1",
+        "auditor-2",
+    ]
+    assert all(item["submission_id"] for item in completed_records)
+    assert all(item["submitted_at"] for item in completed_records)
+
+    audit_response = client.get("/api/workspace/whatif/audit")
+    assert audit_response.status_code == 200
+    assert audit_response.json()["items"][0]["status"] == "completed"
+
+
+def test_ui_api_audit_submission_rejects_duplicate_rankings(tmp_path: Path) -> None:
+    root = tmp_path / "benchmark-audit-invalid-submit"
+    _write_benchmark_audit_fixture(root)
+
+    client = TestClient(ui_api.create_ui_app(root))
+    response = client.post(
+        "/api/workspace/whatif/audit/case_master_agreement/minimize_enterprise_risk",
+        json={
+            "reviewer_id": "auditor-1",
+            "ordered_candidate_ids": [
+                "legal_hold_internal",
+                "legal_hold_internal",
+                "broad_external_send",
+            ],
+            "pairwise_comparisons": [
+                {
+                    "left_candidate_id": "legal_hold_internal",
+                    "right_candidate_id": "narrow_external_status",
+                    "preferred_candidate_id": "legal_hold_internal",
+                },
+                {
+                    "left_candidate_id": "legal_hold_internal",
+                    "right_candidate_id": "broad_external_send",
+                    "preferred_candidate_id": "legal_hold_internal",
+                },
+                {
+                    "left_candidate_id": "narrow_external_status",
+                    "right_candidate_id": "broad_external_send",
+                    "preferred_candidate_id": "narrow_external_status",
+                },
+            ],
+        },
+    )
+    assert response.status_code == 400
+    assert (
+        response.json()["detail"]
+        == "ordered_candidate_ids must contain each candidate exactly once"
+    )
 
 
 def test_ui_api_exposes_playable_mission_mode(tmp_path: Path) -> None:

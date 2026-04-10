@@ -82,6 +82,7 @@
           <button type="button" class="studio-nav-button active" data-studio-view="company">Company</button>
           <button type="button" class="studio-nav-button" data-studio-view="crisis">Crisis</button>
           <button type="button" class="studio-nav-button" data-studio-view="outcome">Outcome</button>
+          <button type="button" class="studio-nav-button" data-studio-view="audit">Audit</button>
         </div>
         <div id="cinema-narrative" class="cinema-narrative"></div>
         <details class="developer-only studio-dev-launcher">
@@ -339,6 +340,22 @@
         </section>
 
         <!-- ========== ENGINE PANELS (developer-only, under Company tab) ========== -->
+        <!-- ========== TAB: AUDIT ========== -->
+        <section class="card audit-card" data-studio-view="audit">
+          <div class="section-header">
+            <div>
+              <p class="eyebrow">Human Audit</p>
+              <h2>Review the LLM judge's benchmark rankings</h2>
+              <p class="metric-detail">
+                Rank the candidates yourself, then see where you agree or disagree with the automated judge.
+              </p>
+            </div>
+          </div>
+          <div id="audit-queue" class="audit-queue"></div>
+          <div id="audit-workspace" class="audit-workspace"></div>
+          <div id="audit-reveal" class="audit-reveal"></div>
+        </section>
+
         <section class="card stage-card developer-only" data-studio-view="company">
           <div class="section-header">
             <div>
@@ -487,6 +504,7 @@
     <script src="/static/studio-compare.js"></script>
     <script src="/static/studio-company.js"></script>
     <script src="/static/studio-whatif.js"></script>
+    <script src="/static/studio-audit.js"></script>
     <script src="/static/studio-outcome.js"></script>
     <script src="/static/studio-bootstrap.js"></script>
   </body>
