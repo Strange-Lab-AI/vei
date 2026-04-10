@@ -2474,6 +2474,50 @@ def test_jepa_benchmark_model_uses_prebranch_sequence_signal() -> None:
     )
 
 
+def test_benchmark_preprocessor_decode_targets_clamps_overflow() -> None:
+    preprocessor = _BenchmarkPreprocessor(
+        summary_feature_names=["history_event_count"],
+        summary_mean=[0.0],
+        summary_std=[1.0],
+        action_tag_names=["hold"],
+        event_type_names=["__summary__", "message"],
+        target_mean=[0.0] * len(_EVIDENCE_TARGET_NAMES),
+        target_std=[1.0] * len(_EVIDENCE_TARGET_NAMES),
+    )
+
+    decoded = preprocessor.decode_targets(
+        binary_probability=0.9,
+        regression_values=[1e6] * len(_EVIDENCE_TARGET_NAMES),
+    )
+
+    assert decoded.any_external_spread is True
+    assert decoded.outside_recipient_count > 0
+    assert decoded.time_to_thread_end_ms > 0
+
+
+def test_benchmark_preprocessor_decode_targets_handles_nonfinite_values() -> None:
+    preprocessor = _BenchmarkPreprocessor(
+        summary_feature_names=["history_event_count"],
+        summary_mean=[0.0],
+        summary_std=[1.0],
+        action_tag_names=["hold"],
+        event_type_names=["__summary__", "message"],
+        target_mean=[0.0] * len(_EVIDENCE_TARGET_NAMES),
+        target_std=[1.0] * len(_EVIDENCE_TARGET_NAMES),
+    )
+
+    decoded = preprocessor.decode_targets(
+        binary_probability=0.1,
+        regression_values=[float("nan"), float("inf"), float("-inf")]
+        + [0.0] * (len(_EVIDENCE_TARGET_NAMES) - 3),
+    )
+
+    assert decoded.any_external_spread is False
+    assert decoded.outside_recipient_count == 0
+    assert decoded.outside_forward_count > 0
+    assert decoded.outside_attachment_spread_count == 0
+
+
 def test_vei_whatif_cli_benchmark_commands(tmp_path: Path, monkeypatch) -> None:
     rosetta_dir = tmp_path / "rosetta"
     _write_rosetta_fixture(rosetta_dir)

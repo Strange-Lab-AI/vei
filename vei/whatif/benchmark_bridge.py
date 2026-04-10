@@ -406,7 +406,21 @@ class _BenchmarkPreprocessor:
         regression_values: Sequence[float],
     ) -> WhatIfObservedEvidenceHeads:
         regression = np.asarray(regression_values, dtype=np.float32)
-        restored = np.expm1((regression * self.target_std) + self.target_mean)
+        # Small-data study runs can push the regression heads into extreme
+        # ranges or non-finite values. Normalize those cases before expm1 so
+        # benchmark decoding stays finite and comparable instead of crashing.
+        logged = np.nan_to_num(
+            (regression * self.target_std) + self.target_mean,
+            nan=0.0,
+            posinf=20.0,
+            neginf=0.0,
+        )
+        logged = np.clip(
+            logged,
+            a_min=0.0,
+            a_max=20.0,
+        )
+        restored = np.expm1(logged)
         clipped = [max(0, int(round(value))) for value in restored.tolist()]
         payload = {
             name: clipped[index] for index, name in enumerate(_EVIDENCE_TARGET_NAMES)
