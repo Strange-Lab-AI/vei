@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import json
 import signal
+from datetime import UTC, datetime
 from pathlib import Path
 
 import typer
@@ -112,18 +114,17 @@ def quickstart_command(
     # --- 5. Print connection panel -----------------------------------------------
     twin_status = build_twin_status(root)
     token = twin_status.manifest.bearer_token
+    quickstart_info_path = _write_quickstart_info(root, twin_status)
 
     info_lines = [
         f"[bold]Studio UI[/bold]        {twin_status.manifest.studio_url}",
         f"[bold]Twin Gateway[/bold]     {twin_status.manifest.gateway_url}",
+        f"[bold]Saved info[/bold]       {quickstart_info_path}",
         "",
         f"[bold]Auth token[/bold]       {token}",
         "",
         "[bold]Mock API endpoints:[/bold]",
-        f"  Slack    {twin_status.manifest.gateway_url}/slack/api/",
-        f"  Jira     {twin_status.manifest.gateway_url}/jira/rest/api/3/",
-        f"  Graph    {twin_status.manifest.gateway_url}/graph/v1.0/",
-        f"  SFDC     {twin_status.manifest.gateway_url}/salesforce/services/data/v60.0/",
+        *_surface_endpoint_lines(twin_status),
         "",
         "[bold]MCP endpoint[/bold]     python -m vei.router",
         "",
@@ -177,3 +178,68 @@ def _run_scripted_baseline(root: Path, state) -> None:
             )
         except Exception:  # noqa: BLE001
             break
+
+
+def _write_quickstart_info(root: Path, twin_status) -> Path:
+    workspace_root = root.expanduser().resolve()
+    info_dir = workspace_root / ".vei"
+    info_dir.mkdir(parents=True, exist_ok=True)
+    info_path = info_dir / "quickstart.json"
+    payload = {
+        "written_at": datetime.now(UTC).isoformat(),
+        "workspace_root": str(workspace_root),
+        "studio_url": twin_status.manifest.studio_url,
+        "gateway_url": twin_status.manifest.gateway_url,
+        "gateway_status_url": twin_status.manifest.gateway_status_url,
+        "bearer_token": twin_status.manifest.bearer_token,
+        "supported_surfaces": [
+            item.model_dump(mode="json")
+            for item in twin_status.manifest.supported_surfaces
+        ],
+        "sample_curls": _sample_curls(twin_status),
+    }
+    info_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    return info_path
+
+
+def _sample_curls(twin_status) -> list[str]:
+    gateway_url = twin_status.manifest.gateway_url.rstrip("/")
+    token = twin_status.manifest.bearer_token
+    curls = [
+        f"curl -H 'Authorization: Bearer {token}' {gateway_url}/api/twin",
+    ]
+    for surface in twin_status.manifest.supported_surfaces:
+        base_path = surface.base_path.rstrip("/")
+        if surface.name == "slack":
+            curls.append(
+                f"curl -H 'Authorization: Bearer {token}' {gateway_url}{base_path}/conversations.list"
+            )
+        elif surface.name == "jira":
+            curls.append(
+                f"curl -H 'Authorization: Bearer {token}' {gateway_url}{base_path}/search"
+            )
+        elif surface.name == "graph":
+            curls.append(
+                f"curl -H 'Authorization: Bearer {token}' {gateway_url}{base_path}/me/messages"
+            )
+        elif surface.name == "salesforce":
+            curls.append(
+                f"curl -H 'Authorization: Bearer {token}' '{gateway_url}{base_path}/query?q=SELECT+Id+FROM+Opportunity+LIMIT+1'"
+            )
+        elif surface.name == "notes":
+            curls.append(
+                f"curl -H 'Authorization: Bearer {token}' {gateway_url}{base_path}/entries"
+            )
+    return curls
+
+
+def _surface_endpoint_lines(twin_status) -> list[str]:
+    gateway_url = twin_status.manifest.gateway_url.rstrip("/")
+    surfaces = list(twin_status.manifest.supported_surfaces or [])
+    if not surfaces:
+        return ["  none"]
+
+    return [
+        f"  {surface.title:<8} {gateway_url}{surface.base_path.rstrip('/')}/"
+        for surface in surfaces
+    ]

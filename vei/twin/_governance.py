@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 
+from vei.blueprint import resolve_tool_operation_class
 from vei.connectors import TOOL_ROUTES
 from vei.governor import (
     GovernorAgentSpec,
@@ -61,6 +62,9 @@ def mirror_operation_class(tool_name: str) -> str | None:
     route = TOOL_ROUTES.get(tool_name)
     if route is not None:
         return route.operation_class.value
+    resolved = resolve_tool_operation_class(tool_name)
+    if resolved is not None:
+        return resolved
     return _MIRROR_OPERATION_CLASS_BY_TOOL.get(tool_name)
 
 

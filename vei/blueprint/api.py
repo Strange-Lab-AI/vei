@@ -49,6 +49,7 @@ from .models import (
     FacadeManifest,
 )
 from .plugins import (
+    FacadeRuntimeBinding,
     get_facade_plugin,
     list_facade_plugins,
     resolve_facade_plugins_for_tool_families,
@@ -1004,6 +1005,7 @@ __all__ = [
     "BlueprintAsset",
     "CapabilityGraphSummary",
     "CompiledBlueprint",
+    "FacadeRuntimeBinding",
     "build_blueprint_asset_for_example",
     "build_blueprint_asset_for_family",
     "build_blueprint_asset_for_scenario",

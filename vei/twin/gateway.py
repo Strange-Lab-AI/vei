@@ -1,5 +1,9 @@
 from . import _gateway_adapters as _adapter_impl
-from . import _gateway_routes as _route_impl
+from . import _gateway_routes_graph as _graph_route_impl
+from . import _gateway_routes_jira as _jira_route_impl
+from . import _gateway_routes_notes as _notes_route_impl
+from . import _gateway_routes_salesforce as _salesforce_route_impl
+from . import _gateway_routes_slack as _slack_route_impl
 from . import _runtime as _runtime_impl
 from ._gateway_adapters import dispatch_request as _dispatch_request
 from ._helpers import (
@@ -50,8 +54,17 @@ from ._helpers import (
 from ._runtime import TwinRuntime
 
 
+def _bind_dispatch_hooks() -> None:
+    _adapter_impl.dispatch_request = _dispatch_request
+    _graph_route_impl.dispatch_request = _dispatch_request
+    _jira_route_impl.dispatch_request = _dispatch_request
+    _notes_route_impl.dispatch_request = _dispatch_request
+    _salesforce_route_impl.dispatch_request = _dispatch_request
+    _slack_route_impl.dispatch_request = _dispatch_request
+
+
 def create_twin_gateway_app(root):
-    _route_impl.dispatch_request = _dispatch_request
+    _bind_dispatch_hooks()
     return _runtime_impl.create_twin_gateway_app(root)
 
 

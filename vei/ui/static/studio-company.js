@@ -990,6 +990,16 @@ function renderLivingCompanyRail() {
       <p class="eyebrow">Active pressure</p>
       <h3>${escapeHtml(surfaceState?.company_name || state.story?.manifest?.company_name || state.workspace?.manifest?.title || "Company")}</h3>
       <p class="metric-detail">${escapeHtml(currentCrisisSummary())}</p>
+      ${
+        surfaceState
+          ? `
+            <div class="detail-grid">
+              ${detailTile("Seed", String(surfaceState.seed || ""))}
+              ${detailTile("Run", (surfaceState.run_identity || "").slice(0, 12) || surfaceState.run_id || "")}
+            </div>
+          `
+          : ""
+      }
     </div>
     <div class="story-card">
       <p class="eyebrow">Situation</p>

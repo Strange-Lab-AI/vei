@@ -9,6 +9,7 @@ from typing import Any, Dict, Iterable, List, Optional
 
 from pydantic import BaseModel
 from vei.blueprint import FacadePlugin, list_runtime_facade_plugins
+from vei.blueprint.api import FacadeRuntimeBinding
 from vei.connectors import (
     ConnectorInvocationError,
     create_default_runtime,
@@ -26,22 +27,9 @@ from vei.world import (
 )
 from ._catalog import build_alias_map, build_builtin_tool_specs, build_help_payload
 from ._dispatch import GUARDED_PREFIXES, build_dispatch_table
-from .calendar import CalendarSim
-from .datadog import DatadogSim, DatadogToolProvider
-from .database import DatabaseSim
-from .docs import DocsSim
-from .feature_flags import FeatureFlagSim, FeatureFlagToolProvider
-from .google_admin import GoogleAdminSim, GoogleAdminToolProvider
-from .hris import HrisSim, HrisToolProvider
-from .jira import JiraToolProvider
-from .pagerduty import PagerDutySim, PagerDutyToolProvider
-from .siem import SiemSim, SiemToolProvider
-from .tickets import TicketsSim
 from .errors import MCPError
 from .tool_providers import ToolProvider
-from .servicedesk import ServiceDeskSim, ServiceDeskToolProvider
 from .tool_registry import ToolRegistry, ToolSpec
-from .sims import SlackSim, MailSim, BrowserVirtual
 from ._event_bus import Event, EventBus, LinearCongruentialGenerator  # noqa: F401
 from ._observation import (
     build_action_menu,
@@ -59,6 +47,7 @@ from ._reducers import (  # noqa: F401
     _reduce_router_init,
     _reduce_tool_call,
 )
+from .sims import MailSim, SlackSim  # noqa: F401
 
 logger = logging.getLogger(__name__)
 
@@ -114,7 +103,7 @@ class Router:
 
         self.registry = ToolRegistry()
         self.tool_providers: List[ToolProvider] = []
-        self.facade_plugins: Dict[str, Dict[str, Any]] = {}
+        self.facade_plugins: Dict[str, FacadeRuntimeBinding] = {}
         self._seed_tool_registry()
         self.alias_map = self._build_alias_map()
         self._register_alias_specs(self.alias_map)
@@ -154,9 +143,23 @@ class Router:
 
         self.trace = TraceLogger(artifacts_dir)
         self.scenario = scenario or load_from_env(seed)
-        self.slack = SlackSim(self.bus, self.scenario)
-        self.mail = MailSim(self.bus, self.scenario)
-        self.browser = BrowserVirtual(self.bus, self.scenario)
+        self.slack = None  # type: ignore[assignment]
+        self.mail = None  # type: ignore[assignment]
+        self.browser = None  # type: ignore[assignment]
+        self.docs = None  # type: ignore[assignment]
+        self.calendar = None  # type: ignore[assignment]
+        self.tickets = None  # type: ignore[assignment]
+        self.database = None  # type: ignore[assignment]
+        self.erp = None  # type: ignore[assignment]
+        self.crm = None  # type: ignore[assignment]
+        self.okta = None  # type: ignore[assignment]
+        self.servicedesk = None  # type: ignore[assignment]
+        self.google_admin = None  # type: ignore[assignment]
+        self.siem = None  # type: ignore[assignment]
+        self.datadog = None  # type: ignore[assignment]
+        self.pagerduty = None  # type: ignore[assignment]
+        self.feature_flags = None  # type: ignore[assignment]
+        self.hris = None  # type: ignore[assignment]
         dataset_path = os.environ.get("VEI_DATASET")
         if dataset_path:
             try:
@@ -175,56 +178,6 @@ class Router:
                 self.replay_adapter = None
         else:
             self.replay_adapter = None
-        self.docs = DocsSim(self.scenario)
-        self.calendar = CalendarSim(self.scenario)
-        self.tickets = TicketsSim(self.scenario)
-        self.database = DatabaseSim(self.scenario)
-        # Optional ERP twin
-        try:
-            from .erp import ErpSim  # local import to avoid import-time failures
-
-            self.erp = ErpSim(self.bus, self.scenario)
-        except Exception:
-            logger.warning("ERP twin failed to initialise", exc_info=True)
-            self.erp = None  # type: ignore[attr-defined]
-        # Optional CRM twin
-        try:
-            from .crm import CrmSim
-
-            self.crm = CrmSim(self.bus, self.scenario)
-        except Exception:
-            logger.warning("CRM twin failed to initialise", exc_info=True)
-            self.crm = None  # type: ignore[attr-defined]
-
-        # Optional identity twin
-        self.okta = None  # type: ignore[attr-defined]
-        try:
-            from .identity import OktaSim, OktaToolProvider
-
-            self.okta = OktaSim(self.scenario)
-            self.register_tool_provider(OktaToolProvider(self.okta))
-        except Exception:
-            logger.warning("Okta twin failed to initialise", exc_info=True)
-            self.okta = None  # type: ignore[attr-defined]
-
-        # ServiceDesk twin
-        self.servicedesk = ServiceDeskSim(self.scenario)
-        self.register_tool_provider(ServiceDeskToolProvider(self.servicedesk))
-
-        # Admin / control-plane twins
-        self.google_admin = GoogleAdminSim(self.scenario)
-        self.register_tool_provider(GoogleAdminToolProvider(self.google_admin))
-        self.siem = SiemSim(self.scenario)
-        self.register_tool_provider(SiemToolProvider(self.siem))
-        self.datadog = DatadogSim(self.scenario)
-        self.register_tool_provider(DatadogToolProvider(self.datadog))
-        self.pagerduty = PagerDutySim(self.scenario)
-        self.register_tool_provider(PagerDutyToolProvider(self.pagerduty))
-        self.feature_flags = FeatureFlagSim(self.scenario)
-        self.register_tool_provider(FeatureFlagToolProvider(self.feature_flags))
-        self.hris = HrisSim(self.scenario)
-        self.register_tool_provider(HrisToolProvider(self.hris))
-        self.register_tool_provider(JiraToolProvider(self.tickets))
         self._bootstrap_facade_plugins()
 
         self.connector_mode = parse_adapter_mode(
@@ -604,36 +557,17 @@ class Router:
                 component = plugin.component_factory(self, self.scenario)
                 setattr(self, plugin.component_attr, component)
             if plugin.component_attr and component is not None:
-                self.facade_plugins[plugin.manifest.name] = {
-                    "plugin": plugin,
-                    "component": component,
-                }
+                self.facade_plugins[plugin.manifest.name] = FacadeRuntimeBinding(
+                    plugin=plugin,
+                    component=component,
+                )
                 if plugin.provider_factory is not None:
                     self.register_tool_provider(plugin.provider_factory(component))
 
     def _event_targets(self) -> List[str]:
-        targets = [
-            "slack",
-            "mail",
-            "calendar",
-            "docs",
-            "tickets",
-            "db",
-            "erp",
-            "crm",
-            "okta",
-            "servicedesk",
-            "google_admin",
-            "siem",
-            "datadog",
-            "pagerduty",
-            "feature_flags",
-            "hris",
-            "jira",
-            "tool",
-        ]
+        targets = ["tool"]
         for entry in self.facade_plugins.values():
-            plugin: FacadePlugin = entry["plugin"]
+            plugin: FacadePlugin = entry.plugin
             for target in plugin.event_targets:
                 if target not in targets:
                     targets.append(target)
@@ -641,7 +575,7 @@ class Router:
 
     def _plugin_focus_for_tool(self, tool: str) -> Optional[str]:
         for entry in self.facade_plugins.values():
-            plugin: FacadePlugin = entry["plugin"]
+            plugin: FacadePlugin = entry.plugin
             for prefix in plugin.tool_prefixes:
                 if tool.startswith(prefix):
                     return plugin.focuses[0] if plugin.focuses else plugin.manifest.name
@@ -649,26 +583,26 @@ class Router:
 
     def _plugin_summary(self, focus: str) -> Optional[str]:
         for entry in self.facade_plugins.values():
-            plugin: FacadePlugin = entry["plugin"]
+            plugin: FacadePlugin = entry.plugin
             if plugin.matches_focus(focus) and plugin.summary_builder is not None:
-                return plugin.summary_builder(self, entry["component"])
+                return plugin.summary_builder(self, entry.component)
         return None
 
     def _plugin_action_menu(self, focus: str) -> Optional[List[Dict[str, Any]]]:
         for entry in self.facade_plugins.values():
-            plugin: FacadePlugin = entry["plugin"]
+            plugin: FacadePlugin = entry.plugin
             if plugin.matches_focus(focus) and plugin.action_menu_builder is not None:
-                return plugin.action_menu_builder(self, entry["component"])
+                return plugin.action_menu_builder(self, entry.component)
         return None
 
     def _deliver_plugin_event(
         self, target: str, payload: Dict[str, Any]
     ) -> Optional[Dict[str, Any]]:
         for entry in self.facade_plugins.values():
-            plugin: FacadePlugin = entry["plugin"]
+            plugin: FacadePlugin = entry.plugin
             if target not in plugin.event_targets:
                 continue
-            component = entry["component"]
+            component = entry.component
             if plugin.event_handler is not None:
                 return plugin.event_handler(self, component, payload)
             tool = payload.get("tool")

@@ -24,7 +24,7 @@ jobs:
           cache: "pip"
 
       - name: Setup
-        run: make setup
+        run: make setup-full
 
       - name: Check
         run: make check

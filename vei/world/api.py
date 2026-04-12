@@ -22,7 +22,7 @@ from vei.world.models import (
     WorldSnapshot,
     WorldState,
 )
-from vei.world.scenario import Scenario
+from vei.world.scenario import CalendarEvent, Document, Scenario, Ticket
 from vei.world.session import WorldSession
 
 
@@ -172,6 +172,18 @@ def cancel_event(session: WorldSessionAPI, event_id: str) -> Dict[str, Any]:
     return session.cancel_event(event_id)
 
 
+def serialize_router_state(router: RouterServerAPI) -> WorldState:
+    from vei.world.session import serialize_router_state as _serialize_router_state
+
+    return _serialize_router_state(router)
+
+
+def restore_router_state(router: RouterServerAPI, state: WorldState) -> None:
+    from vei.world.session import restore_router_state as _restore_router_state
+
+    _restore_router_state(router, state)
+
+
 def get_catalog_scenario(name: str) -> Any:
     from vei.world.scenarios import get_scenario
 
@@ -188,6 +200,8 @@ def list_catalog_scenario_manifest() -> list[ScenarioManifest]:
 
 __all__ = [
     "ActorState",
+    "CalendarEvent",
+    "Document",
     "Scenario",
     "CapabilityGraphActionInput",
     "CapabilityGraphActionResult",
@@ -196,6 +210,7 @@ __all__ = [
     "WorldOrientation",
     "ScheduledEvent",
     "RuntimeCapabilityGraphs",
+    "Ticket",
     "WorldSession",
     "WorldSessionAPI",
     "WorldSnapshot",
@@ -216,6 +231,8 @@ __all__ = [
     "observe",
     "orientation",
     "replay",
+    "restore_router_state",
     "restore",
+    "serialize_router_state",
     "snapshot",
 ]

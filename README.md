@@ -23,11 +23,37 @@ That path is the clearest proof that VEI is working as a company twin, not just 
 ```bash
 git clone https://github.com/strangeloopcanon/vei.git
 cd vei
-pip install -e ".[llm,sse,ui]"
+make setup
+vei doctor
 vei quickstart run
 ```
 
-That creates a company world, starts Studio (`:3011`) and the Twin Gateway (`:3012`), runs a scripted baseline so you see events flowing immediately, and prints connection details. Press Ctrl-C to stop.
+Need a manual install path instead? Use `pip install -e ".[sse,ui]"`.
+
+What you need before running this:
+
+- Python `3.11`
+- A local virtual environment, which `make setup` creates for you at `.venv`
+- Ports `3011` and `3012` available on your machine
+- `OPENAI_API_KEY` in `.env` only if you plan to run live LLM evaluations later
+
+What happens when `vei quickstart run` starts:
+
+- VEI creates a workspace and compiles a company world
+- Studio starts on `http://127.0.0.1:3011`
+- The Twin Gateway starts on `http://127.0.0.1:3012`
+- A scripted baseline runs so the company already has visible activity when you arrive
+- Connection details are written to `.vei/quickstart.json` inside the workspace root
+
+What to do next once it is up:
+
+```bash
+vei twin status --root <workspace-root>
+vei project show --root <workspace-root>
+vei eval benchmark --runner workflow --family security_containment
+```
+
+Press Ctrl-C to stop.
 
 Options: `--world service_ops`, `--governor-demo`, `--connector-mode live`, `--seed`, `--no-baseline`.
 
@@ -396,7 +422,8 @@ VEI_ARTIFACTS_DIR=./_vei_out
 ## Repo Validation
 
 ```bash
-make setup    # install deps + hooks
+make setup       # lighter local install for Studio + quickstart
+make setup-full  # full dev + test + llm + rl extras
 make check    # format, lint, types, secrets
 make test     # unit + integration
 make llm-live # LLM golden scenarios (needs OPENAI_API_KEY; bypass with VEI_LLM_LIVE_BYPASS=1)
@@ -405,7 +432,7 @@ make all      # check → test → llm-live, stops on first failure
 
 ## CLI Surface
 
-- **Primary path:** `vei quickstart run` -> `vei twin status` -> `vei project show` -> `vei eval`
+- **Primary path:** `vei doctor` -> `vei quickstart run` -> `vei twin status` -> `vei project show` -> `vei eval`
 - **Twin and governor:** `vei twin build|serve|status|up|down|reset|finalize|sync`
 - **Workspace lifecycle:** `vei project|contract|scenario|run|inspect`
 - **Benchmarking:** `vei eval benchmark|demo|suite`

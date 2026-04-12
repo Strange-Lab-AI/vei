@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -127,6 +128,12 @@ def test_quickstart_uses_shared_twin_launcher(
     assert captured["kwargs"]["governor_demo"] is True
     assert captured["kwargs"]["ui_skin"] == "sandbox"
     assert stopped == [root]
+    quickstart_info = json.loads((root / ".vei" / "quickstart.json").read_text())
+    assert quickstart_info["studio_url"] == "http://127.0.0.1:3011"
+    assert quickstart_info["gateway_url"] == "http://127.0.0.1:3020"
+    assert quickstart_info["supported_surfaces"][0]["name"] == "slack"
+    assert "/slack/api/" in result.output
+    assert "/salesforce/services/data/v60.0/" not in result.output
 
 
 def _sample_pilot_status(root: Path) -> TwinLaunchStatus:

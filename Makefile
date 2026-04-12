@@ -4,12 +4,14 @@ VENV ?= .venv
 MODE ?= $(or $(AGENT_MODE),baseline)
 AGENTS_FILE := .agents.yml
 SETUP_STAMP := $(VENV)/.setup-complete
+SETUP_FULL_STAMP := $(VENV)/.setup-full-complete
 VENV_BIN := $(VENV)/bin
-SETUP_EXTRAS := dev,llm,sse,ui,test,rl
+SETUP_EXTRAS := dev,sse,ui
+SETUP_FULL_EXTRAS := dev,llm,sse,ui,test,rl
 COVERAGE_FAIL_UNDER ?= $(or $(shell awk 'BEGIN { section = 0 } $$1 == "coverage:" { section = 1; next } section && $$1 == "global:" { print int($$2 * 100); exit }' $(AGENTS_FILE) 2>/dev/null),80)
 PIPAPI_PYTHON := $(abspath $(VENV_BIN)/python)
 
-.PHONY: setup bootstrap check test llm-live deps-audit all clean clean-workspace
+.PHONY: setup bootstrap setup-full check test llm-live deps-audit all clean clean-workspace
 
 $(VENV)/bin/activate:
 	$(PYTHON) -m venv $(VENV)
@@ -27,7 +29,15 @@ $(SETUP_STAMP): $(VENV)/bin/activate pyproject.toml
 setup bootstrap: $(SETUP_STAMP)
 	@echo "Virtual environment ready at $(VENV)"
 
-check: $(SETUP_STAMP)
+$(SETUP_FULL_STAMP): $(SETUP_STAMP) pyproject.toml
+	. $(VENV)/bin/activate && \
+		pip install -e ".[$(SETUP_FULL_EXTRAS)]"
+	@touch $(SETUP_FULL_STAMP)
+
+setup-full: $(SETUP_FULL_STAMP)
+	@echo "Full development environment ready at $(VENV)"
+
+check: $(SETUP_FULL_STAMP)
 	$(VENV_BIN)/python -m black --check vei tests
 	$(VENV_BIN)/python -m ruff check vei tests
 	$(VENV_BIN)/python scripts/run_mypy_targets.py
@@ -42,10 +52,10 @@ check: $(SETUP_STAMP)
 		echo "No .secrets.baseline found; detect-secrets check is advisory-only."; \
 	fi
 
-test: $(SETUP_STAMP)
+test: $(SETUP_FULL_STAMP)
 	VEI_RUN_LLM_SMOKE=0 $(VENV_BIN)/python -m pytest --cov=vei --cov-report=term-missing --cov-fail-under=$(COVERAGE_FAIL_UNDER)
 
-llm-live: $(SETUP_STAMP)
+llm-live: $(SETUP_FULL_STAMP)
 	@if [ -f .env ]; then \
 		set -a; . ./.env; set +a; \
 	fi; \
@@ -63,7 +73,7 @@ llm-live: $(SETUP_STAMP)
 				$(VENV_BIN)/python -c 'import json,sys;from pathlib import Path;art=Path(sys.argv[1]);score=json.loads((art/"score.json").read_text(encoding="utf-8"));trace=art/"trace.jsonl";records=[json.loads(line) for line in trace.read_text(encoding="utf-8").splitlines() if line.strip()] if trace.exists() else [];times=[int(r.get("time_ms",0)) for r in records if r.get("type")=="call"];lat=[max(0,b-a) for a,b in zip(times,times[1:])];p95=sorted(lat)[int(0.95*(len(lat)-1))] if lat else 0;passed=1 if bool(score.get("success")) else 0;failed=0 if passed else 1;actions=int(score.get("costs",{}).get("actions",len(times)));print(f"llm-live metrics: pass={passed} fail={failed} cost_usd=unknown p95_latency_ms={p95} actions={actions}")' "$$ART"; \
 	fi
 
-deps-audit: $(SETUP_STAMP)
+deps-audit: $(SETUP_FULL_STAMP)
 	@if [ "$(MODE)" = "production" ]; then \
 		VIRTUAL_ENV=$(abspath $(VENV)) PIPAPI_PYTHON_LOCATION=$(PIPAPI_PYTHON) $(VENV_BIN)/pip-audit --skip-editable; \
 	else \
@@ -80,4 +90,4 @@ clean-workspace:
 	find _vei_out/llm_live -mindepth 1 -maxdepth 1 ! -name latest -exec rm -rf {} +
 
 clean:
-	rm -rf $(VENV) $(SETUP_STAMP)
+	rm -rf $(VENV) $(SETUP_STAMP) $(SETUP_FULL_STAMP)

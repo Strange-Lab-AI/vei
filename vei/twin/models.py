@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 
-from pydantic import AliasChoices, BaseModel, Field
+from pydantic import AliasChoices, BaseModel, Field, StringConstraints
 
 from vei.orchestrators.api import (
     OrchestratorConfig,
@@ -19,24 +19,20 @@ TwinArchetype = Literal[
     "storage_solutions",
     "service_ops",
 ]
-GatewaySurfaceName = Literal["slack", "jira", "graph", "salesforce"]
+SurfaceSlug = Annotated[
+    str,
+    StringConstraints(
+        strip_whitespace=True, min_length=1, pattern=r"^[a-z][a-z0-9_]*$"
+    ),
+]
+GatewaySurfaceName = SurfaceSlug
 TwinRuntimeStatusValue = Literal["running", "completed", "error"]
 TwinDensityLevel = Literal["small", "medium", "large"]
 TwinCrisisLevel = Literal["calm", "escalated", "adversarial"]
 TwinRedactionMode = Literal["preserve", "mask"]
 TwinSyntheticExpansionStrength = Literal["light", "medium", "strong"]
 TwinNamedTeamExpansion = Literal["minimal", "standard", "expanded"]
-TwinIncludedSurface = Literal[
-    "slack",
-    "mail",
-    "tickets",
-    "docs",
-    "identity",
-    "crm",
-    "calendar",
-    "approvals",
-    "vertical",
-]
+TwinIncludedSurface = SurfaceSlug
 TwinServiceName = Literal["gateway", "studio"]
 TwinServiceState = Literal["running", "stopped", "error"]
 

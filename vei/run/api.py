@@ -42,6 +42,10 @@ from .models import (
     RunSnapshotRef,
     RunTimelineEvent,
 )
+from .reproducibility import (
+    build_reproducibility_record,
+    merge_reproducibility_metadata,
+)
 
 
 def launch_workspace_run(
@@ -88,6 +92,7 @@ def launch_workspace_run(
         scenario.contract_path
         or f"{manifest.contracts_dir}/{scenario.name}.contract.json"
     )
+    contract_source_path = workspace_root / contract_path
     manifest_stub = RunManifest(
         run_id=resolved_run_id,
         workspace_name=manifest.name,
@@ -112,12 +117,17 @@ def launch_workspace_run(
             blueprint_asset_path=str(blueprint_asset_path.relative_to(workspace_root)),
             contract_path=contract_path,
         ),
-        metadata={
-            "workspace_scenario": scenario.name,
-            "bc_model_path": (
-                str(resolved_bc_model_path) if resolved_bc_model_path else None
-            ),
-        },
+        metadata=merge_reproducibility_metadata(
+            {
+                "workspace_scenario": scenario.name,
+                "bc_model_path": (
+                    str(resolved_bc_model_path) if resolved_bc_model_path else None
+                ),
+            },
+            seed=seed,
+            blueprint_asset_path=blueprint_asset_path,
+            contract_path=contract_source_path,
+        ),
     )
     write_run_manifest(workspace_root, manifest_stub)
     append_run_event(
@@ -199,7 +209,7 @@ def launch_workspace_run(
                 payload={
                     "success": result.success,
                     "error": result.error,
-                    "metrics": result.metrics.model_dump(mode="json"),
+                    "metrics": _event_metrics_payload(result.metrics),
                     "diagnostics": result.diagnostics.model_dump(mode="json"),
                 },
             ),
@@ -265,13 +275,20 @@ def launch_workspace_run(
             ),
             snapshots=snapshots,
             error=result.error,
-            metadata={
-                "workspace_scenario": scenario.name,
-                "contract_ok": contract_eval.ok if contract_eval is not None else None,
-                "bc_model_path": (
-                    str(resolved_bc_model_path) if resolved_bc_model_path else None
-                ),
-            },
+            metadata=merge_reproducibility_metadata(
+                {
+                    "workspace_scenario": scenario.name,
+                    "contract_ok": (
+                        contract_eval.ok if contract_eval is not None else None
+                    ),
+                    "bc_model_path": (
+                        str(resolved_bc_model_path) if resolved_bc_model_path else None
+                    ),
+                },
+                seed=seed,
+                blueprint_asset_path=blueprint_asset_path,
+                contract_path=contract_source_path,
+            ),
         )
         write_run_manifest(workspace_root, final_manifest)
         upsert_workspace_run(
@@ -317,6 +334,15 @@ def launch_workspace_run(
                 "status": "error",
                 "completed_at": _iso_now(),
                 "error": str(exc),
+                "metadata": merge_reproducibility_metadata(
+                    {
+                        **dict(manifest_stub.metadata),
+                        "error": str(exc),
+                    },
+                    seed=seed,
+                    blueprint_asset_path=blueprint_asset_path,
+                    contract_path=contract_source_path,
+                ),
                 "artifacts": manifest_stub.artifacts.model_copy(
                     update={
                         "timeline_path": _relative_if_exists(
@@ -350,6 +376,12 @@ def launch_workspace_run(
 def generate_run_id(*, prefix: str = "run") -> str:
     stamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S_%f")
     return f"{prefix}_{stamp}_{uuid4().hex[:6]}"
+
+
+def _event_metrics_payload(metrics: Any) -> dict[str, Any]:
+    payload = metrics.model_dump(mode="json")
+    payload["elapsed_ms"] = int(payload.get("time_ms", 0) or 0)
+    return payload
 
 
 def list_run_manifests(root: str | Path) -> list[RunManifest]:
@@ -640,6 +672,226 @@ def load_run_snapshot_payload(
                 (workspace_root / snapshot.path).read_text(encoding="utf-8")
             )
     raise ValueError(f"snapshot not found: {snapshot_id}")
+
+
+def build_facade_panel(
+    facade_name: str,
+    components: Dict[str, Dict[str, Any]],
+    context: Dict[str, Any],
+) -> Any:
+    from ._surfaces import build_facade_panel as _build_facade_panel
+
+    return _build_facade_panel(facade_name, components, context)
+
+
+def build_slack_surface_panel(
+    components: Dict[str, Dict[str, Any]],
+    context: Dict[str, Any],
+) -> Any:
+    from ._surface_panels_business import build_slack_panel
+
+    return build_slack_panel(components, context)
+
+
+def build_mail_surface_panel(
+    components: Dict[str, Dict[str, Any]],
+    context: Dict[str, Any],
+) -> Any:
+    from ._surface_panels_business import build_mail_panel
+
+    return build_mail_panel(components, context)
+
+
+def build_ticket_surface_panel(
+    components: Dict[str, Dict[str, Any]],
+    context: Dict[str, Any],
+) -> Any:
+    from ._surface_panels_business import build_ticket_panel
+
+    return build_ticket_panel(components, context)
+
+
+def build_docs_surface_panel(
+    components: Dict[str, Dict[str, Any]],
+    context: Dict[str, Any],
+) -> Any:
+    from ._surface_panels_business import build_docs_panel
+
+    return build_docs_panel(components, context)
+
+
+def build_approval_surface_panel(
+    components: Dict[str, Dict[str, Any]],
+    context: Dict[str, Any],
+) -> Any:
+    from ._surface_panels_business import build_approval_panel
+
+    return build_approval_panel(components, context)
+
+
+def build_notes_surface_panel(
+    components: Dict[str, Dict[str, Any]],
+    context: Dict[str, Any],
+) -> Any:
+    from ._surface_panels_business import build_notes_panel
+
+    return build_notes_panel(components, context)
+
+
+def build_revenue_surface_panel(
+    components: Dict[str, Dict[str, Any]],
+    context: Dict[str, Any],
+) -> Any:
+    from ._surface_panels_vertical import build_revenue_panel
+
+    return build_revenue_panel(components, context)
+
+
+def build_property_surface_panel(
+    components: Dict[str, Dict[str, Any]],
+    context: Dict[str, Any],
+) -> Any:
+    from ._surface_panels_vertical import build_property_panel
+
+    return build_property_panel(components, context)
+
+
+def build_campaign_surface_panel(
+    components: Dict[str, Dict[str, Any]],
+    context: Dict[str, Any],
+) -> Any:
+    from ._surface_panels_vertical import build_campaign_panel
+
+    return build_campaign_panel(components, context)
+
+
+def build_inventory_surface_panel(
+    components: Dict[str, Dict[str, Any]],
+    context: Dict[str, Any],
+) -> Any:
+    from ._surface_panels_vertical import build_inventory_panel
+
+    return build_inventory_panel(components, context)
+
+
+def build_service_ops_surface_panel(
+    components: Dict[str, Dict[str, Any]],
+    context: Dict[str, Any],
+) -> Any:
+    from ._surface_panels_vertical import build_service_ops_panel
+
+    return build_service_ops_panel(components, context)
+
+
+def verify_run_replay(root: str | Path, run_id: str) -> Dict[str, Any]:
+    workspace_root = Path(root).expanduser().resolve()
+    manifest = load_run_manifest(
+        get_workspace_run_manifest_path(workspace_root, run_id)
+    )
+    events_path = (
+        workspace_root / manifest.artifacts.events_path
+        if manifest.artifacts.events_path
+        else get_workspace_run_dir(workspace_root, run_id) / "events.jsonl"
+    )
+    if not events_path.exists():
+        raise ValueError(f"run is missing events.jsonl: {run_id}")
+
+    try:
+        run_events = load_run_events(events_path)
+    except Exception as exc:
+        raise ValueError(f"run events are invalid: {exc}") from exc
+
+    snapshot_events = [
+        event
+        for event in run_events
+        if event.kind == "snapshot" and event.snapshot_id is not None
+    ]
+    if not snapshot_events:
+        raise ValueError(f"run has no snapshot events: {run_id}")
+
+    snapshots = list_run_snapshots(workspace_root, run_id)
+    if not snapshots:
+        raise ValueError(f"run has no snapshots: {run_id}")
+    blueprint_rel = manifest.artifacts.blueprint_asset_path
+    if not blueprint_rel:
+        raise ValueError(f"run manifest is missing blueprint asset path: {run_id}")
+
+    from vei.blueprint import BlueprintAsset, create_world_session_from_blueprint
+    from vei.world.api import restore_router_state, serialize_router_state
+    from vei.world.models import WorldState
+
+    latest = snapshots[-1]
+    latest_event_snapshot_id = int(snapshot_events[-1].snapshot_id or 0)
+    latest_event_snapshot = next(
+        (item for item in snapshots if item.snapshot_id == latest_event_snapshot_id),
+        None,
+    )
+    event_snapshot_match = latest_event_snapshot is not None
+    latest_snapshot_match = latest.snapshot_id == latest_event_snapshot_id
+
+    blueprint_path = workspace_root / blueprint_rel
+    mismatch_keys: list[str] = []
+    ok = False
+    if latest_event_snapshot is not None:
+        snapshot_payload = load_run_snapshot_payload(
+            workspace_root,
+            run_id,
+            latest_event_snapshot.snapshot_id,
+        )
+        expected_state = WorldState.model_validate(snapshot_payload.get("data", {}))
+        asset = BlueprintAsset.model_validate_json(
+            blueprint_path.read_text(encoding="utf-8")
+        )
+        session = create_world_session_from_blueprint(
+            asset,
+            seed=manifest.seed,
+            branch=manifest.branch or expected_state.branch,
+        )
+        restore_router_state(session.router, expected_state)
+        actual_state = serialize_router_state(session.router)
+        expected_json = expected_state.model_dump(mode="json")
+        actual_json = actual_state.model_dump(mode="json")
+        ok = actual_json == expected_json
+        mismatch_keys = sorted(
+            key
+            for key in set(expected_json) | set(actual_json)
+            if expected_json.get(key) != actual_json.get(key)
+        )
+
+    reproducibility = build_reproducibility_record(
+        seed=manifest.seed,
+        blueprint_asset_path=blueprint_path,
+        contract_path=(
+            workspace_root / manifest.artifacts.contract_path
+            if manifest.artifacts.contract_path
+            else None
+        ),
+    )
+    recorded = manifest.metadata.get("reproducibility")
+    reproducibility_match = (
+        recorded == reproducibility if isinstance(recorded, dict) else None
+    )
+    return {
+        "ok": (
+            ok
+            and (reproducibility_match in {True, None})
+            and event_snapshot_match
+            and latest_snapshot_match
+        ),
+        "run_id": run_id,
+        "snapshot_id": latest_event_snapshot_id,
+        "state_match": ok,
+        "event_log_path": str(events_path.relative_to(workspace_root)),
+        "event_count": len(run_events),
+        "event_snapshot_match": event_snapshot_match,
+        "latest_event_snapshot_id": latest_event_snapshot_id,
+        "latest_disk_snapshot_id": latest.snapshot_id,
+        "latest_snapshot_match": latest_snapshot_match,
+        "reproducibility_match": reproducibility_match,
+        "mismatch_keys": mismatch_keys,
+        "recorded_reproducibility": recorded,
+        "verified_reproducibility": reproducibility,
+    }
 
 
 def diff_run_snapshots(

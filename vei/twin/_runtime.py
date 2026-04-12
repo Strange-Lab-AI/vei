@@ -27,7 +27,7 @@ from vei.run.api import (
     load_run_manifest,
     write_run_manifest,
 )
-from vei.run import append_run_event
+from vei.run import append_run_event, merge_reproducibility_metadata
 from vei.run.models import (
     RunArtifactIndex,
     RunManifest,
@@ -95,6 +95,7 @@ class TwinRuntime:
         self.contract_path = self.run_dir / "workspace_contract_evaluation.json"
         self.state_dir = self.run_dir / "state"
         self.artifacts_dir = self.run_dir / "artifacts"
+        self.seed = 42042
         self.started_at = _iso_now()
         self._lock = threading.RLock()
         self.status = TwinRuntimeStatus(
@@ -434,7 +435,7 @@ class TwinRuntime:
         ):
             return create_world_session_from_blueprint(
                 asset,
-                seed=42042,
+                seed=self.seed,
                 artifacts_dir=str(self.artifacts_dir),
                 branch=self.branch_name,
                 connector_mode=self.mirror_config.connector_mode,
@@ -479,7 +480,7 @@ class TwinRuntime:
             status=status,  # type: ignore[arg-type]
             started_at=self.started_at,
             completed_at=completed_at,
-            seed=42042,
+            seed=self.seed,
             branch=self.branch_name,
             success=success,
             metrics=BenchmarkMetrics(actions=self.status.request_count),
@@ -489,21 +490,38 @@ class TwinRuntime:
                 artifacts_dir=str(self.artifacts_dir.relative_to(self.workspace_root)),
                 state_dir=str(self.state_dir.relative_to(self.workspace_root)),
                 events_path=str(self.events_path.relative_to(self.workspace_root)),
-                contract_path=str(self.contract_path.relative_to(self.workspace_root)),
+                contract_path=str(
+                    self._source_contract_path().relative_to(self.workspace_root)
+                ),
             ),
             snapshots=list_run_snapshots(self.workspace_root, self.run_id),
             error=error,
-            metadata={
-                "gateway_mode": "compatibility",
-                "organization_name": self.bundle.organization_name,
-                "surfaces": [item.name for item in self.bundle.gateway.surfaces],
-                "agents": list(self.status.metadata.get("agents", [])),
-                "last_agent": self.status.metadata.get("last_agent"),
-                "governor": self._mirror_snapshot_payload(),
-                "workforce": self._workforce_payload(),
-            },
+            metadata=merge_reproducibility_metadata(
+                {
+                    "gateway_mode": "compatibility",
+                    "organization_name": self.bundle.organization_name,
+                    "surfaces": [item.name for item in self.bundle.gateway.surfaces],
+                    "agents": list(self.status.metadata.get("agents", [])),
+                    "last_agent": self.status.metadata.get("last_agent"),
+                    "governor": self._mirror_snapshot_payload(),
+                    "workforce": self._workforce_payload(),
+                },
+                seed=self.seed,
+                blueprint_asset_path=self._source_blueprint_path(),
+                contract_path=self._source_contract_path(),
+            ),
         )
         write_run_manifest(self.workspace_root, manifest)
+
+    def _source_blueprint_path(self) -> Path:
+        return self.workspace_root / self.workspace_manifest.blueprint_asset_path
+
+    def _source_contract_path(self) -> Path:
+        contract_path = (
+            self.scenario.contract_path
+            or f"{self.workspace_manifest.contracts_dir}/{self.scenario.name}.contract.json"
+        )
+        return self.workspace_root / contract_path
 
     def _upsert_run_index(
         self,

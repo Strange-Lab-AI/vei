@@ -22,11 +22,10 @@ from vei.capability_graph.models import (
     RuntimeCapabilityGraphs,
 )
 from vei.connectors.models import ConnectorReceipt
-from vei.identity.api import IdentityApplication, IdentityGroup, IdentityUser
 from vei.monitors.models import MonitorFinding
 from vei.orientation.api import build_world_orientation
 from vei.orientation.models import WorldOrientation
-from vei.world.scenario import CalendarEvent, Document, Ticket
+from vei.world.scenario import Scenario
 from vei.world.models import (
     ActorState,
     InjectedEvent,
@@ -59,278 +58,17 @@ def _jsonable(value: Any) -> Any:
 
 
 def _component_state(router: "Router") -> Dict[str, Dict[str, Any]]:
-    components: Dict[str, Dict[str, Any]] = {
-        "slack": {
-            "channels": _jsonable(router.slack.channels),
-            "budget_cap_usd": router.slack.budget_cap_usd,
-            "derail_prob": router.slack.derail_prob,
-        },
-        "mail": {
-            "messages": _jsonable(router.mail.messages),
-            "inbox": list(router.mail.inbox),
-            "counter": int(router.mail.counter),
-            "variants_override": _jsonable(router.mail._variants_override),
-        },
-        "browser": {
-            "nodes": _jsonable(router.browser.nodes),
-            "state": router.browser.state,
-        },
-        "docs": {
-            "docs": {
-                doc_id: _jsonable(doc) for doc_id, doc in router.docs.docs.items()
-            },
-            "metadata": _jsonable(router.docs.metadata),
-            "clock_ms": int(router.docs._clock_ms),
-            "doc_seq": int(router.docs._doc_seq),
-        },
-        "calendar": {
-            "events": {
-                event_id: _jsonable(event)
-                for event_id, event in router.calendar.events.items()
-            },
-            "responses": _jsonable(router.calendar.responses),
-            "metadata": _jsonable(router.calendar.metadata),
-            "clock_ms": int(router.calendar._clock_ms),
-            "event_seq": int(router.calendar._event_seq),
-        },
-        "tickets": {
-            "tickets": {
-                ticket_id: _jsonable(ticket)
-                for ticket_id, ticket in router.tickets.tickets.items()
-            },
-            "metadata": _jsonable(router.tickets.metadata),
-            "clock_ms": int(router.tickets._clock_ms),
-            "ticket_seq": int(router.tickets._ticket_seq),
-        },
-        "database": {
-            "tables": _jsonable(router.database.tables),
-        },
-        "erp": {
-            "available": bool(getattr(router, "erp", None)),
-            "pos": (
-                _jsonable(getattr(router.erp, "pos", {}))
-                if getattr(router, "erp", None)
-                else {}
-            ),
-            "invoices": (
-                _jsonable(getattr(router.erp, "invoices", {}))
-                if getattr(router, "erp", None)
-                else {}
-            ),
-            "receipts": (
-                _jsonable(getattr(router.erp, "receipts", {}))
-                if getattr(router, "erp", None)
-                else {}
-            ),
-            "po_seq": (
-                int(getattr(router.erp, "_po_seq", 1))
-                if getattr(router, "erp", None)
-                else 1
-            ),
-            "inv_seq": (
-                int(getattr(router.erp, "_inv_seq", 1))
-                if getattr(router, "erp", None)
-                else 1
-            ),
-            "rcpt_seq": (
-                int(getattr(router.erp, "_rcpt_seq", 1))
-                if getattr(router, "erp", None)
-                else 1
-            ),
-            "currency_default": (
-                getattr(router.erp, "currency_default", "USD")
-                if getattr(router, "erp", None)
-                else "USD"
-            ),
-            "error_rate": (
-                float(getattr(router.erp, "error_rate", 0.0))
-                if getattr(router, "erp", None)
-                else 0.0
-            ),
-        },
-        "crm": {
-            "available": bool(getattr(router, "crm", None)),
-            "contacts": (
-                _jsonable(getattr(router.crm, "contacts", {}))
-                if getattr(router, "crm", None)
-                else {}
-            ),
-            "companies": (
-                _jsonable(getattr(router.crm, "companies", {}))
-                if getattr(router, "crm", None)
-                else {}
-            ),
-            "deals": (
-                _jsonable(getattr(router.crm, "deals", {}))
-                if getattr(router, "crm", None)
-                else {}
-            ),
-            "activities": (
-                _jsonable(getattr(router.crm, "activities", []))
-                if getattr(router, "crm", None)
-                else []
-            ),
-            "contact_seq": (
-                int(getattr(router.crm, "_c_seq", 1))
-                if getattr(router, "crm", None)
-                else 1
-            ),
-            "company_seq": (
-                int(getattr(router.crm, "_co_seq", 1))
-                if getattr(router, "crm", None)
-                else 1
-            ),
-            "deal_seq": (
-                int(getattr(router.crm, "_d_seq", 1))
-                if getattr(router, "crm", None)
-                else 1
-            ),
-            "activity_seq": (
-                int(getattr(router.crm, "_a_seq", 1))
-                if getattr(router, "crm", None)
-                else 1
-            ),
-            "error_rate": (
-                float(getattr(router.crm, "error_rate", 0.0))
-                if getattr(router, "crm", None)
-                else 0.0
-            ),
-        },
-        "okta": {
-            "available": bool(getattr(router, "okta", None)),
-            "users": (
-                {
-                    user_id: user.model_dump()
-                    for user_id, user in getattr(
-                        getattr(router, "okta", None), "users", {}
-                    ).items()
-                }
-                if getattr(router, "okta", None)
-                else {}
-            ),
-            "groups": (
-                {
-                    group_id: group.model_dump()
-                    for group_id, group in getattr(
-                        getattr(router, "okta", None), "groups", {}
-                    ).items()
-                }
-                if getattr(router, "okta", None)
-                else {}
-            ),
-            "apps": (
-                {
-                    app_id: app.model_dump()
-                    for app_id, app in getattr(
-                        getattr(router, "okta", None), "apps", {}
-                    ).items()
-                }
-                if getattr(router, "okta", None)
-                else {}
-            ),
-            "reset_seq": (
-                int(getattr(router.okta, "_reset_seq", 1))
-                if getattr(router, "okta", None)
-                else 1
-            ),
-        },
-        "servicedesk": {
-            "available": bool(getattr(router, "servicedesk", None)),
-            "incidents": (
-                _jsonable(
-                    getattr(getattr(router, "servicedesk", None), "incidents", {})
-                )
-                if getattr(router, "servicedesk", None)
-                else {}
-            ),
-            "requests": (
-                _jsonable(getattr(getattr(router, "servicedesk", None), "requests", {}))
-                if getattr(router, "servicedesk", None)
-                else {}
-            ),
-        },
-        "google_admin": {
-            "available": bool(getattr(router, "google_admin", None)),
-            "oauth_apps": (
-                _jsonable(
-                    getattr(getattr(router, "google_admin", None), "oauth_apps", {})
-                )
-                if getattr(router, "google_admin", None)
-                else {}
-            ),
-            "drive_shares": (
-                _jsonable(
-                    getattr(getattr(router, "google_admin", None), "drive_shares", {})
-                )
-                if getattr(router, "google_admin", None)
-                else {}
-            ),
-        },
-        "siem": {
-            "available": bool(getattr(router, "siem", None)),
-            "alerts": (
-                _jsonable(getattr(getattr(router, "siem", None), "alerts", {}))
-                if getattr(router, "siem", None)
-                else {}
-            ),
-            "cases": (
-                _jsonable(getattr(getattr(router, "siem", None), "cases", {}))
-                if getattr(router, "siem", None)
-                else {}
-            ),
-            "case_seq": (
-                int(getattr(router.siem, "_case_seq", 1))
-                if getattr(router, "siem", None)
-                else 1
-            ),
-        },
-        "datadog": {
-            "available": bool(getattr(router, "datadog", None)),
-            "services": (
-                _jsonable(getattr(getattr(router, "datadog", None), "services", {}))
-                if getattr(router, "datadog", None)
-                else {}
-            ),
-            "monitors": (
-                _jsonable(getattr(getattr(router, "datadog", None), "monitors", {}))
-                if getattr(router, "datadog", None)
-                else {}
-            ),
-        },
-        "pagerduty": {
-            "available": bool(getattr(router, "pagerduty", None)),
-            "incidents": (
-                _jsonable(getattr(getattr(router, "pagerduty", None), "incidents", {}))
-                if getattr(router, "pagerduty", None)
-                else {}
-            ),
-        },
-        "feature_flags": {
-            "available": bool(getattr(router, "feature_flags", None)),
-            "flags": (
-                _jsonable(getattr(getattr(router, "feature_flags", None), "flags", {}))
-                if getattr(router, "feature_flags", None)
-                else {}
-            ),
-        },
-        "hris": {
-            "available": bool(getattr(router, "hris", None)),
-            "employees": (
-                _jsonable(getattr(getattr(router, "hris", None), "employees", {}))
-                if getattr(router, "hris", None)
-                else {}
-            ),
-        },
-    }
+    components: Dict[str, Dict[str, Any]] = {}
+    seen_component_names: set[str] = set()
     for plugin in list_runtime_facade_plugins():
-        component = getattr(router, plugin.component_attr or "", None)
-        if (
-            component is None
-            or plugin.state_dump is None
-            or plugin.manifest.name in components
-        ):
+        component_name = plugin.state_component_name()
+        if component_name in seen_component_names or plugin.state_dump is None:
             continue
-        components[plugin.manifest.name] = plugin.state_dump(component)
+        component = getattr(router, plugin.component_attr or "", None)
+        if component is None:
+            continue
+        components[component_name] = plugin.state_dump(component)
+        seen_component_names.add(component_name)
     workforce_state = getattr(router, "workforce", None)
     if isinstance(workforce_state, dict) and workforce_state:
         components["workforce"] = _jsonable(workforce_state)
@@ -394,191 +132,29 @@ def serialize_router_state(router: "Router") -> WorldState:
 
 def restore_router_state(router: "Router", state: WorldState) -> None:
     router.state_store.branch = state.branch
+    if isinstance(state.scenario, dict):
+        router.scenario = Scenario(**_jsonable(state.scenario))
+    else:
+        router.scenario = _jsonable(state.scenario)
     components = state.components
-
-    slack_state = components.get("slack", {})
-    router.slack.channels = _jsonable(slack_state.get("channels", {}))
-    router.slack.budget_cap_usd = int(
-        slack_state.get("budget_cap_usd", router.slack.budget_cap_usd)
-    )
-    router.slack.derail_prob = float(
-        slack_state.get("derail_prob", router.slack.derail_prob)
-    )
-
-    mail_state = components.get("mail", {})
-    router.mail.messages = _jsonable(mail_state.get("messages", {}))
-    router.mail.inbox = list(mail_state.get("inbox", []))
-    router.mail.counter = int(mail_state.get("counter", router.mail.counter))
-    router.mail._variants_override = _jsonable(mail_state.get("variants_override"))
-
-    browser_state = components.get("browser", {})
-    router.browser.nodes = _jsonable(browser_state.get("nodes", router.browser.nodes))
-    router.browser.state = str(browser_state.get("state", router.browser.state))
-
-    docs_state = components.get("docs", {})
-    router.docs.docs = {
-        doc_id: Document(**payload)
-        for doc_id, payload in _jsonable(docs_state.get("docs", {})).items()
-    }
-    router.docs.metadata = _jsonable(docs_state.get("metadata", {}))
-    router.docs._clock_ms = int(docs_state.get("clock_ms", router.docs._clock_ms))
-    router.docs._doc_seq = int(docs_state.get("doc_seq", router.docs._doc_seq))
-
-    calendar_state = components.get("calendar", {})
-    router.calendar.events = {
-        event_id: CalendarEvent(**payload)
-        for event_id, payload in _jsonable(calendar_state.get("events", {})).items()
-    }
-    router.calendar.responses = _jsonable(calendar_state.get("responses", {}))
-    router.calendar.metadata = _jsonable(calendar_state.get("metadata", {}))
-    router.calendar._clock_ms = int(
-        calendar_state.get("clock_ms", router.calendar._clock_ms)
-    )
-    router.calendar._event_seq = int(
-        calendar_state.get("event_seq", router.calendar._event_seq)
-    )
-
-    tickets_state = components.get("tickets", {})
-    router.tickets.tickets = {
-        ticket_id: Ticket(**payload)
-        for ticket_id, payload in _jsonable(tickets_state.get("tickets", {})).items()
-    }
-    router.tickets.metadata = _jsonable(tickets_state.get("metadata", {}))
-    router.tickets._clock_ms = int(
-        tickets_state.get("clock_ms", router.tickets._clock_ms)
-    )
-    router.tickets._ticket_seq = int(
-        tickets_state.get("ticket_seq", router.tickets._ticket_seq)
-    )
-
-    db_state = components.get("database", {})
-    router.database.tables = _jsonable(db_state.get("tables", {}))
-
-    erp_state = components.get("erp", {})
-    if getattr(router, "erp", None) and erp_state.get("available", True):
-        router.erp.pos = _jsonable(erp_state.get("pos", {}))
-        router.erp.invoices = _jsonable(erp_state.get("invoices", {}))
-        router.erp.receipts = _jsonable(erp_state.get("receipts", {}))
-        router.erp._po_seq = int(erp_state.get("po_seq", router.erp._po_seq))
-        router.erp._inv_seq = int(erp_state.get("inv_seq", router.erp._inv_seq))
-        router.erp._rcpt_seq = int(erp_state.get("rcpt_seq", router.erp._rcpt_seq))
-        router.erp.currency_default = str(
-            erp_state.get("currency_default", router.erp.currency_default)
-        )
-        router.erp.error_rate = float(
-            erp_state.get("error_rate", router.erp.error_rate)
-        )
-
-    crm_state = components.get("crm", {})
-    if getattr(router, "crm", None) and crm_state.get("available", True):
-        router.crm.contacts = _jsonable(crm_state.get("contacts", {}))
-        router.crm.companies = _jsonable(crm_state.get("companies", {}))
-        router.crm.deals = _jsonable(crm_state.get("deals", {}))
-        router.crm.activities = _jsonable(crm_state.get("activities", []))
-        router.crm._c_seq = int(crm_state.get("contact_seq", router.crm._c_seq))
-        router.crm._co_seq = int(crm_state.get("company_seq", router.crm._co_seq))
-        router.crm._d_seq = int(crm_state.get("deal_seq", router.crm._d_seq))
-        router.crm._a_seq = int(crm_state.get("activity_seq", router.crm._a_seq))
-        router.crm.error_rate = float(
-            crm_state.get("error_rate", router.crm.error_rate)
-        )
-
-    okta_state = components.get("okta", {})
-    if getattr(router, "okta", None) and okta_state.get("available", True):
-        router.okta.users = {
-            user_id: IdentityUser.model_validate(payload)
-            for user_id, payload in _jsonable(okta_state.get("users", {})).items()
-        }
-        router.okta.groups = {
-            group_id: IdentityGroup.model_validate(payload)
-            for group_id, payload in _jsonable(okta_state.get("groups", {})).items()
-        }
-        router.okta.apps = {
-            app_id: IdentityApplication.model_validate(payload)
-            for app_id, payload in _jsonable(okta_state.get("apps", {})).items()
-        }
-        router.okta._reset_seq = int(
-            okta_state.get("reset_seq", router.okta._reset_seq)
-        )
-
-    servicedesk_state = components.get("servicedesk", {})
-    if getattr(router, "servicedesk", None) and servicedesk_state.get(
-        "available", True
-    ):
-        router.servicedesk.incidents = _jsonable(servicedesk_state.get("incidents", {}))
-        router.servicedesk.requests = _jsonable(servicedesk_state.get("requests", {}))
-
-    google_admin_state = components.get("google_admin", {})
-    if getattr(router, "google_admin", None) and google_admin_state.get(
-        "available", True
-    ):
-        router.google_admin.oauth_apps = _jsonable(
-            google_admin_state.get("oauth_apps", {})
-        )
-        router.google_admin.drive_shares = _jsonable(
-            google_admin_state.get("drive_shares", {})
-        )
-
     workforce_state = components.get("workforce", {})
     router.workforce = (
         _jsonable(workforce_state) if isinstance(workforce_state, dict) else {}
     )
-
-    siem_state = components.get("siem", {})
-    if getattr(router, "siem", None) and siem_state.get("available", True):
-        router.siem.alerts = _jsonable(siem_state.get("alerts", {}))
-        router.siem.cases = _jsonable(siem_state.get("cases", {}))
-        router.siem._case_seq = int(siem_state.get("case_seq", router.siem._case_seq))
-
-    datadog_state = components.get("datadog", {})
-    if getattr(router, "datadog", None) and datadog_state.get("available", True):
-        router.datadog.services = _jsonable(datadog_state.get("services", {}))
-        router.datadog.monitors = _jsonable(datadog_state.get("monitors", {}))
-
-    pagerduty_state = components.get("pagerduty", {})
-    if getattr(router, "pagerduty", None) and pagerduty_state.get("available", True):
-        router.pagerduty.incidents = _jsonable(pagerduty_state.get("incidents", {}))
-
-    feature_flags_state = components.get("feature_flags", {})
-    if getattr(router, "feature_flags", None) and feature_flags_state.get(
-        "available", True
-    ):
-        router.feature_flags.flags = _jsonable(feature_flags_state.get("flags", {}))
-
-    hris_state = components.get("hris", {})
-    if getattr(router, "hris", None) and hris_state.get("available", True):
-        router.hris.employees = _jsonable(hris_state.get("employees", {}))
-
+    seen_component_names: set[str] = set()
     for plugin in list_runtime_facade_plugins():
+        component_name = plugin.state_component_name()
         if (
-            plugin.manifest.name
-            in {
-                "slack",
-                "mail",
-                "browser",
-                "docs",
-                "calendar",
-                "tickets",
-                "database",
-                "erp",
-                "crm",
-                "identity",
-                "servicedesk",
-                "google_admin",
-                "siem",
-                "datadog",
-                "pagerduty",
-                "feature_flags",
-                "hris",
-            }
+            component_name in seen_component_names
             or plugin.state_restore is None
             or plugin.component_attr is None
         ):
             continue
         component = getattr(router, plugin.component_attr, None)
-        plugin_state = components.get(plugin.manifest.name)
+        plugin_state = components.get(component_name)
         if component is not None and isinstance(plugin_state, dict):
             plugin.state_restore(component, plugin_state)
+            seen_component_names.add(component_name)
 
     router.bus.clock_ms = int(state.clock_ms)
     router.bus.rng.state = int(state.rng_state)
@@ -609,6 +185,25 @@ def restore_router_state(router: "Router", state: WorldState) -> None:
     router.trace.entries = _jsonable(state.trace_entries)
     router.trace._flush_idx = len(router.trace.entries)
     router._receipts = _jsonable(state.receipts)
+    restored_audit_state = _jsonable(state.audit_state.get("state", {}))
+    router.state_store._state = (
+        restored_audit_state if isinstance(restored_audit_state, dict) else {}
+    )
+    restored_state_head = int(state.audit_state.get("state_head", -1))
+    if restored_state_head >= 0:
+        from vei.world.state import Event as StateStoreEvent
+
+        router.state_store._events = [
+            StateStoreEvent.create(
+                restored_state_head,
+                kind="state.restore",
+                payload={},
+                clock_ms=int(state.clock_ms),
+                event_id=f"state.restore.{restored_state_head}",
+            )
+        ]
+    else:
+        router.state_store._events = []
     router._policy_findings = _jsonable(state.audit_state.get("policy_findings", []))
     router.monitor_manager._findings = [
         MonitorFinding(**payload)

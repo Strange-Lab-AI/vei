@@ -20,6 +20,8 @@ __all__ = [
     "get_facade_plugin",
     "list_facade_plugins",
     "register_facade_plugin",
+    "resolve_gateway_surface_bindings",
+    "resolve_tool_operation_class",
     "BlueprintAsset",
     "BlueprintContractSummary",
     "BlueprintContractDefaults",
@@ -91,6 +93,8 @@ def __getattr__(name: str):  # pragma: no cover - thin import facade
         "list_facade_plugins",
         "list_runtime_facade_plugins",
         "register_facade_plugin",
+        "resolve_gateway_surface_bindings",
+        "resolve_tool_operation_class",
     }:
         module = import_module("vei.blueprint.plugins")
         return getattr(module, name)

@@ -52,7 +52,7 @@ def build_help_payload(router: Any) -> dict[str, Any]:
         "servicedesk",
     ]
     for entry in router.facade_plugins.values():
-        plugin: FacadePlugin = entry["plugin"]
+        plugin: FacadePlugin = entry.plugin
         for focus in plugin.focuses:
             if focus not in focuses:
                 focuses.append(focus)
@@ -87,7 +87,7 @@ def build_help_payload(router: Any) -> dict[str, Any]:
         "servicedesk",
     ]
     for entry in router.facade_plugins.values():
-        plugin: FacadePlugin = entry["plugin"]
+        plugin: FacadePlugin = entry.plugin
         if plugin.manifest.name not in software:
             software.append(plugin.manifest.name)
 

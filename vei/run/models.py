@@ -113,6 +113,8 @@ class LivingSurfaceState(BaseModel):
     run_id: str
     branch: Optional[str] = None
     snapshot_id: int = 0
+    seed: int = 42042
+    run_identity: str = ""
     current_tension: str = ""
     panels: List[LivingSurfacePanel] = Field(default_factory=list)
 

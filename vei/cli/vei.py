@@ -7,6 +7,7 @@ from vei.cli.vei_context import app as context_app
 from vei.cli.vei_contract import app as contract_app
 from vei.cli.vei_demo import app as demo_app
 from vei.cli.vei_det_pipeline import app as det_app
+from vei.cli.vei_doctor import app as doctor_app
 from vei.cli.vei_eval import app as eval_app
 from vei.cli.vei_inspect import app as inspect_app
 from vei.cli.vei_llm_test import app as llm_test_app
@@ -31,6 +32,7 @@ app = typer.Typer(
 )
 
 app.add_typer(project_app, name="project")
+app.add_typer(doctor_app, name="doctor")
 app.add_typer(quickstart_app, name="quickstart")
 app.add_typer(release_app, name="release")
 app.add_typer(run_app, name="run")

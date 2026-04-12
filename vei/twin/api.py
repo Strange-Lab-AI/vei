@@ -8,6 +8,7 @@ from typing import Any, Iterable, Sequence, TypeVar
 from fastapi import FastAPI
 from pydantic import BaseModel
 
+from vei.blueprint import get_facade_plugin, resolve_gateway_surface_bindings
 from vei.blueprint.models import (
     BlueprintAsset,
     BlueprintCapabilityGraphsAsset,
@@ -54,8 +55,6 @@ from .models import (
 
 TWIN_MANIFEST_FILE = "twin_manifest.json"
 _MODEL_T = TypeVar("_MODEL_T", bound=BaseModel)
-_GRAPH_SURFACE_NAMES = {"mail", "calendar", "identity"}
-_JIRA_SURFACE_NAMES = {"tickets", "approvals"}
 
 
 def build_customer_twin(
@@ -160,7 +159,10 @@ def build_customer_twin(
         blueprint_asset_path=str(asset_path.relative_to(workspace_root)),
         gateway=TwinGatewayConfig(
             auth_token=gateway_token or secrets.token_urlsafe(18),
-            surfaces=_default_gateway_surfaces(resolved_mold.included_surfaces),
+            surfaces=_default_gateway_surfaces(
+                resolved_mold.included_surfaces,
+                facades=twin_asset.requested_facades,
+            ),
             ui_command=(
                 "python -m vei.cli.vei ui serve "
                 f"--root {workspace_root} --host 127.0.0.1 --port 3011"
@@ -254,6 +256,38 @@ def create_twin_gateway_app(root: str | Path) -> FastAPI:
     from .gateway import create_twin_gateway_app as _create_twin_gateway_app
 
     return _create_twin_gateway_app(root)
+
+
+def register_slack_gateway_routes(*args, **kwargs):
+    from ._gateway_routes_slack import register_slack_gateway_routes as _register
+
+    return _register(*args, **kwargs)
+
+
+def register_jira_gateway_routes(*args, **kwargs):
+    from ._gateway_routes_jira import register_jira_gateway_routes as _register
+
+    return _register(*args, **kwargs)
+
+
+def register_graph_gateway_routes(*args, **kwargs):
+    from ._gateway_routes_graph import register_graph_gateway_routes as _register
+
+    return _register(*args, **kwargs)
+
+
+def register_salesforce_gateway_routes(*args, **kwargs):
+    from ._gateway_routes_salesforce import (
+        register_salesforce_gateway_routes as _register,
+    )
+
+    return _register(*args, **kwargs)
+
+
+def register_notes_gateway_routes(*args, **kwargs):
+    from ._gateway_routes_notes import register_notes_gateway_routes as _register
+
+    return _register(*args, **kwargs)
 
 
 def start_twin(*args, **kwargs):
@@ -1204,66 +1238,23 @@ def _internal_placeholder_domains(asset: BlueprintAsset) -> set[str]:
 
 def _default_gateway_surfaces(
     included_surfaces: Sequence[str] | None = None,
+    *,
+    facades: Sequence[str] | None = None,
 ) -> list[CompatibilitySurfaceSpec]:
-    if not included_surfaces:
-        return [
-            CompatibilitySurfaceSpec(
-                name="slack",
-                title="Slack",
-                base_path="/slack/api",
-            ),
-            CompatibilitySurfaceSpec(
-                name="jira",
-                title="Jira",
-                base_path="/jira/rest/api/3",
-            ),
-            CompatibilitySurfaceSpec(
-                name="graph",
-                title="Microsoft Graph",
-                base_path="/graph/v1.0",
-            ),
-            CompatibilitySurfaceSpec(
-                name="salesforce",
-                title="Salesforce",
-                base_path="/salesforce/services/data/v60.0",
-            ),
-        ]
-
-    keep = {item.strip().lower() for item in included_surfaces if item}
-    surfaces: list[CompatibilitySurfaceSpec] = []
-    if "slack" in keep:
-        surfaces.append(
-            CompatibilitySurfaceSpec(
-                name="slack",
-                title="Slack",
-                base_path="/slack/api",
-            )
+    bindings = resolve_gateway_surface_bindings(
+        included_surfaces=included_surfaces or (),
+        facade_names=facades,
+        default_only=facades is None,
+    )
+    return [
+        CompatibilitySurfaceSpec(
+            name=binding.name,
+            title=binding.title,
+            base_path=binding.base_path,
+            auth_style=binding.auth_style,  # type: ignore[arg-type]
         )
-    if keep & _JIRA_SURFACE_NAMES:
-        surfaces.append(
-            CompatibilitySurfaceSpec(
-                name="jira",
-                title="Jira",
-                base_path="/jira/rest/api/3",
-            )
-        )
-    if keep & _GRAPH_SURFACE_NAMES:
-        surfaces.append(
-            CompatibilitySurfaceSpec(
-                name="graph",
-                title="Microsoft Graph",
-                base_path="/graph/v1.0",
-            )
-        )
-    if "crm" in keep:
-        surfaces.append(
-            CompatibilitySurfaceSpec(
-                name="salesforce",
-                title="Salesforce",
-                base_path="/salesforce/services/data/v60.0",
-            )
-        )
-    return surfaces
+        for binding in bindings
+    ]
 
 
 def _filter_requested_facades(
@@ -1272,26 +1263,19 @@ def _filter_requested_facades(
 ) -> list[str]:
     if not facades:
         return []
-    allowed = set()
-    if "slack" in included_surfaces:
-        allowed.add("slack")
-    if "mail" in included_surfaces:
-        allowed.add("mail")
-    if "docs" in included_surfaces:
-        allowed.add("docs")
-    if "tickets" in included_surfaces:
-        allowed.update({"tickets", "jira", "servicedesk"})
-    if "approvals" in included_surfaces:
-        allowed.update({"servicedesk", "jira"})
-    if "identity" in included_surfaces:
-        allowed.update({"identity", "google_admin"})
-    if "calendar" in included_surfaces:
-        allowed.add("calendar")
-    if "crm" in included_surfaces:
-        allowed.add("salesforce")
     if "vertical" in included_surfaces:
         return list(facades)
-    return [item for item in facades if item in allowed]
+    allowed: list[str] = []
+    for facade_name in facades:
+        try:
+            plugin = get_facade_plugin(facade_name)
+        except KeyError:
+            continue
+        if any(
+            plugin.matches_included_surface(surface) for surface in included_surfaces
+        ):
+            allowed.append(plugin.manifest.name)
+    return allowed
 
 
 def _primary_mailbox(threads: Sequence[BlueprintMailThreadAsset]) -> str:

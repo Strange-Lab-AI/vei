@@ -20,7 +20,7 @@ jobs:
           cache: "pip"
 
       - name: Setup
-        run: make setup
+        run: make setup-full
 
       - name: Validate
         run: VEI_LLM_LIVE_BYPASS=1 make all

@@ -11,6 +11,7 @@ from vei.run.api import (
     list_run_manifests,
     load_run_manifest,
     normalize_runner,
+    verify_run_replay,
 )
 from vei.workspace.api import list_workspace_runs
 
@@ -122,3 +123,21 @@ def export_run(
     except (ValueError, KeyError) as exc:
         raise typer.BadParameter(str(exc)) from exc
     _emit(payload, indent)
+
+
+@app.command("replay-verify")
+def replay_verify(
+    root: Path = typer.Option(Path("."), help="Workspace root directory"),
+    run_id: Optional[str] = typer.Option(None, help="Run id"),
+    indent: int = typer.Option(2, help="Pretty indent"),
+) -> None:
+    """Rebuild a run from its blueprint and verify the latest snapshot restores cleanly."""
+
+    resolved_root = root.expanduser().resolve()
+    resolved_run_id = _resolve_run_id(resolved_root, run_id)
+    try:
+        payload = verify_run_replay(resolved_root, resolved_run_id)
+    except ValueError as exc:
+        raise typer.BadParameter(str(exc)) from exc
+    _emit(payload, indent)
+    raise typer.Exit(0 if payload.get("ok") else 1)
