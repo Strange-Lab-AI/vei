@@ -349,7 +349,7 @@ vei whatif benchmark eval \
   --audit-records-path /path/to/completed_audit_records.json
 ```
 
-The current Enron business-outcome benchmark uses 24 held-out cases with 4 candidate actions each. The clean comparison now runs through the matched-input study path, where `jepa_latent`, `full_context_transformer`, and `treatment_transformer` all see the same pre-branch history, summary features, and structured action.
+The current Enron business-outcome benchmark uses 24 held-out cases with 4 candidate actions each. The clean comparison now comes from the matched-input study path, where `jepa_latent`, `full_context_transformer`, and `treatment_transformer` all see the same pre-branch history, summary features, and structured action.
 
 On the current 5-seed, 2-epoch matched-input rerun over the saved `enron_business_outcome_reset_smoke` build, the held-out decision checks came out like this:
 
@@ -357,7 +357,7 @@ On the current 5-seed, 2-epoch matched-input rerun over the saved `enron_busines
 - `full_context_transformer`: `75.2/120` mean, `0.627 +/- 0.025`
 - `treatment_transformer`: `65.6/120` mean, `0.547 +/- 0.108`
 
-On the simpler factual task of predicting whether anything goes outside after the branch point, all three stayed tightly grouped around `0.98` AUROC. The important read is that once the model inputs are aligned and the result is averaged across seeds, the JEPA-style path slightly leads the matched full-context transformer on the business decision checks while the treatment transformer becomes much less stable.
+On the simpler factual task of predicting whether anything goes outside after the branch point, all three stayed tightly grouped around `0.98` AUROC. The main point is that once the model inputs are aligned and the result is averaged across seeds, the JEPA-style path slightly leads the matched full-context transformer on the business decision checks while the treatment transformer becomes much less stable.
 
 ## Use It As A Library
 

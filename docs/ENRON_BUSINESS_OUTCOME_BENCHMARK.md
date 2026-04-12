@@ -205,7 +205,7 @@ The current headline result is the matched-input multi-seed rerun over the saved
 
 The current saved 5-seed, 2-epoch matched-input study produced these held-out decision scores:
 
-| Model | Mean passed checks | Total checks | Mean pass rate | Spread |
+| Model | Mean passed checks | Total checks | Mean pass rate | Seed std |
 |---|---:|---:|---:|---:|
 | `jepa_latent` | `76.6` | `120` | `0.638` | `0.022` |
 | `full_context_transformer` | `75.2` | `120` | `0.627` | `0.025` |
@@ -213,6 +213,6 @@ The current saved 5-seed, 2-epoch matched-input study produced these held-out de
 
 On the simpler factual task of predicting whether anything goes outside after the branch point, all three models stayed tightly grouped around `0.98` AUROC.
 
-The practical read is that the fair rerun changed the ordering. Once the models use the same pre-branch inputs and the result is averaged across seeds, the JEPA-style path slightly leads the matched full-context transformer on the business decision checks, while the treatment transformer drops back and varies much more from seed to seed.
+The main point is that the fair rerun changed the ordering. Once the models use the same pre-branch inputs and the result is averaged across seeds, the JEPA-style path slightly leads the matched full-context transformer on the business decision checks, while the treatment transformer drops back and varies much more from seed to seed.
 
 An earlier single-run reference comparison is still useful as a historical checkpoint, but it should not be treated as the headline result because it mixed narrower and richer model inputs. Use `vei whatif benchmark study` for the clean comparison path and look under `studies/` for the aggregate report.

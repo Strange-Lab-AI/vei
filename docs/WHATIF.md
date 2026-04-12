@@ -231,7 +231,7 @@ vei whatif benchmark study \
 
 ### Current model state
 
-The current saved Enron reset build uses 24 held-out cases with 4 candidate actions each. The current headline result is the matched-input study rerun over that build, not the older single-run comparison.
+The current saved Enron reset build uses 24 held-out cases with 4 candidate actions each. The headline result now comes from the matched-input study rerun over that build rather than from the older single-run comparison.
 
 On the current 5-seed, 2-epoch matched-input rerun, the held-out decision checks came out like this:
 
@@ -241,7 +241,7 @@ On the current 5-seed, 2-epoch matched-input rerun, the held-out decision checks
 
 On the factual question of whether anything goes outside after the branch point, all three models stayed tightly grouped around `0.98` AUROC.
 
-The practical read is that the fair rerun changed the story. Once the models read the same pre-branch contract and the result is averaged across seeds, the JEPA-style path slightly leads the matched full-context transformer on the Enron decision checks, while the treatment transformer shows the widest spread from seed to seed.
+The main point is that the fair rerun changed the story. Once the models read the same pre-branch contract and the result is averaged across seeds, the JEPA-style path slightly leads the matched full-context transformer on the Enron decision checks, while the treatment transformer shows the widest spread from seed to seed.
 
 ### Important constraint
 
