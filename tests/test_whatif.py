@@ -815,6 +815,57 @@ def test_company_history_merges_mail_archive_and_gmail_threads(
     } == {"mail:archive-thread-001", "mail:gmail-thread-001"}
 
 
+def test_company_history_uses_gmail_date_header_when_internal_date_is_missing(
+    tmp_path: Path,
+) -> None:
+    snapshot_path = tmp_path / "gmail_date_snapshot.json"
+    snapshot_path.write_text(
+        json.dumps(
+            {
+                "version": "1",
+                "organization_name": "Dispatch",
+                "organization_domain": "thedispatch.ai",
+                "captured_at": "2026-04-13T10:00:00Z",
+                "sources": [
+                    {
+                        "provider": "gmail",
+                        "captured_at": "2026-04-13T10:00:00Z",
+                        "status": "ok",
+                        "data": {
+                            "threads": [
+                                {
+                                    "thread_id": "dispatch-thread-001",
+                                    "subject": "Fundraising follow-up",
+                                    "messages": [
+                                        {
+                                            "message_id": "<dispatch-1@thedispatch.ai>",
+                                            "from": "jon@thedispatch.ai",
+                                            "to": "investor@example.com",
+                                            "subject": "Fundraising follow-up",
+                                            "snippet": "Sharing the deck and next steps.",
+                                            "date": "Tue, 13 Aug 2024 14:32:10 +0000",
+                                        }
+                                    ],
+                                }
+                            ]
+                        },
+                    }
+                ],
+            },
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+
+    world = load_world(source="company_history", source_dir=snapshot_path)
+
+    event = next(
+        item for item in world.events if item.thread_id == "mail:dispatch-thread-001"
+    )
+    assert event.timestamp.startswith("2024-08-13T14:32:10")
+    assert event.timestamp_ms > 1_700_000_000_000
+
+
 def test_load_company_history_world_materialize_ticket_branch_and_replay(
     tmp_path: Path,
 ) -> None:
