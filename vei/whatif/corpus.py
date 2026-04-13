@@ -293,7 +293,7 @@ def load_company_history_world(
     include_content: bool = False,
 ) -> WhatIfWorld:
     resolved_source_dir = Path(source_dir).expanduser().resolve()
-    snapshot = _load_history_snapshot(resolved_source_dir)
+    snapshot = load_history_snapshot(resolved_source_dir)
     provider_names = _supported_history_provider_names(snapshot)
     event_provider_names = _event_history_provider_names(snapshot)
     if not provider_names or not event_provider_names:
@@ -384,7 +384,7 @@ def _looks_like_mail_archive(path: Path) -> bool:
 
 def _detect_snapshot_source_kind(path: Path) -> str | None:
     try:
-        snapshot = _load_history_snapshot(path)
+        snapshot = load_history_snapshot(path)
     except Exception:  # noqa: BLE001
         return None
     provider_names = _event_history_provider_names(snapshot)
@@ -399,10 +399,10 @@ def _detect_snapshot_source_kind(path: Path) -> str | None:
 
 
 def _load_mail_archive_snapshot(path: Path) -> ContextSnapshot:
-    return _load_history_snapshot(path)
+    return load_history_snapshot(path)
 
 
-def _load_history_snapshot(path: Path) -> ContextSnapshot:
+def load_history_snapshot(path: Path) -> ContextSnapshot:
     if path.is_file():
         return _snapshot_from_json_payload(path)
     for filename in MAIL_ARCHIVE_FILE_NAMES:
@@ -410,6 +410,9 @@ def _load_history_snapshot(path: Path) -> ContextSnapshot:
         if candidate.exists():
             return _snapshot_from_json_payload(candidate)
     raise ValueError(f"mail archive snapshot not found under: {path}")
+
+
+_load_history_snapshot = load_history_snapshot
 
 
 def _snapshot_from_json_payload(path: Path) -> ContextSnapshot:
@@ -484,13 +487,29 @@ def _history_snapshot_identity(snapshot: ContextSnapshot) -> tuple[str, str]:
 
 def _mail_archive_source_payload(snapshot: ContextSnapshot) -> dict[str, Any]:
     mail_archive_source = snapshot.source_for("mail_archive")
-    if mail_archive_source is not None and isinstance(mail_archive_source.data, dict):
-        return mail_archive_source.data
     gmail_source = snapshot.source_for("gmail")
-    if gmail_source is not None and isinstance(gmail_source.data, dict):
+    archive_payload = (
+        mail_archive_source.data
+        if mail_archive_source is not None
+        and isinstance(mail_archive_source.data, dict)
+        else None
+    )
+    gmail_payload = (
+        gmail_source.data
+        if gmail_source is not None and isinstance(gmail_source.data, dict)
+        else None
+    )
+    if archive_payload is not None or gmail_payload is not None:
         return {
-            "threads": _archive_threads_from_gmail_payload(gmail_source.data),
-            "actors": [],
+            "threads": _merge_archive_thread_payloads(
+                archive_payload.get("threads", []) if archive_payload else [],
+                (
+                    _archive_threads_from_gmail_payload(gmail_payload)
+                    if gmail_payload
+                    else []
+                ),
+            ),
+            "actors": archive_payload.get("actors", []) if archive_payload else [],
         }
     raise ValueError("snapshot does not contain a mail archive or gmail mail source")
 
@@ -501,38 +520,13 @@ def _build_company_history_events(
     organization_domain: str,
     include_content: bool,
 ) -> list[WhatIfEvent]:
-    events: list[WhatIfEvent] = []
-    events.extend(
-        _company_history_mail_events(
-            snapshot=snapshot,
-            organization_domain=organization_domain,
-            include_content=include_content,
-        )
+    from .adapters import build_company_history_events
+
+    return build_company_history_events(
+        snapshot=snapshot,
+        organization_domain=organization_domain,
+        include_content=include_content,
     )
-    events.extend(
-        _company_history_chat_events(
-            snapshot=snapshot,
-            provider="slack",
-            organization_domain=organization_domain,
-            include_content=include_content,
-        )
-    )
-    events.extend(
-        _company_history_chat_events(
-            snapshot=snapshot,
-            provider="teams",
-            organization_domain=organization_domain,
-            include_content=include_content,
-        )
-    )
-    events.extend(
-        _company_history_jira_events(
-            snapshot=snapshot,
-            organization_domain=organization_domain,
-            include_content=include_content,
-        )
-    )
-    return events
 
 
 def _company_history_mail_events(
@@ -924,6 +918,25 @@ def _archive_threads_from_snapshot(snapshot: ContextSnapshot) -> list[dict[str, 
     return [thread for thread in threads if isinstance(thread, dict)]
 
 
+def _merge_archive_thread_payloads(
+    archive_threads: Sequence[Any],
+    gmail_threads: Sequence[Any],
+) -> list[dict[str, Any]]:
+    merged: list[dict[str, Any]] = []
+    seen_thread_ids: set[str] = set()
+    for thread_group in (archive_threads, gmail_threads):
+        for thread in thread_group:
+            if not isinstance(thread, dict):
+                continue
+            thread_id = str(thread.get("thread_id", "") or "").strip()
+            if thread_id:
+                if thread_id in seen_thread_ids:
+                    continue
+                seen_thread_ids.add(thread_id)
+            merged.append(thread)
+    return merged
+
+
 def _archive_threads_from_gmail_payload(
     payload: dict[str, Any],
 ) -> list[dict[str, Any]]:
@@ -1057,6 +1070,7 @@ def build_archive_event(
         target_id=recipients[0] if recipients else "",
         event_type=event_type,
         thread_id=thread_id,
+        surface="mail",
         subject=subject,
         snippet=snippet,
         flags=flags,
@@ -1547,6 +1561,7 @@ def build_event(row: dict[str, Any], content: str) -> WhatIfEvent | None:
         target_id=str(row.get("target_id", "") or ""),
         event_type=str(row.get("event_type", "") or ""),
         thread_id=thread_id,
+        surface="mail",
         subject=subject,
         snippet=str(content or ""),
         flags=artifacts,
@@ -2034,6 +2049,21 @@ def has_external_recipients(
             organization_domain=organization_domain,
         )
         > 0
+    )
+
+
+def branch_has_external_sharing(
+    branch_event: WhatIfEventReference,
+    organization_domain: str,
+) -> bool:
+    recipients = [item for item in branch_event.to_recipients if item]
+    if not recipients and branch_event.target_id:
+        recipients = [branch_event.target_id]
+    if not recipients:
+        return False
+    return has_external_recipients(
+        recipients,
+        organization_domain=organization_domain,
     )
 
 

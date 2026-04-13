@@ -260,9 +260,19 @@ def _build_mail_threads(
     mail_archive_source: Optional[ContextSourceResult],
 ) -> list[BlueprintMailThreadAsset]:
     archive_threads = _build_mail_from_archive(mail_archive_source)
-    if archive_threads:
+    gmail_threads = _build_mail_from_gmail(gmail_source)
+    if not archive_threads:
+        return gmail_threads
+    if not gmail_threads:
         return archive_threads
-    return _build_mail_from_gmail(gmail_source)
+    merged: dict[str, BlueprintMailThreadAsset] = {}
+    for index, thread in enumerate(archive_threads):
+        key = thread.thread_id or f"archive-thread-{index}"
+        merged[key] = thread
+    for index, thread in enumerate(gmail_threads):
+        key = thread.thread_id or f"gmail-thread-{index}"
+        merged.setdefault(key, thread)
+    return list(merged.values())
 
 
 def _build_doc_graph(

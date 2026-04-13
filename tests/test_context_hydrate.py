@@ -201,6 +201,71 @@ def test_hydrate_supports_mail_archive_threads() -> None:
     assert "identity" in asset.requested_facades
 
 
+def test_hydrate_merges_mail_archive_and_gmail_threads() -> None:
+    snapshot = ContextSnapshot(
+        organization_name="Mixed Mail Corp",
+        organization_domain="mixed.example.com",
+        captured_at="2024-03-10T00:00:00+00:00",
+        sources=[
+            ContextSourceResult(
+                provider="mail_archive",
+                captured_at="2024-03-10T00:00:00+00:00",
+                status="ok",
+                data={
+                    "threads": [
+                        {
+                            "thread_id": "thr-archive-001",
+                            "subject": "Archive thread",
+                            "category": "historical",
+                            "messages": [
+                                {
+                                    "from": "archive@mixed.example.com",
+                                    "to": "legal@mixed.example.com",
+                                    "subject": "Archive thread",
+                                    "body_text": "Archive body",
+                                    "time_ms": 1,
+                                }
+                            ],
+                        }
+                    ],
+                    "actors": [],
+                },
+            ),
+            ContextSourceResult(
+                provider="gmail",
+                captured_at="2024-03-10T00:00:00+00:00",
+                status="ok",
+                data={
+                    "threads": [
+                        {
+                            "thread_id": "thr-gmail-001",
+                            "subject": "Gmail thread",
+                            "messages": [
+                                {
+                                    "id": "gmail-msg-1",
+                                    "from": "sales@mixed.example.com",
+                                    "to": "buyer@example.net",
+                                    "subject": "Gmail thread",
+                                    "snippet": "Gmail body",
+                                    "internal_date": 2,
+                                }
+                            ],
+                        }
+                    ]
+                },
+            ),
+        ],
+    )
+
+    asset = hydrate_blueprint(snapshot)
+
+    assert asset.capability_graphs is not None
+    assert asset.capability_graphs.comm_graph is not None
+    assert {
+        thread.thread_id for thread in asset.capability_graphs.comm_graph.mail_threads
+    } == {"thr-archive-001", "thr-gmail-001"}
+
+
 def test_hydrate_merges_crm_and_salesforce_revenue_sources() -> None:
     snapshot = ContextSnapshot(
         organization_name="Revenue Corp",

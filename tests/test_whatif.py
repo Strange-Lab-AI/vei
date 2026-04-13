@@ -90,6 +90,23 @@ from vei.whatif.benchmark_bridge import (
     _TorchTrainer,
     _action_vector_width,
 )
+from vei.whatif.corpus import has_external_recipients, recipient_scope
+from vei.whatif.counterfactual import (
+    run_ejepa_proxy_counterfactual as run_ejepa_proxy_counterfactual_module,
+    run_llm_counterfactual as run_llm_counterfactual_module,
+)
+from vei.whatif.decision import (
+    build_decision_scene as build_decision_scene_module,
+    build_saved_decision_scene as build_saved_decision_scene_module,
+)
+from vei.whatif.episode import (
+    load_episode_manifest as load_episode_manifest_module,
+    materialize_episode as materialize_episode_module,
+    replay_episode_baseline as replay_episode_baseline_module,
+)
+from vei.whatif.experiment import (
+    run_counterfactual_experiment as run_counterfactual_experiment_module,
+)
 from vei.whatif.ranking import (
     aggregate_outcome_signals,
     get_objective_pack,
@@ -390,6 +407,74 @@ def _write_company_history_fixture(root: Path) -> Path:
                                     "stage": "legal_review",
                                     "owner": "emma@pycorp.example.com",
                                     "amount": 240000,
+                                }
+                            ]
+                        },
+                    },
+                ],
+            },
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+    return snapshot_path
+
+
+def _write_company_history_with_mixed_mail_fixture(root: Path) -> Path:
+    root.mkdir(parents=True, exist_ok=True)
+    snapshot_path = root / "context_snapshot.json"
+    snapshot_path.write_text(
+        json.dumps(
+            {
+                "version": "1",
+                "organization_name": "Mixed Mail Corp",
+                "organization_domain": "mixed.example.com",
+                "captured_at": "2026-03-01T10:15:00Z",
+                "sources": [
+                    {
+                        "provider": "mail_archive",
+                        "captured_at": "2026-03-01T10:15:00Z",
+                        "status": "ok",
+                        "data": {
+                            "threads": [
+                                {
+                                    "thread_id": "archive-thread-001",
+                                    "subject": "Archive pricing review",
+                                    "category": "historical",
+                                    "messages": [
+                                        {
+                                            "message_id": "archive-msg-001",
+                                            "from": "emma@mixed.example.com",
+                                            "to": "legal@mixed.example.com",
+                                            "subject": "Archive pricing review",
+                                            "body_text": "Archive side history",
+                                            "timestamp": "2026-03-01T09:00:00Z",
+                                        }
+                                    ],
+                                }
+                            ],
+                            "actors": [],
+                        },
+                    },
+                    {
+                        "provider": "gmail",
+                        "captured_at": "2026-03-01T10:15:00Z",
+                        "status": "ok",
+                        "data": {
+                            "threads": [
+                                {
+                                    "thread_id": "gmail-thread-001",
+                                    "subject": "Gmail renewal follow-up",
+                                    "messages": [
+                                        {
+                                            "id": "gmail-msg-001",
+                                            "from": "sales@mixed.example.com",
+                                            "to": "buyer@example.net",
+                                            "subject": "Gmail renewal follow-up",
+                                            "snippet": "Gmail side history",
+                                            "internal_date": 1772355900000,
+                                        }
+                                    ],
                                 }
                             ]
                         },
@@ -715,6 +800,21 @@ def test_load_company_history_world_materialize_slack_branch_and_replay(
     assert dataset.events[0].channel == "slack"
 
 
+def test_company_history_merges_mail_archive_and_gmail_threads(
+    tmp_path: Path,
+) -> None:
+    snapshot_path = _write_company_history_with_mixed_mail_fixture(
+        tmp_path / "company_history_mixed_mail"
+    )
+
+    world = load_world(source="company_history", source_dir=snapshot_path)
+
+    assert world.source == "company_history"
+    assert {
+        thread.thread_id for thread in world.threads if thread.surface == "mail"
+    } == {"mail:archive-thread-001", "mail:gmail-thread-001"}
+
+
 def test_load_company_history_world_materialize_ticket_branch_and_replay(
     tmp_path: Path,
 ) -> None:
@@ -817,6 +917,11 @@ def test_load_company_history_world_rejects_errored_event_sources(
         load_world(source="auto", source_dir=snapshot_path)
     with pytest.raises(ValueError, match="supported sources"):
         load_world(source="company_history", source_dir=snapshot_path)
+
+
+def test_recipient_helpers_keep_legacy_enron_default_scope() -> None:
+    assert not has_external_recipients(["alice@enron.com"])
+    assert recipient_scope(["alice@enron.com"]) == "internal"
 
 
 def test_load_mail_archive_world_prefers_sender_domain_for_company_inference(
@@ -1507,6 +1612,116 @@ def test_llm_and_forecast_counterfactual_paths_write_artifacts(
     assert experiment.artifacts.forecast_json_path is not None
     assert experiment.artifacts.forecast_json_path.exists()
     assert loaded.intervention.thread_id == "thr-legal-trading"
+
+
+def test_split_modules_support_episode_scene_and_counterfactual_flow(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    rosetta_dir = tmp_path / "rosetta_split"
+    _write_rosetta_fixture(rosetta_dir)
+    world = load_world(source="enron", rosetta_dir=rosetta_dir)
+
+    async def fake_plan_once_with_usage(**_: object) -> PlanResult:
+        return PlanResult(
+            plan={
+                "tool": "emit_counterfactual",
+                "args": {
+                    "summary": "Sara keeps the thread inside Enron for one more review.",
+                    "messages": [
+                        {
+                            "actor_id": "sara.shackleton@enron.com",
+                            "to": "mark.taylor@enron.com",
+                            "subject": "Re: Gas Position Limits",
+                            "body_text": "Please keep this inside until compliance clears it.",
+                            "delay_ms": 1000,
+                        }
+                    ],
+                },
+            },
+            usage=PlanUsage(provider="openai", model="gpt-5"),
+        )
+
+    monkeypatch.setattr(
+        "vei.whatif.counterfactual.providers.plan_once_with_usage",
+        fake_plan_once_with_usage,
+    )
+
+    workspace_root = tmp_path / "split_episode"
+    materialization = materialize_episode_module(
+        world,
+        root=workspace_root,
+        thread_id="thr-legal-trading",
+    )
+    manifest = load_episode_manifest_module(workspace_root)
+    replay = replay_episode_baseline_module(workspace_root, tick_ms=400_000)
+    live_scene = build_decision_scene_module(world, thread_id="thr-legal-trading")
+    saved_scene = build_saved_decision_scene_module(workspace_root)
+    llm_result = run_llm_counterfactual_module(
+        workspace_root,
+        prompt="Hold the forward and keep this internal.",
+    )
+    forecast_result = run_ejepa_proxy_counterfactual_module(
+        workspace_root,
+        prompt="Hold the forward and keep this internal.",
+    )
+
+    assert materialization.branch_event_id == "evt-002"
+    assert manifest.branch_event_id == "evt-002"
+    assert replay.delivered_event_count >= 1
+    assert live_scene.branch_event_id == "evt-002"
+    assert saved_scene.branch_event_id == "evt-002"
+    assert llm_result.status == "ok"
+    assert llm_result.delivered_event_count == 1
+    assert forecast_result.status == "ok"
+    assert forecast_result.business_state_change is not None
+
+
+def test_split_experiment_module_writes_counterfactual_artifacts(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    rosetta_dir = tmp_path / "rosetta_experiment_split"
+    _write_rosetta_fixture(rosetta_dir)
+    world = load_world(source="enron", rosetta_dir=rosetta_dir)
+
+    monkeypatch.setattr(
+        "vei.whatif.experiment.run_llm_counterfactual",
+        lambda *_args, prompt, **_kwargs: _make_llm_replay_result(
+            prompt=prompt,
+            to="mark.taylor@enron.com",
+            subject="Re: Gas Position Limits",
+            body_text="Please keep this internal while compliance reviews it.",
+            delay_ms=1000,
+            summary="The thread stays inside Enron.",
+        ),
+    )
+    monkeypatch.setattr(
+        "vei.whatif.experiment.run_ejepa_proxy_counterfactual",
+        lambda *_args, prompt, **_kwargs: _make_forecast_result(
+            prompt=prompt,
+            risk_score=0.2,
+            future_event_count=2,
+            future_external_event_count=0,
+            summary="Proxy forecast completed through the split experiment module.",
+        ),
+    )
+
+    experiment = run_counterfactual_experiment_module(
+        world,
+        artifacts_root=tmp_path / "split_experiment_artifacts",
+        label="split_module_hold",
+        counterfactual_prompt="Keep this internal and pause the forward.",
+        selection_scenario="compliance_gateway",
+        mode="both",
+    )
+
+    assert experiment.llm_result is not None
+    assert experiment.llm_result.status == "ok"
+    assert experiment.forecast_result is not None
+    assert experiment.forecast_result.status == "ok"
+    assert experiment.artifacts.result_json_path.exists()
+    assert experiment.artifacts.overview_markdown_path.exists()
 
 
 def test_llm_counterfactual_clamps_external_recipient_for_internal_only_prompt(

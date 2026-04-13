@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Final
 
-from .corpus import has_external_recipients
+from .corpus import branch_has_external_sharing
 from .models import (
     WhatIfBusinessConsequenceEstimate,
     WhatIfBusinessImpactEffect,
@@ -378,19 +378,7 @@ def _build_consequence_estimates(
     ]
 
 
-def _branch_has_external_sharing(
-    branch_event: WhatIfEventReference,
-    organization_domain: str,
-) -> bool:
-    recipients = [recipient for recipient in branch_event.to_recipients if recipient]
-    if not recipients and branch_event.target_id:
-        recipients = [branch_event.target_id]
-    if not recipients:
-        return False
-    return has_external_recipients(
-        recipients,
-        organization_domain=organization_domain,
-    )
+_branch_has_external_sharing = branch_has_external_sharing
 
 
 def _public_pressure(context: WhatIfPublicContext | None) -> float:

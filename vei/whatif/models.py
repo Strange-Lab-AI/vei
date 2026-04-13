@@ -108,7 +108,7 @@ class WhatIfEvent(BaseModel):
     event_type: str
     thread_id: str
     case_id: str = ""
-    surface: str = "mail"
+    surface: str = ""
     conversation_anchor: str = ""
     subject: str = ""
     snippet: str = ""
@@ -344,7 +344,7 @@ class WhatIfEventReference(BaseModel):
     event_type: str
     thread_id: str
     case_id: str = ""
-    surface: str = "mail"
+    surface: str = ""
     conversation_anchor: str = ""
     subject: str = ""
     snippet: str = ""

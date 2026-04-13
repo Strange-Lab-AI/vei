@@ -4,11 +4,22 @@ from typing import Any, Dict, List, Literal, Optional
 
 from pydantic import BaseModel, Field
 
-ContextProviderName = Literal["slack", "jira", "google", "okta", "gmail", "teams"]
+ContextLiveProviderName = Literal["slack", "jira", "google", "okta", "gmail", "teams"]
+ContextProviderName = Literal[
+    "slack",
+    "jira",
+    "google",
+    "okta",
+    "gmail",
+    "teams",
+    "crm",
+    "salesforce",
+    "mail_archive",
+]
 
 
 class ContextProviderConfig(BaseModel):
-    provider: ContextProviderName
+    provider: ContextLiveProviderName
     token_env: str = ""
     base_url: Optional[str] = None
     scopes: List[str] = Field(default_factory=list)

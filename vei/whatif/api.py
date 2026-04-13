@@ -65,7 +65,7 @@ from .models import (
 from .corpus import (
     CONTENT_NOTICE,
     ENRON_DOMAIN,
-    _load_history_snapshot,
+    load_history_snapshot,
     choose_branch_event,
     detect_whatif_source,
     display_name,
@@ -356,6 +356,7 @@ def materialize_episode(
         encoding="utf-8",
     )
     _persist_workspace_historical_source(world, workspace_root)
+    _persist_workspace_public_context(world, workspace_root)
     manifest = WhatIfEpisodeManifest(
         source=world.source,
         source_dir=world.source_dir,
@@ -932,7 +933,7 @@ def _source_snapshot_for_world(world: WhatIfWorld) -> ContextSnapshot | None:
     if world.source not in {"mail_archive", "company_history"}:
         return None
     try:
-        return _load_history_snapshot(world.source_dir)
+        return load_history_snapshot(world.source_dir)
     except Exception:  # noqa: BLE001
         return None
 
@@ -2036,6 +2037,24 @@ def _persist_workspace_historical_source(
     if source_file.resolve() == target.resolve():
         return
     shutil.copyfile(source_file, target)
+
+
+def _persist_workspace_public_context(
+    world: WhatIfWorld,
+    workspace_root: Path,
+) -> None:
+    from .public_context import discover_public_context_path
+
+    context_path = discover_public_context_path(
+        source_dir=world.source_dir,
+        metadata=getattr(world, "metadata", None),
+    )
+    if context_path is None or not context_path.exists():
+        return
+    target = workspace_root / "whatif_public_context.json"
+    if context_path.resolve() == target.resolve():
+        return
+    shutil.copyfile(context_path, target)
 
 
 def _historical_source_file(source_dir: Path) -> Path | None:
