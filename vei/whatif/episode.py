@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import json
+import logging
 import shutil
 from pathlib import Path
 from typing import Any, Sequence
@@ -19,9 +19,10 @@ from .models import (
     WhatIfEpisodeMaterialization,
     WhatIfEvent,
     WhatIfEventReference,
-    WhatIfForecast,
+    WhatIfHistoricalScore,
     WhatIfPublicContext,
     WhatIfReplaySummary,
+    WhatIfSituationContext,
     WhatIfWorld,
 )
 from .corpus import (
@@ -40,6 +41,17 @@ from .corpus import (
 from .cases import build_case_context
 from .public_context import slice_public_context_to_branch
 from .business_state import assess_historical_business_state
+from ._helpers import (
+    chat_channel_name as _chat_channel_name,
+    chat_channel_name_from_reference as _chat_channel_name_from_reference,
+    historical_archive_address as _historical_archive_address,
+    load_episode_context as _load_episode_context,
+    primary_recipient as _primary_recipient,
+    reference_primary_recipient as _reference_primary_recipient,
+)
+from .situations import build_situation_context, recommend_branch_thread
+
+logger = logging.getLogger(__name__)
 
 
 def materialize_episode(
@@ -86,7 +98,12 @@ def materialize_episode(
         branch_thread_id=selected_thread_id,
         branch_timestamp_ms=branch_event.timestamp_ms,
     )
-    forecast = forecast_episode(
+    situation_context = build_situation_context(
+        world,
+        branch_thread_id=selected_thread_id,
+        branch_timestamp_ms=branch_event.timestamp_ms,
+    )
+    forecast = score_historical_tail(
         future_events,
         organization_domain=resolved_organization_domain,
     )
@@ -108,12 +125,14 @@ def materialize_episode(
         branch_event=branch_event,
         public_context=branch_public_context,
         case_context=case_context,
+        situation_context=situation_context,
         historical_business_state=historical_business_state,
         source_snapshot=source_snapshot,
     )
     included_surfaces = _included_surfaces_for_thread(
         thread_history,
         case_context=case_context,
+        situation_context=situation_context,
     )
     bundle = build_customer_twin(
         workspace_root,
@@ -172,9 +191,10 @@ def materialize_episode(
         forecast=forecast,
         public_context=branch_public_context,
         case_context=case_context,
+        situation_context=situation_context,
         historical_business_state=historical_business_state,
     )
-    manifest_path = workspace_root / "whatif_episode_manifest.json"
+    manifest_path = workspace_root / "episode_manifest.json"
     manifest_path.write_text(manifest.model_dump_json(indent=2), encoding="utf-8")
     return WhatIfEpisodeMaterialization(
         manifest_path=manifest_path,
@@ -196,6 +216,7 @@ def materialize_episode(
         forecast=forecast,
         public_context=branch_public_context,
         case_context=case_context,
+        situation_context=situation_context,
         historical_business_state=historical_business_state,
     )
 
@@ -210,12 +231,13 @@ def resolve_thread_branch(
 ]:
     selected_thread_id = thread_id
     if selected_thread_id is None:
-        if not event_id:
-            raise ValueError("provide thread_id or event_id")
-        selected_event = event_by_id(world.events, event_id)
-        if selected_event is None:
-            raise ValueError(f"event not found in world: {event_id}")
-        selected_thread_id = selected_event.thread_id
+        if event_id:
+            selected_event = event_by_id(world.events, event_id)
+            if selected_event is None:
+                raise ValueError(f"event not found in world: {event_id}")
+            selected_thread_id = selected_event.thread_id
+        else:
+            selected_thread_id = recommend_branch_thread(world).thread_id
 
     thread_history = thread_events(world.events, selected_thread_id)
     if not thread_history:
@@ -264,6 +286,7 @@ def _episode_context_snapshot(
     branch_event: WhatIfEvent,
     public_context: WhatIfPublicContext | None,
     case_context: WhatIfCaseContext | None,
+    situation_context: WhatIfSituationContext | None,
     historical_business_state,
     source_snapshot: ContextSnapshot | None,
 ) -> ContextSnapshot:
@@ -273,6 +296,7 @@ def _episode_context_snapshot(
         branch_event=branch_event,
         public_context=public_context,
         case_context=case_context,
+        situation_context=situation_context,
         historical_business_state=historical_business_state,
     )
     actor_payload = _thread_actor_payload(world, thread_history=thread_history)
@@ -290,6 +314,7 @@ def _episode_context_snapshot(
         return _append_case_context_sources(
             snapshot=snapshot,
             case_context=case_context,
+            situation_context=situation_context,
             source_snapshot=source_snapshot,
         )
     if surface == "slack":
@@ -306,6 +331,7 @@ def _episode_context_snapshot(
         return _append_case_context_sources(
             snapshot=snapshot,
             case_context=case_context,
+            situation_context=situation_context,
             source_snapshot=source_snapshot,
         )
     if surface == "tickets":
@@ -322,6 +348,7 @@ def _episode_context_snapshot(
         return _append_case_context_sources(
             snapshot=snapshot,
             case_context=case_context,
+            situation_context=situation_context,
             source_snapshot=source_snapshot,
         )
     raise ValueError(f"unsupported historical surface: {surface}")
@@ -334,6 +361,7 @@ def _episode_snapshot_metadata(
     branch_event: WhatIfEvent,
     public_context: WhatIfPublicContext | None,
     case_context: WhatIfCaseContext | None,
+    situation_context: WhatIfSituationContext | None,
     historical_business_state,
 ) -> dict[str, Any]:
     return {
@@ -352,6 +380,11 @@ def _episode_snapshot_metadata(
             "case_context": (
                 case_context.model_dump(mode="json")
                 if case_context is not None
+                else None
+            ),
+            "situation_context": (
+                situation_context.model_dump(mode="json")
+                if situation_context is not None
                 else None
             ),
             "historical_business_state": (
@@ -570,7 +603,19 @@ def _source_snapshot_for_world(world: WhatIfWorld) -> ContextSnapshot | None:
         return None
     try:
         return _load_history_snapshot(world.source_dir)
-    except Exception:  # noqa: BLE001
+    except Exception as exc:  # noqa: BLE001
+        logger.warning(
+            "whatif source snapshot load failed for %s (%s)",
+            world.source,
+            type(exc).__name__,
+            extra={
+                "source": "episode",
+                "provider": world.source,
+                "file_path": str(world.source_dir),
+                "exception_type": type(exc).__name__,
+            },
+            exc_info=True,
+        )
         return None
 
 
@@ -578,20 +623,32 @@ def _append_case_context_sources(
     *,
     snapshot: ContextSnapshot,
     case_context: WhatIfCaseContext | None,
+    situation_context: WhatIfSituationContext | None,
     source_snapshot: ContextSnapshot | None,
 ) -> ContextSnapshot:
-    if case_context is None:
+    if case_context is None and situation_context is None:
         return snapshot
 
     extra_sources: list[ContextSourceResult] = []
-    extra_sources.extend(_case_history_source_results(case_context))
+    if case_context is not None:
+        extra_sources.extend(_case_history_source_results(case_context))
+    if situation_context is not None:
+        extra_sources.extend(_situation_history_source_results(situation_context))
     if source_snapshot is not None:
-        extra_sources.extend(
-            _case_record_source_results(
-                case_context=case_context,
-                source_snapshot=source_snapshot,
+        if case_context is not None:
+            extra_sources.extend(
+                _case_record_source_results(
+                    case_context=case_context,
+                    source_snapshot=source_snapshot,
+                )
             )
-        )
+        if situation_context is not None:
+            extra_sources.extend(
+                _situation_record_source_results(
+                    situation_context=situation_context,
+                    source_snapshot=source_snapshot,
+                )
+            )
 
     if not extra_sources:
         return snapshot
@@ -639,6 +696,17 @@ def _case_history_source_results(
         if source is not None:
             sources.append(source)
     return sources
+
+
+def _situation_history_source_results(
+    situation_context: WhatIfSituationContext,
+) -> list[ContextSourceResult]:
+    temporary_case_context = WhatIfCaseContext(
+        case_id=situation_context.situation_id,
+        title=situation_context.label,
+        related_history=list(situation_context.related_history),
+    )
+    return _case_history_source_results(temporary_case_context)
 
 
 def _history_provider_for_reference(reference: WhatIfEventReference) -> str | None:
@@ -856,15 +924,6 @@ def _history_chat_users_from_references(
     return list(users.values())
 
 
-def _reference_primary_recipient(reference: WhatIfEventReference) -> str:
-    recipients = [item for item in reference.to_recipients if item]
-    if recipients:
-        return recipients[0]
-    if reference.target_id:
-        return reference.target_id
-    return ""
-
-
 def _reference_body(reference: WhatIfEventReference) -> str:
     if reference.snippet.strip():
         return reference.snippet
@@ -906,6 +965,45 @@ def _case_record_source_results(
             source_snapshot=source_snapshot,
             provider=provider,
             record_ids=record_ids_by_provider.get(provider, set()),
+        )
+        if source is not None:
+            sources.append(source)
+    return sources
+
+
+def _situation_record_source_results(
+    *,
+    situation_context: WhatIfSituationContext,
+    source_snapshot: ContextSnapshot,
+) -> list[ContextSourceResult]:
+    google_record_ids: set[str] = set()
+    crm_record_ids_by_provider: dict[str, set[str]] = {
+        "crm": set(),
+        "salesforce": set(),
+    }
+    for thread in situation_context.related_threads:
+        provider, _, record_id = thread.thread_id.partition(":")
+        normalized_provider = provider.strip().lower()
+        normalized_record_id = record_id.strip()
+        if not normalized_record_id:
+            continue
+        if normalized_provider == "docs":
+            google_record_ids.add(normalized_record_id)
+        elif normalized_provider in crm_record_ids_by_provider:
+            crm_record_ids_by_provider[normalized_provider].add(normalized_record_id)
+
+    sources: list[ContextSourceResult] = []
+    google_source = _filtered_google_record_source(
+        source_snapshot=source_snapshot,
+        record_ids=google_record_ids,
+    )
+    if google_source is not None:
+        sources.append(google_source)
+    for provider, record_ids in crm_record_ids_by_provider.items():
+        source = _filtered_crm_record_source(
+            source_snapshot=source_snapshot,
+            provider=provider,
+            record_ids=record_ids,
         )
         if source is not None:
             sources.append(source)
@@ -1248,6 +1346,7 @@ def _included_surfaces_for_thread(
     events: Sequence[WhatIfEvent],
     *,
     case_context: WhatIfCaseContext | None = None,
+    situation_context: WhatIfSituationContext | None = None,
 ) -> list[str]:
     surfaces = {event.surface or "mail" for event in events}
     if case_context is not None:
@@ -1258,6 +1357,17 @@ def _included_surfaces_for_thread(
         )
         surfaces.update(
             record.surface for record in case_context.records if record.surface
+        )
+    if situation_context is not None:
+        surfaces.update(
+            thread.surface
+            for thread in situation_context.related_threads
+            if thread.surface
+        )
+        surfaces.update(
+            reference.surface
+            for reference in situation_context.related_history
+            if reference.surface
         )
     included: list[str] = ["identity"]
     if "mail" in surfaces:
@@ -1283,7 +1393,19 @@ def _history_preview_from_saved_context(
         return list(manifest.history_preview[-max(1, history_limit) :])
     try:
         context = _load_episode_context(workspace_root)
-    except Exception:  # noqa: BLE001
+    except Exception as exc:  # noqa: BLE001
+        logger.warning(
+            "whatif saved episode context load failed for %s (%s)",
+            manifest.thread_id,
+            type(exc).__name__,
+            extra={
+                "source": "episode",
+                "provider": "context_snapshot",
+                "file_path": str(workspace_root / "context_snapshot.json"),
+                "exception_type": type(exc).__name__,
+            },
+            exc_info=True,
+        )
         return []
 
     for thread in context.get("threads", []):
@@ -1323,12 +1445,7 @@ def _persist_workspace_historical_source(
     source_file = _historical_source_file(world.source_dir)
     if source_file is None or not source_file.exists():
         return
-    target_name = (
-        "whatif_mail_archive.json"
-        if world.source == "mail_archive"
-        else "whatif_company_history.json"
-    )
-    target = workspace_root / target_name
+    target = workspace_root / "context_snapshot.json"
     if source_file.resolve() == target.resolve():
         return
     shutil.copyfile(source_file, target)
@@ -1338,14 +1455,7 @@ def _historical_source_file(source_dir: Path) -> Path | None:
     resolved = source_dir.expanduser().resolve()
     if resolved.is_file():
         return resolved
-    for filename in (
-        "whatif_company_history.json",
-        "company_history_bundle.json",
-        "whatif_mail_archive.json",
-        "historical_mail_archive.json",
-        "mail_archive.json",
-        "context_snapshot.json",
-    ):
+    for filename in ("context_snapshot.json",):
         candidate = resolved / filename
         if candidate.exists():
             return candidate
@@ -1354,7 +1464,7 @@ def _historical_source_file(source_dir: Path) -> Path | None:
 
 def load_episode_manifest(root: str | Path) -> WhatIfEpisodeManifest:
     workspace_root = Path(root).expanduser().resolve()
-    manifest_path = workspace_root / "whatif_episode_manifest.json"
+    manifest_path = workspace_root / "episode_manifest.json"
     if not manifest_path.exists():
         raise ValueError(f"what-if episode manifest not found: {manifest_path}")
     return WhatIfEpisodeManifest.model_validate_json(
@@ -1448,11 +1558,11 @@ def replay_episode_baseline(
     )
 
 
-def forecast_episode(
+def score_historical_tail(
     events: Sequence[WhatIfEvent],
     *,
     organization_domain: str = ENRON_DOMAIN,
-) -> WhatIfForecast:
+) -> WhatIfHistoricalScore:
     future_event_count = len(events)
     future_escalation_count = sum(
         1
@@ -1485,7 +1595,7 @@ def forecast_episode(
         f"{future_escalation_count} escalations and {future_external_event_count} "
         "externally addressed messages."
     )
-    return WhatIfForecast(
+    return WhatIfHistoricalScore(
         backend="historical",
         future_event_count=future_event_count,
         future_escalation_count=future_escalation_count,
@@ -1562,24 +1672,6 @@ def _baseline_event_payload(
             "category": "historical",
         },
     )
-
-
-def _chat_channel_name(event: WhatIfEvent) -> str:
-    recipients = [item for item in event.flags.to_recipients if item]
-    if recipients:
-        return recipients[0]
-    if event.target_id:
-        return event.target_id
-    return "#history"
-
-
-def _chat_channel_name_from_reference(event: WhatIfEventReference) -> str:
-    recipients = [item for item in event.to_recipients if item]
-    if recipients:
-        return recipients[0]
-    if event.target_id:
-        return event.target_id
-    return "#history"
 
 
 def _chat_message_ts(event: WhatIfEvent, *, fallback_index: int) -> str:
@@ -1704,38 +1796,3 @@ def _historical_body(event: WhatIfEvent) -> str:
     if event.flags.bcc_count:
         notes.append(f"BCC count: {event.flags.bcc_count}.")
     return "\n".join(lines + ["", *notes]).strip()
-
-
-def _primary_recipient(event: WhatIfEvent) -> str:
-    recipients = [item for item in event.flags.to_recipients if item]
-    if recipients:
-        return recipients[0]
-    if event.target_id:
-        return event.target_id
-    return _historical_archive_address("", "archive")
-
-
-def _historical_archive_address(organization_domain: str, local_part: str) -> str:
-    normalized_domain = organization_domain.strip().lower()
-    if not normalized_domain:
-        return f"{local_part}@archive.local"
-    return f"{local_part}@{normalized_domain}"
-
-
-def _load_episode_snapshot(root: Path) -> dict[str, Any]:
-    snapshot_path = root / "context_snapshot.json"
-    if not snapshot_path.exists():
-        raise ValueError(f"context snapshot not found: {snapshot_path}")
-    return json.loads(snapshot_path.read_text(encoding="utf-8"))
-
-
-def _load_episode_context(root: Path) -> dict[str, Any]:
-    payload = _load_episode_snapshot(root)
-    sources = payload.get("sources", [])
-    for source in sources:
-        if not isinstance(source, dict):
-            continue
-        data = source.get("data", {})
-        if isinstance(data, dict):
-            return data
-    raise ValueError("what-if episode is missing a supported context source")

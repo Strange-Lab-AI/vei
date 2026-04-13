@@ -7,6 +7,8 @@
   "organization_domain": "enron.com",
   "thread_id": "thr_e565b47423d035c9",
   "thread_subject": "Master Agreement",
+  "case_id": "",
+  "surface": "mail",
   "branch_event_id": "enron_bcda1b925800af8c",
   "branch_timestamp": "2000-09-27T13:42:00Z",
   "branch_event": {
@@ -16,6 +18,9 @@
     "target_id": "kathy_gerken@cargill.com",
     "event_type": "assignment",
     "thread_id": "thr_e565b47423d035c9",
+    "case_id": "",
+    "surface": "",
+    "conversation_anchor": "",
     "subject": "Master Agreement",
     "snippet": "Attached for your review, is a draft of a Master Firm Purchase/Sale Agreement \nbetween Cargill, Incorporated and Enron North America Corp.  Please do not \nhesitate to give me a call with your questions and or comments regarding this \nmatter.\n\n\n\nRegards,\nDebra Perlingiere\nEnron North America Corp.\nLegal Department\n1400 Smith Street, EB 3885\nHouston, Texas 77002\ndperlin@enron.com\nPhone 713-853-7658\nFax  713-646-3490",
     "to_recipients": [
@@ -80,6 +85,7 @@
     "veronica.espinoza@enron.com",
     "wwilson@arm-ltd.com"
   ],
+  "history_preview": [],
   "baseline_future_preview": [
     {
       "event_id": "enron_bcda1b925800af8c",
@@ -88,6 +94,9 @@
       "target_id": "kathy_gerken@cargill.com",
       "event_type": "assignment",
       "thread_id": "thr_e565b47423d035c9",
+      "case_id": "",
+      "surface": "",
+      "conversation_anchor": "",
       "subject": "Master Agreement",
       "snippet": "Attached for your review, is a draft of a Master Firm Purchase/Sale Agreement \nbetween Cargill, Incorporated and Enron North America Corp.  Please do not \nhesitate to give me a call with your questions and or comments regarding this \nmatter.\n\n\n\nRegards,\nDebra Perlingiere\nEnron North America Corp.\nLegal Department\n1400 Smith Street, EB 3885\nHouston, Texas 77002\ndperlin@enron.com\nPhone 713-853-7658\nFax  713-646-3490",
       "to_recipients": [
@@ -106,6 +115,9 @@
       "target_id": "kathy_gerken@cargill.com",
       "event_type": "assignment",
       "thread_id": "thr_e565b47423d035c9",
+      "case_id": "",
+      "surface": "",
+      "conversation_anchor": "",
       "subject": "Master Agreement",
       "snippet": "Attached for your review, is a draft of a Master Firm Purchase/Sale Agreement \nbetween Cargill, Incorporated and Enron North America Corp.  Please do not \nhesitate to give me a call with your questions and or comments regarding this \nmatter.\n\n\n\nRegards,\nDebra Perlingiere\nEnron North America Corp.\nLegal Department\n1400 Smith Street, EB 3885\nHouston, Texas 77002\ndperlin@enron.com\nPhone 713-853-7658\nFax  713-646-3490",
       "to_recipients": [
@@ -124,6 +136,9 @@
       "target_id": "laoh@chevron.com",
       "event_type": "assignment",
       "thread_id": "thr_e565b47423d035c9",
+      "case_id": "",
+      "surface": "",
+      "conversation_anchor": "",
       "subject": "Master Agreement",
       "snippet": "\n\nPlease note delivery begins on October 1, 2000 on the confirm.  \n\nPlease do not hesitate to give me a call with your questions and or comments \nregarding this matter.\n\nRegards,\nDebra Perlingiere\nEnron North America Corp.\nLegal Department\n1400 Smith Street, EB 3885\nHouston, Texas 77002\ndperlin@enron.com\nPhone 713-853-7658\nFax  713-646-3490",
       "to_recipients": [
@@ -142,6 +157,9 @@
       "target_id": "laoh@chevron.com",
       "event_type": "assignment",
       "thread_id": "thr_e565b47423d035c9",
+      "case_id": "",
+      "surface": "",
+      "conversation_anchor": "",
       "subject": "Master Agreement",
       "snippet": "\n\nPlease note delivery begins on October 1, 2000 on the confirm.  \n\nPlease do not hesitate to give me a call with your questions and or comments \nregarding this matter.\n\nRegards,\nDebra Perlingiere\nEnron North America Corp.\nLegal Department\n1400 Smith Street, EB 3885\nHouston, Texas 77002\ndperlin@enron.com\nPhone 713-853-7658\nFax  713-646-3490",
       "to_recipients": [
@@ -160,6 +178,9 @@
       "target_id": "lee.papayoti@enron.com",
       "event_type": "escalation",
       "thread_id": "thr_e565b47423d035c9",
+      "case_id": "",
+      "surface": "",
+      "conversation_anchor": "",
       "subject": "RE: Master Agreement",
       "snippet": "----- Forwarded by Debra Perlingiere/HOU/ECT on 10/02/2000 10:52 AM -----\n\n\t\"Ohr, Leslie (LAOH)\" <LAOH@chevron.com>\n\t10/02/2000 10:21 AM\n\t\t \n\t\t To: \"'Debra.Perlingiere@enron.com'\" <Debra.Perlingiere@enron.com>\n\t\t cc: \n\t\t Subject: RE: Master Agreement\n\n\nDebra-- Martin Dale is the CPC client on this matter.  I'm in the process of\ngetting in touch with him this morning on the confirmation letter.\n\nLeslie\n> -----Original Message-----\n> From: Debra.Perlingiere@enron.com [SMTP:Debra.Perlingiere@enron.com]\n> Sent: Friday, September 29, 2000 2:53 PM\n> To: laoh@chevron.com\n> Subject: Master Agreement\n>",
       "to_recipients": [
@@ -230,6 +251,8 @@
     ],
     "public_news_events": []
   },
+  "case_context": null,
+  "situation_context": null,
   "historical_business_state": {
     "method": "historical_v1",
     "confidence": "medium",

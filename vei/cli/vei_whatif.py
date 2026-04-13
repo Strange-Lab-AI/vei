@@ -210,8 +210,6 @@ def open_episode_command(
 ) -> None:
     """Build a strict historical workspace from one event or thread."""
 
-    if thread_id is None and event_id is None:
-        raise typer.BadParameter("Provide --thread-id or --event-id")
     world = load_world(source=source, source_dir=source_dir)
     materialization = materialize_episode(
         world,

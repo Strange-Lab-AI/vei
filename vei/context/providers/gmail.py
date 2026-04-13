@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import mailbox
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
@@ -7,6 +8,8 @@ from typing import Any, Dict, List, Optional, Union
 from vei.context.models import ContextProviderConfig, ContextSourceResult
 
 from .base import api_get_json, iso_now, resolve_token
+
+logger = logging.getLogger(__name__)
 
 
 class GmailContextProvider:
@@ -91,7 +94,19 @@ def _fetch_thread(
     )
     try:
         return api_get_json(url, headers=headers, timeout_s=timeout)
-    except Exception:
+    except Exception as exc:
+        logger.warning(
+            "context gmail thread fetch failed for %s (%s)",
+            thread_id,
+            type(exc).__name__,
+            extra={
+                "source": "context_capture",
+                "provider": "gmail",
+                "file_path": url,
+                "exception_type": type(exc).__name__,
+            },
+            exc_info=True,
+        )
         return None
 
 
@@ -107,7 +122,18 @@ def _fetch_profile(
             "threads_total": result.get("threadsTotal", 0),
             "messages_total": result.get("messagesTotal", 0),
         }
-    except Exception:
+    except Exception as exc:
+        logger.warning(
+            "context gmail profile fetch failed (%s)",
+            type(exc).__name__,
+            extra={
+                "source": "context_capture",
+                "provider": "gmail",
+                "file_path": url,
+                "exception_type": type(exc).__name__,
+            },
+            exc_info=True,
+        )
         return {}
 
 
@@ -168,6 +194,18 @@ def capture_from_mbox(
     try:
         mbox = mailbox.mbox(str(path))
     except Exception as exc:
+        logger.warning(
+            "context gmail mbox open failed for %s (%s)",
+            path,
+            type(exc).__name__,
+            extra={
+                "source": "context_export",
+                "provider": "gmail",
+                "file_path": str(path),
+                "exception_type": type(exc).__name__,
+            },
+            exc_info=True,
+        )
         return ContextSourceResult(
             provider="gmail",
             captured_at=iso_now(),
@@ -183,7 +221,19 @@ def capture_from_mbox(
             break
         try:
             parsed = _parse_mbox_message(msg)
-        except Exception:
+        except Exception as exc:
+            logger.warning(
+                "context gmail mbox message parse failed for %s (%s)",
+                path,
+                type(exc).__name__,
+                extra={
+                    "source": "context_export",
+                    "provider": "gmail",
+                    "file_path": str(path),
+                    "exception_type": type(exc).__name__,
+                },
+                exc_info=True,
+            )
             continue
         if not parsed:
             continue

@@ -275,7 +275,7 @@ The world kernel (`vei/world/session.py` + `vei/router/core.py`) is fully determ
 - **Slack**: budget approvals are checked via regex; derailment events fire based on `rng.next_float() < derail_prob`.
 - **CRM, Tickets, Docs**: pure CRUD with validation and state machines.
 - **Seed data**: vertical packs (`vei/verticals/packs_*.py`) are static data structures — pre-written channels, threads, tickets, org charts.
-- **Actors**: an optional `ActorRegistry` (`vei/actors/`) provides NPC responses. The default backend is deterministic (template-based, keyed by content hash). An opt-in `LLMActorBackend` exists but is not the default.
+- **Actors**: the world session can attach an optional actor-response backend for NPC events. The default behavior stays deterministic and template-driven unless a separate backend is attached.
 
 Same seed = same world. The only variable in an eval is the agent being tested.
 

@@ -19,6 +19,7 @@ from .benchmark_runtime import (
 )
 from ..score_frontier import run_llm_judge_prompt
 from .corpus import (
+    choose_branch_event,
     event_by_id,
     event_reference,
     external_recipient_count,
@@ -339,9 +340,9 @@ def build_branch_point_benchmark(
         timeline = events_by_thread.get(thread.thread_id, [])
         if len(timeline) < 2:
             continue
-        branch_event = _choose_branch_event(
+        branch_event = choose_branch_event(
             timeline,
-            organization_domain=world.summary.organization_domain,
+            requested_event_id=None,
         )
         history_events, future_events = _split_timeline(
             timeline=timeline,
@@ -1722,30 +1723,6 @@ def _group_events_by_thread(
     for event in sorted(events, key=lambda item: (item.timestamp_ms, item.event_id)):
         grouped[event.thread_id].append(event)
     return grouped
-
-
-def _choose_branch_event(
-    timeline: Sequence[WhatIfEvent],
-    *,
-    organization_domain: str,
-) -> WhatIfEvent:
-    for index, event in enumerate(timeline[:-1], start=0):
-        if index == 0:
-            continue
-        if (
-            event.flags.has_attachment_reference
-            or event.flags.is_forward
-            or event.flags.is_escalation
-            or event.flags.consult_legal_specialist
-            or event.flags.consult_trading_specialist
-            or _event_external_count(
-                event,
-                organization_domain=organization_domain,
-            )
-            > 0
-        ):
-            return event
-    return timeline[max(0, (len(timeline) // 2) - 1)]
 
 
 def _split_timeline(

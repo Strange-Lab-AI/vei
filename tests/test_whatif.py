@@ -41,7 +41,7 @@ from vei.whatif import (
     train_branch_point_benchmark_model,
     run_counterfactual_experiment,
     run_ranked_counterfactual_experiment,
-    run_ejepa_proxy_counterfactual,
+    estimate_counterfactual_delta,
     run_llm_counterfactual,
     run_whatif,
 )
@@ -65,9 +65,9 @@ from vei.whatif.models import (
     WhatIfCandidateIntervention,
     WhatIfAuditRecord,
     WhatIfEventReference,
-    WhatIfForecast,
-    WhatIfForecastDelta,
-    WhatIfForecastResult,
+    WhatIfHistoricalScore,
+    WhatIfCounterfactualEstimateDelta,
+    WhatIfCounterfactualEstimateResult,
     WhatIfLLMGeneratedMessage,
     WhatIfLLMReplayResult,
     WhatIfOutcomeSignals,
@@ -92,7 +92,7 @@ from vei.whatif.benchmark_bridge import (
 )
 from vei.whatif.corpus import has_external_recipients, recipient_scope
 from vei.whatif.counterfactual import (
-    run_ejepa_proxy_counterfactual as run_ejepa_proxy_counterfactual_module,
+    estimate_counterfactual_delta as run_ejepa_proxy_counterfactual_module,
     run_llm_counterfactual as run_llm_counterfactual_module,
 )
 from vei.whatif.decision import (
@@ -225,7 +225,7 @@ def _write_rosetta_fixture(root: Path) -> None:
 
 def _write_mail_archive_fixture(root: Path) -> Path:
     root.mkdir(parents=True, exist_ok=True)
-    archive_path = root / "mail_archive.json"
+    archive_path = root / "context_snapshot.json"
     archive_path.write_text(
         json.dumps(
             {
@@ -527,27 +527,27 @@ def _make_forecast_result(
     future_event_count: int,
     future_external_event_count: int,
     summary: str,
-) -> WhatIfForecastResult:
-    baseline = WhatIfForecast(
+) -> WhatIfCounterfactualEstimateResult:
+    baseline = WhatIfHistoricalScore(
         backend="historical",
         future_event_count=2,
         future_external_event_count=1,
         risk_score=0.6,
     )
-    predicted = WhatIfForecast(
+    predicted = WhatIfHistoricalScore(
         backend="e_jepa_proxy",
         future_event_count=future_event_count,
         future_external_event_count=future_external_event_count,
         risk_score=risk_score,
     )
-    return WhatIfForecastResult(
+    return WhatIfCounterfactualEstimateResult(
         status="ok",
         backend="e_jepa_proxy",
         prompt=prompt,
         summary=summary,
         baseline=baseline,
         predicted=predicted,
-        delta=WhatIfForecastDelta(
+        delta=WhatIfCounterfactualEstimateDelta(
             risk_score_delta=round(risk_score - baseline.risk_score, 3),
             future_event_delta=future_event_count - baseline.future_event_count,
             external_event_delta=(
@@ -756,7 +756,7 @@ def test_load_mail_archive_world_and_materialize_episode(
     assert search_result.match_count >= 1
     assert materialization.organization_name == "Py Corp"
     assert materialization.organization_domain == "pycorp.example.com"
-    assert (workspace_root / "whatif_mail_archive.json").exists()
+    assert (workspace_root / "context_snapshot.json").exists()
     assert manifest.source == "mail_archive"
     assert manifest.branch_event_id == "py-msg-002"
     assert bundle.organization_name == "Py Corp"
@@ -793,7 +793,7 @@ def test_load_company_history_world_materialize_slack_branch_and_replay(
     assert manifest.source == "company_history"
     assert manifest.surface == "slack"
     assert manifest.history_preview[0].surface == "slack"
-    assert (workspace_root / "whatif_company_history.json").exists()
+    assert (workspace_root / "context_snapshot.json").exists()
     assert bundle.organization_name == "Py Corp"
     assert replay.surface == "slack"
     assert replay.visible_item_count >= 2
@@ -915,10 +915,22 @@ def test_company_history_case_context_links_related_surfaces_and_records(
     )
 
     assert any(case.case_id == "case:LEGAL-7" for case in world.cases)
+    assert world.situation_graph is not None
+    assert any(
+        {"crm", "docs", "slack"} <= set(cluster.surfaces)
+        for cluster in world.situation_graph.clusters
+    )
     assert materialization.case_id == "case:LEGAL-7"
     assert manifest.case_context is not None
     assert len(manifest.case_context.related_history) >= 1
     assert {record.surface for record in manifest.case_context.records} >= {
+        "docs",
+        "crm",
+    }
+    assert manifest.situation_context is not None
+    assert {
+        thread.surface for thread in manifest.situation_context.related_threads
+    } >= {
         "docs",
         "crm",
     }
@@ -936,6 +948,25 @@ def test_company_history_case_context_links_related_surfaces_and_records(
     assert "jira" in asset.requested_facades
     assert "docs" in asset.requested_facades
     assert "crm" in asset.requested_facades
+
+
+def test_materialize_episode_auto_selects_thread_from_situation_graph(
+    tmp_path: Path,
+) -> None:
+    snapshot_path = _write_company_history_fixture(tmp_path / "company_history_auto")
+    world = load_world(source="company_history", source_dir=snapshot_path)
+
+    workspace_root = tmp_path / "company_history_auto_episode"
+    materialization = materialize_episode(world, root=workspace_root)
+
+    assert materialization.thread_id == "slack:#deal-desk:1772355600000"
+    assert materialization.situation_context is not None
+    assert {
+        thread.surface for thread in materialization.situation_context.related_threads
+    } >= {
+        "docs",
+        "crm",
+    }
 
 
 def test_load_company_history_world_rejects_errored_event_sources(
@@ -980,7 +1011,7 @@ def test_load_mail_archive_world_prefers_sender_domain_for_company_inference(
 ) -> None:
     root = tmp_path / "domain_inference_archive"
     root.mkdir(parents=True, exist_ok=True)
-    archive_path = root / "mail_archive.json"
+    archive_path = root / "context_snapshot.json"
     archive_path.write_text(
         json.dumps(
             {
@@ -1028,7 +1059,7 @@ def test_materialize_episode_defaults_to_generic_archive_domain_when_missing(
 ) -> None:
     root = tmp_path / "nameless_archive"
     root.mkdir(parents=True, exist_ok=True)
-    archive_path = root / "mail_archive.json"
+    archive_path = root / "context_snapshot.json"
     archive_path.write_text(
         json.dumps(
             {
@@ -1629,7 +1660,7 @@ def test_llm_and_forecast_counterfactual_paths_write_artifacts(
         workspace_root,
         prompt="What if Sara paused the forward and asked ops to wait for compliance?",
     )
-    forecast_result = run_ejepa_proxy_counterfactual(
+    forecast_result = estimate_counterfactual_delta(
         workspace_root,
         prompt="Pause the forward, add compliance, and clarify the owner immediately.",
     )
@@ -1748,7 +1779,7 @@ def test_split_experiment_module_writes_counterfactual_artifacts(
         ),
     )
     monkeypatch.setattr(
-        "vei.whatif.experiment.run_ejepa_proxy_counterfactual",
+        "vei.whatif.experiment.estimate_counterfactual_delta",
         lambda *_args, prompt, **_kwargs: _make_forecast_result(
             prompt=prompt,
             risk_score=0.2,
@@ -1971,29 +2002,29 @@ def test_counterfactual_experiment_can_use_ejepa_backend(
 
     def fake_run_ejepa_counterfactual(
         *_: object, **kwargs: object
-    ) -> WhatIfForecastResult:
+    ) -> WhatIfCounterfactualEstimateResult:
         assert kwargs["epochs"] == 2
         assert kwargs["batch_size"] == 16
         assert kwargs["force_retrain"] is True
         assert kwargs["device"] == "cpu"
-        return WhatIfForecastResult(
+        return WhatIfCounterfactualEstimateResult(
             status="ok",
             backend="e_jepa",
             prompt="Keep this internal.",
             summary="Real E-JEPA forecast completed.",
-            baseline=WhatIfForecast(
+            baseline=WhatIfHistoricalScore(
                 backend="historical",
                 future_event_count=1,
                 future_external_event_count=1,
                 risk_score=0.5,
             ),
-            predicted=WhatIfForecast(
+            predicted=WhatIfHistoricalScore(
                 backend="e_jepa",
                 future_event_count=1,
                 future_external_event_count=0,
                 risk_score=0.2,
             ),
-            delta=WhatIfForecastDelta(
+            delta=WhatIfCounterfactualEstimateDelta(
                 risk_score_delta=-0.3,
                 external_event_delta=-1,
             ),
@@ -2009,7 +2040,7 @@ def test_counterfactual_experiment_can_use_ejepa_backend(
         )
 
     monkeypatch.setattr(
-        "vei.whatif.api.run_ejepa_counterfactual",
+        "vei.whatif.experiment.run_ejepa_counterfactual",
         fake_run_ejepa_counterfactual,
     )
 
@@ -2064,27 +2095,27 @@ def test_counterfactual_experiment_can_use_ejepa_backend_for_generic_archive(
 
     def fake_run_ejepa_counterfactual(
         *_: object, **kwargs: object
-    ) -> WhatIfForecastResult:
+    ) -> WhatIfCounterfactualEstimateResult:
         captured["source"] = str(kwargs["source"])
         captured["source_dir"] = str(kwargs["source_dir"])
-        return WhatIfForecastResult(
+        return WhatIfCounterfactualEstimateResult(
             status="ok",
             backend="e_jepa",
             prompt="Keep this internal.",
             summary="Generic E-JEPA forecast completed.",
-            baseline=WhatIfForecast(
+            baseline=WhatIfHistoricalScore(
                 backend="historical",
                 future_event_count=1,
                 future_external_event_count=1,
                 risk_score=0.5,
             ),
-            predicted=WhatIfForecast(
+            predicted=WhatIfHistoricalScore(
                 backend="e_jepa",
                 future_event_count=1,
                 future_external_event_count=0,
                 risk_score=0.2,
             ),
-            delta=WhatIfForecastDelta(
+            delta=WhatIfCounterfactualEstimateDelta(
                 risk_score_delta=-0.3,
                 external_event_delta=-1,
             ),
@@ -2103,7 +2134,7 @@ def test_counterfactual_experiment_can_use_ejepa_backend_for_generic_archive(
         fake_plan_once_with_usage,
     )
     monkeypatch.setattr(
-        "vei.whatif.api.run_ejepa_counterfactual",
+        "vei.whatif.experiment.run_ejepa_counterfactual",
         fake_run_ejepa_counterfactual,
     )
 
@@ -2163,7 +2194,7 @@ def test_run_ranked_counterfactual_experiment_writes_artifacts_and_keeps_shadow_
     def fake_run_ejepa_proxy_counterfactual(
         *_: object,
         prompt: str,
-    ) -> WhatIfForecastResult:
+    ) -> WhatIfCounterfactualEstimateResult:
         if "internal" in prompt.lower():
             return _make_forecast_result(
                 prompt=prompt,
@@ -2181,11 +2212,11 @@ def test_run_ranked_counterfactual_experiment_writes_artifacts_and_keeps_shadow_
         )
 
     monkeypatch.setattr(
-        "vei.whatif.api.run_llm_counterfactual",
+        "vei.whatif.experiment.run_llm_counterfactual",
         fake_run_llm_counterfactual,
     )
     monkeypatch.setattr(
-        "vei.whatif.api.run_ejepa_proxy_counterfactual",
+        "vei.whatif.experiment.estimate_counterfactual_delta",
         fake_run_ejepa_proxy_counterfactual,
     )
 
@@ -2271,7 +2302,7 @@ def test_run_ranked_counterfactual_experiment_can_use_ejepa_shadow_for_generic_a
         *_: object,
         prompt: str,
         **kwargs: object,
-    ) -> WhatIfForecastResult:
+    ) -> WhatIfCounterfactualEstimateResult:
         captured_sources.append(str(kwargs["source"]))
         if "internal" in prompt.lower():
             return _make_forecast_result(
@@ -2290,11 +2321,11 @@ def test_run_ranked_counterfactual_experiment_can_use_ejepa_shadow_for_generic_a
         ).model_copy(update={"backend": "e_jepa"})
 
     monkeypatch.setattr(
-        "vei.whatif.api.run_llm_counterfactual",
+        "vei.whatif.experiment.run_llm_counterfactual",
         fake_run_llm_counterfactual,
     )
     monkeypatch.setattr(
-        "vei.whatif.api.run_ejepa_counterfactual",
+        "vei.whatif.experiment.run_ejepa_counterfactual",
         fake_run_ejepa_counterfactual,
     )
 
@@ -2349,11 +2380,11 @@ def test_vei_whatif_cli_rank_and_show_ranked_result(
         )
 
     monkeypatch.setattr(
-        "vei.whatif.api.run_llm_counterfactual",
+        "vei.whatif.experiment.run_llm_counterfactual",
         fake_run_llm_counterfactual,
     )
     monkeypatch.setattr(
-        "vei.whatif.api.run_ejepa_proxy_counterfactual",
+        "vei.whatif.experiment.estimate_counterfactual_delta",
         lambda *_args, prompt, **_kwargs: _make_forecast_result(
             prompt=prompt,
             risk_score=0.3,
@@ -2486,7 +2517,7 @@ def test_run_research_pack_writes_artifacts_and_scores_all_backends(
     def fake_run_ejepa_proxy_counterfactual(
         *_: object,
         prompt: str,
-    ) -> WhatIfForecastResult:
+    ) -> WhatIfCounterfactualEstimateResult:
         if "internal" in prompt.lower():
             return _make_forecast_result(
                 prompt=prompt,
@@ -2515,9 +2546,9 @@ def test_run_research_pack_writes_artifacts_and_scores_all_backends(
         *_: object,
         prompt: str,
         **__: object,
-    ) -> WhatIfForecastResult:
+    ) -> WhatIfCounterfactualEstimateResult:
         if "status note" in prompt.lower():
-            return WhatIfForecastResult(
+            return WhatIfCounterfactualEstimateResult(
                 status="error",
                 backend="e_jepa",
                 prompt=prompt,
@@ -2526,48 +2557,48 @@ def test_run_research_pack_writes_artifacts_and_scores_all_backends(
                 notes=["Forced test fallback."],
             )
         if "internal" in prompt.lower():
-            return WhatIfForecastResult(
+            return WhatIfCounterfactualEstimateResult(
                 status="ok",
                 backend="e_jepa",
                 prompt=prompt,
                 summary="Real E-JEPA backend prefers the internal hold.",
-                baseline=WhatIfForecast(
+                baseline=WhatIfHistoricalScore(
                     backend="historical",
                     future_event_count=2,
                     future_external_event_count=1,
                     risk_score=0.6,
                 ),
-                predicted=WhatIfForecast(
+                predicted=WhatIfHistoricalScore(
                     backend="e_jepa",
                     future_event_count=2,
                     future_external_event_count=0,
                     risk_score=0.18,
                 ),
-                delta=WhatIfForecastDelta(
+                delta=WhatIfCounterfactualEstimateDelta(
                     risk_score_delta=-0.42,
                     future_event_delta=0,
                     external_event_delta=-1,
                 ),
                 notes=["Real E-JEPA path used in the fixture test."],
             )
-        return WhatIfForecastResult(
+        return WhatIfCounterfactualEstimateResult(
             status="ok",
             backend="e_jepa",
             prompt=prompt,
             summary="Real E-JEPA backend dislikes the broad outside send.",
-            baseline=WhatIfForecast(
+            baseline=WhatIfHistoricalScore(
                 backend="historical",
                 future_event_count=2,
                 future_external_event_count=1,
                 risk_score=0.6,
             ),
-            predicted=WhatIfForecast(
+            predicted=WhatIfHistoricalScore(
                 backend="e_jepa",
                 future_event_count=3,
                 future_external_event_count=2,
                 risk_score=0.92,
             ),
-            delta=WhatIfForecastDelta(
+            delta=WhatIfCounterfactualEstimateDelta(
                 risk_score_delta=0.32,
                 future_event_delta=1,
                 external_event_delta=1,
@@ -2580,7 +2611,7 @@ def test_run_research_pack_writes_artifacts_and_scores_all_backends(
         fake_run_llm_counterfactual,
     )
     monkeypatch.setattr(
-        "vei.whatif.research.run_ejepa_proxy_counterfactual",
+        "vei.whatif.research.estimate_counterfactual_delta",
         fake_run_ejepa_proxy_counterfactual,
     )
     monkeypatch.setattr(
@@ -2714,7 +2745,7 @@ def test_run_research_pack_uses_world_domain_for_generic_archive(
     def fake_run_ejepa_proxy_counterfactual(
         *_: object,
         prompt: str,
-    ) -> WhatIfForecastResult:
+    ) -> WhatIfCounterfactualEstimateResult:
         if "internal" in prompt.lower():
             return _make_forecast_result(
                 prompt=prompt,
@@ -2735,7 +2766,7 @@ def test_run_research_pack_uses_world_domain_for_generic_archive(
         *_: object,
         prompt: str,
         **__: object,
-    ) -> WhatIfForecastResult:
+    ) -> WhatIfCounterfactualEstimateResult:
         if "internal" in prompt.lower():
             return _make_forecast_result(
                 prompt=prompt,
@@ -2757,7 +2788,7 @@ def test_run_research_pack_uses_world_domain_for_generic_archive(
         fake_run_llm_counterfactual,
     )
     monkeypatch.setattr(
-        "vei.whatif.research.run_ejepa_proxy_counterfactual",
+        "vei.whatif.research.estimate_counterfactual_delta",
         fake_run_ejepa_proxy_counterfactual,
     )
     monkeypatch.setattr(
@@ -2823,7 +2854,7 @@ def test_run_research_pack_reuses_completed_case_results(
         *_: object,
         prompt: str,
         **__: object,
-    ) -> WhatIfForecastResult:
+    ) -> WhatIfCounterfactualEstimateResult:
         return _make_forecast_result(
             prompt=prompt,
             risk_score=0.15,
@@ -2837,7 +2868,7 @@ def test_run_research_pack_reuses_completed_case_results(
         fake_run_llm_counterfactual,
     )
     monkeypatch.setattr(
-        "vei.whatif.research.run_ejepa_proxy_counterfactual",
+        "vei.whatif.research.estimate_counterfactual_delta",
         fake_run_forecast,
     )
     monkeypatch.setattr(
@@ -2860,7 +2891,7 @@ def test_run_research_pack_reuses_completed_case_results(
         ),
     )
     monkeypatch.setattr(
-        "vei.whatif.research.run_ejepa_proxy_counterfactual",
+        "vei.whatif.research.estimate_counterfactual_delta",
         lambda *_args, **_kwargs: (_ for _ in ()).throw(
             AssertionError("cached case should skip proxy scoring")
         ),
@@ -2909,7 +2940,7 @@ def test_vei_whatif_cli_pack_run_list_and_show(tmp_path: Path, monkeypatch) -> N
         ),
     )
     monkeypatch.setattr(
-        "vei.whatif.research.run_ejepa_proxy_counterfactual",
+        "vei.whatif.research.estimate_counterfactual_delta",
         lambda *_args, prompt, **_kwargs: _make_forecast_result(
             prompt=prompt,
             risk_score=0.15,
@@ -2920,24 +2951,24 @@ def test_vei_whatif_cli_pack_run_list_and_show(tmp_path: Path, monkeypatch) -> N
     )
     monkeypatch.setattr(
         "vei.whatif.research.run_ejepa_counterfactual",
-        lambda *_args, prompt, **_kwargs: WhatIfForecastResult(
+        lambda *_args, prompt, **_kwargs: WhatIfCounterfactualEstimateResult(
             status="ok",
             backend="e_jepa",
             prompt=prompt,
             summary="Real E-JEPA fixture forecast completed.",
-            baseline=WhatIfForecast(
+            baseline=WhatIfHistoricalScore(
                 backend="historical",
                 future_event_count=2,
                 future_external_event_count=1,
                 risk_score=0.6,
             ),
-            predicted=WhatIfForecast(
+            predicted=WhatIfHistoricalScore(
                 backend="e_jepa",
                 future_event_count=2,
                 future_external_event_count=0,
                 risk_score=0.2,
             ),
-            delta=WhatIfForecastDelta(
+            delta=WhatIfCounterfactualEstimateDelta(
                 risk_score_delta=-0.4,
                 future_event_delta=0,
                 external_event_delta=-1,

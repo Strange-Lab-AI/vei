@@ -6,7 +6,7 @@ from .models import (
     WhatIfDecisionOption,
     WhatIfDecisionScene,
     WhatIfEventReference,
-    WhatIfForecast,
+    WhatIfHistoricalScore,
     WhatIfWorld,
 )
 from .corpus import (
@@ -18,9 +18,10 @@ from .corpus import (
 from .cases import build_case_context
 from .public_context import slice_public_context_to_branch
 from .business_state import assess_historical_business_state
+from .situations import build_situation_context
 from .episode import (
     resolve_thread_branch,
-    forecast_episode,
+    score_historical_tail,
     load_episode_manifest,
     _source_snapshot_for_world,
     _history_preview_from_saved_context,
@@ -61,7 +62,12 @@ def build_decision_scene(
         branch_thread_id=selected_thread_id,
         branch_timestamp_ms=branch_event.timestamp_ms,
     )
-    forecast = forecast_episode(
+    situation_context = build_situation_context(
+        world,
+        branch_thread_id=selected_thread_id,
+        branch_timestamp_ms=branch_event.timestamp_ms,
+    )
+    forecast = score_historical_tail(
         future_events,
         organization_domain=organization_domain,
     )
@@ -115,6 +121,7 @@ def build_decision_scene(
         ),
         public_context=branch_public_context,
         case_context=case_context,
+        situation_context=situation_context,
         historical_business_state=historical_business_state,
     )
 
@@ -172,6 +179,7 @@ def build_saved_decision_scene(
         ),
         public_context=manifest.public_context,
         case_context=manifest.case_context,
+        situation_context=manifest.situation_context,
         historical_business_state=manifest.historical_business_state,
     )
 
@@ -239,7 +247,7 @@ def _historical_action_summary(
     return f'Historically, {actor} {verb} "{subject}" to {recipient}{suffix}.'
 
 
-def _historical_outcome_summary(forecast: WhatIfForecast) -> str:
+def _historical_outcome_summary(forecast: WhatIfHistoricalScore) -> str:
     return (
         f"The recorded future had {forecast.future_event_count} follow-up events, "
         f"{forecast.future_external_event_count} outside-addressed sends, and "
@@ -249,7 +257,7 @@ def _historical_outcome_summary(forecast: WhatIfForecast) -> str:
 
 def _decision_stakes_summary(
     branch_event: WhatIfEventReference,
-    forecast: WhatIfForecast,
+    forecast: WhatIfHistoricalScore,
     *,
     organization_domain: str,
 ) -> str:

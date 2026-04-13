@@ -5,7 +5,7 @@ from typing import Sequence
 from .corpus import ENRON_DOMAIN, has_external_recipients
 from .models import (
     WhatIfEventReference,
-    WhatIfForecastResult,
+    WhatIfCounterfactualEstimateResult,
     WhatIfLLMReplayResult,
     WhatIfObjectivePack,
     WhatIfObjectivePackId,
@@ -178,7 +178,7 @@ def summarize_llm_branch(
 
 
 def summarize_forecast_branch(
-    forecast_result: WhatIfForecastResult,
+    forecast_result: WhatIfCounterfactualEstimateResult,
 ) -> WhatIfOutcomeSignals:
     predicted = forecast_result.predicted
     baseline = forecast_result.baseline

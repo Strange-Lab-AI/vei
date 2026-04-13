@@ -1,10 +1,16 @@
 from __future__ import annotations
 
+import csv
+import json
+import logging
+from pathlib import Path
 from typing import Any, Dict, List
 
 from vei.context.models import ContextProviderConfig, ContextSourceResult
 
 from .base import api_get_json, iso_now, join_url, resolve_token
+
+logger = logging.getLogger(__name__)
 
 
 class JiraContextProvider:
@@ -111,7 +117,19 @@ def _fetch_transitions(
     url = join_url(base_url, f"/rest/api/3/issue/{issue_key}/transitions")
     try:
         result = api_get_json(url, headers=headers, timeout_s=timeout)
-    except Exception:
+    except Exception as exc:
+        logger.warning(
+            "context jira transitions fetch failed for %s (%s)",
+            issue_key,
+            type(exc).__name__,
+            extra={
+                "source": "context_capture",
+                "provider": "jira",
+                "file_path": url,
+                "exception_type": type(exc).__name__,
+            },
+            exc_info=True,
+        )
         return []
     raw = result.get("transitions", []) if isinstance(result, dict) else []
     return [
@@ -185,3 +203,108 @@ def _walk_adf(node: Any, parts: list[str]) -> None:
     elif isinstance(node, list):
         for child in node:
             _walk_adf(child, parts)
+
+
+def capture_from_export(export_path: str | Path) -> ContextSourceResult:
+    path = _resolve_jira_export_path(Path(export_path))
+    if path is None or not path.exists():
+        return ContextSourceResult(
+            provider="jira",
+            captured_at=iso_now(),
+            status="error",
+            error=f"jira export not found: {export_path}",
+        )
+
+    try:
+        issues = _load_jira_export_issues(path)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning(
+            "context jira export parse failed for %s (%s)",
+            path,
+            type(exc).__name__,
+            extra={
+                "source": "context_export",
+                "provider": "jira",
+                "file_path": str(path),
+                "exception_type": type(exc).__name__,
+            },
+            exc_info=True,
+        )
+        return ContextSourceResult(
+            provider="jira",
+            captured_at=iso_now(),
+            status="error",
+            error=f"failed to parse jira export: {exc}",
+        )
+
+    status = "ok" if issues else "empty"
+    return ContextSourceResult(
+        provider="jira",
+        captured_at=iso_now(),
+        status=status,
+        record_counts={"issues": len(issues)},
+        data={"issues": issues, "parse_warnings": []},
+    )
+
+
+def _resolve_jira_export_path(root: Path) -> Path | None:
+    if root.is_file():
+        return root
+    for name in ("jira.json", "jira.csv", "issues.json", "issues.csv"):
+        candidate = root / name
+        if candidate.exists():
+            return candidate
+    raw_dir = root / "raw"
+    if raw_dir.is_dir():
+        return _resolve_jira_export_path(raw_dir)
+    return None
+
+
+def _load_jira_export_issues(path: Path) -> list[dict[str, Any]]:
+    if path.suffix.lower() == ".csv":
+        rows = list(csv.DictReader(path.read_text(encoding="utf-8").splitlines()))
+        issues: list[dict[str, Any]] = []
+        for index, row in enumerate(rows):
+            ticket_id = str(row.get("ticket_id") or row.get("key") or "").strip()
+            if not ticket_id:
+                ticket_id = f"JIRA-{index + 1}"
+            issues.append(
+                {
+                    "ticket_id": ticket_id,
+                    "title": str(
+                        row.get("title") or row.get("summary") or ticket_id
+                    ).strip(),
+                    "status": str(row.get("status") or "open").strip(),
+                    "assignee": str(row.get("assignee") or "").strip(),
+                    "description": str(row.get("description") or "").strip(),
+                    "issue_type": str(row.get("issue_type") or "").strip(),
+                    "priority": str(row.get("priority") or "").strip(),
+                    "updated": str(
+                        row.get("updated") or row.get("created") or ""
+                    ).strip(),
+                    "comments": _csv_comment_rows(row.get("comments")),
+                }
+            )
+        return issues
+
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if isinstance(payload, dict):
+        issues = payload.get("issues", [])
+    elif isinstance(payload, list):
+        issues = payload
+    else:
+        issues = []
+    return [item for item in issues if isinstance(item, dict)]
+
+
+def _csv_comment_rows(value: object) -> list[dict[str, Any]]:
+    text = str(value or "").strip()
+    if not text:
+        return []
+    try:
+        payload = json.loads(text)
+        if isinstance(payload, list):
+            return [item for item in payload if isinstance(item, dict)]
+    except json.JSONDecodeError:
+        pass
+    return [{"id": "", "author": "", "body": text, "created": ""}]

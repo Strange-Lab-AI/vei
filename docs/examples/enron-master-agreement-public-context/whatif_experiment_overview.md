@@ -1,6 +1,8 @@
 # master_agreement_internal_review_public_context_20260412
 
 Thread: `thr_e565b47423d035c9`
+Case: `thr_e565b47423d035c9`
+Surface: mail
 Branch event: `enron_bcda1b925800af8c`
 Changed actor: `debra.perlingiere@enron.com`
 Historical event type: assignment
@@ -26,11 +28,11 @@ Prompt: Keep the draft inside Enron, loop in Gerald Nemec for legal review, and 
 ## LLM Actor
 - Status: ok
 - Summary: Rather than sending the draft Master Firm Purchase/Sale Agreement outside to Cargill, Debra retains the draft inside Enron, loops in Enron legal (Gerald Nemec) and credit/legal support (Sara Shackleton) for review, and explicitly instructs the team to hold any external transmission until a clean, legally approved version is circulated. Gerald acknowledges, flags specific legal points, and commits to legal sign-off; Debra issues an internal status update confirming the hold.
-- Delivered messages: 3
+- Delivered actions: 3
 - Inbox count: 5
-- `debra.perlingiere@enron.com` -> `gerald.nemec@enron.com` after 1000 ms: Master Agreement (Internal draft — DO NOT SEND)
-- `gerald.nemec@enron.com` -> `debra.perlingiere@enron.com` after 1800000 ms: Re: Master Agreement (Internal draft — DO NOT SEND)
-- `debra.perlingiere@enron.com` -> `marie.heard@enron.com` after 3600000 ms: Re: Master Agreement — internal status
+- `mail` `debra.perlingiere@enron.com` -> `gerald.nemec@enron.com` after 1000 ms: Master Agreement (Internal draft — DO NOT SEND)
+- `mail` `gerald.nemec@enron.com` -> `debra.perlingiere@enron.com` after 1800000 ms: Re: Master Agreement (Internal draft — DO NOT SEND)
+- `mail` `debra.perlingiere@enron.com` -> `marie.heard@enron.com` after 3600000 ms: Re: Master Agreement — internal status
 
 ## Forecast
 - Status: ok

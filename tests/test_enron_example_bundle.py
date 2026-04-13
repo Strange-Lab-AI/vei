@@ -40,7 +40,7 @@ def _write_packaging_source_fixture(root: Path, *, forecast_filename: str) -> Pa
         "imports/source_sync_history.json",
         "runs/index.json",
         "sources/blueprint_asset.json",
-        "whatif_episode_manifest.json",
+        "episode_manifest.json",
     ):
         path = workspace_root / relative_path
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -61,13 +61,13 @@ def test_repo_owned_enron_example_bundle_is_present_and_clean() -> None:
         EXAMPLE_ROOT / "whatif_business_state_comparison.md",
         EXAMPLE_ROOT / "workspace" / "vei_project.json",
         EXAMPLE_ROOT / "workspace" / "context_snapshot.json",
-        EXAMPLE_ROOT / "workspace" / "whatif_episode_manifest.json",
+        EXAMPLE_ROOT / "workspace" / "episode_manifest.json",
     ]
     for path in required_paths:
         assert path.exists(), path
 
     manifest = json.loads(
-        (EXAMPLE_ROOT / "workspace" / "whatif_episode_manifest.json").read_text(
+        (EXAMPLE_ROOT / "workspace" / "episode_manifest.json").read_text(
             encoding="utf-8"
         )
     )
@@ -88,7 +88,7 @@ def test_repo_owned_enron_example_bundle_is_present_and_clean() -> None:
     for relative_path in (
         "whatif_experiment_result.json",
         "whatif_ejepa_result.json",
-        "workspace/whatif_episode_manifest.json",
+        "workspace/episode_manifest.json",
     ):
         text = (EXAMPLE_ROOT / relative_path).read_text(encoding="utf-8")
         assert "/Users/" not in text

@@ -9,6 +9,100 @@ app = typer.Typer(add_completion=False)
 
 
 @app.command()
+def normalize(
+    source_dir: str = typer.Option(
+        ..., "--source-dir", help="Path to a mixed export directory or snapshot"
+    ),
+    org: str = typer.Option("", "--org", help="Organization name"),
+    domain: str = typer.Option("", "--domain", help="Organization domain"),
+    output: str = typer.Option(
+        "context_snapshot.json", "--output", "-o", help="Output snapshot path"
+    ),
+) -> None:
+    """Normalize mixed raw exports into one context snapshot."""
+    from vei.context.normalize import normalize_raw_exports
+
+    snapshot = normalize_raw_exports(
+        source_dir,
+        organization_name=org,
+        organization_domain=domain,
+    )
+    Path(output).write_text(snapshot.model_dump_json(indent=2), encoding="utf-8")
+
+    ok_count = sum(1 for source in snapshot.sources if source.status == "ok")
+    partial_count = sum(1 for source in snapshot.sources if source.status == "partial")
+    empty_count = sum(1 for source in snapshot.sources if source.status == "empty")
+    error_count = sum(1 for source in snapshot.sources if source.status == "error")
+    typer.echo(
+        "Normalized "
+        f"{len(snapshot.sources)} sources "
+        f"(ok={ok_count}, partial={partial_count}, empty={empty_count}, error={error_count}) "
+        f"-> {output}"
+    )
+
+
+@app.command()
+def verify(
+    snapshot: str = typer.Option(
+        ..., "--snapshot", "-s", help="Path to context snapshot JSON"
+    ),
+    output: str = typer.Option(
+        "-", "--output", "-o", help="Output verification JSON path or stdout"
+    ),
+) -> None:
+    """Run structural checks against a context snapshot."""
+    from vei.context.models import ContextSnapshot
+    from vei.context.normalize import verify_context_snapshot
+
+    path = Path(snapshot)
+    if not path.exists():
+        raise typer.BadParameter(f"snapshot file not found: {snapshot}")
+
+    snap = ContextSnapshot.model_validate_json(path.read_text(encoding="utf-8"))
+    result = verify_context_snapshot(snap, snapshot_path=path)
+    text = result.model_dump_json(indent=2)
+    if output != "-":
+        Path(output).write_text(text, encoding="utf-8")
+        typer.echo(
+            f"Verified snapshot ({result.error_count} errors, {result.warning_count} warnings) -> {output}"
+        )
+        return
+    typer.echo(text)
+
+
+@app.command()
+def public(
+    company: str = typer.Option(..., "--company", help="Organization name"),
+    domain: str = typer.Option(..., "--domain", help="Organization domain"),
+    template_only: bool = typer.Option(
+        False,
+        "--template-only",
+        help="Write a template without fetching live public data",
+    ),
+    output: str = typer.Option(
+        "whatif_public_context.json",
+        "--output",
+        "-o",
+        help="Output public context path",
+    ),
+) -> None:
+    """Create a public-context sidecar for what-if company history."""
+    from vei.context.normalize import build_public_context_sidecar
+
+    context = build_public_context_sidecar(
+        organization_name=company,
+        organization_domain=domain,
+        live=not template_only,
+    )
+    Path(output).write_text(context.model_dump_json(indent=2), encoding="utf-8")
+    typer.echo(
+        "Public context written "
+        f"(financial={len(context.financial_snapshots)}, "
+        f"events={len(context.public_news_events)}) -> {output}"
+    )
+
+
+@app.command()
 def capture(
     provider: List[str] = typer.Option(
         ...,

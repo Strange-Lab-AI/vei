@@ -11,7 +11,7 @@ from .models import (
     WhatIfEpisodeMaterialization,
     WhatIfEventSearchResult,
     WhatIfExperimentResult,
-    WhatIfForecastResult,
+    WhatIfCounterfactualEstimateResult,
     WhatIfCaseContext,
     WhatIfLLMReplayResult,
     WhatIfPackRunResult,
@@ -19,6 +19,7 @@ from .models import (
     WhatIfRankedExperimentResult,
     WhatIfReplaySummary,
     WhatIfResult,
+    WhatIfSituationContext,
     WhatIfWorld,
 )
 
@@ -95,6 +96,32 @@ def _case_context_lines(
     return lines
 
 
+def _situation_context_lines(
+    context: WhatIfSituationContext | None,
+    *,
+    max_threads: int = 3,
+    max_history: int = 3,
+) -> list[str]:
+    if context is None:
+        return []
+    if not context.related_threads and not context.related_history:
+        return []
+    lines = [
+        "",
+        "## Situation Context",
+        f"- Situation id: {context.situation_id}",
+        f"- Related threads: {len(context.related_threads)}",
+        f"- Related activity: {len(context.related_history)}",
+    ]
+    for thread in context.related_threads[: max(1, max_threads)]:
+        lines.append(f"- [{thread.surface}] {thread.subject or thread.thread_id}")
+    for event in context.related_history[-max(1, max_history) :]:
+        lines.append(
+            f"- [{event.surface}] {event.timestamp[:10]} {event.actor_id}: {event.subject or event.thread_id}"
+        )
+    return lines
+
+
 def _business_state_change_lines(
     change: WhatIfBusinessStateChange | None,
     *,
@@ -124,6 +151,7 @@ def render_world_summary(world: WhatIfWorld) -> str:
         f"- Events: {world.summary.event_count}",
         f"- Threads: {world.summary.thread_count}",
         f"- Cases: {len(world.cases)}",
+        f"- Situation clusters: {len(world.situation_graph.clusters) if world.situation_graph else 0}",
         f"- Actors: {world.summary.actor_count}",
         f"- Custodians: {world.summary.custodian_count}",
     ]
@@ -229,6 +257,7 @@ def render_episode(materialization: WhatIfEpisodeMaterialization) -> str:
     ]
     lines.extend(_public_context_lines(materialization.public_context))
     lines.extend(_case_context_lines(materialization.case_context))
+    lines.extend(_situation_context_lines(materialization.situation_context))
     lines.extend(
         _business_state_assessment_lines(
             materialization.historical_business_state,
@@ -299,7 +328,7 @@ def render_llm_result(result: WhatIfLLMReplayResult) -> str:
     return "\n".join(lines)
 
 
-def render_forecast_result(result: WhatIfForecastResult) -> str:
+def render_forecast_result(result: WhatIfCounterfactualEstimateResult) -> str:
     title = (
         "# E-JEPA Forecast" if result.backend == "e_jepa" else "# E-JEPA Proxy Forecast"
     )

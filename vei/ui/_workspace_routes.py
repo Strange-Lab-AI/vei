@@ -139,11 +139,6 @@ def register_workspace_routes(app: FastAPI, root: Path, *, deps: Any) -> None:
 
     @app.post("/api/workspace/whatif/open")
     def api_workspace_whatif_open(request: WhatIfOpenRequest) -> JSONResponse:
-        if not request.event_id and not request.thread_id:
-            raise HTTPException(
-                status_code=400,
-                detail="event_id or thread_id is required",
-            )
         world, source_dir = _resolve_whatif_source(
             request.source,
             max_events=request.max_events,
@@ -170,11 +165,6 @@ def register_workspace_routes(app: FastAPI, root: Path, *, deps: Any) -> None:
 
     @app.post("/api/workspace/whatif/scene")
     def api_workspace_whatif_scene(request: WhatIfSceneRequest) -> JSONResponse:
-        if not request.event_id and not request.thread_id:
-            raise HTTPException(
-                status_code=400,
-                detail="event_id or thread_id is required",
-            )
         historical = load_workspace_historical_summary(root)
         matches_saved_branch = historical is not None and (
             (not request.event_id or request.event_id == historical.branch_event_id)
@@ -204,11 +194,6 @@ def register_workspace_routes(app: FastAPI, root: Path, *, deps: Any) -> None:
 
     @app.post("/api/workspace/whatif/run")
     def api_workspace_whatif_run(request: WhatIfRunRequest) -> JSONResponse:
-        if not request.event_id and not request.thread_id:
-            raise HTTPException(
-                status_code=400,
-                detail="event_id or thread_id is required",
-            )
         world, source_dir = _resolve_whatif_source(
             request.source,
             max_events=request.max_events,
@@ -237,11 +222,6 @@ def register_workspace_routes(app: FastAPI, root: Path, *, deps: Any) -> None:
 
     @app.post("/api/workspace/whatif/rank")
     def api_workspace_whatif_rank(request: WhatIfRankRequest) -> JSONResponse:
-        if not request.event_id and not request.thread_id:
-            raise HTTPException(
-                status_code=400,
-                detail="event_id or thread_id is required",
-            )
         if not request.candidates:
             raise HTTPException(
                 status_code=400,

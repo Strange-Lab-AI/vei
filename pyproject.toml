@@ -19,6 +19,7 @@ dependencies = [
   "rich>=13.7.0",
   "fastapi>=0.115.0",
   "pyarrow>=23.0.0",
+  "defusedxml>=0.7.1",
 ]
 
 [project.urls]

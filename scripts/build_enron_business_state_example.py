@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from vei.whatif import build_saved_decision_scene, run_ejepa_proxy_counterfactual
+from vei.whatif import build_saved_decision_scene, estimate_counterfactual_delta
 
 DEFAULT_EXAMPLE_ROOT = Path("docs/examples/enron-master-agreement-public-context")
 
@@ -54,7 +54,7 @@ def build_example(output_root: Path = DEFAULT_EXAMPLE_ROOT) -> None:
     scene = build_saved_decision_scene(workspace_root)
     candidates: list[dict[str, Any]] = []
     for option in scene.candidate_options:
-        forecast_result = run_ejepa_proxy_counterfactual(
+        forecast_result = estimate_counterfactual_delta(
             workspace_root,
             prompt=option.prompt,
         )

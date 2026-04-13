@@ -1,16 +1,20 @@
 from __future__ import annotations
 
 import json
+import logging
 from pathlib import Path
 from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
 
+from vei.context.api import capture_context
 from vei.context.models import ContextProviderConfig
 from vei.context.providers import get_provider, list_providers
+from vei.context.providers.crm import capture_from_export as capture_crm_export
 from vei.context.providers.gmail import GmailContextProvider
 from vei.context.providers.google import GoogleContextProvider
+from vei.context.providers.google import capture_from_export as capture_google_export
 from vei.context.providers.jira import JiraContextProvider
 from vei.context.providers.okta import OktaContextProvider
 from vei.context.providers.slack import SlackContextProvider
@@ -197,6 +201,90 @@ def test_google_provider_captures_users_and_docs(
     assert result.record_counts["users"] == 1
     assert result.record_counts["documents"] == 1
     assert result.data["users"][0]["email"] == "alice@example.com"
+
+
+def test_google_export_directory_merges_docs_and_share_files(tmp_path: Path) -> None:
+    (tmp_path / "google_docs.csv").write_text(
+        "\n".join(
+            [
+                "doc_id,title,body,modified_time",
+                "DOC-1,Renewal Plan,Need legal approval,2026-03-01T10:00:00Z",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    (tmp_path / "google_drive_shares.csv").write_text(
+        "\n".join(
+            [
+                "doc_id,title,owner,visibility,classification,shared_with",
+                "DOC-1,Renewal Plan,maya@acme.example.com,external,confidential,client@buyer.example.com;legal@acme.example.com",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    result = capture_google_export(tmp_path)
+
+    assert result.status == "ok"
+    assert result.record_counts["documents"] == 1
+    assert result.record_counts["drive_shares"] == 1
+    assert result.data["documents"][0]["doc_id"] == "DOC-1"
+    assert result.data["drive_shares"][0]["owner"] == "maya@acme.example.com"
+    assert result.data["drive_shares"][0]["shared_with"] == [
+        "client@buyer.example.com",
+        "legal@acme.example.com",
+    ]
+
+
+def test_capture_context_logs_warning_on_provider_failure(
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    class ExplodingProvider:
+        def capture(self, _config: ContextProviderConfig) -> Any:
+            raise RuntimeError("boom")
+
+    monkeypatch.setattr(
+        "vei.context.api.get_provider", lambda _name: ExplodingProvider()
+    )
+
+    with caplog.at_level(logging.WARNING):
+        snapshot = capture_context(
+            [ContextProviderConfig(provider="slack", token_env="VEI_SLACK_TOKEN")],
+            organization_name="Acme Cloud",
+            organization_domain="acme.example.com",
+        )
+
+    assert snapshot.sources[0].status == "error"
+    record = next(
+        record
+        for record in caplog.records
+        if "context capture failed for slack" in record.getMessage()
+    )
+    assert getattr(record, "source") == "context_capture"
+    assert getattr(record, "provider") == "slack"
+    assert getattr(record, "exception_type") == "RuntimeError"
+
+
+def test_crm_export_parse_failure_logs_warning(
+    tmp_path: Path,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    export_path = tmp_path / "crm.json"
+    export_path.write_text("{bad json", encoding="utf-8")
+
+    with caplog.at_level(logging.WARNING):
+        result = capture_crm_export(export_path)
+
+    assert result.status == "error"
+    record = next(
+        record
+        for record in caplog.records
+        if "context crm export parse failed" in record.getMessage()
+    )
+    assert getattr(record, "source") == "context_export"
+    assert getattr(record, "provider") == "crm"
+    assert getattr(record, "exception_type") == "JSONDecodeError"
 
 
 def test_okta_provider_reads_payload_before_tempdir_is_removed(

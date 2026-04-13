@@ -603,9 +603,10 @@ def write_run_manifest(root: str | Path, manifest: RunManifest) -> RunManifest:
     workspace_root = Path(root).expanduser().resolve()
     run_dir = workspace_root / manifest.artifacts.run_dir
     run_dir.mkdir(parents=True, exist_ok=True)
-    (run_dir / "run_manifest.json").write_text(
-        manifest.model_dump_json(indent=2), encoding="utf-8"
-    )
+    manifest_path = run_dir / "run_manifest.json"
+    temp_path = run_dir / f".run_manifest.{uuid4().hex}.tmp"
+    temp_path.write_text(manifest.model_dump_json(indent=2), encoding="utf-8")
+    temp_path.replace(manifest_path)
     return manifest
 
 

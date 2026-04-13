@@ -252,7 +252,7 @@ class WorldSession:
         return cls(router)
 
     def attach_actor_registry(self, registry: Any) -> None:
-        """Attach an ActorRegistry so NPC events route through actor personas."""
+        """Attach an actor-response backend so NPC events can generate replies."""
         self.actor_registry = registry
 
     def _dispatch_actor_event(

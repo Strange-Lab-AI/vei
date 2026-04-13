@@ -14,7 +14,7 @@ from vei.whatif.business_state import (
 from vei.whatif.models import (
     WhatIfEpisodeManifest,
     WhatIfExperimentResult,
-    WhatIfForecastResult,
+    WhatIfCounterfactualEstimateResult,
 )
 from scripts.build_enron_business_state_example import (
     build_example as build_business_state_example,
@@ -35,6 +35,13 @@ def _write_json(path: Path, payload: dict[str, Any]) -> None:
 def _copy_file(source: Path, target: Path) -> None:
     target.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(source, target)
+
+
+def _preserve_readme(output_root: Path) -> str | None:
+    readme_path = output_root / "README.md"
+    if not readme_path.exists():
+        return None
+    return readme_path.read_text(encoding="utf-8")
 
 
 def _rewrite_manifest(payload: dict[str, Any]) -> dict[str, Any]:
@@ -67,9 +74,7 @@ def _resolve_forecast_filename(
     for filename in ("whatif_ejepa_result.json", "whatif_ejepa_proxy_result.json"):
         if (source_root / filename).exists():
             return filename
-    raise FileNotFoundError(
-        f"forecast result not found under {source_root}"
-    )
+    raise FileNotFoundError(f"forecast result not found under {source_root}")
 
 
 def _rewrite_experiment_result(
@@ -80,7 +85,7 @@ def _rewrite_experiment_result(
     updated = dict(payload)
     materialization = dict(updated.get("materialization") or {})
     if materialization:
-        materialization["manifest_path"] = "workspace/whatif_episode_manifest.json"
+        materialization["manifest_path"] = "workspace/episode_manifest.json"
         materialization["bundle_path"] = EXAMPLE_PLACEHOLDER
         materialization["context_snapshot_path"] = "workspace/context_snapshot.json"
         materialization["baseline_dataset_path"] = (
@@ -110,8 +115,10 @@ def _rewrite_experiment_result(
     return updated
 
 
-def _enrich_packaged_business_state(output_root: Path, *, forecast_filename: str) -> None:
-    manifest_path = output_root / "workspace" / "whatif_episode_manifest.json"
+def _enrich_packaged_business_state(
+    output_root: Path, *, forecast_filename: str
+) -> None:
+    manifest_path = output_root / "workspace" / "episode_manifest.json"
     forecast_path = output_root / forecast_filename
     result_path = output_root / "whatif_experiment_result.json"
     context_path = output_root / "workspace" / "context_snapshot.json"
@@ -128,7 +135,7 @@ def _enrich_packaged_business_state(output_root: Path, *, forecast_filename: str
     manifest.historical_business_state = historical_business_state
     manifest_path.write_text(manifest.model_dump_json(indent=2), encoding="utf-8")
 
-    forecast_result = WhatIfForecastResult.model_validate_json(
+    forecast_result = WhatIfCounterfactualEstimateResult.model_validate_json(
         forecast_path.read_text(encoding="utf-8")
     )
     forecast_result.business_state_change = describe_forecast_business_change(
@@ -175,9 +182,12 @@ def package_example(source_root: Path, output_root: Path) -> None:
         source_root,
         experiment_payload=experiment_payload,
     )
+    preserved_readme = _preserve_readme(output_root)
     if output_root.exists():
         shutil.rmtree(output_root)
     target_workspace.mkdir(parents=True, exist_ok=True)
+    if preserved_readme:
+        (output_root / "README.md").write_text(preserved_readme, encoding="utf-8")
 
     _copy_file(
         source_root / "whatif_experiment_overview.md",
@@ -212,8 +222,8 @@ def package_example(source_root: Path, output_root: Path) -> None:
         _copy_file(workspace_root / relative_path, target_workspace / relative_path)
 
     _write_json(
-        target_workspace / "whatif_episode_manifest.json",
-        _rewrite_manifest(_read_json(workspace_root / "whatif_episode_manifest.json")),
+        target_workspace / "episode_manifest.json",
+        _rewrite_manifest(_read_json(workspace_root / "episode_manifest.json")),
     )
     _enrich_packaged_business_state(output_root, forecast_filename=forecast_filename)
     build_business_state_example(output_root)

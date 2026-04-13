@@ -14,8 +14,8 @@ from .models import (
     WhatIfBusinessStateLevel,
     WhatIfBusinessStateSnapshot,
     WhatIfEventReference,
-    WhatIfForecast,
-    WhatIfForecastResult,
+    WhatIfHistoricalScore,
+    WhatIfCounterfactualEstimateResult,
     WhatIfPublicContext,
 )
 
@@ -46,7 +46,7 @@ _STATE_ORDER: Final[tuple[str, ...]] = (
 def assess_historical_business_state(
     *,
     branch_event: WhatIfEventReference,
-    forecast: WhatIfForecast,
+    forecast: WhatIfHistoricalScore,
     organization_domain: str,
     public_context: WhatIfPublicContext | None,
 ) -> WhatIfBusinessStateAssessment:
@@ -76,7 +76,7 @@ def assess_historical_business_state(
 def describe_forecast_business_change(
     *,
     branch_event: WhatIfEventReference,
-    forecast_result: WhatIfForecastResult,
+    forecast_result: WhatIfCounterfactualEstimateResult,
     organization_domain: str,
     public_context: WhatIfPublicContext | None,
 ) -> WhatIfBusinessStateChange:
@@ -129,7 +129,7 @@ def describe_forecast_business_change(
 def business_state_snapshot_from_forecast(
     *,
     branch_event: WhatIfEventReference,
-    forecast: WhatIfForecast,
+    forecast: WhatIfHistoricalScore,
     organization_domain: str,
     public_context: WhatIfPublicContext | None,
 ) -> WhatIfBusinessStateSnapshot:

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from collections import Counter
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
@@ -23,6 +24,9 @@ from .models import (
     WhatIfWorldSummary,
 )
 from .public_context import empty_enron_public_context, resolve_world_public_context
+from .situations import build_situation_graph
+
+logger = logging.getLogger(__name__)
 
 ENRON_DOMAIN = "enron.com"
 CONTENT_NOTICE = (
@@ -38,18 +42,19 @@ COMPANY_HISTORY_CONTENT_NOTICE = (
     "They reflect the available source text for each recorded surface."
 )
 EXECUTIVE_MARKERS = ("skilling", "lay", "fastow", "kean")
-MAIL_ARCHIVE_FILE_NAMES = (
-    "context_snapshot.json",
-    "mail_archive.json",
-    "historical_mail_archive.json",
-    "whatif_mail_archive.json",
-)
+MAIL_ARCHIVE_FILE_NAMES = ("context_snapshot.json",)
 MAIL_SOURCE_PROVIDERS = {"mail_archive", "gmail"}
 CHAT_SOURCE_PROVIDERS = {"slack", "teams"}
 WORK_SOURCE_PROVIDERS = {"jira"}
+DOC_SOURCE_PROVIDERS = {"google"}
+CRM_SOURCE_PROVIDERS = {"crm", "salesforce"}
 STATE_CONTEXT_PROVIDERS = {"google", "crm", "salesforce"}
 EVENT_HISTORY_PROVIDERS = (
-    MAIL_SOURCE_PROVIDERS | CHAT_SOURCE_PROVIDERS | WORK_SOURCE_PROVIDERS
+    MAIL_SOURCE_PROVIDERS
+    | CHAT_SOURCE_PROVIDERS
+    | WORK_SOURCE_PROVIDERS
+    | DOC_SOURCE_PROVIDERS
+    | CRM_SOURCE_PROVIDERS
 )
 SUPPORTED_HISTORY_PROVIDERS = EVENT_HISTORY_PROVIDERS | STATE_CONTEXT_PROVIDERS
 
@@ -136,6 +141,11 @@ def load_enron_world(
     threads = build_thread_summaries(events, organization_domain=ENRON_DOMAIN)
     actors = build_actor_profiles(events, organization_domain=ENRON_DOMAIN)
     cases = build_case_summaries(events)
+    situation_graph = build_situation_graph(
+        threads=threads,
+        cases=cases,
+        events=events,
+    )
     summary = WhatIfWorldSummary(
         source="enron",
         organization_name="Enron Corporation",
@@ -177,6 +187,7 @@ def load_enron_world(
         threads=threads,
         cases=cases,
         events=events,
+        situation_graph=situation_graph,
         metadata={"content_notice": CONTENT_NOTICE},
         public_context=public_context,
     )
@@ -249,6 +260,11 @@ def load_mail_archive_world(
         organization_domain=organization_domain,
     )
     cases = build_case_summaries(events)
+    situation_graph = build_situation_graph(
+        threads=threads,
+        cases=cases,
+        events=events,
+    )
     summary = WhatIfWorldSummary(
         source="mail_archive",
         organization_name=organization_name,
@@ -280,6 +296,7 @@ def load_mail_archive_world(
         threads=threads,
         cases=cases,
         events=events,
+        situation_graph=situation_graph,
         metadata={"content_notice": MAIL_ARCHIVE_CONTENT_NOTICE},
         public_context=public_context,
     )
@@ -332,6 +349,11 @@ def load_company_history_world(
         organization_domain=organization_domain,
     )
     cases = build_case_summaries(events)
+    situation_graph = build_situation_graph(
+        threads=threads,
+        cases=cases,
+        events=events,
+    )
     summary = WhatIfWorldSummary(
         source="company_history",
         organization_name=organization_name,
@@ -363,6 +385,7 @@ def load_company_history_world(
         threads=threads,
         cases=cases,
         events=events,
+        situation_graph=situation_graph,
         metadata={
             "content_notice": COMPANY_HISTORY_CONTENT_NOTICE,
             "source_providers": ",".join(provider_names),
@@ -386,7 +409,19 @@ def _looks_like_mail_archive(path: Path) -> bool:
 def _detect_snapshot_source_kind(path: Path) -> str | None:
     try:
         snapshot = load_history_snapshot(path)
-    except Exception:  # noqa: BLE001
+    except Exception as exc:  # noqa: BLE001
+        logger.warning(
+            "whatif snapshot detection failed for %s (%s)",
+            path,
+            type(exc).__name__,
+            extra={
+                "source": "company_history",
+                "provider": "snapshot",
+                "file_path": str(path),
+                "exception_type": type(exc).__name__,
+            },
+            exc_info=True,
+        )
         return None
     provider_names = _event_history_provider_names(snapshot)
     if not provider_names:
@@ -538,7 +573,19 @@ def _company_history_mail_events(
 ) -> list[WhatIfEvent]:
     try:
         threads_payload = _archive_threads_from_snapshot(snapshot)
-    except Exception:  # noqa: BLE001
+    except Exception as exc:  # noqa: BLE001
+        logger.warning(
+            "whatif mail history fallback failed for provider %s (%s)",
+            "mail_archive",
+            type(exc).__name__,
+            extra={
+                "source": "company_history",
+                "provider": "mail_archive",
+                "file_path": "",
+                "exception_type": type(exc).__name__,
+            },
+            exc_info=True,
+        )
         return []
 
     events: list[WhatIfEvent] = []
@@ -903,13 +950,110 @@ def _history_actor_payload(
                     ).strip(),
                 },
             )
+    google_source = snapshot.source_for("google")
+    if google_source is not None and isinstance(google_source.data, dict):
+        users = google_source.data.get("users", [])
+        if isinstance(users, list):
+            for user in users:
+                if not isinstance(user, dict):
+                    continue
+                actor_id = _normalized_actor_id(
+                    user.get("email") or user.get("name"),
+                    organization_domain=organization_domain,
+                    fallback="",
+                )
+                if not actor_id:
+                    continue
+                payload.setdefault(
+                    actor_id,
+                    {
+                        "actor_id": actor_id,
+                        "email": str(user.get("email", actor_id) or actor_id).strip(),
+                        "display_name": str(
+                            user.get("name", user.get("email", actor_id)) or actor_id
+                        ).strip(),
+                    },
+                )
+    for provider in ("crm", "salesforce"):
+        source = snapshot.source_for(provider)
+        if source is None or not isinstance(source.data, dict):
+            continue
+        contacts = source.data.get("contacts", [])
+        if isinstance(contacts, list):
+            for contact in contacts:
+                if not isinstance(contact, dict):
+                    continue
+                email = str(contact.get("email") or "").strip()
+                actor_id = _normalized_actor_id(
+                    email
+                    or " ".join(
+                        part
+                        for part in (
+                            str(contact.get("first_name") or "").strip(),
+                            str(contact.get("last_name") or "").strip(),
+                        )
+                        if part
+                    ),
+                    organization_domain=organization_domain,
+                    fallback="",
+                )
+                if not actor_id:
+                    continue
+                contact_display_name = " ".join(
+                    part
+                    for part in (
+                        str(contact.get("first_name") or "").strip(),
+                        str(contact.get("last_name") or "").strip(),
+                    )
+                    if part
+                ).strip()
+                payload.setdefault(
+                    actor_id,
+                    {
+                        "actor_id": actor_id,
+                        "email": email or actor_id,
+                        "display_name": contact_display_name or email or actor_id,
+                    },
+                )
+        deals = source.data.get("deals", [])
+        if not isinstance(deals, list):
+            continue
+        for deal in deals:
+            if not isinstance(deal, dict):
+                continue
+            actor_id = _normalized_actor_id(
+                deal.get("owner"),
+                organization_domain=organization_domain,
+                fallback="",
+            )
+            if not actor_id:
+                continue
+            payload.setdefault(
+                actor_id,
+                {
+                    "actor_id": actor_id,
+                    "email": actor_id,
+                    "display_name": display_name(actor_id),
+                },
+            )
     return list(payload.values())
 
 
 def _mail_archive_source_payload_or_empty(snapshot: ContextSnapshot) -> dict[str, Any]:
     try:
         return _mail_archive_source_payload(snapshot)
-    except Exception:  # noqa: BLE001
+    except Exception as exc:  # noqa: BLE001
+        logger.warning(
+            "whatif mail archive payload unavailable (%s)",
+            type(exc).__name__,
+            extra={
+                "source": "company_history",
+                "provider": "mail_archive",
+                "file_path": "",
+                "exception_type": type(exc).__name__,
+            },
+            exc_info=True,
+        )
         return {}
 
 

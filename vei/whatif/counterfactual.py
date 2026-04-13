@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-import json
+import logging
 from pathlib import Path
 from typing import Any, Sequence
 
@@ -22,11 +22,10 @@ except Exception:  # pragma: no cover
 
 from .models import (
     WhatIfEpisodeManifest,
-    WhatIfEvent,
     WhatIfEventReference,
-    WhatIfForecast,
-    WhatIfForecastDelta,
-    WhatIfForecastResult,
+    WhatIfHistoricalScore,
+    WhatIfCounterfactualEstimateDelta,
+    WhatIfCounterfactualEstimateResult,
     WhatIfLLMGeneratedMessage,
     WhatIfLLMReplayResult,
     WhatIfLLMUsage,
@@ -43,6 +42,14 @@ from .cases import case_context_prompt_lines
 from .business_state import describe_forecast_business_change
 from .episode import load_episode_manifest
 from .interventions import intervention_tags
+from .situations import situation_context_prompt_lines
+from ._helpers import (
+    chat_channel_name_from_reference as _chat_channel_name_from_reference,
+    historical_archive_address as _historical_archive_address,
+    load_episode_snapshot as _load_episode_snapshot,
+)
+
+logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
 # Private helpers
@@ -74,15 +81,6 @@ def _history_prompt_line(event: WhatIfEventReference) -> str:
         f"  Subject: {event.subject}\n"
         f"  Body: {event.snippet}"
     )
-
-
-def _chat_channel_name_from_reference(event: WhatIfEventReference) -> str:
-    recipients = [item for item in event.to_recipients if item]
-    if recipients:
-        return recipients[0]
-    if event.target_id:
-        return event.target_id
-    return "#history"
 
 
 def _llm_surface_instructions(manifest: WhatIfEpisodeManifest) -> str:
@@ -153,22 +151,6 @@ def _llm_replay_event(
     )
 
 
-def _primary_recipient(event: WhatIfEvent) -> str:
-    recipients = [item for item in event.flags.to_recipients if item]
-    if recipients:
-        return recipients[0]
-    if event.target_id:
-        return event.target_id
-    return _historical_archive_address("", "archive")
-
-
-def _historical_archive_address(organization_domain: str, local_part: str) -> str:
-    normalized_domain = organization_domain.strip().lower()
-    if not normalized_domain:
-        return f"{local_part}@archive.local"
-    return f"{local_part}@{normalized_domain}"
-
-
 def _thread_reason_labels(
     thread: WhatIfThreadSummary,
     scenario_id: WhatIfScenarioId,
@@ -180,25 +162,6 @@ def _thread_reason_labels(
     if scenario_id == "external_dlp":
         return ["attachment", "external_recipient"]
     return ["assignment_without_approval"]
-
-
-def _load_episode_snapshot(root: Path) -> dict[str, Any]:
-    snapshot_path = root / "context_snapshot.json"
-    if not snapshot_path.exists():
-        raise ValueError(f"context snapshot not found: {snapshot_path}")
-    return json.loads(snapshot_path.read_text(encoding="utf-8"))
-
-
-def _load_episode_context(root: Path) -> dict[str, Any]:
-    payload = _load_episode_snapshot(root)
-    sources = payload.get("sources", [])
-    for source in sources:
-        if not isinstance(source, dict):
-            continue
-        data = source.get("data", {})
-        if isinstance(data, dict):
-            return data
-    raise ValueError("what-if episode is missing a supported context source")
 
 
 def _session_for_episode(
@@ -277,6 +240,7 @@ def _llm_counterfactual_prompt(
         _history_prompt_line(manifest.branch_event),
     ]
     prompt_lines.extend(case_context_prompt_lines(manifest.case_context))
+    prompt_lines.extend(situation_context_prompt_lines(manifest.situation_context))
     prompt_lines.extend(public_context_prompt_lines(manifest.public_context))
     prompt_lines.extend(
         [
@@ -509,7 +473,7 @@ def _baseline_tick_ms(dataset_path: Path) -> int:
     return max(event.time_ms for event in dataset.events) + 1000
 
 
-def _forecast_summary_from_counts(forecast: WhatIfForecast) -> str:
+def _forecast_summary_from_counts(forecast: WhatIfHistoricalScore) -> str:
     return (
         f"{forecast.future_event_count} follow-up events remain, with "
         f"{forecast.future_escalation_count} escalations and "
@@ -517,7 +481,7 @@ def _forecast_summary_from_counts(forecast: WhatIfForecast) -> str:
     )
 
 
-def _forecast_delta_summary(delta: WhatIfForecastDelta) -> str:
+def _forecast_delta_summary(delta: WhatIfCounterfactualEstimateDelta) -> str:
     direction = (
         "down"
         if delta.risk_score_delta < 0
@@ -592,6 +556,18 @@ def run_llm_counterfactual(
         if not messages:
             raise ValueError("LLM returned no usable messages")
     except Exception as exc:  # noqa: BLE001
+        logger.warning(
+            "whatif llm counterfactual generation failed for %s (%s)",
+            workspace_root,
+            type(exc).__name__,
+            extra={
+                "source": "counterfactual",
+                "provider": provider,
+                "file_path": str(workspace_root),
+                "exception_type": type(exc).__name__,
+            },
+            exc_info=True,
+        )
         return WhatIfLLMReplayResult(
             status="error",
             provider=provider,
@@ -650,11 +626,11 @@ def run_llm_counterfactual(
     )
 
 
-def run_ejepa_proxy_counterfactual(
+def estimate_counterfactual_delta(
     root: str | Path,
     *,
     prompt: str,
-) -> WhatIfForecastResult:
+) -> WhatIfCounterfactualEstimateResult:
     workspace_root = Path(root).expanduser().resolve()
     manifest = load_episode_manifest(workspace_root)
     baseline = manifest.forecast.model_copy(deep=True)
@@ -743,7 +719,7 @@ def run_ejepa_proxy_counterfactual(
     )
     predicted.summary = _forecast_summary_from_counts(predicted)
 
-    delta = WhatIfForecastDelta(
+    delta = WhatIfCounterfactualEstimateDelta(
         risk_score_delta=round(predicted.risk_score - baseline.risk_score, 3),
         future_event_delta=predicted.future_event_count - baseline.future_event_count,
         escalation_delta=(
@@ -757,7 +733,7 @@ def run_ejepa_proxy_counterfactual(
             predicted.future_external_event_count - baseline.future_external_event_count
         ),
     )
-    result = WhatIfForecastResult(
+    result = WhatIfCounterfactualEstimateResult(
         status="ok",
         backend="e_jepa_proxy",
         prompt=prompt,
@@ -779,12 +755,12 @@ def run_ejepa_proxy_counterfactual(
 
 
 def _attach_business_state_to_forecast_result(
-    forecast_result: WhatIfForecastResult,
+    forecast_result: WhatIfCounterfactualEstimateResult,
     *,
     branch_event: WhatIfEventReference | None,
     organization_domain: str,
     public_context: WhatIfPublicContext | None,
-) -> WhatIfForecastResult:
+) -> WhatIfCounterfactualEstimateResult:
     if branch_event is None or forecast_result.status != "ok":
         return forecast_result
     forecast_result.business_state_change = describe_forecast_business_change(

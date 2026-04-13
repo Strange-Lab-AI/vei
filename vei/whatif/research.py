@@ -10,19 +10,18 @@ from typing import Sequence
 
 from vei.project_settings import default_model_for_provider
 
-from .api import (
-    forecast_episode,
-    materialize_episode,
-    replay_episode_baseline,
-    run_ejepa_counterfactual,
-    run_ejepa_proxy_counterfactual,
-    run_llm_counterfactual,
-)
 from .corpus import (
     event_by_id,
     external_recipient_count,
     hydrate_event_snippets,
     recipient_scope,
+)
+from .counterfactual import estimate_counterfactual_delta, run_llm_counterfactual
+from .ejepa import run_ejepa_counterfactual
+from .episode import (
+    score_historical_tail,
+    materialize_episode,
+    replay_episode_baseline,
 )
 from .interventions import intervention_tags
 from .models import (
@@ -31,8 +30,8 @@ from .models import (
     WhatIfBackendScoreStatus,
     WhatIfBranchSummaryFeature,
     WhatIfEvent,
-    WhatIfForecast,
-    WhatIfForecastResult,
+    WhatIfHistoricalScore,
+    WhatIfCounterfactualEstimateResult,
     WhatIfLLMReplayResult,
     WhatIfOutcomeBackendId,
     WhatIfOutcomeSignals,
@@ -360,7 +359,7 @@ def _build_research_dataset(
             future_events=future_events,
             organization_domain=world.summary.organization_domain,
         )
-        forecast = forecast_episode(future_events)
+        forecast = score_historical_tail(future_events)
         contract = _build_branch_contract(
             case_id=thread.thread_id,
             intervention_label="historical_branch",
@@ -792,7 +791,7 @@ def _score_backend(
                 forecast=forecast,
                 contract_path=contract_path,
             )
-        fallback = run_ejepa_proxy_counterfactual(workspace_root, prompt=prompt)
+        fallback = estimate_counterfactual_delta(workspace_root, prompt=prompt)
         notes = [
             "Real E-JEPA backend failed and the pack used the proxy fallback.",
             *(forecast.notes or []),
@@ -809,7 +808,7 @@ def _score_backend(
             error=forecast.error,
         )
     if backend == "e_jepa_proxy":
-        forecast = run_ejepa_proxy_counterfactual(workspace_root, prompt=prompt)
+        forecast = estimate_counterfactual_delta(workspace_root, prompt=prompt)
         return _forecast_backend_evaluation(
             backend=backend,
             forecast=forecast,
@@ -870,7 +869,7 @@ def _score_backend(
 def _forecast_backend_evaluation(
     *,
     backend: WhatIfOutcomeBackendId,
-    forecast: WhatIfForecastResult,
+    forecast: WhatIfCounterfactualEstimateResult,
     contract_path: Path,
     status: WhatIfBackendScoreStatus = "ok",
     effective_backend: str | None = None,
@@ -1009,7 +1008,7 @@ def _build_branch_contract(
     branch_event,
     history_events: Sequence[WhatIfEvent],
     organization_domain: str,
-    baseline_forecast: WhatIfForecast,
+    baseline_forecast: WhatIfHistoricalScore,
     average_rollout_signals: WhatIfOutcomeSignals,
     historical_outcome_signals: WhatIfOutcomeSignals,
     prompt_tags: Sequence[str],
@@ -1055,7 +1054,7 @@ def _summary_features(
     branch_event,
     history_events: Sequence[WhatIfEvent],
     organization_domain: str,
-    baseline_forecast: WhatIfForecast,
+    baseline_forecast: WhatIfHistoricalScore,
     average_rollout_signals: WhatIfOutcomeSignals,
     historical_outcome_signals: WhatIfOutcomeSignals,
     prompt_tags: Sequence[str],
@@ -1616,7 +1615,9 @@ def _backend_score_for(
     raise KeyError(f"backend score missing: {backend}")
 
 
-def _forecast_artifact_paths(forecast: WhatIfForecastResult) -> dict[str, str]:
+def _forecast_artifact_paths(
+    forecast: WhatIfCounterfactualEstimateResult,
+) -> dict[str, str]:
     if forecast.artifacts is None:
         return {}
     paths: dict[str, str] = {}

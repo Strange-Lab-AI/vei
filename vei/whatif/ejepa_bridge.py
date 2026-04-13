@@ -22,10 +22,10 @@ from vei.whatif.corpus import (
 )
 from vei.whatif.interventions import intervention_tags
 from vei.whatif.models import (
-    WhatIfForecast,
-    WhatIfForecastArtifacts,
-    WhatIfForecastDelta,
-    WhatIfForecastResult,
+    WhatIfHistoricalScore,
+    WhatIfCounterfactualEstimateArtifacts,
+    WhatIfCounterfactualEstimateDelta,
+    WhatIfCounterfactualEstimateResult,
 )
 
 _SELECTED_STATE_COLUMNS = [
@@ -62,7 +62,7 @@ def main() -> None:
         output_path.write_text(result.model_dump_json(indent=2), encoding="utf-8")
 
 
-def _run_forecast(payload: dict[str, Any]) -> WhatIfForecastResult:
+def _run_forecast(payload: dict[str, Any]) -> WhatIfCounterfactualEstimateResult:
     cache_root = Path(str(payload["cache_root"])).expanduser().resolve()
     cache_root.mkdir(parents=True, exist_ok=True)
     source_dir = (
@@ -85,7 +85,7 @@ def _run_forecast(payload: dict[str, Any]) -> WhatIfForecastResult:
     world = _load_world(source=source, source_dir=source_dir)
     timeline = thread_events(world.events, thread_id)
     if not timeline:
-        return WhatIfForecastResult(
+        return WhatIfCounterfactualEstimateResult(
             status="error",
             backend="e_jepa",
             prompt=prompt,
@@ -94,7 +94,7 @@ def _run_forecast(payload: dict[str, Any]) -> WhatIfForecastResult:
         )
     branch_event = event_by_id(timeline, branch_event_id)
     if branch_event is None:
-        return WhatIfForecastResult(
+        return WhatIfCounterfactualEstimateResult(
             status="error",
             backend="e_jepa",
             prompt=prompt,
@@ -136,7 +136,7 @@ def _run_forecast(payload: dict[str, Any]) -> WhatIfForecastResult:
     result.notes.append(
         f"Training slice: {len(training_thread_ids)} threads around the branch point."
     )
-    result.artifacts = WhatIfForecastArtifacts(
+    result.artifacts = WhatIfCounterfactualEstimateArtifacts(
         cache_root=cache_root,
         dataset_root=prepared.root,
         checkpoint_path=checkpoint_path,
@@ -496,7 +496,7 @@ def _forecast_thread(
     llm_messages: list[dict[str, Any]],
     organization_domain: str,
     device: str,
-) -> WhatIfForecastResult:
+) -> WhatIfCounterfactualEstimateResult:
     import pandas as pd
     import torch
 
@@ -512,7 +512,7 @@ def _forecast_thread(
         str(column) for column in decoder_payload.get("columns", []) if str(column)
     ]
     if not selected_columns:
-        return WhatIfForecastResult(
+        return WhatIfCounterfactualEstimateResult(
             status="error",
             backend="e_jepa",
             prompt=prompt,
@@ -528,7 +528,7 @@ def _forecast_thread(
         thread_frame["meta__event_id"] == branch_event_id
     ].tolist()
     if not branch_matches:
-        return WhatIfForecastResult(
+        return WhatIfCounterfactualEstimateResult(
             status="error",
             backend="e_jepa",
             prompt=prompt,
@@ -606,7 +606,7 @@ def _forecast_thread(
         predicted_state=predicted_state,
         horizon_event_count=len(predicted_latents),
     )
-    delta = WhatIfForecastDelta(
+    delta = WhatIfCounterfactualEstimateDelta(
         risk_score_delta=round(
             predicted_forecast.risk_score - baseline_forecast.risk_score, 3
         ),
@@ -641,7 +641,7 @@ def _forecast_thread(
         f"branch point, with risk moving from {baseline_forecast.risk_score:.3f} "
         f"to {predicted_forecast.risk_score:.3f}."
     )
-    return WhatIfForecastResult(
+    return WhatIfCounterfactualEstimateResult(
         status="ok",
         backend="e_jepa",
         prompt=prompt,
@@ -811,7 +811,7 @@ def _candidate_row_from_prompt(
     return row
 
 
-def _baseline_forecast_from_events(events: Sequence[Any]) -> WhatIfForecast:
+def _baseline_forecast_from_events(events: Sequence[Any]) -> WhatIfHistoricalScore:
     future_event_count = len(events)
     future_escalation_count = sum(
         1
@@ -834,7 +834,7 @@ def _baseline_forecast_from_events(events: Sequence[Any]) -> WhatIfForecast:
             + max(0, future_event_count - future_approval_count) * 0.02
         ),
     )
-    return WhatIfForecast(
+    return WhatIfHistoricalScore(
         backend="historical",
         future_event_count=future_event_count,
         future_escalation_count=future_escalation_count,
@@ -854,7 +854,7 @@ def _predicted_forecast_from_state(
     current_state: dict[str, float],
     predicted_state: dict[str, float],
     horizon_event_count: int,
-) -> WhatIfForecast:
+) -> WhatIfHistoricalScore:
     future_event_count = max(0, horizon_event_count)
     future_escalation_count = _clamp_count(
         predicted_state.get("escalation_event_count", 0.0),
@@ -877,7 +877,7 @@ def _predicted_forecast_from_state(
         ceiling=future_event_count,
     )
     risk_score = max(0.0, min(1.0, predicted_state.get("current_risk_score", 0.0)))
-    return WhatIfForecast(
+    return WhatIfHistoricalScore(
         backend="e_jepa",
         future_event_count=future_event_count,
         future_escalation_count=future_escalation_count,
@@ -895,7 +895,7 @@ def _predicted_forecast_from_state(
 
 def _actual_final_state(
     current_state: dict[str, float],
-    baseline: WhatIfForecast,
+    baseline: WhatIfHistoricalScore,
 ) -> dict[str, float]:
     return {
         **current_state,
@@ -983,8 +983,8 @@ def _forecast_notes(
     *,
     prompt: str,
     llm_messages: Sequence[dict[str, Any]],
-    baseline: WhatIfForecast,
-    predicted: WhatIfForecast,
+    baseline: WhatIfHistoricalScore,
+    predicted: WhatIfHistoricalScore,
 ) -> list[str]:
     notes = [
         f"Branch prompt: {prompt}",

@@ -4,6 +4,8 @@ from vei.context.models import ContextSnapshot
 
 from ..models import WhatIfEvent
 from .chat import build_chat_events
+from .crm import build_crm_events
+from .docs import build_docs_events
 from .jira import build_jira_events
 from .mail import build_mail_events
 
@@ -45,12 +47,37 @@ def build_company_history_events(
             include_content=include_content,
         )
     )
+    events.extend(
+        build_docs_events(
+            snapshot=snapshot,
+            organization_domain=organization_domain,
+            include_content=include_content,
+        )
+    )
+    events.extend(
+        build_crm_events(
+            snapshot=snapshot,
+            provider="crm",
+            organization_domain=organization_domain,
+            include_content=include_content,
+        )
+    )
+    events.extend(
+        build_crm_events(
+            snapshot=snapshot,
+            provider="salesforce",
+            organization_domain=organization_domain,
+            include_content=include_content,
+        )
+    )
     return events
 
 
 __all__ = [
     "build_chat_events",
     "build_company_history_events",
+    "build_crm_events",
+    "build_docs_events",
     "build_jira_events",
     "build_mail_events",
 ]

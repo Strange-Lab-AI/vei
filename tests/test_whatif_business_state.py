@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from vei.whatif.api import run_ejepa_proxy_counterfactual
+from vei.whatif.api import estimate_counterfactual_delta
 from vei.whatif.business_state import (
     assess_historical_business_state,
     describe_forecast_business_change,
@@ -11,9 +11,9 @@ from vei.whatif.interventions import intervention_tags
 from vei.whatif.models import (
     WhatIfEpisodeManifest,
     WhatIfEventReference,
-    WhatIfForecast,
-    WhatIfForecastDelta,
-    WhatIfForecastResult,
+    WhatIfHistoricalScore,
+    WhatIfCounterfactualEstimateDelta,
+    WhatIfCounterfactualEstimateResult,
 )
 
 
@@ -31,8 +31,8 @@ def _branch_event() -> WhatIfEventReference:
     )
 
 
-def _baseline_forecast() -> WhatIfForecast:
-    return WhatIfForecast(
+def _baseline_forecast() -> WhatIfHistoricalScore:
+    return WhatIfHistoricalScore(
         backend="historical",
         future_event_count=84,
         future_escalation_count=16,
@@ -48,7 +48,7 @@ def _write_manifest(
     root: Path,
     *,
     branch_event: WhatIfEventReference | None = None,
-    forecast: WhatIfForecast | None = None,
+    forecast: WhatIfHistoricalScore | None = None,
 ) -> None:
     root.mkdir(parents=True, exist_ok=True)
     resolved_branch_event = branch_event or _branch_event()
@@ -74,7 +74,7 @@ def _write_manifest(
         public_context=None,
         historical_business_state=None,
     )
-    (root / "whatif_episode_manifest.json").write_text(
+    (root / "episode_manifest.json").write_text(
         manifest.model_dump_json(indent=2),
         encoding="utf-8",
     )
@@ -92,13 +92,13 @@ def test_historical_business_state_assessment_and_change_are_readable() -> None:
             "risk_score": 0.44,
         }
     )
-    result = WhatIfForecastResult(
+    result = WhatIfCounterfactualEstimateResult(
         status="ok",
         backend="e_jepa_proxy",
         prompt="Keep the draft inside Enron, ask legal for review, and hold the outside send.",
         baseline=baseline,
         predicted=predicted,
-        delta=WhatIfForecastDelta(
+        delta=WhatIfCounterfactualEstimateDelta(
             risk_score_delta=-0.56,
             future_event_delta=-29,
             escalation_delta=0,
@@ -175,7 +175,7 @@ def test_proxy_forecast_keeps_risk_flat_when_recorded_path_is_already_internal(
                 "has_attachment_reference": False,
             }
         ),
-        forecast=WhatIfForecast(
+        forecast=WhatIfHistoricalScore(
             backend="historical",
             future_event_count=5,
             future_escalation_count=0,
@@ -187,7 +187,7 @@ def test_proxy_forecast_keeps_risk_flat_when_recorded_path_is_already_internal(
         ),
     )
 
-    result = run_ejepa_proxy_counterfactual(
+    result = estimate_counterfactual_delta(
         workspace_root,
         prompt="Keep this internal only.",
     )
@@ -203,21 +203,21 @@ def test_proxy_forecast_attaches_business_state_change_for_enron_candidate_style
     workspace_root = tmp_path / "episode"
     _write_manifest(workspace_root)
 
-    hold_result = run_ejepa_proxy_counterfactual(
+    hold_result = estimate_counterfactual_delta(
         workspace_root,
         prompt=(
             "Keep the draft inside Enron, ask legal for one more review, "
             "and hold the outside send until one owner clears it."
         ),
     )
-    status_result = run_ejepa_proxy_counterfactual(
+    status_result = estimate_counterfactual_delta(
         workspace_root,
         prompt=(
             "Send a short no-attachment status note, promise a clean update soon, "
             "and keep one internal owner on the next step."
         ),
     )
-    fast_result = run_ejepa_proxy_counterfactual(
+    fast_result = estimate_counterfactual_delta(
         workspace_root,
         prompt=(
             'Send "Master Agreement Draft" now, keep the outside loop active, '

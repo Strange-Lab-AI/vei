@@ -699,7 +699,7 @@ def run_vertical_story_showcase(
 
 def load_workspace_story_manifest(root: str | Path) -> VerticalStoryBundle | None:
     workspace_root = Path(root).expanduser().resolve()
-    if (workspace_root / "whatif_episode_manifest.json").exists():
+    if (workspace_root / "episode_manifest.json").exists():
         return None
     path = workspace_root / "story_manifest.json"
     if path.exists():

@@ -31,7 +31,7 @@ class ContextProviderConfig(BaseModel):
 class ContextSourceResult(BaseModel):
     provider: str
     captured_at: str
-    status: Literal["ok", "partial", "error"] = "ok"
+    status: Literal["ok", "partial", "error", "empty"] = "ok"
     record_counts: Dict[str, int] = Field(default_factory=dict)
     data: Dict[str, Any] = Field(default_factory=dict)
     error: Optional[str] = None
@@ -76,3 +76,34 @@ class ContextDiff(BaseModel):
     @property
     def changed(self) -> List[ContextDiffEntry]:
         return [e for e in self.entries if e.kind == "changed"]
+
+
+class BundleVerificationCheck(BaseModel):
+    code: str
+    passed: bool
+    severity: Literal["info", "warning", "error"] = "error"
+    provider: Optional[str] = None
+    detail: str = ""
+
+
+class BundleVerificationResult(BaseModel):
+    ok: bool
+    snapshot_path: str = ""
+    organization_name: str = ""
+    organization_domain: str = ""
+    source_status: Dict[str, str] = Field(default_factory=dict)
+    checks: List[BundleVerificationCheck] = Field(default_factory=list)
+
+    @property
+    def error_count(self) -> int:
+        return sum(
+            1 for check in self.checks if not check.passed and check.severity == "error"
+        )
+
+    @property
+    def warning_count(self) -> int:
+        return sum(
+            1
+            for check in self.checks
+            if not check.passed and check.severity == "warning"
+        )

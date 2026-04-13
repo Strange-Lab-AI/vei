@@ -49,7 +49,7 @@ from vei.whatif.models import (
     WhatIfBenchmarkJudgeResult,
     WhatIfEpisodeManifest,
     WhatIfEventReference,
-    WhatIfForecast,
+    WhatIfHistoricalScore,
     WhatIfJudgedPairwiseComparison,
     WhatIfJudgedRanking,
     WhatIfPublicContext,
@@ -183,7 +183,7 @@ def _write_public_context_rosetta_fixture(root: Path) -> None:
 
 def _write_mail_archive_fixture(root: Path) -> Path:
     root.mkdir(parents=True, exist_ok=True)
-    archive_path = root / "mail_archive.json"
+    archive_path = root / "context_snapshot.json"
     archive_path.write_text(
         json.dumps(
             {
@@ -794,6 +794,19 @@ def test_ui_api_whatif_routes_support_company_history_bundle(
         "docs",
         "crm",
     }
+    assert scene_payload["situation_context"]["related_threads"]
+    assert {
+        item["surface"]
+        for item in scene_payload["situation_context"]["related_threads"]
+    } >= {"docs", "crm"}
+
+    auto_scene_response = client.post(
+        "/api/workspace/whatif/scene",
+        json={"source": "auto"},
+    )
+    assert auto_scene_response.status_code == 200
+    auto_scene_payload = auto_scene_response.json()
+    assert auto_scene_payload["thread_id"] == slack_thread_id
 
 
 def test_ui_api_whatif_scene_route_returns_playable_enron_decision(
@@ -909,7 +922,7 @@ def test_ui_api_historical_workspace_prefers_saved_mail_archive(
     workspace_root = tmp_path / "historical_workspace"
     materialize_episode(world, root=workspace_root, thread_id="py-legal-001")
 
-    other_archive = tmp_path / "other_mail_archive" / "mail_archive.json"
+    other_archive = tmp_path / "other_mail_archive" / "context_snapshot.json"
     other_archive.parent.mkdir(parents=True, exist_ok=True)
     other_archive.write_text(
         json.dumps(
@@ -946,7 +959,7 @@ def test_ui_api_historical_workspace_prefers_saved_mail_archive(
     assert status_response.status_code == 200
     status_payload = status_response.json()
     assert status_payload["source"] == "mail_archive"
-    assert status_payload["source_dir"].endswith("whatif_mail_archive.json")
+    assert status_payload["source_dir"].endswith("context_snapshot.json")
 
     search_response = client.post(
         "/api/workspace/whatif/search",
@@ -1011,9 +1024,9 @@ def test_ui_api_historical_workspace_prefers_manifest_rosetta_dir(
         future_event_count=2,
         baseline_dataset_path="whatif_baseline_dataset.json",
         content_notice="Historical email bodies are grounded in archive excerpts and metadata.",
-        forecast=WhatIfForecast(backend="historical", risk_score=1.0),
+        forecast=WhatIfHistoricalScore(backend="historical", risk_score=1.0),
     )
-    (workspace_root / "whatif_episode_manifest.json").write_text(
+    (workspace_root / "episode_manifest.json").write_text(
         episode.model_dump_json(indent=2),
         encoding="utf-8",
     )
@@ -1063,7 +1076,7 @@ def test_ui_api_saved_enron_workspace_without_rosetta_uses_saved_context_snapsho
         future_event_count=84,
         baseline_dataset_path="whatif_baseline_dataset.json",
         content_notice="Historical email bodies are grounded in archive excerpts and metadata.",
-        forecast=WhatIfForecast(backend="historical", risk_score=1.0),
+        forecast=WhatIfHistoricalScore(backend="historical", risk_score=1.0),
         public_context=WhatIfPublicContext(
             pack_name="enron_public_context",
             organization_name="Enron Corporation",
@@ -1082,7 +1095,7 @@ def test_ui_api_saved_enron_workspace_without_rosetta_uses_saved_context_snapsho
             ],
         ),
     )
-    (workspace_root / "whatif_episode_manifest.json").write_text(
+    (workspace_root / "episode_manifest.json").write_text(
         episode.model_dump_json(indent=2),
         encoding="utf-8",
     )
@@ -1150,9 +1163,9 @@ def test_ui_api_saved_enron_workspace_prefers_live_rosetta_for_auto_actions(
         future_event_count=84,
         baseline_dataset_path="whatif_baseline_dataset.json",
         content_notice="Historical email bodies are grounded in archive excerpts and metadata.",
-        forecast=WhatIfForecast(backend="historical", risk_score=1.0),
+        forecast=WhatIfHistoricalScore(backend="historical", risk_score=1.0),
     )
-    (workspace_root / "whatif_episode_manifest.json").write_text(
+    (workspace_root / "episode_manifest.json").write_text(
         episode.model_dump_json(indent=2),
         encoding="utf-8",
     )
@@ -1983,9 +1996,9 @@ def test_ui_api_exposes_historical_workspace_without_vertical_story(
         future_event_count=84,
         baseline_dataset_path="whatif_baseline_dataset.json",
         content_notice="Historical email bodies are grounded in archive excerpts and metadata.",
-        forecast=WhatIfForecast(backend="historical", risk_score=1.0),
+        forecast=WhatIfHistoricalScore(backend="historical", risk_score=1.0),
     )
-    (root / "whatif_episode_manifest.json").write_text(
+    (root / "episode_manifest.json").write_text(
         episode.model_dump_json(indent=2),
         encoding="utf-8",
     )

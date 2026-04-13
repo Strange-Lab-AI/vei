@@ -13,7 +13,7 @@ from .models import (
     WhatIfExperimentMode,
     WhatIfExperimentResult,
     WhatIfForecastBackend,
-    WhatIfForecastResult,
+    WhatIfCounterfactualEstimateResult,
     WhatIfInterventionSpec,
     WhatIfLLMReplayResult,
     WhatIfObjectivePackId,
@@ -24,15 +24,17 @@ from .models import (
     WhatIfShadowOutcomeScore,
     WhatIfWorld,
 )
+from .analysis import select_specific_event
 from .corpus import event_by_id
 from .episode import (
     materialize_episode,
     replay_episode_baseline,
 )
 from .counterfactual import (
-    run_llm_counterfactual,
-    run_ejepa_proxy_counterfactual,
     _attach_business_state_to_forecast_result,
+    _baseline_tick_ms,
+    estimate_counterfactual_delta,
+    run_llm_counterfactual,
 )
 from .ejepa import default_forecast_backend, run_ejepa_counterfactual
 from .ranking import (
@@ -72,7 +74,7 @@ def run_counterfactual_experiment(
     ejepa_force_retrain: bool = False,
     ejepa_device: str | None = None,
 ) -> WhatIfExperimentResult:
-    from .api import _selection_for_specific_event, run_whatif, _baseline_tick_ms
+    from .api import run_whatif
 
     selection = (
         run_whatif(
@@ -81,7 +83,7 @@ def run_counterfactual_experiment(
             prompt=selection_prompt,
         )
         if selection_scenario or selection_prompt
-        else _selection_for_specific_event(
+        else select_specific_event(
             world,
             thread_id=thread_id,
             event_id=event_id,
@@ -123,7 +125,7 @@ def run_counterfactual_experiment(
             model=model,
             seed=seed,
         )
-    forecast_result: WhatIfForecastResult | None = None
+    forecast_result: WhatIfCounterfactualEstimateResult | None = None
     resolved_forecast_backend = forecast_backend or (
         mode if mode in {"e_jepa", "e_jepa_proxy"} else default_forecast_backend()
     )
@@ -143,7 +145,7 @@ def run_counterfactual_experiment(
                 device=ejepa_device,
             )
             if forecast_result.status == "error" and allow_proxy_fallback:
-                proxy_result = run_ejepa_proxy_counterfactual(
+                proxy_result = estimate_counterfactual_delta(
                     workspace_root,
                     prompt=counterfactual_prompt,
                 )
@@ -157,7 +159,7 @@ def run_counterfactual_experiment(
                     )
                 forecast_result = proxy_result
         else:
-            forecast_result = run_ejepa_proxy_counterfactual(
+            forecast_result = estimate_counterfactual_delta(
                 workspace_root,
                 prompt=counterfactual_prompt,
             )
@@ -248,7 +250,7 @@ def run_ranked_counterfactual_experiment(
     ejepa_force_retrain: bool = False,
     ejepa_device: str | None = None,
 ) -> WhatIfRankedExperimentResult:
-    from .api import _selection_for_specific_event, run_whatif, _baseline_tick_ms
+    from .api import run_whatif
 
     if rollout_count < 1 or rollout_count > 16:
         raise ValueError("rollout_count must be between 1 and 16")
@@ -267,7 +269,7 @@ def run_ranked_counterfactual_experiment(
             prompt=selection_prompt,
         )
         if selection_scenario or selection_prompt
-        else _selection_for_specific_event(
+        else select_specific_event(
             world,
             thread_id=thread_id,
             event_id=event_id,
@@ -498,7 +500,7 @@ def _run_ranked_shadow_score(
             device=ejepa_device,
         )
         if forecast_result.status == "error" and allow_proxy_fallback:
-            proxy_result = run_ejepa_proxy_counterfactual(
+            proxy_result = estimate_counterfactual_delta(
                 workspace_root,
                 prompt=prompt,
             )
@@ -512,7 +514,7 @@ def _run_ranked_shadow_score(
                 )
             forecast_result = proxy_result
     else:
-        forecast_result = run_ejepa_proxy_counterfactual(
+        forecast_result = estimate_counterfactual_delta(
             workspace_root,
             prompt=prompt,
         )

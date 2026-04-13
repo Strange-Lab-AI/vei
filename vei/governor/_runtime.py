@@ -812,17 +812,23 @@ class GovernorRuntime:
 
     def _autoplay_loop(self) -> None:
         interval_s = max(0.25, self.config.demo_interval_ms / 1000.0)
+        next_tick_at = time.monotonic()
         try:
             while not self._stop.is_set():
                 if not self._demo_steps:
                     return
-                if self._stop.wait(interval_s):
+                wait_s = max(0.0, next_tick_at - time.monotonic())
+                if self._stop.wait(wait_s):
                     return
                 try:
                     self.demo_tick()
                 except Exception:
                     logger.warning("mirror autoplay tick failed", exc_info=True)
                     return
+                next_tick_at += interval_s
+                finished_at = time.monotonic()
+                if next_tick_at < finished_at:
+                    next_tick_at = finished_at
         finally:
             with self._lock:
                 self._autoplay_running = False

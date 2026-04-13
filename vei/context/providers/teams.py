@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from typing import Any, Dict, List
 
 from vei.context.models import ContextProviderConfig, ContextSourceResult
@@ -7,6 +8,7 @@ from vei.context.models import ContextProviderConfig, ContextSourceResult
 from .base import api_get_json, iso_now, resolve_token
 
 GRAPH_BASE = "https://graph.microsoft.com/v1.0"
+logger = logging.getLogger(__name__)
 
 
 class TeamsContextProvider:
@@ -101,7 +103,20 @@ def _fetch_channel_messages(
     )
     try:
         result = api_get_json(url, headers=headers, timeout_s=timeout)
-    except Exception:
+    except Exception as exc:
+        logger.warning(
+            "context teams channel message fetch failed for %s/%s (%s)",
+            team_id,
+            channel_id,
+            type(exc).__name__,
+            extra={
+                "source": "context_capture",
+                "provider": "teams",
+                "file_path": url,
+                "exception_type": type(exc).__name__,
+            },
+            exc_info=True,
+        )
         return []
     raw_messages = result.get("value", []) if isinstance(result, dict) else []
     return [
@@ -127,7 +142,18 @@ def _fetch_me(
             "email": str(result.get("mail", result.get("userPrincipalName", ""))),
             "name": str(result.get("displayName", "")),
         }
-    except Exception:
+    except Exception as exc:
+        logger.warning(
+            "context teams profile fetch failed (%s)",
+            type(exc).__name__,
+            extra={
+                "source": "context_capture",
+                "provider": "teams",
+                "file_path": url,
+                "exception_type": type(exc).__name__,
+            },
+            exc_info=True,
+        )
         return {}
 
 

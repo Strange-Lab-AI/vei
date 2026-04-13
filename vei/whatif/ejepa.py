@@ -9,7 +9,7 @@ from typing import Sequence
 
 from .models import (
     WhatIfForecastBackend,
-    WhatIfForecastResult,
+    WhatIfCounterfactualEstimateResult,
     WhatIfLLMGeneratedMessage,
 )
 
@@ -56,10 +56,10 @@ def run_ejepa_counterfactual(
     epochs: int = 4,
     batch_size: int = 64,
     force_retrain: bool = False,
-) -> WhatIfForecastResult:
+) -> WhatIfCounterfactualEstimateResult:
     runtime = resolve_ejepa_runtime(runtime_root)
     if runtime is None:
-        return WhatIfForecastResult(
+        return WhatIfCounterfactualEstimateResult(
             status="error",
             backend="e_jepa",
             prompt=prompt,
@@ -131,7 +131,7 @@ def run_ejepa_counterfactual(
     )
     if completed.returncode != 0:
         error_text = completed.stderr.strip() or completed.stdout.strip()
-        return WhatIfForecastResult(
+        return WhatIfCounterfactualEstimateResult(
             status="error",
             backend="e_jepa",
             prompt=prompt,
@@ -140,14 +140,14 @@ def run_ejepa_counterfactual(
             error=error_text or "E-JEPA forecast subprocess failed",
         )
     if not response_path.exists():
-        return WhatIfForecastResult(
+        return WhatIfCounterfactualEstimateResult(
             status="error",
             backend="e_jepa",
             prompt=prompt,
             summary="The E-JEPA forecast run did not write a response.",
             error="missing E-JEPA response file",
         )
-    return WhatIfForecastResult.model_validate_json(
+    return WhatIfCounterfactualEstimateResult.model_validate_json(
         response_path.read_text(encoding="utf-8")
     )
 

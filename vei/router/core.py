@@ -8,13 +8,9 @@ from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional
 
 from pydantic import BaseModel
-from vei.blueprint import FacadePlugin, list_runtime_facade_plugins
+from vei.blueprint import FacadePlugin
 from vei.blueprint.api import FacadeRuntimeBinding
-from vei.connectors import (
-    ConnectorInvocationError,
-    create_default_runtime,
-    parse_adapter_mode,
-)
+from vei.connectors import create_default_runtime, parse_adapter_mode
 from vei.monitors import MonitorManager
 from vei.router._policy import DEFAULT_RULES, PolicyEngine, PromoteMonitorRule
 from vei.world import (
@@ -25,17 +21,15 @@ from vei.world import (
     StateStore,
     load_from_env,
 )
-from ._catalog import build_alias_map, build_builtin_tool_specs, build_help_payload
-from ._dispatch import GUARDED_PREFIXES, build_dispatch_table
+from ._catalog import build_help_payload
+from ._dispatch import GUARDED_PREFIXES
+from ._dispatch_delegate import RouterDispatch
 from .errors import MCPError
+from ._lifecycle import RouterLifecycle
+from ._observation_delegate import RouterObservation
 from .tool_providers import ToolProvider
 from .tool_registry import ToolRegistry, ToolSpec
 from ._event_bus import Event, EventBus, LinearCongruentialGenerator  # noqa: F401
-from ._observation import (
-    build_action_menu,
-    build_focus_summary,
-    resolve_focus_for_tool,
-)
 from ._trace import TraceLogger  # noqa: F401
 from ._reducers import (  # noqa: F401
     FAULT_PROFILES,
@@ -367,50 +361,7 @@ class Router:
                 pass
 
     def _deliver_event(self, target: str, payload: Dict[str, Any]) -> Dict[str, Any]:
-        if target == "slack":
-            return self.slack.deliver(payload)
-        if target == "mail":
-            return self.mail.deliver(payload)
-        if target == "docs":
-            return self.docs.deliver(payload)
-        if target == "calendar":
-            return self.calendar.deliver(payload)
-        if target == "tickets":
-            return self.tickets.deliver(payload)
-        if target in {"db", "database"}:
-            return self.database.deliver(payload)
-        if target in {
-            "erp",
-            "crm",
-            "servicedesk",
-            "okta",
-            "google_admin",
-            "siem",
-            "datadog",
-            "pagerduty",
-            "feature_flags",
-            "hris",
-            "jira",
-            "tool",
-        }:
-            tool = payload.get("tool")
-            args = payload.get("args", {})
-            if not isinstance(tool, str):
-                raise MCPError(
-                    "invalid_event",
-                    f"{target} event payload must include string 'tool'",
-                )
-            if not isinstance(args, dict):
-                raise MCPError(
-                    "invalid_event", f"{target} event payload args must be an object"
-                )
-            result = self._execute(tool, args)
-            return {"tool": tool, "result": Router._jsonable(result)}
-        plugin_delivery = self._deliver_plugin_event(target, payload)
-        if plugin_delivery is not None:
-            return plugin_delivery
-        # Unknown targets are intentionally ignored but surfaced in trace/state.
-        return {"ignored": True, "reason": f"unsupported target '{target}'"}
+        return RouterDispatch.deliver_event(self, target, payload)
 
     def _deliver_due_event(self, evt: Event) -> Dict[str, Any]:
         try:
@@ -547,31 +498,10 @@ class Router:
         self._register_tool_specs(provider.specs())
 
     def _bootstrap_facade_plugins(self) -> None:
-        for plugin in list_runtime_facade_plugins():
-            component = (
-                getattr(self, plugin.component_attr, None)
-                if plugin.component_attr
-                else None
-            )
-            if component is None and plugin.component_factory and plugin.component_attr:
-                component = plugin.component_factory(self, self.scenario)
-                setattr(self, plugin.component_attr, component)
-            if plugin.component_attr and component is not None:
-                self.facade_plugins[plugin.manifest.name] = FacadeRuntimeBinding(
-                    plugin=plugin,
-                    component=component,
-                )
-                if plugin.provider_factory is not None:
-                    self.register_tool_provider(plugin.provider_factory(component))
+        RouterLifecycle.bootstrap_facade_plugins(self)
 
     def _event_targets(self) -> List[str]:
-        targets = ["tool"]
-        for entry in self.facade_plugins.values():
-            plugin: FacadePlugin = entry.plugin
-            for target in plugin.event_targets:
-                if target not in targets:
-                    targets.append(target)
-        return targets
+        return RouterLifecycle.event_targets(self)
 
     def _plugin_focus_for_tool(self, tool: str) -> Optional[str]:
         for entry in self.facade_plugins.values():
@@ -598,64 +528,19 @@ class Router:
     def _deliver_plugin_event(
         self, target: str, payload: Dict[str, Any]
     ) -> Optional[Dict[str, Any]]:
-        for entry in self.facade_plugins.values():
-            plugin: FacadePlugin = entry.plugin
-            if target not in plugin.event_targets:
-                continue
-            component = entry.component
-            if plugin.event_handler is not None:
-                return plugin.event_handler(self, component, payload)
-            tool = payload.get("tool")
-            args = payload.get("args", {})
-            if not isinstance(tool, str):
-                raise MCPError(
-                    "invalid_event",
-                    f"{target} event payload must include string 'tool'",
-                )
-            if not isinstance(args, dict):
-                raise MCPError(
-                    "invalid_event", f"{target} event payload args must be an object"
-                )
-            result = self._execute(tool, args)
-            return {"tool": tool, "result": Router._jsonable(result)}
-        return None
+        return RouterDispatch.deliver_plugin_event(self, target, payload)
 
     def _register_tool_specs(self, specs: Iterable[ToolSpec]) -> None:
-        for spec in specs:
-            try:
-                self.registry.register(spec)
-            except ValueError:
-                continue
+        RouterLifecycle.register_tool_specs(self, specs)
 
     def _build_alias_map(self) -> Dict[str, str]:
-        return build_alias_map()
+        return RouterLifecycle.build_alias_map()
 
     def _register_alias_specs(self, alias_map: Dict[str, str]) -> None:
-        specs: List[ToolSpec] = []
-        for alias_name, base_tool in alias_map.items():
-            base = self.registry.get(base_tool)
-            if base:
-                specs.append(
-                    ToolSpec(
-                        name=alias_name,
-                        description=f"Alias -> {base_tool}. {base.description}",
-                        side_effects=base.side_effects,
-                        permissions=base.permissions,
-                        default_latency_ms=base.default_latency_ms,
-                        latency_jitter_ms=base.latency_jitter_ms,
-                        nominal_cost=base.nominal_cost,
-                        returns=base.returns,
-                        fault_probability=base.fault_probability,
-                    )
-                )
-            else:
-                specs.append(
-                    ToolSpec(name=alias_name, description=f"Alias -> {base_tool}")
-                )
-        self._register_tool_specs(specs)
+        RouterLifecycle.register_alias_specs(self, alias_map)
 
     def _seed_tool_registry(self) -> None:
-        self._register_tool_specs(build_builtin_tool_specs())
+        RouterLifecycle.seed_tool_registry(self)
 
     def last_receipt(self) -> Optional[Dict[str, Any]]:
         return self._receipts[-1] if self._receipts else None
@@ -703,59 +588,12 @@ class Router:
         return result
 
     def _build_dispatch_table(self) -> Dict[str, Any]:
-        return build_dispatch_table(self)
+        return RouterDispatch.build_dispatch_table(self)
 
     _GUARDED_PREFIXES = GUARDED_PREFIXES
 
     def _execute(self, tool: str, args: Dict[str, Any]) -> Any:
-        if tool == "vei.observe":
-            focus = args.get("focus") if isinstance(args, dict) else None
-            return self.observe(focus_hint=focus).model_dump()
-        if tool == "vei.tick":
-            return self.tick(**args)
-        if tool == "vei.state":
-            return self.state_snapshot(**args)
-        if tool == "vei.act_and_observe":
-            target_tool = args.get("tool")
-            target_args = args.get("args", {})
-            if not target_tool:
-                raise MCPError("invalid_args", "act_and_observe requires tool")
-            return self.act_and_observe(target_tool, target_args)
-        if tool == "vei.inject":
-            return self.inject(**args)
-
-        if not tool.startswith("vei."):
-            self._maybe_fault(tool)
-        tool = self.alias_map.get(tool, tool)
-        intercepted = self._maybe_fidelity_intercept(tool, args)
-        if intercepted is not None:
-            return intercepted
-        if self.connector_runtime.managed_tool(tool):
-            try:
-                return self.connector_runtime.invoke_tool(
-                    tool,
-                    args,
-                    time_ms=self.bus.clock_ms,
-                    metadata={"router_branch": self.state_store.branch},
-                )
-            except ConnectorInvocationError as exc:
-                raise MCPError(exc.code, exc.message) from exc
-
-        handler = self._dispatch.get(tool)
-        if handler is not None:
-            return handler(args)
-
-        for prefix, label in self._GUARDED_PREFIXES.items():
-            if tool.startswith(prefix):
-                if not getattr(self, prefix.rstrip("."), None):
-                    raise MCPError("unsupported_tool", f"{label} twin not available")
-                raise MCPError("unknown_tool", f"No such tool: {tool}")
-
-        for provider in self.tool_providers:
-            if provider.handles(tool):
-                return provider.call(tool, args)
-
-        raise MCPError("unknown_tool", f"No such tool: {tool}")
+        return RouterDispatch.execute(self, tool, args)
 
     def snapshot_observation(self, focus_hint: Optional[str] = None) -> Observation:
         """Build an Observation without advancing time or delivering events.
@@ -763,34 +601,25 @@ class Router:
         Useful for server adapters that need to return an observation after a
         call_and_step without mutating simulator state a second time.
         """
-        focus = focus_hint or "browser"
-        return Observation(
-            time_ms=self.bus.clock_ms,
-            focus=focus,
-            summary=self._summary(focus),
-            screenshot_ref=None,
-            action_menu=self._action_menu(focus),
-            pending_events=self._pending_counts(),
+        return RouterObservation.snapshot_observation(
+            self,
+            Observation,
+            focus_hint,
         )
 
     def step_and_observe(self, tool: str, args: Dict[str, Any]) -> Observation:
         """Execute a tool call with deterministic step, then return an observation snapshot."""
-        self.call_and_step(tool, args)
-        focus = self._focus_for_tool(tool)
-        return self.snapshot_observation(focus)
+        return RouterObservation.step_and_observe(self, Observation, tool, args)
 
     def act_and_observe(self, tool: str, args: Dict[str, Any]) -> Dict[str, Any]:
         """Execute a tool call, advance deterministic time, and return both result and observation.
 
         This is a convenience for clients that want a single call semantics.
         """
-        result = self.call_and_step(tool, args)
-        focus = self._focus_for_tool(tool)
-        obs = self.snapshot_observation(focus)
-        return {"result": result, "observation": obs.model_dump()}
+        return RouterObservation.act_and_observe(self, Observation, tool, args)
 
     def _focus_for_tool(self, tool: str) -> str:
-        return resolve_focus_for_tool(self, tool)
+        return RouterObservation.focus_for_tool(self, tool)
 
     def inject(
         self, target: str, payload: Dict[str, Any], dt_ms: int = 0
@@ -843,34 +672,13 @@ class Router:
         most one due event to allow tests to "tick" the simulation forward
         without invoking a side-effecting tool.
         """
-        # Deliver one due event if any
-        evt = self.bus.next_if_due()
-        if evt:
-            self._deliver_due_event(evt)
-        # Advance time per observation to make future events become due
-        self.bus.advance(1000)
-        focus = focus_hint or "browser"
-        obs = Observation(
-            time_ms=self.bus.clock_ms,
-            focus=focus,
-            summary=self._summary(focus),
-            screenshot_ref=None,
-            action_menu=self._action_menu(focus),
-            pending_events=self._pending_counts(),
-        )
-        # Persist observations/events so trace is available while running
-        self.trace.flush()
-        return obs
+        return RouterObservation.observe(self, Observation, focus_hint)
 
     def _summary(self, focus: str) -> str:
-        return build_focus_summary(self, focus)
+        return RouterObservation.summary(self, focus)
 
     def _pending_counts(self) -> Dict[str, int]:
-        counts = {target: 0 for target in self._event_targets()}
-        for _, _, event in self.bus._heap:
-            counts[event.target] = counts.get(event.target, 0) + 1
-        counts["total"] = self.bus.pending_count()
-        return counts
+        return RouterObservation.pending_counts(self)
 
     def _maybe_fidelity_intercept(
         self, tool: str, args: Dict[str, Any]
@@ -927,4 +735,4 @@ class Router:
         return base
 
     def _action_menu(self, focus: str) -> List[Dict[str, Any]]:
-        return build_action_menu(self, focus)
+        return RouterObservation.action_menu(self, focus)

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from pathlib import Path
 
 import pyarrow as pa
@@ -13,7 +14,10 @@ from vei.whatif import (
     load_world,
     materialize_episode,
 )
-from vei.whatif.api import _allowed_thread_participants, _llm_counterfactual_prompt
+from vei.whatif.counterfactual import (
+    _allowed_thread_participants,
+    _llm_counterfactual_prompt,
+)
 from vei.whatif.models import (
     WhatIfPublicContext,
     WhatIfPublicFinancialSnapshot,
@@ -23,6 +27,7 @@ from vei.whatif.models import (
     WhatIfResearchPack,
 )
 from vei.whatif.public_context import (
+    build_public_context,
     load_public_context,
     load_enron_public_context,
     public_context_prompt_lines,
@@ -200,35 +205,159 @@ def test_load_enron_public_context_slices_world_window() -> None:
 
 def test_load_enron_public_context_soft_fails_when_fixture_is_unavailable(
     monkeypatch,
+    caplog,
 ) -> None:
     monkeypatch.setattr(
         "vei.whatif.public_context.resources.files",
         lambda *_args, **_kwargs: (_ for _ in ()).throw(FileNotFoundError("missing")),
     )
 
-    context = load_enron_public_context(
-        window_start="2001-04-01T00:00:00Z",
-        window_end="2001-05-31T23:59:59Z",
-    )
+    with caplog.at_level(logging.WARNING):
+        context = load_enron_public_context(
+            window_start="2001-04-01T00:00:00Z",
+            window_end="2001-05-31T23:59:59Z",
+        )
 
     assert context.pack_name == "enron_public_context"
     assert context.financial_snapshots == []
     assert context.public_news_events == []
-
-
-def test_load_public_context_soft_fails_for_generic_pack(tmp_path: Path) -> None:
-    context = load_public_context(
-        path=tmp_path / "missing_public_context.json",
-        organization_name="Py Corp",
-        organization_domain="pycorp.example.com",
-        window_start="2026-03-01T00:00:00Z",
-        window_end="2026-03-01T23:59:59Z",
+    record = next(
+        record
+        for record in caplog.records
+        if "whatif enron public context load failed" in record.getMessage()
     )
+    assert getattr(record, "source") == "public_context"
+    assert getattr(record, "provider") == "enron_fixture"
+
+
+def test_load_public_context_soft_fails_for_generic_pack(
+    tmp_path: Path,
+    caplog,
+) -> None:
+    with caplog.at_level(logging.WARNING):
+        context = load_public_context(
+            path=tmp_path / "missing_public_context.json",
+            organization_name="Py Corp",
+            organization_domain="pycorp.example.com",
+            window_start="2026-03-01T00:00:00Z",
+            window_end="2026-03-01T23:59:59Z",
+        )
 
     assert context.organization_name == "Py Corp"
     assert context.organization_domain == "pycorp.example.com"
     assert context.financial_snapshots == []
     assert context.public_news_events == []
+    record = next(
+        record
+        for record in caplog.records
+        if "whatif public context load failed" in record.getMessage()
+    )
+    assert getattr(record, "source") == "public_context"
+    assert getattr(record, "provider") == "file"
+
+
+def test_build_public_context_live_aggregates_sec_and_news(monkeypatch) -> None:
+    def fake_fetch_json(url: str) -> object:
+        if url.endswith("company_tickers.json"):
+            return {
+                "0": {
+                    "cik_str": 320193,
+                    "ticker": "AAPL",
+                    "title": "Apple Inc.",
+                }
+            }
+        if "submissions/CIK0000320193.json" in url:
+            return {
+                "filings": {
+                    "recent": {
+                        "form": ["10-Q", "8-K"],
+                        "filingDate": ["2026-01-31", "2026-02-15"],
+                        "accessionNumber": [
+                            "0000320193-26-000001",
+                            "0000320193-26-000002",
+                        ],
+                        "primaryDocument": ["q1.htm", "8k.htm"],
+                        "primaryDocDescription": [
+                            "Quarterly report",
+                            "Current report",
+                        ],
+                    }
+                }
+            }
+        if "companyfacts/CIK0000320193.json" in url:
+            return {
+                "facts": {
+                    "us-gaap": {
+                        "Revenues": {
+                            "units": {
+                                "USD": [
+                                    {
+                                        "form": "10-Q",
+                                        "end": "2025-12-31",
+                                        "filed": "2026-01-31",
+                                        "val": 123456789,
+                                        "accn": "0000320193-26-000001",
+                                    }
+                                ]
+                            }
+                        },
+                        "NetIncomeLoss": {
+                            "units": {
+                                "USD": [
+                                    {
+                                        "form": "10-Q",
+                                        "end": "2025-12-31",
+                                        "filed": "2026-01-31",
+                                        "val": 4567890,
+                                        "accn": "0000320193-26-000001",
+                                    }
+                                ]
+                            }
+                        },
+                    }
+                }
+            }
+        raise AssertionError(f"unexpected url: {url}")
+
+    def fake_fetch_text(url: str) -> str:
+        assert "news.google.com" in url
+        return """
+        <rss>
+          <channel>
+            <item>
+              <title>Apple launches new enterprise program</title>
+              <link>https://example.com/apple-launch</link>
+              <pubDate>Mon, 16 Feb 2026 14:00:00 GMT</pubDate>
+              <description><![CDATA[Apple expanded its enterprise rollout.]]></description>
+            </item>
+          </channel>
+        </rss>
+        """
+
+    monkeypatch.setattr("vei.whatif.public_context._fetch_json", fake_fetch_json)
+    monkeypatch.setattr("vei.whatif.public_context._fetch_text", fake_fetch_text)
+
+    context = build_public_context(
+        organization_name="Apple",
+        organization_domain="apple.com",
+        live=True,
+        news_limit=3,
+    )
+
+    assert context.organization_name == "Apple"
+    assert context.organization_domain == "apple.com"
+    assert len(context.financial_snapshots) == 1
+    assert context.financial_snapshots[0].label == "Apple Inc. 10-Q checkpoint"
+    assert "revenue $123.5M" in context.financial_snapshots[0].summary
+    assert len(context.public_news_events) == 3
+    assert {event.category for event in context.public_news_events} == {
+        "filing",
+        "news",
+    }
+    assert any(
+        event.headline == "Apple launches new enterprise program"
+        for event in context.public_news_events
+    )
 
 
 def test_public_context_branch_slice_sorts_items_before_prompt_truncation() -> None:
@@ -413,7 +542,7 @@ def test_benchmark_dossier_includes_branch_filtered_public_context(
 
 
 def test_non_enron_world_has_no_public_context(tmp_path: Path) -> None:
-    archive_path = tmp_path / "mail_archive.json"
+    archive_path = tmp_path / "context_snapshot.json"
     archive_path.write_text(
         json.dumps(
             {
@@ -447,7 +576,7 @@ def test_non_enron_world_has_no_public_context(tmp_path: Path) -> None:
 
 
 def test_mail_archive_world_loads_sidecar_public_context(tmp_path: Path) -> None:
-    archive_path = tmp_path / "mail_archive.json"
+    archive_path = tmp_path / "context_snapshot.json"
     archive_path.write_text(
         json.dumps(
             {

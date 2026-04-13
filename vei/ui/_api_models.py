@@ -340,12 +340,7 @@ def _looks_like_mail_archive_payload(path: Path) -> bool:
     if path.is_dir():
         return any(
             _looks_like_mail_archive_payload(path / filename)
-            for filename in (
-                "context_snapshot.json",
-                "mail_archive.json",
-                "historical_mail_archive.json",
-                "whatif_mail_archive.json",
-            )
+            for filename in ("context_snapshot.json",)
         )
     try:
         payload = json.loads(path.read_text(encoding="utf-8"))
@@ -369,14 +364,7 @@ def _looks_like_history_bundle_payload(path: Path) -> bool:
     if path.is_dir():
         return any(
             _looks_like_history_bundle_payload(path / filename)
-            for filename in (
-                "whatif_company_history.json",
-                "company_history_bundle.json",
-                "context_snapshot.json",
-                "mail_archive.json",
-                "historical_mail_archive.json",
-                "whatif_mail_archive.json",
-            )
+            for filename in ("context_snapshot.json",)
         )
     if path.suffix.lower() != ".json":
         return False
@@ -397,11 +385,7 @@ def _looks_like_non_mail_history_bundle_payload(path: Path) -> bool:
     if path.is_dir():
         return any(
             _looks_like_non_mail_history_bundle_payload(path / filename)
-            for filename in (
-                "whatif_company_history.json",
-                "company_history_bundle.json",
-                "context_snapshot.json",
-            )
+            for filename in ("context_snapshot.json",)
         )
     try:
         payload = json.loads(path.read_text(encoding="utf-8"))
@@ -420,7 +404,7 @@ def _looks_like_non_mail_history_bundle_payload(path: Path) -> bool:
 
 
 def _resolve_manifest_mail_archive_source(workspace_root: Path) -> Path | None:
-    manifest_path = workspace_root / "whatif_episode_manifest.json"
+    manifest_path = workspace_root / "episode_manifest.json"
     if not manifest_path.exists():
         return None
     try:
@@ -436,7 +420,7 @@ def _resolve_manifest_mail_archive_source(workspace_root: Path) -> Path | None:
 
 
 def _resolve_manifest_company_history_source(workspace_root: Path) -> Path | None:
-    manifest_path = workspace_root / "whatif_episode_manifest.json"
+    manifest_path = workspace_root / "episode_manifest.json"
     if not manifest_path.exists():
         return None
     try:
@@ -452,7 +436,7 @@ def _resolve_manifest_company_history_source(workspace_root: Path) -> Path | Non
 
 
 def _resolve_manifest_rosetta_dir(workspace_root: Path) -> Path | None:
-    manifest_path = workspace_root / "whatif_episode_manifest.json"
+    manifest_path = workspace_root / "episode_manifest.json"
     if not manifest_path.exists():
         return None
     try:
@@ -470,30 +454,21 @@ def _resolve_manifest_rosetta_dir(workspace_root: Path) -> Path | None:
 
 
 def _workspace_saved_mail_archive_path(workspace_root: Path) -> Path | None:
-    for path in (
-        workspace_root / "whatif_mail_archive.json",
-        workspace_root / "historical_mail_archive.json",
-        workspace_root / "mail_archive.json",
-        workspace_root / "context_snapshot.json",
-    ):
+    for path in (workspace_root / "context_snapshot.json",):
         if _looks_like_mail_archive_payload(path):
             return path
     return None
 
 
 def _workspace_saved_company_history_path(workspace_root: Path) -> Path | None:
-    for path in (
-        workspace_root / "whatif_company_history.json",
-        workspace_root / "company_history_bundle.json",
-        workspace_root / "context_snapshot.json",
-    ):
+    for path in (workspace_root / "context_snapshot.json",):
         if _looks_like_non_mail_history_bundle_payload(path):
             return path
     return None
 
 
 def _workspace_whatif_source_hint(workspace_root: Path) -> str | None:
-    manifest_path = workspace_root / "whatif_episode_manifest.json"
+    manifest_path = workspace_root / "episode_manifest.json"
     if manifest_path.exists():
         try:
             manifest = load_episode_manifest(workspace_root)
@@ -522,7 +497,7 @@ def _workspace_whatif_source_hint(workspace_root: Path) -> str | None:
 def load_workspace_historical_summary(
     workspace_root: Path,
 ) -> WorkspaceHistoricalSummary | None:
-    manifest_path = workspace_root / "whatif_episode_manifest.json"
+    manifest_path = workspace_root / "episode_manifest.json"
     if not manifest_path.exists():
         return None
     manifest = load_episode_manifest(workspace_root)

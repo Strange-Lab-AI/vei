@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 from typing import Any, List, Optional, Union
 
@@ -14,6 +15,8 @@ from .models import (
 from .providers import get_provider
 from .providers.base import iso_now
 
+logger = logging.getLogger(__name__)
+
 
 def capture_context(
     providers: List[ContextProviderConfig],
@@ -27,6 +30,18 @@ def capture_context(
         try:
             result = provider.capture(config)
         except Exception as exc:
+            logger.warning(
+                "context capture failed for %s (%s)",
+                config.provider,
+                type(exc).__name__,
+                extra={
+                    "source": "context_capture",
+                    "provider": config.provider,
+                    "file_path": str(config.base_url or ""),
+                    "exception_type": type(exc).__name__,
+                },
+                exc_info=True,
+            )
             result = ContextSourceResult(
                 provider=config.provider,
                 captured_at=iso_now(),
