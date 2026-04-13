@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from collections import Counter
 from datetime import datetime, timezone
+from email.utils import parsedate_to_datetime
 from pathlib import Path
 from typing import Any, Sequence
 
@@ -950,7 +951,9 @@ def _archive_threads_from_gmail_payload(
                 continue
             messages.append(
                 {
-                    "message_id": str(message.get("id", "") or ""),
+                    "message_id": str(
+                        message.get("message_id", message.get("id", "")) or ""
+                    ),
                     "from": str(message.get("from", "") or ""),
                     "to": str(message.get("to", "") or ""),
                     "subject": str(
@@ -959,6 +962,7 @@ def _archive_threads_from_gmail_payload(
                     "body_text": str(
                         message.get("snippet", message.get("body_text", "")) or ""
                     ),
+                    "date": str(message.get("date", "") or ""),
                     "time_ms": safe_int(message.get("internal_date", 0)),
                     "unread": bool(message.get("unread", False)),
                 }
@@ -2172,8 +2176,8 @@ def timestamp_to_ms(value: Any) -> int:
     text = str(value)
     if not text:
         return 0
-    parsed = datetime.fromisoformat(text.replace("Z", "+00:00"))
-    return int(parsed.timestamp() * 1000)
+    parsed = _parse_timestamp_text(text)
+    return int(parsed.timestamp() * 1000) if parsed is not None else 0
 
 
 def timestamp_to_text(value: Any) -> str:
@@ -2186,13 +2190,23 @@ def timestamp_to_text(value: Any) -> str:
     text = str(value)
     if not text:
         return ""
+    parsed = _parse_timestamp_text(text)
+    if parsed is None:
+        return text
+    return parsed.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+def _parse_timestamp_text(text: str) -> datetime | None:
     try:
         parsed = datetime.fromisoformat(text.replace("Z", "+00:00"))
     except ValueError:
-        return text
+        try:
+            parsed = parsedate_to_datetime(text)
+        except (TypeError, ValueError, IndexError):
+            return None
     if parsed.tzinfo is None:
         parsed = parsed.replace(tzinfo=timezone.utc)
-    return parsed.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+    return parsed.astimezone(timezone.utc)
 
 
 def display_name(actor_id: str) -> str:
