@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from vei.context.models import ContextSnapshot
+from vei.context.models import ContextSnapshot, JiraSourceData, source_payload
 
 from ..corpus import (
     _company_history_event_id,
@@ -23,11 +23,10 @@ def build_jira_events(
     include_content: bool,
 ) -> list[WhatIfEvent]:
     source = snapshot.source_for("jira")
-    if source is None or not isinstance(source.data, dict):
+    data = source_payload(source, JiraSourceData)
+    if data is None:
         return []
-    issues = source.data.get("issues", [])
-    if not isinstance(issues, list):
-        return []
+    issues = data.issues
 
     events: list[WhatIfEvent] = []
     for issue_index, issue in enumerate(issues):

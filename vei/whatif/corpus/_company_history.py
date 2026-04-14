@@ -178,12 +178,13 @@ def _company_history_chat_events(
     include_content: bool,
 ) -> list[WhatIfEvent]:
     source = snapshot.source_for(provider)
-    if source is None or not isinstance(source.data, dict):
+    if source is None:
         return []
-    channels = source.data.get("channels", [])
+    payload = source.typed_data()
+    channels = payload.get("channels", [])
     if not isinstance(channels, list):
         return []
-    user_lookup = _history_chat_user_lookup(source.data)
+    user_lookup = _history_chat_user_lookup(payload)
 
     events: list[WhatIfEvent] = []
     for channel_index, channel in enumerate(channels):
@@ -341,9 +342,9 @@ def _company_history_jira_events(
     include_content: bool,
 ) -> list[WhatIfEvent]:
     source = snapshot.source_for("jira")
-    if source is None or not isinstance(source.data, dict):
+    if source is None:
         return []
-    issues = source.data.get("issues", [])
+    issues = source.typed_data().get("issues", [])
     if not isinstance(issues, list):
         return []
 
@@ -457,23 +458,23 @@ def _history_actor_payload(
     *,
     organization_domain: str,
 ) -> list[dict[str, Any]]:
-    payload: dict[str, dict[str, str]] = {}
+    actor_payload: dict[str, dict[str, str]] = {}
     for actor in _mail_archive_source_payload_or_empty(snapshot).get("actors", []):
         if not isinstance(actor, dict):
             continue
         actor_id = str(actor.get("actor_id", actor.get("email", "")) or "").strip()
         if not actor_id:
             continue
-        payload[actor_id] = {
+        actor_payload[actor_id] = {
             "actor_id": actor_id,
             "email": str(actor.get("email", actor_id) or actor_id).strip(),
             "display_name": str(actor.get("display_name", "") or "").strip(),
         }
     for provider in ("slack", "teams"):
         source = snapshot.source_for(provider)
-        if source is None or not isinstance(source.data, dict):
+        if source is None:
             continue
-        users = source.data.get("users", [])
+        users = source.typed_data().get("users", [])
         if not isinstance(users, list):
             continue
         for user in users:
@@ -486,7 +487,7 @@ def _history_actor_payload(
             )
             if not actor_id:
                 continue
-            payload.setdefault(
+            actor_payload.setdefault(
                 actor_id,
                 {
                     "actor_id": actor_id,
@@ -497,8 +498,8 @@ def _history_actor_payload(
                 },
             )
     google_source = snapshot.source_for("google")
-    if google_source is not None and isinstance(google_source.data, dict):
-        users = google_source.data.get("users", [])
+    if google_source is not None:
+        users = google_source.typed_data().get("users", [])
         if isinstance(users, list):
             for user in users:
                 if not isinstance(user, dict):
@@ -510,7 +511,7 @@ def _history_actor_payload(
                 )
                 if not actor_id:
                     continue
-                payload.setdefault(
+                actor_payload.setdefault(
                     actor_id,
                     {
                         "actor_id": actor_id,
@@ -522,9 +523,10 @@ def _history_actor_payload(
                 )
     for provider in ("crm", "salesforce"):
         source = snapshot.source_for(provider)
-        if source is None or not isinstance(source.data, dict):
+        if source is None:
             continue
-        contacts = source.data.get("contacts", [])
+        source_data = source.typed_data()
+        contacts = source_data.get("contacts", [])
         if isinstance(contacts, list):
             for contact in contacts:
                 if not isinstance(contact, dict):
@@ -553,7 +555,7 @@ def _history_actor_payload(
                     )
                     if part
                 ).strip()
-                payload.setdefault(
+                actor_payload.setdefault(
                     actor_id,
                     {
                         "actor_id": actor_id,
@@ -561,7 +563,7 @@ def _history_actor_payload(
                         "display_name": contact_display_name or email or actor_id,
                     },
                 )
-        deals = source.data.get("deals", [])
+        deals = source_data.get("deals", [])
         if not isinstance(deals, list):
             continue
         for deal in deals:
@@ -574,7 +576,7 @@ def _history_actor_payload(
             )
             if not actor_id:
                 continue
-            payload.setdefault(
+            actor_payload.setdefault(
                 actor_id,
                 {
                     "actor_id": actor_id,
@@ -582,7 +584,7 @@ def _history_actor_payload(
                     "display_name": display_name(actor_id),
                 },
             )
-    return list(payload.values())
+    return list(actor_payload.values())
 
 
 def _supported_history_provider_names(snapshot: ContextSnapshot) -> set[str]:

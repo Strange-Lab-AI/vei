@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Optional
 
 from vei.blueprint.models import (
     BlueprintAsset,
@@ -25,6 +25,17 @@ from vei.blueprint.models import (
 )
 
 from .models import ContextSnapshot, ContextSourceResult
+from .models import (
+    CrmSourceData,
+    GmailSourceData,
+    GoogleSourceData,
+    MailArchiveSourceData,
+    OktaSourceData,
+    SlackSourceData,
+    TeamsSourceData,
+    JiraSourceData,
+    source_payload,
+)
 
 
 def hydrate_snapshot_to_blueprint(
@@ -108,8 +119,9 @@ def _build_comm_graph(
 ) -> Optional[BlueprintCommGraphAsset]:
     channels: list[BlueprintSlackChannelAsset] = []
 
-    if slack_source and slack_source.status != "error":
-        for ch in slack_source.data.get("channels", []):
+    slack_data = source_payload(slack_source, SlackSourceData)
+    if slack_data is not None:
+        for ch in slack_data.channels:
             if not isinstance(ch, dict):
                 continue
             messages = [
@@ -130,8 +142,9 @@ def _build_comm_graph(
                 )
             )
 
-    if teams_source and teams_source.status != "error":
-        for ch in teams_source.data.get("channels", []):
+    teams_data = source_payload(teams_source, TeamsSourceData)
+    if teams_data is not None:
+        for ch in teams_data.channels:
             if not isinstance(ch, dict):
                 continue
             messages = [
@@ -164,10 +177,11 @@ def _build_comm_graph(
 def _build_mail_from_gmail(
     gmail_source: Optional[ContextSourceResult],
 ) -> list[BlueprintMailThreadAsset]:
-    if not gmail_source or gmail_source.status == "error":
+    gmail_data = source_payload(gmail_source, GmailSourceData)
+    if gmail_data is None:
         return []
 
-    threads_data = gmail_source.data.get("threads", [])
+    threads_data = gmail_data.threads
     result: list[BlueprintMailThreadAsset] = []
 
     for thread in threads_data:
@@ -211,11 +225,12 @@ def _build_mail_from_gmail(
 def _build_mail_from_archive(
     mail_archive_source: Optional[ContextSourceResult],
 ) -> list[BlueprintMailThreadAsset]:
-    if not mail_archive_source or mail_archive_source.status == "error":
+    mail_archive_data = source_payload(mail_archive_source, MailArchiveSourceData)
+    if mail_archive_data is None:
         return []
 
     result: list[BlueprintMailThreadAsset] = []
-    for thread in mail_archive_source.data.get("threads", []):
+    for thread in mail_archive_data.threads:
         if not isinstance(thread, dict):
             continue
         mail_messages: list[BlueprintMailMessageAsset] = []
@@ -278,10 +293,11 @@ def _build_mail_threads(
 def _build_doc_graph(
     google_source: Optional[ContextSourceResult],
 ) -> Optional[BlueprintDocGraphAsset]:
-    if not google_source or google_source.status == "error":
+    google_data = source_payload(google_source, GoogleSourceData)
+    if google_data is None:
         return None
 
-    docs_data = google_source.data.get("documents", [])
+    docs_data = google_data.documents
     if not docs_data:
         return None
 
@@ -302,10 +318,11 @@ def _build_doc_graph(
 def _build_work_graph(
     jira_source: Optional[ContextSourceResult],
 ) -> Optional[BlueprintWorkGraphAsset]:
-    if not jira_source or jira_source.status == "error":
+    jira_data = source_payload(jira_source, JiraSourceData)
+    if jira_data is None:
         return None
 
-    issues_data = jira_source.data.get("issues", [])
+    issues_data = jira_data.issues
     if not issues_data:
         return None
 
@@ -333,8 +350,9 @@ def _build_identity_graph(
     groups: list[BlueprintIdentityGroupAsset] = []
     apps: list[BlueprintIdentityApplicationAsset] = []
 
-    if okta_source and okta_source.status != "error":
-        for u in okta_source.data.get("users", []):
+    okta_data = source_payload(okta_source, OktaSourceData)
+    if okta_data is not None:
+        for u in okta_data.users:
             if not isinstance(u, dict):
                 continue
             profile = u.get("profile") or {}
@@ -353,7 +371,7 @@ def _build_identity_graph(
                     groups=u.get("group_ids", []),
                 )
             )
-        for g in okta_source.data.get("groups", []):
+        for g in okta_data.groups:
             if not isinstance(g, dict):
                 continue
             profile = g.get("profile") or {}
@@ -364,7 +382,7 @@ def _build_identity_graph(
                     members=g.get("members", []),
                 )
             )
-        for a in okta_source.data.get("applications", []):
+        for a in okta_data.applications:
             if not isinstance(a, dict):
                 continue
             apps.append(
@@ -376,8 +394,9 @@ def _build_identity_graph(
                 )
             )
 
-    if google_source and google_source.status != "error":
-        for u in google_source.data.get("users", []):
+    google_data = source_payload(google_source, GoogleSourceData)
+    if google_data is not None:
+        for u in google_data.users:
             if not isinstance(u, dict):
                 continue
             if any(existing.email == u.get("email") for existing in users):
@@ -396,8 +415,9 @@ def _build_identity_graph(
                 )
             )
 
-    if mail_archive_source and mail_archive_source.status != "error":
-        _append_mail_archive_users(users, mail_archive_source.data)
+    mail_archive_data = source_payload(mail_archive_source, MailArchiveSourceData)
+    if mail_archive_data is not None:
+        _append_mail_archive_users(users, mail_archive_data)
 
     if not users and not groups and not apps:
         return None
@@ -428,7 +448,9 @@ def _build_revenue_graph(
             domain=str(item.get("domain", "")),
         )
         for source in sources
-        for index, item in enumerate(source.data.get("companies", []))
+        for data in [source_payload(source, CrmSourceData)]
+        if data is not None
+        for index, item in enumerate(data.companies)
         if isinstance(item, dict)
     ]
     contacts = [
@@ -440,7 +462,9 @@ def _build_revenue_graph(
             company_id=(str(item.get("company_id", "")).strip() or None),
         )
         for source in sources
-        for index, item in enumerate(source.data.get("contacts", []))
+        for data in [source_payload(source, CrmSourceData)]
+        if data is not None
+        for index, item in enumerate(data.contacts)
         if isinstance(item, dict)
     ]
     deals = [
@@ -454,7 +478,9 @@ def _build_revenue_graph(
             company_id=(str(item.get("company_id", "")).strip() or None),
         )
         for source in sources
-        for index, item in enumerate(source.data.get("deals", []))
+        for data in [source_payload(source, CrmSourceData)]
+        if data is not None
+        for index, item in enumerate(data.deals)
         if isinstance(item, dict)
     ]
 
@@ -562,43 +588,42 @@ def _infer_facades(
 
 def _append_mail_archive_users(
     users: list[BlueprintIdentityUserAsset],
-    payload: dict[str, Any],
+    payload: MailArchiveSourceData,
 ) -> None:
     seen = {item.email.lower() for item in users if item.email}
-    actors = payload.get("actors", [])
-    if isinstance(actors, list):
-        for actor in actors:
-            if not isinstance(actor, dict):
-                continue
-            email = str(actor.get("email", "")).strip()
-            if not email or email.lower() in seen:
-                continue
-            first_name, last_name = _split_actor_name(
-                str(actor.get("display_name", "")) or email
+    actors = payload.actors
+    for actor in actors:
+        if not isinstance(actor, dict):
+            continue
+        email = str(actor.get("email", "")).strip()
+        if not email or email.lower() in seen:
+            continue
+        first_name, last_name = _split_actor_name(
+            str(actor.get("display_name", "")) or email
+        )
+        users.append(
+            BlueprintIdentityUserAsset(
+                user_id=str(actor.get("actor_id", email)),
+                email=email,
+                first_name=first_name,
+                last_name=last_name,
+                login=email,
+                display_name=(
+                    str(actor.get("display_name", "")).strip()
+                    or f"{first_name} {last_name}".strip()
+                ),
+                department=str(actor.get("department", "")) or None,
+                title=str(actor.get("title", "")) or None,
+                status="ACTIVE",
             )
-            users.append(
-                BlueprintIdentityUserAsset(
-                    user_id=str(actor.get("actor_id", email)),
-                    email=email,
-                    first_name=first_name,
-                    last_name=last_name,
-                    login=email,
-                    display_name=(
-                        str(actor.get("display_name", "")).strip()
-                        or f"{first_name} {last_name}".strip()
-                    ),
-                    department=str(actor.get("department", "")) or None,
-                    title=str(actor.get("title", "")) or None,
-                    status="ACTIVE",
-                )
-            )
-            seen.add(email.lower())
+        )
+        seen.add(email.lower())
 
     if actors:
         return
 
     derived: dict[str, BlueprintIdentityUserAsset] = {}
-    for thread in payload.get("threads", []):
+    for thread in payload.threads:
         if not isinstance(thread, dict):
             continue
         for message in thread.get("messages", []):

@@ -7,7 +7,13 @@ from pathlib import Path
 from typing import Any, Sequence
 
 from pydantic import ValidationError
-from vei.context.models import ContextSnapshot, ContextSourceResult
+from vei.context.models import (
+    ContextSnapshot,
+    ContextSourceResult,
+    CrmSourceData,
+    GoogleSourceData,
+    source_payload,
+)
 
 from ..models import (
     WhatIfCaseContext,
@@ -780,11 +786,12 @@ def _filtered_google_record_source(
     if not record_ids:
         return None
     google_source = source_snapshot.source_for("google")
-    if google_source is None or not isinstance(google_source.data, dict):
+    google_data = source_payload(google_source, GoogleSourceData)
+    if google_source is None or google_data is None:
         return None
     documents = [
         item
-        for item in google_source.data.get("documents", [])
+        for item in google_data.documents
         if isinstance(item, dict) and str(item.get("doc_id", "")).strip() in record_ids
     ]
     if not documents:
@@ -808,11 +815,12 @@ def _filtered_crm_record_source(
     if not record_ids:
         return None
     source = source_snapshot.source_for(provider)
-    if source is None or not isinstance(source.data, dict):
+    data = source_payload(source, CrmSourceData)
+    if source is None or data is None:
         return None
     deals = [
         item
-        for item in source.data.get("deals", [])
+        for item in data.deals
         if isinstance(item, dict)
         and str(item.get("id", item.get("deal_id", ""))).strip() in record_ids
     ]
@@ -837,8 +845,9 @@ def _merge_context_source_result(
         existing=existing.data,
         extra=extra.data,
     )
-    return existing.model_copy(
-        update={
+    return ContextSourceResult.model_validate(
+        {
+            **existing.model_dump(mode="python"),
             "status": _merge_context_source_status(existing.status, extra.status),
             "record_counts": _context_source_record_counts(
                 existing.provider, merged_data
@@ -864,66 +873,82 @@ def _merge_context_source_status(
 def _merge_context_source_data(
     *,
     provider: str,
-    existing: dict[str, Any],
-    extra: dict[str, Any],
+    existing: Any,
+    extra: Any,
 ) -> dict[str, Any]:
+    existing_mapping = _context_source_mapping(existing)
+    extra_mapping = _context_source_mapping(extra)
     if provider in {"mail_archive", "gmail"}:
         return {
             "threads": _merge_mail_threads(
-                existing.get("threads", []),
-                extra.get("threads", []),
+                existing_mapping.get("threads", []),
+                extra_mapping.get("threads", []),
             ),
             "actors": _merge_keyed_dict_items(
-                existing.get("actors", []),
-                extra.get("actors", []),
+                existing_mapping.get("actors", []),
+                extra_mapping.get("actors", []),
                 key_names=("actor_id", "email"),
             ),
-            "profile": _merge_mapping(existing.get("profile"), extra.get("profile")),
+            "profile": _merge_mapping(
+                existing_mapping.get("profile"),
+                extra_mapping.get("profile"),
+            ),
         }
     if provider in {"slack", "teams"}:
         return {
             "channels": _merge_chat_channels(
-                existing.get("channels", []),
-                extra.get("channels", []),
+                existing_mapping.get("channels", []),
+                extra_mapping.get("channels", []),
             ),
             "users": _merge_keyed_dict_items(
-                existing.get("users", []),
-                extra.get("users", []),
+                existing_mapping.get("users", []),
+                extra_mapping.get("users", []),
                 key_names=("id", "email", "name"),
             ),
-            "profile": _merge_mapping(existing.get("profile"), extra.get("profile")),
+            "profile": _merge_mapping(
+                existing_mapping.get("profile"),
+                extra_mapping.get("profile"),
+            ),
         }
     if provider == "jira":
         return {
             "issues": _merge_jira_issues(
-                existing.get("issues", []),
-                extra.get("issues", []),
+                existing_mapping.get("issues", []),
+                extra_mapping.get("issues", []),
             ),
             "projects": _merge_keyed_dict_items(
-                existing.get("projects", []),
-                extra.get("projects", []),
+                existing_mapping.get("projects", []),
+                extra_mapping.get("projects", []),
                 key_names=("key", "id", "name"),
             ),
         }
     if provider == "google":
         return {
             "documents": _merge_keyed_dict_items(
-                existing.get("documents", []),
-                extra.get("documents", []),
+                existing_mapping.get("documents", []),
+                extra_mapping.get("documents", []),
                 key_names=("doc_id", "id", "title"),
             ),
         }
     if provider in {"crm", "salesforce"}:
         return {
             "deals": _merge_keyed_dict_items(
-                existing.get("deals", []),
-                extra.get("deals", []),
+                existing_mapping.get("deals", []),
+                extra_mapping.get("deals", []),
                 key_names=("id", "deal_id", "name"),
             ),
         }
-    merged = dict(existing)
-    merged.update(extra)
+    merged = dict(existing_mapping)
+    merged.update(extra_mapping)
     return merged
+
+
+def _context_source_mapping(value: Any) -> dict[str, Any]:
+    if hasattr(value, "model_dump"):
+        return value.model_dump(mode="python")
+    if isinstance(value, dict):
+        return value
+    return {}
 
 
 def _merge_mail_threads(

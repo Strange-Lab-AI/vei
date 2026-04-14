@@ -75,9 +75,9 @@ def _organization_domain_from_snapshot(snapshot: ContextSnapshot) -> str:
     domains: Counter[str] = Counter()
     for provider in ("slack", "teams"):
         source = snapshot.source_for(provider)
-        if source is None or not isinstance(source.data, dict):
+        if source is None:
             continue
-        users = source.data.get("users", [])
+        users = source.typed_data().get("users", [])
         if not isinstance(users, list):
             continue
         for user in users:
@@ -87,8 +87,8 @@ def _organization_domain_from_snapshot(snapshot: ContextSnapshot) -> str:
             if email_domain:
                 domains[email_domain] += 1
     jira_source = snapshot.source_for("jira")
-    if jira_source is not None and isinstance(jira_source.data, dict):
-        issues = jira_source.data.get("issues", [])
+    if jira_source is not None:
+        issues = jira_source.typed_data().get("issues", [])
         if isinstance(issues, list):
             for issue in issues:
                 if not isinstance(issue, dict):

@@ -3,10 +3,12 @@ from __future__ import annotations
 import argparse
 import json
 import shutil
+import sys
 from pathlib import Path
 from typing import Any
 
 from vei.whatif.artifacts import render_experiment_overview
+from vei.whatif.artifact_validation import validate_packaged_example_bundle
 from vei.whatif.business_state import (
     assess_historical_business_state,
     describe_forecast_business_change,
@@ -16,9 +18,16 @@ from vei.whatif.models import (
     WhatIfExperimentResult,
     WhatIfCounterfactualEstimateResult,
 )
-from scripts.build_enron_business_state_example import (
-    build_example as build_business_state_example,
-)
+
+try:
+    from scripts.build_enron_business_state_example import (
+        build_example as build_business_state_example,
+    )
+except ModuleNotFoundError:
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from build_enron_business_state_example import (
+        build_example as build_business_state_example,
+    )
 
 EXAMPLE_PLACEHOLDER = "not-included-in-repo-example"
 
@@ -227,6 +236,10 @@ def package_example(source_root: Path, output_root: Path) -> None:
     )
     _enrich_packaged_business_state(output_root, forecast_filename=forecast_filename)
     build_business_state_example(output_root)
+    issues = validate_packaged_example_bundle(output_root)
+    if issues:
+        joined = "\n".join(f"- {issue}" for issue in issues)
+        raise ValueError(f"packaged example validation failed:\n{joined}")
 
 
 def main() -> None:

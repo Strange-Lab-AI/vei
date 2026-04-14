@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from vei.context.api import (
+from ._core import (
     build_public_context,
     discover_public_context_path,
     empty_enron_public_context,
@@ -13,8 +13,16 @@ from vei.context.api import (
     slice_public_context_to_branch,
     slice_public_context_to_window,
 )
+from .models import (
+    WhatIfPublicContext,
+    WhatIfPublicFinancialSnapshot,
+    WhatIfPublicNewsEvent,
+)
 
 __all__ = [
+    "WhatIfPublicContext",
+    "WhatIfPublicFinancialSnapshot",
+    "WhatIfPublicNewsEvent",
     "build_public_context",
     "discover_public_context_path",
     "empty_enron_public_context",

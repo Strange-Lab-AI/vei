@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List, Literal, Optional, Union
+from typing import Any, Dict, List, Literal, Optional, TypeAlias, TypeVar
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 ContextLiveProviderName = Literal["slack", "jira", "google", "okta", "gmail", "teams"]
 ContextProviderName = Literal[
@@ -20,87 +20,90 @@ ContextProviderName = Literal[
 
 # ---------------------------------------------------------------------------
 # Per-provider typed data models
-#
-# These document the expected shape of ``ContextSourceResult.data`` for each
-# provider.  The actual ``data`` field remains ``Dict[str, Any]`` for backward
-# compatibility; use ``ContextSourceResult.typed_data()`` to get a validated
-# instance.
 # ---------------------------------------------------------------------------
 
 
-class SlackSourceData(BaseModel):
-    """Shape of ContextSourceResult.data for the Slack provider."""
+class ContextSourcePayload(BaseModel):
+    model_config = ConfigDict(extra="allow")
 
+    def get(self, key: str, default: Any = None) -> Any:
+        return getattr(self, key, default)
+
+    def __getitem__(self, key: str) -> Any:
+        return getattr(self, key)
+
+    def items(self):
+        return self.model_dump(mode="python").items()
+
+    def keys(self):
+        return self.model_dump(mode="python").keys()
+
+    def values(self):
+        return self.model_dump(mode="python").values()
+
+
+class GenericSourceData(ContextSourcePayload):
+    pass
+
+
+class SlackSourceData(ContextSourcePayload):
     channels: List[Dict[str, Any]] = Field(default_factory=list)
     users: List[Dict[str, Any]] = Field(default_factory=list)
 
 
-class GmailSourceData(BaseModel):
-    """Shape of ContextSourceResult.data for the Gmail provider."""
-
+class GmailSourceData(ContextSourcePayload):
     threads: List[Dict[str, Any]] = Field(default_factory=list)
     profile: Dict[str, Any] = Field(default_factory=dict)
 
 
-class JiraSourceData(BaseModel):
-    """Shape of ContextSourceResult.data for the Jira provider."""
-
+class JiraSourceData(ContextSourcePayload):
     issues: List[Dict[str, Any]] = Field(default_factory=list)
     projects: List[Dict[str, Any]] = Field(default_factory=list)
     parse_warnings: List[str] = Field(default_factory=list)
 
 
-class GoogleSourceData(BaseModel):
-    """Shape of ContextSourceResult.data for the Google Workspace provider."""
-
+class GoogleSourceData(ContextSourcePayload):
     users: List[Dict[str, Any]] = Field(default_factory=list)
     documents: List[Dict[str, Any]] = Field(default_factory=list)
     drive_shares: List[Dict[str, Any]] = Field(default_factory=list)
     parse_warnings: List[str] = Field(default_factory=list)
 
 
-class CrmSourceData(BaseModel):
-    """Shape of ContextSourceResult.data for CRM / Salesforce providers."""
-
+class CrmSourceData(ContextSourcePayload):
     companies: List[Dict[str, Any]] = Field(default_factory=list)
     contacts: List[Dict[str, Any]] = Field(default_factory=list)
     deals: List[Dict[str, Any]] = Field(default_factory=list)
     parse_warnings: List[str] = Field(default_factory=list)
 
 
-class TeamsSourceData(BaseModel):
-    """Shape of ContextSourceResult.data for the Microsoft Teams provider."""
-
+class TeamsSourceData(ContextSourcePayload):
     channels: List[Dict[str, Any]] = Field(default_factory=list)
     profile: Dict[str, Any] = Field(default_factory=dict)
 
 
-class OktaSourceData(BaseModel):
-    """Shape of ContextSourceResult.data for the Okta provider."""
-
+class OktaSourceData(ContextSourcePayload):
     users: List[Dict[str, Any]] = Field(default_factory=list)
     groups: List[Dict[str, Any]] = Field(default_factory=list)
     applications: List[Dict[str, Any]] = Field(default_factory=list)
 
 
-class MailArchiveSourceData(BaseModel):
-    """Shape of ContextSourceResult.data for the mail_archive provider."""
-
+class MailArchiveSourceData(ContextSourcePayload):
     threads: List[Dict[str, Any]] = Field(default_factory=list)
     actors: List[Dict[str, Any]] = Field(default_factory=list)
+    profile: Dict[str, Any] = Field(default_factory=dict)
 
 
-ContextSourceData = Union[
-    SlackSourceData,
-    GmailSourceData,
-    JiraSourceData,
-    GoogleSourceData,
-    CrmSourceData,
-    TeamsSourceData,
-    OktaSourceData,
-    MailArchiveSourceData,
-    Dict[str, Any],
-]
+ContextSourceData: TypeAlias = (
+    SlackSourceData
+    | GmailSourceData
+    | JiraSourceData
+    | GoogleSourceData
+    | CrmSourceData
+    | TeamsSourceData
+    | OktaSourceData
+    | MailArchiveSourceData
+    | GenericSourceData
+)
 
 _SOURCE_DATA_MODEL_MAP: Dict[str, type[BaseModel]] = {
     "slack": SlackSourceData,
@@ -113,6 +116,8 @@ _SOURCE_DATA_MODEL_MAP: Dict[str, type[BaseModel]] = {
     "okta": OktaSourceData,
     "mail_archive": MailArchiveSourceData,
 }
+
+_PayloadT = TypeVar("_PayloadT", bound=ContextSourcePayload)
 
 
 class ContextProviderConfig(BaseModel):
@@ -130,14 +135,32 @@ class ContextSourceResult(BaseModel):
     captured_at: str
     status: Literal["ok", "partial", "error", "empty"] = "ok"
     record_counts: Dict[str, int] = Field(default_factory=dict)
-    data: Dict[str, Any] = Field(default_factory=dict)
+    data: ContextSourcePayload = Field(default_factory=GenericSourceData)
     error: Optional[str] = None
 
+    @model_validator(mode="before")
+    @classmethod
+    def _coerce_payload(cls, values: Any) -> Any:
+        if not isinstance(values, dict):
+            return values
+        provider = str(values.get("provider", ""))
+        payload = values.get("data")
+        model_cls = _SOURCE_DATA_MODEL_MAP.get(provider, GenericSourceData)
+        if isinstance(payload, model_cls):
+            return values
+        if isinstance(payload, ContextSourcePayload):
+            values["data"] = payload
+            return values
+        if isinstance(payload, BaseModel):
+            values["data"] = model_cls.model_validate(payload.model_dump(mode="python"))
+            return values
+        if isinstance(payload, dict):
+            values["data"] = model_cls.model_validate(payload)
+            return values
+        values["data"] = model_cls()
+        return values
+
     def typed_data(self) -> ContextSourceData:
-        """Return data validated against the provider-specific model, or as raw dict."""
-        model_cls = _SOURCE_DATA_MODEL_MAP.get(self.provider)
-        if model_cls is not None and isinstance(self.data, dict):
-            return model_cls.model_validate(self.data)
         return self.data
 
 
@@ -154,6 +177,17 @@ class ContextSnapshot(BaseModel):
             if source.provider == provider:
                 return source
         return None
+
+
+def source_payload(
+    source: ContextSourceResult | None,
+    payload_type: type[_PayloadT],
+) -> _PayloadT | None:
+    if source is None or source.status == "error":
+        return None
+    if isinstance(source.data, payload_type):
+        return source.data
+    return None
 
 
 class ContextDiffEntry(BaseModel):

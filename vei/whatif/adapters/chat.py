@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Sequence
 
-from vei.context.models import ContextSnapshot
+from vei.context.models import ContextSnapshot, SlackSourceData, source_payload
 
 from ..corpus import (
     _channel_message_timestamp_ms,
@@ -24,12 +24,11 @@ def build_chat_events(
     include_content: bool,
 ) -> list[WhatIfEvent]:
     source = snapshot.source_for(provider)
-    if source is None or not isinstance(source.data, dict):
+    data = source_payload(source, SlackSourceData)
+    if data is None:
         return []
-    channels = source.data.get("channels", [])
-    if not isinstance(channels, list):
-        return []
-    user_lookup = _chat_user_lookup(source.data)
+    channels = data.channels
+    user_lookup = _chat_user_lookup(data)
 
     events: list[WhatIfEvent] = []
     for channel_index, channel in enumerate(channels):
@@ -146,12 +145,9 @@ def build_chat_events(
     return events
 
 
-def _chat_user_lookup(payload: dict[str, Any]) -> dict[str, str]:
+def _chat_user_lookup(payload: SlackSourceData) -> dict[str, str]:
     lookup: dict[str, str] = {}
-    users = payload.get("users", [])
-    if not isinstance(users, list):
-        return lookup
-    for user in users:
+    for user in payload.users:
         if not isinstance(user, dict):
             continue
         canonical = str(user.get("email", "") or user.get("name", "") or "").strip()

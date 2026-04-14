@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from vei.context.models import ContextSnapshot
+from vei.context.models import ContextSnapshot, GoogleSourceData, source_payload
 
 from ..corpus import (
     _company_history_event_id,
@@ -23,13 +23,12 @@ def build_docs_events(
     include_content: bool,
 ) -> list[WhatIfEvent]:
     source = snapshot.source_for("google")
-    if source is None or not isinstance(source.data, dict):
+    data = source_payload(source, GoogleSourceData)
+    if data is None:
         return []
 
-    documents = source.data.get("documents", [])
-    drive_shares = source.data.get("drive_shares", [])
-    if not isinstance(documents, list):
-        return []
+    documents = data.documents
+    drive_shares = data.drive_shares
 
     share_lookup = _share_lookup(drive_shares)
     events: list[WhatIfEvent] = []

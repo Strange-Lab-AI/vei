@@ -5,6 +5,12 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+from vei.context.api import (
+    WhatIfPublicContext,
+    WhatIfPublicFinancialSnapshot,
+    WhatIfPublicNewsEvent,
+)
+
 from ._base import (
     WhatIfBusinessConfidence,
     WhatIfBusinessImpactEffect,
@@ -103,41 +109,6 @@ class WhatIfWorldSummary(BaseModel):
     last_timestamp: str = ""
     event_type_counts: dict[str, int] = Field(default_factory=dict)
     key_actor_ids: list[str] = Field(default_factory=list)
-
-
-class WhatIfPublicFinancialSnapshot(BaseModel):
-    snapshot_id: str
-    as_of: str
-    kind: str
-    label: str
-    source_ids: list[str] = Field(default_factory=list)
-    summary: str = ""
-    metrics: dict[str, int | float | str] = Field(default_factory=dict)
-
-
-class WhatIfPublicNewsEvent(BaseModel):
-    event_id: str
-    timestamp: str
-    category: str
-    headline: str
-    summary: str = ""
-    source_ids: list[str] = Field(default_factory=list)
-
-
-class WhatIfPublicContext(BaseModel):
-    version: str = "1"
-    pack_name: str = ""
-    organization_name: str = ""
-    organization_domain: str = ""
-    prepared_at: str = ""
-    integration_hint: str = ""
-    window_start: str = ""
-    window_end: str = ""
-    branch_timestamp: str = ""
-    financial_snapshots: list[WhatIfPublicFinancialSnapshot] = Field(
-        default_factory=list
-    )
-    public_news_events: list[WhatIfPublicNewsEvent] = Field(default_factory=list)
 
 
 class WhatIfBusinessStateSnapshot(BaseModel):

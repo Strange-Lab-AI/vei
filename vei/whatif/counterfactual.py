@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import threading
 from pathlib import Path
-from typing import Any, Sequence
+from typing import Any, Awaitable, Sequence, TypeVar
 
 from vei.blueprint.api import create_world_session_from_blueprint
 from vei.blueprint.models import BlueprintAsset
@@ -51,19 +52,45 @@ from ._helpers import (
 
 logger = logging.getLogger(__name__)
 
+_RunResultT = TypeVar("_RunResultT")
+_COUNTERFACTUAL_FAILURES = (
+    asyncio.TimeoutError,
+    OSError,
+    RuntimeError,
+    TypeError,
+    ValueError,
+)
 
-def _run_async(coro):  # type: ignore[type-arg]
-    """Run a coroutine, handling the case where an event loop is already running."""
+
+def _run_async(awaitable: Awaitable[_RunResultT]) -> _RunResultT:
+    """Run a coroutine from sync code, even when an event loop is already active."""
     try:
         loop = asyncio.get_running_loop()
     except RuntimeError:
-        loop = None
-    if loop is not None and loop.is_running():
-        import concurrent.futures
+        return asyncio.run(awaitable)
+    if not loop.is_running():
+        return asyncio.run(awaitable)
+    return _run_async_in_thread(awaitable)
 
-        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
-            return pool.submit(asyncio.run, coro).result()
-    return asyncio.run(coro)
+
+def _run_async_in_thread(awaitable: Awaitable[_RunResultT]) -> _RunResultT:
+    result: dict[str, _RunResultT] = {}
+    error: dict[str, BaseException] = {}
+
+    def runner() -> None:
+        try:
+            result["value"] = asyncio.run(awaitable)
+        except BaseException as exc:  # pragma: no cover - surfaced in caller
+            error["value"] = exc
+
+    thread = threading.Thread(target=runner, daemon=True)
+    thread.start()
+    thread.join()
+    if "value" in error:
+        raise error["value"]
+    if "value" not in result:
+        raise RuntimeError("counterfactual runner returned no result")
+    return result["value"]
 
 
 # ---------------------------------------------------------------------------
@@ -570,7 +597,7 @@ def run_llm_counterfactual(
         )
         if not messages:
             raise ValueError("LLM returned no usable messages")
-    except Exception as exc:  # noqa: BLE001
+    except _COUNTERFACTUAL_FAILURES as exc:
         logger.warning(
             "whatif llm counterfactual generation failed for %s (%s)",
             workspace_root,
