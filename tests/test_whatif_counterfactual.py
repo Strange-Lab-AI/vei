@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import json
 from pathlib import Path
 
@@ -452,6 +453,117 @@ def test_llm_counterfactual_fuzzy_matches_named_participants(
     assert result.status == "ok"
     assert result.messages[0].actor_id == "sara.shackleton@enron.com"
     assert result.messages[0].to == "mark.taylor@enron.com"
+
+
+def test_llm_counterfactual_runs_inside_existing_event_loop(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    rosetta_dir = tmp_path / "rosetta"
+    _write_rosetta_fixture(rosetta_dir)
+    world = load_world(source="enron", rosetta_dir=rosetta_dir)
+    workspace_root = tmp_path / "episode_nested_loop"
+    materialize_episode(world, root=workspace_root, thread_id="thr-legal-trading")
+
+    async def fake_plan_once_with_usage(**_: object) -> PlanResult:
+        return PlanResult(
+            plan={
+                "tool": "emit_counterfactual",
+                "args": {
+                    "summary": "Sara pauses the handoff.",
+                    "messages": [
+                        {
+                            "actor_id": "sara.shackleton@enron.com",
+                            "to": "mark.taylor@enron.com",
+                            "subject": "Re: Gas Position Limits",
+                            "body_text": "Pause the forward until review completes.",
+                            "delay_ms": 1000,
+                        }
+                    ],
+                },
+            },
+            usage=PlanUsage(provider="openai", model="gpt-5"),
+        )
+
+    monkeypatch.setattr(
+        "vei.whatif.api.providers.plan_once_with_usage",
+        fake_plan_once_with_usage,
+    )
+
+    async def invoke() -> WhatIfLLMReplayResult:
+        return run_llm_counterfactual(
+            workspace_root,
+            prompt="Keep this internal and pause the handoff.",
+        )
+
+    result = asyncio.run(invoke())
+
+    assert result.status == "ok"
+    assert result.messages[0].to == "mark.taylor@enron.com"
+
+
+def test_llm_counterfactual_returns_error_result_when_provider_fails(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    rosetta_dir = tmp_path / "rosetta"
+    _write_rosetta_fixture(rosetta_dir)
+    world = load_world(source="enron", rosetta_dir=rosetta_dir)
+    workspace_root = tmp_path / "episode_provider_error"
+    materialize_episode(world, root=workspace_root, thread_id="thr-legal-trading")
+
+    async def fake_plan_once_with_usage(**_: object) -> PlanResult:
+        raise RuntimeError("provider unavailable")
+
+    monkeypatch.setattr(
+        "vei.whatif.api.providers.plan_once_with_usage",
+        fake_plan_once_with_usage,
+    )
+
+    result = run_llm_counterfactual(
+        workspace_root,
+        prompt="Pause the handoff until review finishes.",
+    )
+
+    assert result.status == "error"
+    assert result.error == "provider unavailable"
+    assert result.summary == "LLM counterfactual generation failed."
+
+
+def test_llm_counterfactual_returns_error_result_for_empty_messages(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    rosetta_dir = tmp_path / "rosetta"
+    _write_rosetta_fixture(rosetta_dir)
+    world = load_world(source="enron", rosetta_dir=rosetta_dir)
+    workspace_root = tmp_path / "episode_empty_messages"
+    materialize_episode(world, root=workspace_root, thread_id="thr-legal-trading")
+
+    async def fake_plan_once_with_usage(**_: object) -> PlanResult:
+        return PlanResult(
+            plan={
+                "tool": "emit_counterfactual",
+                "args": {
+                    "summary": "No usable continuation.",
+                    "messages": [],
+                },
+            },
+            usage=PlanUsage(provider="openai", model="gpt-5"),
+        )
+
+    monkeypatch.setattr(
+        "vei.whatif.api.providers.plan_once_with_usage",
+        fake_plan_once_with_usage,
+    )
+
+    result = run_llm_counterfactual(
+        workspace_root,
+        prompt="Pause the handoff until review finishes.",
+    )
+
+    assert result.status == "error"
+    assert result.error == "LLM returned no usable messages"
 
 
 def _make_llm_replay_result(

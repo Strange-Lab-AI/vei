@@ -4,7 +4,12 @@ import re
 from collections import Counter
 from typing import Any, Iterable, Sequence
 
-from vei.context.models import ContextSnapshot
+from vei.context.models import (
+    ContextSnapshot,
+    CrmSourceData,
+    GoogleSourceData,
+    source_payload,
+)
 
 from .models import (
     WhatIfCaseContext,
@@ -225,11 +230,11 @@ def _google_case_records(
     *,
     tokens: Sequence[str],
 ) -> list[WhatIfCaseRecord]:
-    source = snapshot.source_for("google")
-    if source is None or not isinstance(source.data, dict):
+    data = source_payload(snapshot.source_for("google"), GoogleSourceData)
+    if data is None:
         return []
     records: list[WhatIfCaseRecord] = []
-    for item in source.data.get("documents", []):
+    for item in data.documents:
         if not isinstance(item, dict):
             continue
         doc_id = str(item.get("doc_id", "")).strip()
@@ -260,11 +265,11 @@ def _crm_case_records(
     provider: str,
     tokens: Sequence[str],
 ) -> list[WhatIfCaseRecord]:
-    source = snapshot.source_for(provider)
-    if source is None or not isinstance(source.data, dict):
+    data = source_payload(snapshot.source_for(provider), CrmSourceData)
+    if data is None:
         return []
     records: list[WhatIfCaseRecord] = []
-    for deal in source.data.get("deals", []):
+    for deal in data.deals:
         if not isinstance(deal, dict):
             continue
         deal_id = str(deal.get("id", deal.get("deal_id", ""))).strip()

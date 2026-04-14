@@ -2,7 +2,20 @@ from __future__ import annotations
 
 from typing import Any, Dict, Set
 
-from .models import ContextDiff, ContextDiffEntry, ContextSnapshot
+from .models import (
+    ContextDiff,
+    ContextDiffEntry,
+    ContextSnapshot,
+    CrmSourceData,
+    GmailSourceData,
+    GoogleSourceData,
+    MailArchiveSourceData,
+    OktaSourceData,
+    SlackSourceData,
+    TeamsSourceData,
+    JiraSourceData,
+    source_payload,
+)
 
 
 def compute_diff(
@@ -45,14 +58,14 @@ def _diff_slack(
     after: ContextSnapshot,
     entries: list[ContextDiffEntry],
 ) -> None:
-    b_source = before.source_for("slack")
-    a_source = after.source_for("slack")
+    b_source = source_payload(before.source_for("slack"), SlackSourceData)
+    a_source = source_payload(after.source_for("slack"), SlackSourceData)
     b_channels = _keyed_list(
-        (b_source.data if b_source else {}).get("channels", []),
+        b_source.channels if b_source else [],
         "channel",
     )
     a_channels = _keyed_list(
-        (a_source.data if a_source else {}).get("channels", []),
+        a_source.channels if a_source else [],
         "channel",
     )
     _diff_keyed("channels", b_channels, a_channels, entries)
@@ -63,14 +76,14 @@ def _diff_jira(
     after: ContextSnapshot,
     entries: list[ContextDiffEntry],
 ) -> None:
-    b_source = before.source_for("jira")
-    a_source = after.source_for("jira")
+    b_source = source_payload(before.source_for("jira"), JiraSourceData)
+    a_source = source_payload(after.source_for("jira"), JiraSourceData)
     b_issues = _keyed_list(
-        (b_source.data if b_source else {}).get("issues", []),
+        b_source.issues if b_source else [],
         "ticket_id",
     )
     a_issues = _keyed_list(
-        (a_source.data if a_source else {}).get("issues", []),
+        a_source.issues if a_source else [],
         "ticket_id",
     )
     _diff_keyed("issues", b_issues, a_issues, entries)
@@ -81,14 +94,14 @@ def _diff_google(
     after: ContextSnapshot,
     entries: list[ContextDiffEntry],
 ) -> None:
-    b_source = before.source_for("google")
-    a_source = after.source_for("google")
+    b_source = source_payload(before.source_for("google"), GoogleSourceData)
+    a_source = source_payload(after.source_for("google"), GoogleSourceData)
     b_docs = _keyed_list(
-        (b_source.data if b_source else {}).get("documents", []),
+        b_source.documents if b_source else [],
         "doc_id",
     )
     a_docs = _keyed_list(
-        (a_source.data if a_source else {}).get("documents", []),
+        a_source.documents if a_source else [],
         "doc_id",
     )
     _diff_keyed("documents", b_docs, a_docs, entries)
@@ -99,14 +112,14 @@ def _diff_gmail(
     after: ContextSnapshot,
     entries: list[ContextDiffEntry],
 ) -> None:
-    b_source = before.source_for("gmail")
-    a_source = after.source_for("gmail")
+    b_source = source_payload(before.source_for("gmail"), GmailSourceData)
+    a_source = source_payload(after.source_for("gmail"), GmailSourceData)
     b_threads = _keyed_list(
-        (b_source.data if b_source else {}).get("threads", []),
+        b_source.threads if b_source else [],
         "thread_id",
     )
     a_threads = _keyed_list(
-        (a_source.data if a_source else {}).get("threads", []),
+        a_source.threads if a_source else [],
         "thread_id",
     )
     _diff_keyed("mail_threads", b_threads, a_threads, entries)
@@ -117,14 +130,14 @@ def _diff_teams(
     after: ContextSnapshot,
     entries: list[ContextDiffEntry],
 ) -> None:
-    b_source = before.source_for("teams")
-    a_source = after.source_for("teams")
+    b_source = source_payload(before.source_for("teams"), TeamsSourceData)
+    a_source = source_payload(after.source_for("teams"), TeamsSourceData)
     b_channels = _keyed_list(
-        (b_source.data if b_source else {}).get("channels", []),
+        b_source.channels if b_source else [],
         "channel",
     )
     a_channels = _keyed_list(
-        (a_source.data if a_source else {}).get("channels", []),
+        a_source.channels if a_source else [],
         "channel",
     )
     _diff_keyed("teams_channels", b_channels, a_channels, entries)
@@ -135,14 +148,14 @@ def _diff_okta(
     after: ContextSnapshot,
     entries: list[ContextDiffEntry],
 ) -> None:
-    b_source = before.source_for("okta")
-    a_source = after.source_for("okta")
+    b_source = source_payload(before.source_for("okta"), OktaSourceData)
+    a_source = source_payload(after.source_for("okta"), OktaSourceData)
     b_users = _keyed_list(
-        (b_source.data if b_source else {}).get("users", []),
+        b_source.users if b_source else [],
         "id",
     )
     a_users = _keyed_list(
-        (a_source.data if a_source else {}).get("users", []),
+        a_source.users if a_source else [],
         "id",
     )
     _diff_keyed("users", b_users, a_users, entries)
@@ -153,10 +166,8 @@ def _diff_crm(
     after: ContextSnapshot,
     entries: list[ContextDiffEntry],
 ) -> None:
-    b_source = before.source_for("crm")
-    a_source = after.source_for("crm")
-    b_data = b_source.data if b_source else {}
-    a_data = a_source.data if a_source else {}
+    b_data = source_payload(before.source_for("crm"), CrmSourceData)
+    a_data = source_payload(after.source_for("crm"), CrmSourceData)
     for collection, key in (
         ("companies", "id"),
         ("contacts", "id"),
@@ -164,8 +175,8 @@ def _diff_crm(
     ):
         _diff_keyed(
             collection,
-            _keyed_list(b_data.get(collection, []), key),
-            _keyed_list(a_data.get(collection, []), key),
+            _keyed_list(getattr(b_data, collection, []), key),
+            _keyed_list(getattr(a_data, collection, []), key),
             entries,
         )
 
@@ -175,10 +186,8 @@ def _diff_salesforce(
     after: ContextSnapshot,
     entries: list[ContextDiffEntry],
 ) -> None:
-    b_source = before.source_for("salesforce")
-    a_source = after.source_for("salesforce")
-    b_data = b_source.data if b_source else {}
-    a_data = a_source.data if a_source else {}
+    b_data = source_payload(before.source_for("salesforce"), CrmSourceData)
+    a_data = source_payload(after.source_for("salesforce"), CrmSourceData)
     for collection, key in (
         ("companies", "id"),
         ("contacts", "id"),
@@ -186,8 +195,8 @@ def _diff_salesforce(
     ):
         _diff_keyed(
             collection,
-            _keyed_list(b_data.get(collection, []), key),
-            _keyed_list(a_data.get(collection, []), key),
+            _keyed_list(getattr(b_data, collection, []), key),
+            _keyed_list(getattr(a_data, collection, []), key),
             entries,
         )
 
@@ -197,20 +206,18 @@ def _diff_mail_archive(
     after: ContextSnapshot,
     entries: list[ContextDiffEntry],
 ) -> None:
-    b_source = before.source_for("mail_archive")
-    a_source = after.source_for("mail_archive")
-    b_data = b_source.data if b_source else {}
-    a_data = a_source.data if a_source else {}
+    b_data = source_payload(before.source_for("mail_archive"), MailArchiveSourceData)
+    a_data = source_payload(after.source_for("mail_archive"), MailArchiveSourceData)
     _diff_keyed(
         "archive_threads",
-        _keyed_list(b_data.get("threads", []), "thread_id"),
-        _keyed_list(a_data.get("threads", []), "thread_id"),
+        _keyed_list(b_data.threads if b_data else [], "thread_id"),
+        _keyed_list(a_data.threads if a_data else [], "thread_id"),
         entries,
     )
     _diff_keyed(
         "actors",
-        _keyed_list(b_data.get("actors", []), "actor_id"),
-        _keyed_list(a_data.get("actors", []), "actor_id"),
+        _keyed_list(b_data.actors if b_data else [], "actor_id"),
+        _keyed_list(a_data.actors if a_data else [], "actor_id"),
         entries,
     )
 

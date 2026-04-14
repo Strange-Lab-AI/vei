@@ -37,7 +37,7 @@ jobs:
             --benchmark-scenario multi_channel
 
       - name: Upload Nightly Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: vei-nightly-release
           path: |

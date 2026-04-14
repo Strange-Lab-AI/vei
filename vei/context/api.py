@@ -12,10 +12,49 @@ from .models import (
     ContextSnapshot,
     ContextSourceResult,
 )
+from . import public_context as _public_context
 from .providers import get_provider
 from .providers.base import iso_now
 
 logger = logging.getLogger(__name__)
+
+WhatIfPublicContext = _public_context.WhatIfPublicContext
+WhatIfPublicFinancialSnapshot = _public_context.WhatIfPublicFinancialSnapshot
+WhatIfPublicNewsEvent = _public_context.WhatIfPublicNewsEvent
+build_public_context = _public_context.build_public_context
+discover_public_context_path = _public_context.discover_public_context_path
+empty_enron_public_context = _public_context.empty_enron_public_context
+empty_public_context = _public_context.empty_public_context
+load_enron_public_context = _public_context.load_enron_public_context
+load_public_context = _public_context.load_public_context
+public_context_has_items = _public_context.public_context_has_items
+public_context_prompt_lines = _public_context.public_context_prompt_lines
+resolve_world_public_context = _public_context.resolve_world_public_context
+slice_public_context_to_branch = _public_context.slice_public_context_to_branch
+slice_public_context_to_window = _public_context.slice_public_context_to_window
+
+__all__ = [
+    "WhatIfPublicContext",
+    "WhatIfPublicFinancialSnapshot",
+    "WhatIfPublicNewsEvent",
+    "build_public_context",
+    "capture_context",
+    "diff_snapshots",
+    "discover_public_context_path",
+    "empty_enron_public_context",
+    "empty_public_context",
+    "hydrate_blueprint",
+    "ingest_gmail_export",
+    "ingest_mail_archive_threads",
+    "ingest_slack_export",
+    "load_enron_public_context",
+    "load_public_context",
+    "public_context_has_items",
+    "public_context_prompt_lines",
+    "resolve_world_public_context",
+    "slice_public_context_to_branch",
+    "slice_public_context_to_window",
+]
 
 
 def capture_context(

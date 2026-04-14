@@ -7,7 +7,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Sequence
 
-from vei.context.models import ContextSnapshot
+from vei.context.models import (
+    ContextSnapshot,
+    GmailSourceData,
+    MailArchiveSourceData,
+    source_payload,
+)
 
 from ..cases import assign_case_ids, build_case_summaries
 from ..models import (
@@ -213,16 +218,13 @@ def _snapshot_from_archive_payload(payload: dict[str, Any]) -> ContextSnapshot:
 def _mail_archive_source_payload(snapshot: ContextSnapshot) -> dict[str, Any]:
     mail_archive_source = snapshot.source_for("mail_archive")
     gmail_source = snapshot.source_for("gmail")
+    archive_data = source_payload(mail_archive_source, MailArchiveSourceData)
+    gmail_data = source_payload(gmail_source, GmailSourceData)
     archive_payload = (
-        mail_archive_source.data
-        if mail_archive_source is not None
-        and isinstance(mail_archive_source.data, dict)
-        else None
+        archive_data.model_dump(mode="python") if archive_data is not None else None
     )
     gmail_payload = (
-        gmail_source.data
-        if gmail_source is not None and isinstance(gmail_source.data, dict)
-        else None
+        gmail_data.model_dump(mode="python") if gmail_data is not None else None
     )
     if archive_payload is not None or gmail_payload is not None:
         return {

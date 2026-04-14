@@ -6,6 +6,10 @@ from pathlib import Path
 from fastapi.testclient import TestClient
 
 from scripts import package_enron_master_agreement_example as enron_example_packager
+from vei.whatif.artifact_validation import (
+    validate_artifact_tree,
+    validate_packaged_example_bundle,
+)
 from vei.ui import api as ui_api
 
 EXAMPLE_ROOT = (
@@ -50,6 +54,7 @@ def _write_packaging_source_fixture(root: Path, *, forecast_filename: str) -> Pa
 
 def test_repo_owned_enron_example_bundle_is_present_and_clean() -> None:
     assert EXAMPLE_ROOT.exists()
+    assert validate_packaged_example_bundle(EXAMPLE_ROOT) == []
 
     required_paths = [
         EXAMPLE_ROOT / "README.md",
@@ -154,6 +159,35 @@ def test_package_example_accepts_proxy_forecast_bundle(
         experiment_payload["artifacts"]["forecast_json_path"]
         == "whatif_ejepa_proxy_result.json"
     )
+    assert validate_packaged_example_bundle(output_root) == []
+
+
+def test_validate_artifact_tree_flags_workspace_root_mismatch(tmp_path: Path) -> None:
+    workspace_root = tmp_path / "workspace"
+    workspace_root.mkdir(parents=True)
+    (workspace_root / "context_snapshot.json").write_text("{}", encoding="utf-8")
+    (workspace_root / "episode_manifest.json").write_text(
+        json.dumps({"workspace_root": str(tmp_path / "other")}),
+        encoding="utf-8",
+    )
+
+    issues = validate_artifact_tree(tmp_path)
+
+    assert any("workspace_root mismatch" in issue for issue in issues)
+
+
+def test_validate_artifact_tree_flags_legacy_manifest_name(tmp_path: Path) -> None:
+    workspace_root = tmp_path / "workspace"
+    workspace_root.mkdir(parents=True)
+    (workspace_root / "context_snapshot.json").write_text("{}", encoding="utf-8")
+    (workspace_root / "whatif_episode_manifest.json").write_text(
+        json.dumps({"workspace_root": str(workspace_root)}),
+        encoding="utf-8",
+    )
+
+    issues = validate_artifact_tree(tmp_path)
+
+    assert any("legacy workspace manifest present" in issue for issue in issues)
 
 
 def test_repo_owned_enron_example_workspace_loads_saved_scene() -> None:

@@ -7,6 +7,7 @@ from pathlib import Path
 import pyarrow as pa
 import pyarrow.parquet as pq
 
+from vei.context.public_context import _core as public_context_core
 from vei.whatif import (
     build_branch_point_benchmark,
     build_saved_decision_scene,
@@ -208,8 +209,9 @@ def test_load_enron_public_context_soft_fails_when_fixture_is_unavailable(
     caplog,
 ) -> None:
     monkeypatch.setattr(
-        "vei.whatif.public_context._core.resources.files",
-        lambda *_args, **_kwargs: (_ for _ in ()).throw(FileNotFoundError("missing")),
+        public_context_core,
+        "load_public_context",
+        lambda **_kwargs: (_ for _ in ()).throw(FileNotFoundError("missing")),
     )
 
     with caplog.at_level(logging.WARNING):
@@ -335,10 +337,10 @@ def test_build_public_context_live_aggregates_sec_and_news(monkeypatch) -> None:
         """
 
     monkeypatch.setattr(
-        "vei.whatif.public_context._fetchers._fetch_json", fake_fetch_json
+        "vei.context.public_context._fetchers._fetch_json", fake_fetch_json
     )
     monkeypatch.setattr(
-        "vei.whatif.public_context._fetchers._fetch_text", fake_fetch_text
+        "vei.context.public_context._fetchers._fetch_text", fake_fetch_text
     )
 
     context = build_public_context(

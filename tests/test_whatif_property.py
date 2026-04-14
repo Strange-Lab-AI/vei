@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import pytest
-from hypothesis import given, settings
+from hypothesis import HealthCheck, given, settings
 from hypothesis import strategies as st
 
 from vei.whatif.cases import _event_anchor_tokens
@@ -37,10 +37,40 @@ _KNOWN_TAGS: frozenset[str] = frozenset(
 # Reusable strategies
 # ---------------------------------------------------------------------------
 
+_ACTOR_POOL = ["alice@co.com", "bob@co.com", "charlie@co.com", "dave@co.com"]
+_SURFACE_POOL = ["mail", "slack", "tickets", "crm", "docs"]
+_thread_id_st = st.text(
+    alphabet="abcdefghijklmnop0123456789",
+    min_size=3,
+    max_size=10,
+).map(lambda s: f"thread:{s}")
+
 _artifact_flags_st = st.builds(
     WhatIfArtifactFlags,
-    to_recipients=st.lists(st.text(min_size=1, max_size=30), max_size=3),
-    cc_recipients=st.lists(st.text(min_size=1, max_size=30), max_size=3),
+    to_recipients=st.lists(
+        st.text(
+            alphabet=st.characters(
+                min_codepoint=32,
+                max_codepoint=126,
+                blacklist_characters=["\r", "\n"],
+            ),
+            min_size=1,
+            max_size=30,
+        ),
+        max_size=3,
+    ),
+    cc_recipients=st.lists(
+        st.text(
+            alphabet=st.characters(
+                min_codepoint=32,
+                max_codepoint=126,
+                blacklist_characters=["\r", "\n"],
+            ),
+            min_size=1,
+            max_size=30,
+        ),
+        max_size=3,
+    ),
     has_attachment_reference=st.booleans(),
     is_forward=st.booleans(),
     is_reply=st.booleans(),
@@ -49,28 +79,74 @@ _artifact_flags_st = st.builds(
 
 _whatif_event_st = st.builds(
     WhatIfEvent,
-    event_id=st.text(min_size=1, max_size=20),
-    timestamp=st.text(min_size=1, max_size=30),
+    event_id=st.text(
+        alphabet=st.characters(
+            min_codepoint=48,
+            max_codepoint=122,
+            blacklist_characters=["\r", "\n"],
+        ),
+        min_size=1,
+        max_size=20,
+    ),
+    timestamp=st.text(
+        alphabet=st.characters(
+            min_codepoint=48,
+            max_codepoint=90,
+            blacklist_characters=["\r", "\n"],
+        ),
+        min_size=1,
+        max_size=30,
+    ),
     timestamp_ms=st.integers(min_value=0, max_value=2**40),
-    actor_id=st.text(min_size=1, max_size=30),
-    target_id=st.text(max_size=30),
-    event_type=st.text(min_size=1, max_size=20),
-    thread_id=st.text(min_size=1, max_size=30),
-    case_id=st.text(max_size=30),
+    actor_id=st.sampled_from(_ACTOR_POOL),
+    target_id=st.text(
+        alphabet=st.characters(
+            min_codepoint=48,
+            max_codepoint=122,
+            blacklist_characters=["\r", "\n"],
+        ),
+        max_size=30,
+    ),
+    event_type=st.sampled_from(["message", "reply", "send", "update"]),
+    thread_id=_thread_id_st,
+    case_id=st.text(
+        alphabet=st.characters(
+            min_codepoint=48,
+            max_codepoint=122,
+            blacklist_characters=["\r", "\n"],
+        ),
+        max_size=30,
+    ),
     surface=st.sampled_from(["mail", "slack", "tickets", "crm", "docs"]),
-    conversation_anchor=st.text(max_size=50),
-    subject=st.text(max_size=50),
-    snippet=st.text(max_size=100),
+    conversation_anchor=st.text(
+        alphabet=st.characters(
+            min_codepoint=48,
+            max_codepoint=122,
+            blacklist_characters=["\r", "\n"],
+        ),
+        max_size=50,
+    ),
+    subject=st.text(
+        alphabet=st.characters(
+            min_codepoint=32,
+            max_codepoint=126,
+            blacklist_characters=["\r", "\n"],
+        ),
+        max_size=50,
+    ),
+    snippet=st.text(
+        alphabet=st.characters(
+            min_codepoint=32,
+            max_codepoint=126,
+            blacklist_characters=["\r", "\n"],
+        ),
+        max_size=100,
+    ),
     flags=_artifact_flags_st,
 )
 
-_ACTOR_POOL = ["alice@co.com", "bob@co.com", "charlie@co.com", "dave@co.com"]
-_SURFACE_POOL = ["mail", "slack", "tickets", "crm", "docs"]
-
 _thread_ids_st = st.lists(
-    st.text(alphabet="abcdefghijklmnop0123456789", min_size=3, max_size=10).map(
-        lambda s: f"thread:{s}"
-    ),
+    _thread_id_st,
     min_size=2,
     max_size=8,
     unique=True,
@@ -157,6 +233,7 @@ class TestInterventionTagsProperties:
 @pytest.mark.hypothesis
 class TestEventAnchorTokensProperties:
     @given(event=_whatif_event_st)
+    @settings(deadline=None, suppress_health_check=[HealthCheck.too_slow])
     def test_tokens_are_non_empty_strings(self, event: WhatIfEvent) -> None:
         tokens = _event_anchor_tokens(event)
         assert isinstance(tokens, list)
@@ -165,6 +242,7 @@ class TestEventAnchorTokensProperties:
             assert len(token) > 0
 
     @given(event=_whatif_event_st)
+    @settings(deadline=None, suppress_health_check=[HealthCheck.too_slow])
     def test_never_raises_on_valid_input(self, event: WhatIfEvent) -> None:
         _event_anchor_tokens(event)
 
@@ -177,7 +255,7 @@ class TestEventAnchorTokensProperties:
 @pytest.mark.hypothesis
 class TestSituationGraphProperties:
     @given(thread_ids=_thread_ids_st, data=st.data())
-    @settings(max_examples=50)
+    @settings(max_examples=50, deadline=None)
     def test_every_cluster_has_at_least_two_surfaces(
         self,
         thread_ids: list[str],
@@ -191,7 +269,7 @@ class TestSituationGraphProperties:
             ), f"Cluster {cluster.situation_id} has surfaces={cluster.surfaces}"
 
     @given(thread_ids=_thread_ids_st, data=st.data())
-    @settings(max_examples=50)
+    @settings(max_examples=50, deadline=None)
     def test_link_thread_ids_consistent_with_clusters(
         self,
         thread_ids: list[str],

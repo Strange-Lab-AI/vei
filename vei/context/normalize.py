@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import logging
 import shutil
+import stat
 import tarfile
 import tempfile
 import zipfile
@@ -16,6 +17,10 @@ from vei.context.models import (
     BundleVerificationResult,
     ContextSnapshot,
     ContextSourceResult,
+)
+from vei.context.public_context import (
+    build_public_context as _build_public_context,
+    empty_public_context as _empty_public_context,
 )
 from vei.context.providers.base import iso_now
 from vei.context.providers.crm import capture_from_export as capture_crm_export
@@ -151,16 +156,13 @@ def build_public_context_sidecar(
     organization_domain: str,
     live: bool = True,
 ):
-    from vei.whatif.public_context import build_public_context as _build
-    from vei.whatif.public_context import empty_public_context as _empty
-
     if live:
-        return _build(
+        return _build_public_context(
             organization_name=organization_name,
             organization_domain=organization_domain,
             live=True,
         )
-    template = _empty(
+    template = _empty_public_context(
         organization_name=organization_name,
         organization_domain=organization_domain,
     )
@@ -182,23 +184,77 @@ def _extract_archive_if_needed(path: Path) -> Path:
     suffix_lower = path.name.lower()
     tmp = Path(tempfile.mkdtemp(prefix="vei_normalize_"))
 
-    if suffix_lower.endswith(".zip"):
-        with zipfile.ZipFile(path, "r") as zf:
-            zf.extractall(tmp)
-    elif suffix_lower.endswith((".tar.gz", ".tgz")):
-        with tarfile.open(path, "r:gz") as tf:
-            tf.extractall(tmp, filter="data")
-    elif suffix_lower.endswith(".tar"):
-        with tarfile.open(path, "r:") as tf:
-            tf.extractall(tmp, filter="data")
-    else:
+    try:
+        if suffix_lower.endswith(".zip"):
+            with zipfile.ZipFile(path, "r") as zf:
+                _extract_zip_archive(zf, tmp)
+        elif suffix_lower.endswith((".tar.gz", ".tgz")):
+            with tarfile.open(path, "r:gz") as tf:
+                _extract_tar_archive(tf, tmp)
+        elif suffix_lower.endswith(".tar"):
+            with tarfile.open(path, "r:") as tf:
+                _extract_tar_archive(tf, tmp)
+        else:
+            shutil.rmtree(tmp, ignore_errors=True)
+            return path
+    except Exception:
         shutil.rmtree(tmp, ignore_errors=True)
-        return path
+        raise
 
     children = [c for c in tmp.iterdir() if not c.name.startswith(".")]
     if len(children) == 1 and children[0].is_dir():
         return children[0]
     return tmp
+
+
+def _extract_zip_archive(archive: zipfile.ZipFile, destination: Path) -> None:
+    for member in archive.infolist():
+        if not member.filename:
+            continue
+        if _zip_info_is_link(member):
+            raise ValueError(f"unsafe archive member: {member.filename}")
+        target = _safe_archive_destination(destination, member.filename)
+        if member.is_dir():
+            target.mkdir(parents=True, exist_ok=True)
+            continue
+        target.parent.mkdir(parents=True, exist_ok=True)
+        with archive.open(member, "r") as source, target.open("wb") as sink:
+            shutil.copyfileobj(source, sink)
+
+
+def _extract_tar_archive(archive: tarfile.TarFile, destination: Path) -> None:
+    for member in archive.getmembers():
+        if not member.name:
+            continue
+        if not member.isfile() and not member.isdir():
+            raise ValueError(f"unsafe archive member: {member.name}")
+        target = _safe_archive_destination(destination, member.name)
+        if member.isdir():
+            target.mkdir(parents=True, exist_ok=True)
+            continue
+        extracted = archive.extractfile(member)
+        if extracted is None:
+            raise ValueError(f"unsafe archive member: {member.name}")
+        target.parent.mkdir(parents=True, exist_ok=True)
+        with extracted, target.open("wb") as sink:
+            shutil.copyfileobj(extracted, sink)
+
+
+def _safe_archive_destination(destination: Path, member_name: str) -> Path:
+    normalized_name = member_name.replace("\\", "/")
+    member_path = Path(normalized_name)
+    if member_path.is_absolute() or any(part == ".." for part in member_path.parts):
+        raise ValueError(f"unsafe archive member: {member_name}")
+    target = (destination / member_path).resolve()
+    destination_root = destination.resolve()
+    if target != destination_root and destination_root not in target.parents:
+        raise ValueError(f"unsafe archive member: {member_name}")
+    return target
+
+
+def _zip_info_is_link(info: zipfile.ZipInfo) -> bool:
+    mode = info.external_attr >> 16
+    return stat.S_ISLNK(mode)
 
 
 def _load_existing_snapshot(root: Path) -> ContextSnapshot | None:
@@ -458,8 +514,9 @@ def _merge_source_results(
         if current is None:
             merged[source.provider] = source
             continue
-        merged[source.provider] = current.model_copy(
-            update={
+        merged[source.provider] = ContextSourceResult.model_validate(
+            {
+                **current.model_dump(mode="python"),
                 "captured_at": max(current.captured_at, source.captured_at),
                 "status": _merge_status(current.status, source.status),
                 "record_counts": _merge_counts(
@@ -484,9 +541,11 @@ def _merge_counts(left: dict[str, int], right: dict[str, int]) -> dict[str, int]
     return merged
 
 
-def _merge_data(left: dict[str, Any], right: dict[str, Any]) -> dict[str, Any]:
-    merged = dict(left)
-    for key, value in right.items():
+def _merge_data(left: Any, right: Any) -> dict[str, Any]:
+    left_mapping = _payload_mapping(left)
+    right_mapping = _payload_mapping(right)
+    merged = dict(left_mapping)
+    for key, value in right_mapping.items():
         if key not in merged:
             merged[key] = value
             continue
@@ -499,6 +558,14 @@ def _merge_data(left: dict[str, Any], right: dict[str, Any]) -> dict[str, Any]:
             continue
         merged[key] = value
     return merged
+
+
+def _payload_mapping(value: Any) -> dict[str, Any]:
+    if hasattr(value, "model_dump"):
+        return value.model_dump(mode="python")
+    if isinstance(value, dict):
+        return value
+    return {}
 
 
 def _source_checks(source: ContextSourceResult) -> list[BundleVerificationCheck]:
@@ -520,7 +587,7 @@ def _source_checks(source: ContextSourceResult) -> list[BundleVerificationCheck]
                 detail="source contains no usable records",
             )
         )
-    warnings = source.data.get("parse_warnings", [])
+    warnings = source.typed_data().get("parse_warnings", [])
     if isinstance(warnings, list) and warnings:
         checks.append(
             BundleVerificationCheck(
@@ -689,7 +756,7 @@ def _required_field_checks(
 
 
 def _source_timestamps(source: ContextSourceResult) -> list[int]:
-    data = source.data if isinstance(source.data, dict) else {}
+    data = _source_data_mapping(source)
     provider = source.provider
     timestamps: list[int] = []
     if provider in {"mail_archive", "gmail"}:
@@ -756,7 +823,7 @@ def _source_timestamps(source: ContextSourceResult) -> list[int]:
 
 
 def _source_ids(source: ContextSourceResult) -> dict[str, list[str]]:
-    data = source.data if isinstance(source.data, dict) else {}
+    data = _source_data_mapping(source)
     provider = source.provider
     if provider in {"mail_archive", "gmail"}:
         return {
@@ -812,7 +879,7 @@ def _source_ids(source: ContextSourceResult) -> dict[str, list[str]]:
 
 
 def _suspicious_identity_values(source: ContextSourceResult) -> list[str]:
-    data = source.data if isinstance(source.data, dict) else {}
+    data = _source_data_mapping(source)
     suspicious: list[str] = []
     if source.provider in {"mail_archive", "gmail"}:
         for thread in data.get("threads", []):
@@ -843,7 +910,7 @@ def _suspicious_identity_values(source: ContextSourceResult) -> list[str]:
 
 
 def _missing_required_fields(source: ContextSourceResult) -> list[str]:
-    data = source.data if isinstance(source.data, dict) else {}
+    data = _source_data_mapping(source)
     missing: list[str] = []
     if source.provider == "google":
         for document in data.get("documents", []):
@@ -877,7 +944,7 @@ def _missing_required_fields(source: ContextSourceResult) -> list[str]:
 
 
 def _source_identity_pairs(source: ContextSourceResult) -> list[tuple[str, str]]:
-    data = source.data if isinstance(source.data, dict) else {}
+    data = _source_data_mapping(source)
     pairs: list[tuple[str, str]] = []
     if source.provider == "slack":
         for user in data.get("users", []):
@@ -1092,7 +1159,7 @@ def _actors_from_source(
     source: ContextSourceResult,
 ) -> list[tuple[str, str, str]]:
     """Extract actor identity triples from a single source."""
-    data = source.data if isinstance(source.data, dict) else {}
+    data = _source_data_mapping(source)
     provider = source.provider
     records: list[tuple[str, str, str]] = []
 
@@ -1182,3 +1249,7 @@ def _actors_from_source(
             records.append((f"{provider}:{cid}", email, name))
 
     return records
+
+
+def _source_data_mapping(source: ContextSourceResult) -> dict[str, Any]:
+    return source.data.model_dump(mode="python")

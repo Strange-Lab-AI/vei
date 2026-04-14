@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from vei.context.models import ContextSnapshot
+from vei.context.models import ContextSnapshot, CrmSourceData, source_payload
 
 from ..corpus import (
     _company_history_event_id,
@@ -24,18 +24,13 @@ def build_crm_events(
     include_content: bool,
 ) -> list[WhatIfEvent]:
     source = snapshot.source_for(provider)
-    if source is None or not isinstance(source.data, dict):
+    data = source_payload(source, CrmSourceData)
+    if data is None:
         return []
 
-    companies = source.data.get("companies", [])
-    contacts = source.data.get("contacts", [])
-    deals = source.data.get("deals", [])
-    if not isinstance(companies, list):
-        companies = []
-    if not isinstance(contacts, list):
-        contacts = []
-    if not isinstance(deals, list):
-        deals = []
+    companies = data.companies
+    contacts = data.contacts
+    deals = data.deals
 
     company_lookup = {
         str(company.get("id") or "").strip(): company

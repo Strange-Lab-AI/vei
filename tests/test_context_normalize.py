@@ -6,6 +6,7 @@ import tarfile
 import zipfile
 from pathlib import Path
 
+import pytest
 from typer.testing import CliRunner
 
 from vei.cli.vei import app
@@ -562,6 +563,35 @@ def test_normalize_raw_exports_from_tar_gz_archive(tmp_path: Path) -> None:
     assert "slack" in providers
     assert "crm" in providers
     assert snapshot.source_for("crm").record_counts["deals"] == 1  # type: ignore[union-attr]
+
+
+def test_normalize_raw_exports_rejects_zip_path_traversal(tmp_path: Path) -> None:
+    zip_path = tmp_path / "bad.zip"
+    with zipfile.ZipFile(zip_path, "w") as zf:
+        zf.writestr("../escape.txt", "nope")
+
+    with pytest.raises(ValueError, match="unsafe archive member"):
+        normalize_raw_exports(
+            zip_path,
+            organization_name="Acme Cloud",
+            organization_domain="acme.example.com",
+        )
+
+
+def test_normalize_raw_exports_rejects_tar_path_traversal(tmp_path: Path) -> None:
+    tar_path = tmp_path / "bad.tar.gz"
+    payload_path = tmp_path / "payload.txt"
+    payload_path.write_text("nope", encoding="utf-8")
+
+    with tarfile.open(tar_path, "w:gz") as tf:
+        tf.add(payload_path, arcname="../escape.txt")
+
+    with pytest.raises(ValueError, match="unsafe archive member"):
+        normalize_raw_exports(
+            tar_path,
+            organization_name="Acme Cloud",
+            organization_domain="acme.example.com",
+        )
 
 
 def test_deduplicate_actors_merges_cross_source_identities(tmp_path: Path) -> None:

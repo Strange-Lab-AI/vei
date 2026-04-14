@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
 from typer.testing import CliRunner
@@ -9,6 +10,12 @@ from vei.cli.vei import app
 from vei.whatif import load_world, search_events
 from vei.whatif.benchmark import choose_branch_event as benchmark_choose_branch_event
 from vei.whatif.corpus import choose_branch_event as corpus_choose_branch_event
+
+ANSI_ESCAPE_RE = re.compile(r"\x1b\[[0-9;]*[A-Za-z]")
+
+
+def _clean_cli_output(output: str) -> str:
+    return ANSI_ESCAPE_RE.sub("", output)
 
 
 def test_load_company_history_world_supports_docs_only_snapshot(
@@ -246,11 +253,11 @@ def test_smoke_and_visualize_cli_help_commands_load() -> None:
 
     smoke_result = runner.invoke(app, ["smoke", "run", "--help"])
     assert smoke_result.exit_code == 0, smoke_result.output
-    assert "--transport" in smoke_result.output
+    assert "--transport" in _clean_cli_output(smoke_result.output)
 
     visualize_result = runner.invoke(app, ["visualize", "flow", "--help"])
     assert visualize_result.exit_code == 0, visualize_result.output
-    assert "--out" in visualize_result.output
+    assert "--out" in _clean_cli_output(visualize_result.output)
 
 
 def _write_snapshot(root: Path, *, sources: list[dict[str, object]]) -> Path:
