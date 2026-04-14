@@ -5,6 +5,7 @@ import sys
 from pathlib import Path
 
 from vei.whatif.artifact_validation import (
+    detect_validation_mode,
     validate_artifact_tree,
     validate_packaged_example_bundle,
     validate_saved_workspace,
@@ -23,7 +24,7 @@ def main() -> int:
     parser.add_argument(
         "--mode",
         choices=("workspace", "bundle", "tree"),
-        default="tree",
+        default=None,
         help="Validation mode to run.",
     )
     parser.add_argument(
@@ -34,12 +35,13 @@ def main() -> int:
     args = parser.parse_args()
 
     target = args.path.expanduser().resolve()
-    if args.mode == "workspace":
+    mode = args.mode or detect_validation_mode(target)
+    if mode == "workspace":
         issues = validate_saved_workspace(
             target,
             allow_relative_workspace_root=args.allow_relative_workspace_root,
         )
-    elif args.mode == "bundle":
+    elif mode == "bundle":
         issues = validate_packaged_example_bundle(target)
     else:
         issues = validate_artifact_tree(target)

@@ -4,6 +4,7 @@ import importlib
 from typing import Any
 
 from .analysis import (
+    list_branch_candidates,
     list_objective_packs,
     load_world,
     recommend_branch_thread,
@@ -62,6 +63,7 @@ __all__ = [
     "evaluate_branch_point_benchmark_model",
     "get_research_pack",
     "judge_branch_point_benchmark",
+    "list_branch_candidates",
     "list_branch_point_benchmark_models",
     "list_objective_packs",
     "list_research_packs",

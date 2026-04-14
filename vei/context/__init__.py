@@ -2,10 +2,16 @@ from importlib import import_module
 from typing import Any
 
 from vei.context.api import (
+    ContextProviderStatusSummary,
+    ContextSnapshotRole,
+    ContextSnapshotStatusSummary,
+    ContextStatusFinding,
     capture_context,
     diff_snapshots,
     hydrate_blueprint,
     ingest_mail_archive_threads,
+    snapshot_role,
+    with_snapshot_role,
 )
 from vei.context.models import (
     BundleVerificationCheck,
@@ -22,8 +28,12 @@ __all__ = [
     "BundleVerificationResult",
     "ContextDiff",
     "ContextDiffEntry",
+    "ContextProviderStatusSummary",
     "ContextProviderConfig",
+    "ContextSnapshotRole",
+    "ContextSnapshotStatusSummary",
     "ContextSnapshot",
+    "ContextStatusFinding",
     "ContextSourceResult",
     "capture_context",
     "diff_snapshots",
@@ -32,13 +42,17 @@ __all__ = [
     "ingest_mail_archive_threads",
     "build_public_context_template",
     "normalize_raw_exports",
+    "snapshot_role",
+    "summarize_context_snapshot",
     "verify_context_snapshot",
+    "with_snapshot_role",
 ]
 
 _NORMALIZE_EXPORTS = {
     "build_public_context_sidecar",
     "build_public_context_template",
     "normalize_raw_exports",
+    "summarize_context_snapshot",
     "verify_context_snapshot",
 }
 

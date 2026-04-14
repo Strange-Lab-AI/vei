@@ -16,6 +16,7 @@ ContextProviderName = Literal[
     "salesforce",
     "mail_archive",
 ]
+ContextSnapshotRole = Literal["company_history_bundle", "workspace_seed"]
 
 
 # ---------------------------------------------------------------------------
@@ -135,7 +136,7 @@ class ContextSourceResult(BaseModel):
     captured_at: str
     status: Literal["ok", "partial", "error", "empty"] = "ok"
     record_counts: Dict[str, int] = Field(default_factory=dict)
-    data: ContextSourcePayload = Field(default_factory=GenericSourceData)
+    data: ContextSourceData = Field(default_factory=GenericSourceData)
     error: Optional[str] = None
 
     @model_validator(mode="before")
@@ -177,6 +178,25 @@ class ContextSnapshot(BaseModel):
             if source.provider == provider:
                 return source
         return None
+
+
+def snapshot_role(snapshot: ContextSnapshot) -> ContextSnapshotRole:
+    role = str(snapshot.metadata.get("snapshot_role", "") or "").strip().lower()
+    if role in {"company_history_bundle", "workspace_seed"}:
+        return role  # type: ignore[return-value]
+    whatif = snapshot.metadata.get("whatif")
+    if isinstance(whatif, dict) and str(whatif.get("branch_event_id") or "").strip():
+        return "workspace_seed"
+    return "company_history_bundle"
+
+
+def with_snapshot_role(
+    snapshot: ContextSnapshot,
+    role: ContextSnapshotRole,
+) -> ContextSnapshot:
+    metadata = dict(snapshot.metadata)
+    metadata["snapshot_role"] = role
+    return snapshot.model_copy(update={"metadata": metadata})
 
 
 def source_payload(
@@ -245,3 +265,34 @@ class BundleVerificationResult(BaseModel):
             for check in self.checks
             if not check.passed and check.severity == "warning"
         )
+
+
+class ContextStatusFinding(BaseModel):
+    code: str
+    severity: Literal["info", "warning", "error"] = "info"
+    provider: Optional[str] = None
+    detail: str = ""
+
+
+class ContextProviderStatusSummary(BaseModel):
+    provider: str
+    status: Literal["ok", "partial", "error", "empty"] = "ok"
+    record_counts: Dict[str, int] = Field(default_factory=dict)
+    first_timestamp: str = ""
+    last_timestamp: str = ""
+    timestamp_quality: str = ""
+    duplicate_id_findings: List[ContextStatusFinding] = Field(default_factory=list)
+    identity_cleanup_findings: List[ContextStatusFinding] = Field(default_factory=list)
+
+
+class ContextSnapshotStatusSummary(BaseModel):
+    snapshot_role: ContextSnapshotRole = "company_history_bundle"
+    organization_name: str = ""
+    organization_domain: str = ""
+    captured_at: str = ""
+    first_timestamp: str = ""
+    last_timestamp: str = ""
+    providers: List[ContextProviderStatusSummary] = Field(default_factory=list)
+    duplicate_id_findings: List[ContextStatusFinding] = Field(default_factory=list)
+    identity_cleanup_findings: List[ContextStatusFinding] = Field(default_factory=list)
+    timestamp_quality: List[ContextStatusFinding] = Field(default_factory=list)

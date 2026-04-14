@@ -307,18 +307,82 @@ def status(
     snapshot: str = typer.Option(
         ..., "--snapshot", "-s", help="Path to context snapshot JSON"
     ),
+    format: str = typer.Option("plain", help="Output format: plain | json | markdown"),
 ) -> None:
     """Show summary of a context snapshot."""
     from vei.context.models import ContextSnapshot
+    from vei.context.normalize import summarize_context_snapshot
 
     path = Path(snapshot)
     if not path.exists():
         raise typer.BadParameter(f"snapshot file not found: {snapshot}")
 
     snap = ContextSnapshot.model_validate_json(path.read_text(encoding="utf-8"))
-    typer.echo(f"Organization: {snap.organization_name}")
-    typer.echo(f"Captured at:  {snap.captured_at}")
-    typer.echo(f"Providers:    {len(snap.sources)}")
-    for source in snap.sources:
-        counts = ", ".join(f"{k}={v}" for k, v in source.record_counts.items())
-        typer.echo(f"  {source.provider:8s}  {source.status:7s}  {counts}")
+    summary = summarize_context_snapshot(snap)
+    if format == "json":
+        typer.echo(summary.model_dump_json(indent=2))
+        return
+    if format == "markdown":
+        lines = [
+            "# Context Status",
+            "",
+            f"- Snapshot role: {summary.snapshot_role}",
+            f"- Organization: {summary.organization_name}",
+            f"- Domain: {summary.organization_domain or '(missing)'}",
+            f"- Captured at: {summary.captured_at or '(missing)'}",
+            f"- Time range: {summary.first_timestamp or '(missing)'} to {summary.last_timestamp or '(missing)'}",
+            "",
+            "## Providers",
+        ]
+        for provider in summary.providers:
+            counts = ", ".join(
+                f"{key}={value}" for key, value in provider.record_counts.items()
+            )
+            lines.append(
+                f"- `{provider.provider}` {provider.status} | {counts or 'no counts'} | "
+                f"timestamps={provider.timestamp_quality or 'missing'}"
+            )
+        if summary.duplicate_id_findings:
+            lines.extend(["", "## Duplicate IDs"])
+            for finding in summary.duplicate_id_findings:
+                lines.append(f"- {finding.provider or 'bundle'}: {finding.detail}")
+        if summary.identity_cleanup_findings:
+            lines.extend(["", "## Identity Cleanup"])
+            for finding in summary.identity_cleanup_findings:
+                lines.append(f"- {finding.provider or 'bundle'}: {finding.detail}")
+        if summary.timestamp_quality:
+            lines.extend(["", "## Timestamp Quality"])
+            for finding in summary.timestamp_quality:
+                lines.append(f"- {finding.provider or 'bundle'}: {finding.detail}")
+        typer.echo("\n".join(lines))
+        return
+
+    typer.echo(f"Snapshot role: {summary.snapshot_role}")
+    typer.echo(f"Organization:  {summary.organization_name}")
+    typer.echo(f"Domain:        {summary.organization_domain or '(missing)'}")
+    typer.echo(f"Captured at:   {summary.captured_at or '(missing)'}")
+    typer.echo(
+        f"Time range:    {summary.first_timestamp or '(missing)'} -> "
+        f"{summary.last_timestamp or '(missing)'}"
+    )
+    typer.echo(f"Providers:     {len(summary.providers)}")
+    for provider in summary.providers:
+        counts = ", ".join(
+            f"{key}={value}" for key, value in provider.record_counts.items()
+        )
+        typer.echo(
+            f"  {provider.provider:10s} {provider.status:7s} "
+            f"{counts or 'no counts'} | timestamps={provider.timestamp_quality or 'missing'}"
+        )
+    if summary.duplicate_id_findings:
+        typer.echo("Duplicate IDs:")
+        for finding in summary.duplicate_id_findings:
+            typer.echo(f"  {finding.provider or 'bundle'}: {finding.detail}")
+    if summary.identity_cleanup_findings:
+        typer.echo("Identity cleanup:")
+        for finding in summary.identity_cleanup_findings:
+            typer.echo(f"  {finding.provider or 'bundle'}: {finding.detail}")
+    if summary.timestamp_quality:
+        typer.echo("Timestamp quality:")
+        for finding in summary.timestamp_quality:
+            typer.echo(f"  {finding.provider or 'bundle'}: {finding.detail}")

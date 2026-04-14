@@ -284,6 +284,27 @@ class WhatIfEventSearchResult(BaseModel):
     matches: list[WhatIfEventMatch] = Field(default_factory=list)
 
 
+class WhatIfBranchCandidate(BaseModel):
+    thread_id: str
+    branch_event_id: str
+    subject: str = ""
+    surface: str = "mail"
+    history_event_count: int = 0
+    future_event_count: int = 0
+    case_id: str = ""
+    situation_surface_count: int = 0
+    linked_record_count: int = 0
+    score: float = 0.0
+    reasons: list[str] = Field(default_factory=list)
+
+
+class WhatIfBranchCandidateResult(BaseModel):
+    source: WhatIfSourceName = "enron"
+    returned_count: int = 0
+    truncated: bool = False
+    candidates: list[WhatIfBranchCandidate] = Field(default_factory=list)
+
+
 class WhatIfCaseSummary(BaseModel):
     case_id: str
     title: str = ""
@@ -359,6 +380,8 @@ __all__ = [
     "WhatIfBusinessStateChange",
     "WhatIfBusinessStateImpact",
     "WhatIfBusinessStateIndicator",
+    "WhatIfBranchCandidate",
+    "WhatIfBranchCandidateResult",
     "WhatIfBusinessStateLevel",
     "WhatIfBusinessStateSnapshot",
     "WhatIfCaseContext",

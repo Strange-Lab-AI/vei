@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from vei.context.models import ContextProviderConfig, ContextSnapshot
+from vei.context.api import ContextProviderConfig, ContextSnapshot
 from vei.contract.models import ContractSpec
 from vei.pilot.api import (
     build_pilot_status,

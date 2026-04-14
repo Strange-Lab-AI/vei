@@ -8,9 +8,18 @@ from vei.blueprint.models import BlueprintAsset
 
 from .models import (
     ContextDiff,
+    ContextProviderStatusSummary,
     ContextProviderConfig,
+    ContextSnapshotRole,
+    ContextSnapshotStatusSummary,
     ContextSnapshot,
+    ContextStatusFinding,
+    CrmSourceData,
     ContextSourceResult,
+    GoogleSourceData,
+    snapshot_role,
+    source_payload,
+    with_snapshot_role,
 )
 from . import public_context as _public_context
 from .providers import get_provider
@@ -34,9 +43,18 @@ slice_public_context_to_branch = _public_context.slice_public_context_to_branch
 slice_public_context_to_window = _public_context.slice_public_context_to_window
 
 __all__ = [
+    "ContextProviderConfig",
+    "ContextProviderStatusSummary",
+    "ContextSnapshot",
     "WhatIfPublicContext",
     "WhatIfPublicFinancialSnapshot",
     "WhatIfPublicNewsEvent",
+    "ContextSnapshotRole",
+    "ContextSnapshotStatusSummary",
+    "ContextStatusFinding",
+    "ContextSourceResult",
+    "CrmSourceData",
+    "GoogleSourceData",
     "build_public_context",
     "capture_context",
     "diff_snapshots",
@@ -52,8 +70,11 @@ __all__ = [
     "public_context_has_items",
     "public_context_prompt_lines",
     "resolve_world_public_context",
+    "snapshot_role",
     "slice_public_context_to_branch",
     "slice_public_context_to_window",
+    "source_payload",
+    "with_snapshot_role",
 ]
 
 
@@ -94,7 +115,7 @@ def capture_context(
         organization_domain=organization_domain,
         captured_at=iso_now(),
         sources=sources,
-    )
+    ).model_copy(update={"metadata": {"snapshot_role": "company_history_bundle"}})
 
 
 def hydrate_blueprint(
@@ -134,6 +155,7 @@ def ingest_slack_export(
         organization_domain=organization_domain,
         captured_at=iso_now(),
         sources=[result],
+        metadata={"snapshot_role": "company_history_bundle"},
     )
 
 
@@ -157,6 +179,7 @@ def ingest_gmail_export(
         organization_domain=organization_domain,
         captured_at=iso_now(),
         sources=[result],
+        metadata={"snapshot_role": "company_history_bundle"},
     )
 
 
@@ -213,7 +236,10 @@ def ingest_mail_archive_threads(
                 },
             )
         ],
-        metadata=dict(metadata or {}),
+        metadata={
+            **dict(metadata or {}),
+            "snapshot_role": "company_history_bundle",
+        },
     )
 
 

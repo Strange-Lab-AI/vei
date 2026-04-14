@@ -6,6 +6,7 @@ from typing import Sequence
 
 from vei.twin.api import build_customer_twin
 from vei.twin.models import ContextMoldConfig
+from vei.whatif.artifact_validation import validate_saved_workspace
 
 from ..models import (
     WhatIfCaseContext,
@@ -182,6 +183,10 @@ def materialize_episode(
     )
     manifest_path = workspace_root / "episode_manifest.json"
     manifest_path.write_text(manifest.model_dump_json(indent=2), encoding="utf-8")
+    issues = validate_saved_workspace(workspace_root)
+    if issues:
+        issue_text = "; ".join(issues)
+        raise ValueError(f"saved workspace validation failed: {issue_text}")
     return WhatIfEpisodeMaterialization(
         manifest_path=manifest_path,
         bundle_path=workspace_root / "twin_manifest.json",

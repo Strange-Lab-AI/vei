@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Sequence
 
 from vei.project_settings import default_model_for_provider
+from vei.whatif.artifact_validation import validate_artifact_tree
 
 from .models import (
     WhatIfCandidateIntervention,
@@ -225,6 +226,10 @@ def run_counterfactual_experiment(
         _render_experiment_overview(result),
         encoding="utf-8",
     )
+    issues = validate_artifact_tree(root)
+    if issues:
+        issue_text = "; ".join(issues)
+        raise ValueError(f"experiment artifact validation failed: {issue_text}")
     return result
 
 

@@ -14,7 +14,7 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import quote
 from urllib.request import Request, urlopen
 
-from vei.context.models import (
+from vei.context.api import (
     ContextProviderConfig,
     ContextSnapshot,
     ContextSourceResult,

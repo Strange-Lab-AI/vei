@@ -3,20 +3,28 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Sequence
 
+from vei.context.models import ContextSnapshot
+
+from .cases import build_case_context
 from .corpus import (
     detect_whatif_source,
     display_name,
+    choose_branch_event,
     event_by_id,
     event_reason_labels,
     has_external_recipients,
+    load_history_snapshot,
     load_company_history_world,
     load_mail_archive_world,
     load_enron_world,
     search_events as search_world_events,
+    thread_events,
     touches_executive,
 )
 from .models import (
     WhatIfActorImpact,
+    WhatIfBranchCandidate,
+    WhatIfBranchCandidateResult,
     WhatIfConsequence,
     WhatIfEvent,
     WhatIfResult,
@@ -31,11 +39,94 @@ from .scenario_registry import (
     resolve_scenario as _resolve_scenario,
     resolve_scenario_from_specific_event as _resolve_scenario_from_specific_event,
 )
-from .situations import recommend_branch_thread
+from .situations import build_situation_context, recommend_branch_thread
 
 
 def list_objective_packs():
     return list_historical_objective_packs()
+
+
+def list_branch_candidates(
+    world: WhatIfWorld,
+    *,
+    limit: int = 10,
+) -> WhatIfBranchCandidateResult:
+    resolved_limit = max(1, int(limit))
+    source_snapshot = _source_snapshot_for_world(world)
+    ranked: list[WhatIfBranchCandidate] = []
+    for thread in world.threads:
+        history = thread_events(world.events, thread.thread_id)
+        if not history:
+            continue
+        branch_event = choose_branch_event(history, requested_event_id=None)
+        branch_index = next(
+            (
+                index
+                for index, event in enumerate(history)
+                if event.event_id == branch_event.event_id
+            ),
+            None,
+        )
+        if branch_index is None:
+            continue
+        past_events = list(history[:branch_index])
+        future_events = list(history[branch_index:])
+        case_context = build_case_context(
+            snapshot=source_snapshot,
+            events=world.events,
+            case_id=branch_event.case_id,
+            branch_thread_id=thread.thread_id,
+            branch_timestamp_ms=branch_event.timestamp_ms,
+        )
+        situation_context = build_situation_context(
+            world,
+            branch_thread_id=thread.thread_id,
+            branch_timestamp_ms=branch_event.timestamp_ms,
+        )
+        score, reasons = _branch_candidate_score(
+            world=world,
+            thread=thread,
+            branch_event=branch_event,
+            past_events=past_events,
+            future_events=future_events,
+            case_context=case_context,
+            situation_context=situation_context,
+        )
+        ranked.append(
+            WhatIfBranchCandidate(
+                thread_id=thread.thread_id,
+                branch_event_id=branch_event.event_id,
+                subject=thread.subject,
+                surface=thread.surface,
+                history_event_count=len(past_events),
+                future_event_count=len(future_events),
+                case_id=branch_event.case_id,
+                situation_surface_count=(
+                    len(set(situation_context.surfaces))
+                    if situation_context is not None
+                    else 0
+                ),
+                linked_record_count=(
+                    len(case_context.records) if case_context is not None else 0
+                ),
+                score=round(score, 3),
+                reasons=reasons,
+            )
+        )
+    ranked.sort(
+        key=lambda item: (
+            -item.score,
+            -item.history_event_count,
+            -item.future_event_count,
+            item.thread_id,
+        )
+    )
+    return WhatIfBranchCandidateResult(
+        source=world.source,
+        returned_count=min(len(ranked), resolved_limit),
+        truncated=len(ranked) > resolved_limit,
+        candidates=ranked[:resolved_limit],
+    )
 
 
 def load_world(
@@ -313,6 +404,68 @@ def _matched_events_for_scenario(
         ]
 
     raise ValueError(f"unsupported what-if scenario: {scenario_id}")
+
+
+def _source_snapshot_for_world(world: WhatIfWorld) -> ContextSnapshot | None:
+    if world.source not in {"mail_archive", "company_history"}:
+        return None
+    try:
+        return load_history_snapshot(world.source_dir)
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def _branch_candidate_score(
+    *,
+    world: WhatIfWorld,
+    thread: WhatIfThreadSummary,
+    branch_event: WhatIfEvent,
+    past_events: Sequence[WhatIfEvent],
+    future_events: Sequence[WhatIfEvent],
+    case_context,
+    situation_context,
+) -> tuple[float, list[str]]:
+    score = 0.0
+    reasons: list[str] = []
+
+    if past_events:
+        score += min(len(past_events), 4) * 1.4
+        reasons.append(f"history:{len(past_events)}")
+    else:
+        score -= 1.0
+        reasons.append("thin_history")
+
+    if future_events:
+        score += min(len(future_events), 5) * 1.6
+        reasons.append(f"future:{len(future_events)}")
+    else:
+        score -= 2.0
+        reasons.append("thin_future")
+
+    signal_labels = event_reason_labels(
+        branch_event,
+        organization_domain=world.summary.organization_domain,
+    )
+    if signal_labels:
+        score += min(len(signal_labels), 4) * 1.1
+        reasons.extend(signal_labels)
+
+    if branch_event.event_type in {"assignment", "approval", "reply", "escalation"}:
+        score += 1.0
+        reasons.append(f"decision:{branch_event.event_type}")
+
+    if case_context is not None and case_context.records:
+        score += min(len(case_context.records), 3) * 0.8
+        reasons.append(f"linked_records:{len(case_context.records)}")
+
+    if situation_context is not None and len(set(situation_context.surfaces)) > 1:
+        score += min(len(set(situation_context.surfaces)), 4) * 0.9
+        reasons.append(f"cross_surface:{len(set(situation_context.surfaces))}")
+
+    if thread.actor_ids:
+        score += min(len(thread.actor_ids), 4) * 0.25
+
+    return score, list(dict.fromkeys(reasons))
 
 
 def _build_actor_impacts(

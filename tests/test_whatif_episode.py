@@ -610,6 +610,86 @@ def test_vei_whatif_cli_explore_and_open(tmp_path: Path) -> None:
     assert events_payload["matches"][0]["event"]["event_id"] == "evt-005"
 
 
+def test_vei_whatif_cli_candidates_rank_company_history_branch_points(
+    tmp_path: Path,
+) -> None:
+    snapshot_path = _write_company_history_fixture(tmp_path / "company_history_ranked")
+    runner = CliRunner()
+
+    result = runner.invoke(
+        cli_app,
+        [
+            "whatif",
+            "candidates",
+            "--source-dir",
+            str(snapshot_path),
+            "--limit",
+            "3",
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    payload = json.loads(result.output)
+    assert payload["returned_count"] >= 1
+    candidate = payload["candidates"][0]
+    assert candidate["history_event_count"] >= 1
+    assert candidate["future_event_count"] >= 1
+    assert "situation_surface_count" in candidate
+    assert "linked_record_count" in candidate
+
+
+def test_vei_whatif_cli_explore_rejects_workspace_seed_snapshot(
+    tmp_path: Path,
+) -> None:
+    snapshot_path = _write_company_history_fixture(tmp_path / "company_history_seed")
+    world = load_world(source="company_history", source_dir=snapshot_path)
+    workspace_root = tmp_path / "workspace_seed_episode"
+    materialize_episode(
+        world, root=workspace_root, thread_id="slack:#deal-desk:1772355600000"
+    )
+    runner = CliRunner()
+
+    result = runner.invoke(
+        cli_app,
+        [
+            "whatif",
+            "explore",
+            "--source-dir",
+            str(workspace_root / "context_snapshot.json"),
+            "--format",
+            "markdown",
+        ],
+    )
+
+    assert result.exit_code != 0
+    assert "saved what-if workspace seed" in result.output
+
+
+def test_vei_whatif_cli_scene_supports_saved_workspace_root(tmp_path: Path) -> None:
+    snapshot_path = _write_company_history_fixture(tmp_path / "company_history_scene")
+    world = load_world(source="company_history", source_dir=snapshot_path)
+    workspace_root = tmp_path / "workspace_scene_episode"
+    materialize_episode(
+        world, root=workspace_root, thread_id="slack:#deal-desk:1772355600000"
+    )
+    runner = CliRunner()
+
+    result = runner.invoke(
+        cli_app,
+        [
+            "whatif",
+            "scene",
+            "--workspace-root",
+            str(workspace_root),
+            "--format",
+            "markdown",
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    assert "Decision Scene" in result.output
+
+
 def test_materialize_episode_can_branch_from_explicit_event_id(tmp_path: Path) -> None:
     rosetta_dir = tmp_path / "rosetta"
     _write_rosetta_fixture(rosetta_dir)

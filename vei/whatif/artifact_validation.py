@@ -9,6 +9,15 @@ CANONICAL_MANIFEST_FILE = "episode_manifest.json"
 CANONICAL_PUBLIC_CONTEXT_FILE = "whatif_public_context.json"
 
 
+def detect_validation_mode(path: str | Path) -> str:
+    resolved = Path(path).expanduser().resolve()
+    if (resolved / "episode_manifest.json").exists():
+        return "workspace"
+    if (resolved / "workspace" / "episode_manifest.json").exists():
+        return "bundle"
+    return "tree"
+
+
 def validate_saved_workspace(
     workspace_root: str | Path,
     *,

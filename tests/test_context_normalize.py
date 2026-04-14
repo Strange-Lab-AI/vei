@@ -670,6 +670,156 @@ def test_deduplicate_actors_merges_cross_source_identities(tmp_path: Path) -> No
         ), f"canonical {canonical} should not itself be an alias"
 
 
+def test_normalize_raw_exports_cleans_mail_thread_ids_and_addresses(
+    tmp_path: Path,
+) -> None:
+    source_dir = tmp_path / "exports"
+    source_dir.mkdir(parents=True, exist_ok=True)
+    (source_dir / "context_snapshot.json").write_text(
+        json.dumps(
+            {
+                "version": "1",
+                "organization_name": "Acme Cloud",
+                "organization_domain": "acme.example.com",
+                "captured_at": "2026-03-01T10:00:00Z",
+                "sources": [
+                    {
+                        "provider": "gmail",
+                        "captured_at": "2026-03-01T09:00:00Z",
+                        "status": "ok",
+                        "record_counts": {"threads": 2, "messages": 2},
+                        "data": {
+                            "threads": [
+                                {
+                                    "thread_id": "\r\n <thread-001@example.com>",
+                                    "subject": "Draft note",
+                                    "messages": [
+                                        {
+                                            "message_id": "\r\n <msg-001@example.com>",
+                                            "from": "Maya Ops <MAYA@acme.example.com>",
+                                            "to": (
+                                                "Legal <legal@acme.example.com>; "
+                                                "Approvals <approvals@acme.example.com>"
+                                            ),
+                                            "subject": "Draft note",
+                                            "date": "2026-03-01T09:00:00Z",
+                                        }
+                                    ],
+                                },
+                                {
+                                    "thread_id": "<thread-001@example.com>",
+                                    "subject": "Draft note",
+                                    "messages": [
+                                        {
+                                            "message_id": "<msg-002@example.com>",
+                                            "from": "maya@acme.example.com",
+                                            "to": "legal@acme.example.com",
+                                            "subject": "Re: Draft note",
+                                            "date": "2026-03-01T09:05:00Z",
+                                        }
+                                    ],
+                                },
+                            ],
+                            "profile": {},
+                        },
+                    }
+                ],
+            },
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+
+    snapshot = normalize_raw_exports(
+        source_dir,
+        organization_name="Acme Cloud",
+        organization_domain="acme.example.com",
+    )
+
+    source = snapshot.source_for("gmail")
+    assert source is not None
+    threads = source.data.model_dump(mode="python")["threads"]
+    assert len(threads) == 1
+    assert threads[0]["thread_id"] == "<thread-001@example.com>"
+    assert threads[0]["messages"][0]["from"] == "maya@acme.example.com"
+    assert (
+        threads[0]["messages"][0]["to"]
+        == "legal@acme.example.com, approvals@acme.example.com"
+    )
+
+    verification = verify_context_snapshot(snapshot)
+    duplicate_checks = [
+        check
+        for check in verification.checks
+        if check.code == "source.unique_thread_id" and check.provider == "gmail"
+    ]
+    assert duplicate_checks
+    assert duplicate_checks[0].passed is True
+
+
+def test_context_status_reports_cleanup_and_timestamp_quality(tmp_path: Path) -> None:
+    runner = CliRunner()
+    source_dir = tmp_path / "exports"
+    source_dir.mkdir(parents=True, exist_ok=True)
+    (source_dir / "google.json").write_text(
+        json.dumps(
+            {
+                "documents": [
+                    {
+                        "doc_id": "doc-1",
+                        "title": "Renewal plan",
+                        "body": "Internal draft only.",
+                    }
+                ]
+            },
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+
+    snapshot_path = tmp_path / "context_snapshot.json"
+    snapshot = normalize_raw_exports(
+        source_dir,
+        organization_name="Acme Cloud",
+        organization_domain="acme.example.com",
+    )
+    snapshot_path.write_text(snapshot.model_dump_json(indent=2), encoding="utf-8")
+
+    json_result = runner.invoke(
+        app,
+        [
+            "context",
+            "status",
+            "--snapshot",
+            str(snapshot_path),
+            "--format",
+            "json",
+        ],
+    )
+    assert json_result.exit_code == 0, json_result.output
+    payload = json.loads(json_result.output)
+    assert payload["snapshot_role"] == "company_history_bundle"
+    assert payload["providers"][0]["provider"] == "google"
+    assert payload["providers"][0]["timestamp_quality"].startswith(
+        "state_only_backfilled"
+    )
+
+    markdown_result = runner.invoke(
+        app,
+        [
+            "context",
+            "status",
+            "--snapshot",
+            str(snapshot_path),
+            "--format",
+            "markdown",
+        ],
+    )
+    assert markdown_result.exit_code == 0, markdown_result.output
+    assert "Snapshot role: company_history_bundle" in markdown_result.output
+    assert "Timestamp Quality" in markdown_result.output
+
+
 def _write_slack_export(root: Path) -> None:
     root.mkdir(parents=True, exist_ok=True)
     (root / "users.json").write_text(

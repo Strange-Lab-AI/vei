@@ -8,6 +8,7 @@ from .models import (
     WhatIfBenchmarkJudgeResult,
     WhatIfBenchmarkStudyResult,
     WhatIfBenchmarkTrainResult,
+    WhatIfBranchCandidateResult,
     WhatIfDecisionScene,
     WhatIfEpisodeMaterialization,
     WhatIfEventSearchResult,
@@ -237,6 +238,32 @@ def render_event_search(result: WhatIfEventSearchResult) -> str:
             f"{match.event.actor_id} -> "
             f"{', '.join(match.event.to_recipients) or match.event.target_id or '(none)'} | "
             f"{match.event.subject} | flags: {reasons}"
+        )
+    return "\n".join(lines)
+
+
+def render_branch_candidates(result: WhatIfBranchCandidateResult) -> str:
+    lines = [
+        "# What-If Branch Candidates",
+        "",
+        f"- Returned: {result.returned_count}",
+        f"- Truncated: {'yes' if result.truncated else 'no'}",
+        "",
+        "## Candidates",
+    ]
+    if not result.candidates:
+        lines.append("- No branch candidates found.")
+        return "\n".join(lines)
+    for candidate in result.candidates:
+        reasons = ", ".join(candidate.reasons) or "none"
+        lines.append(
+            f"- `{candidate.thread_id}` [{candidate.surface}] {candidate.subject} | "
+            f"branch=`{candidate.branch_event_id}` | "
+            f"history={candidate.history_event_count} | future={candidate.future_event_count} | "
+            f"case={candidate.case_id or '(none)'} | "
+            f"situation_surfaces={candidate.situation_surface_count} | "
+            f"linked_records={candidate.linked_record_count} | "
+            f"score={candidate.score} | reasons: {reasons}"
         )
     return "\n".join(lines)
 

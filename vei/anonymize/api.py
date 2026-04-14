@@ -7,7 +7,7 @@ from real enterprise data before it enters the simulation.
 from __future__ import annotations
 
 from vei.anonymize.replacers import DeterministicReplacer
-from vei.context.models import ContextSnapshot, ContextSourceResult
+from vei.context.api import ContextSnapshot, ContextSourceResult
 
 
 def anonymize_snapshot(

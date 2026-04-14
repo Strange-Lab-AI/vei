@@ -20,7 +20,7 @@ from vei.twin import (
     create_twin_gateway_app,
     load_customer_twin,
 )
-from vei.context.models import ContextSnapshot
+from vei.context.api import ContextSnapshot
 from vei.twin.models import (
     ContextMoldConfig,
     TwinArchetype,

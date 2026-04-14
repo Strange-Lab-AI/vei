@@ -3,6 +3,7 @@ from __future__ import annotations
 import csv
 import json
 import logging
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -342,12 +343,16 @@ def _list_identity(value: Any) -> str:
 
 
 def _load_google_export_payload(path: Path) -> dict[str, Any]:
+    fallback_modified_time = _fallback_export_modified_time(path)
     if path.suffix.lower() == ".csv":
         rows = list(csv.DictReader(path.read_text(encoding="utf-8").splitlines()))
         lower_name = path.name.lower()
         if lower_name == "google_drive_shares.csv":
             return {"drive_shares": _csv_google_drive_shares(rows)}
-        documents = _csv_google_documents(rows)
+        documents = _csv_google_documents(
+            rows,
+            fallback_modified_time=fallback_modified_time,
+        )
         if lower_name == "google_docs.csv":
             return {"documents": documents}
         return {
@@ -357,9 +362,17 @@ def _load_google_export_payload(path: Path) -> dict[str, Any]:
 
     payload = json.loads(path.read_text(encoding="utf-8"))
     if isinstance(payload, dict):
-        return payload
+        return _backfill_google_payload_timestamps(
+            payload,
+            fallback_modified_time=fallback_modified_time,
+        )
     if isinstance(payload, list):
-        return {"documents": payload}
+        return {
+            "documents": _normalize_payload_documents(
+                payload,
+                fallback_modified_time=fallback_modified_time,
+            )
+        }
     raise ValueError(f"unsupported google export payload: {path}")
 
 
@@ -370,7 +383,11 @@ def _google_users(payload: dict[str, Any]) -> list[dict[str, Any]]:
     return [item for item in users if isinstance(item, dict)]
 
 
-def _csv_google_documents(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def _csv_google_documents(
+    rows: list[dict[str, Any]],
+    *,
+    fallback_modified_time: str,
+) -> list[dict[str, Any]]:
     documents: list[dict[str, Any]] = []
     seen_doc_ids: set[str] = set()
     for row in rows:
@@ -379,15 +396,24 @@ def _csv_google_documents(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
         if not doc_id or doc_id in seen_doc_ids:
             continue
         seen_doc_ids.add(doc_id)
+        modified_time = str(
+            row.get("modified_time")
+            or row.get("updated")
+            or row.get("exported_at")
+            or ""
+        ).strip()
+        timestamp_quality = "provided" if modified_time else ""
+        if not modified_time and fallback_modified_time:
+            modified_time = fallback_modified_time
+            timestamp_quality = "backfilled_from_export_file"
         documents.append(
             {
                 "doc_id": doc_id,
                 "title": title,
                 "body": str(row.get("body") or "").strip(),
                 "tags": _split_tokens(row.get("tags")),
-                "modified_time": str(
-                    row.get("modified_time") or row.get("updated") or ""
-                ).strip(),
+                "modified_time": modified_time,
+                "timestamp_quality": timestamp_quality or "missing_state_only",
             }
         )
     return documents
@@ -437,6 +463,7 @@ def _google_documents(payload: dict[str, Any]) -> list[dict[str, Any]]:
                 "modified_time": str(
                     item.get("modified_time") or item.get("updated") or ""
                 ).strip(),
+                "timestamp_quality": str(item.get("timestamp_quality") or "").strip(),
                 "owner": str(item.get("owner") or "").strip(),
                 "shared": bool(item.get("shared")),
                 "comments": (
@@ -457,6 +484,66 @@ def _google_documents(payload: dict[str, Any]) -> list[dict[str, Any]]:
             }
         )
     return normalized
+
+
+def _backfill_google_payload_timestamps(
+    payload: dict[str, Any],
+    *,
+    fallback_modified_time: str,
+) -> dict[str, Any]:
+    merged_payload = dict(payload)
+    merged_payload["documents"] = _normalize_payload_documents(
+        payload.get("documents", []),
+        fallback_modified_time=fallback_modified_time,
+    )
+    return merged_payload
+
+
+def _normalize_payload_documents(
+    documents: Any,
+    *,
+    fallback_modified_time: str,
+) -> list[dict[str, Any]]:
+    normalized_documents: list[dict[str, Any]] = []
+    if not isinstance(documents, list):
+        return normalized_documents
+    for index, item in enumerate(documents):
+        if not isinstance(item, dict):
+            continue
+        document = dict(item)
+        document.setdefault("doc_id", document.get("id") or f"doc-{index + 1}")
+        modified_time = str(
+            document.get("modified_time")
+            or document.get("updated")
+            or document.get("exported_at")
+            or ""
+        ).strip()
+        timestamp_quality = str(document.get("timestamp_quality") or "").strip()
+        if modified_time and not timestamp_quality:
+            timestamp_quality = "provided"
+        if not modified_time and fallback_modified_time:
+            modified_time = fallback_modified_time
+            timestamp_quality = "backfilled_from_export_file"
+        if not modified_time and not timestamp_quality:
+            timestamp_quality = "missing_state_only"
+        document["modified_time"] = modified_time
+        document["timestamp_quality"] = timestamp_quality
+        normalized_documents.append(document)
+    return normalized_documents
+
+
+def _fallback_export_modified_time(path: Path) -> str:
+    try:
+        return (
+            datetime.fromtimestamp(path.stat().st_mtime, tz=UTC)
+            .isoformat()
+            .replace(
+                "+00:00",
+                "Z",
+            )
+        )
+    except OSError:
+        return ""
 
 
 def _google_drive_shares(payload: dict[str, Any]) -> list[dict[str, Any]]:

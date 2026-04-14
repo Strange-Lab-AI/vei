@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 import json
+import subprocess
+import sys
 from pathlib import Path
 
 from fastapi.testclient import TestClient
 
 from scripts import package_enron_master_agreement_example as enron_example_packager
 from vei.whatif.artifact_validation import (
+    detect_validation_mode,
     validate_artifact_tree,
     validate_packaged_example_bundle,
 )
@@ -247,3 +250,37 @@ def test_repo_owned_enron_example_workspace_loads_saved_scene() -> None:
         "FY1999 selected financial data",
     ]
     assert scene_payload["public_context"]["public_news_events"] == []
+
+
+def test_validate_whatif_artifacts_script_auto_detects_bundle_mode() -> None:
+    result = subprocess.run(
+        [
+            sys.executable,
+            "scripts/validate_whatif_artifacts.py",
+            str(EXAMPLE_ROOT),
+        ],
+        cwd=EXAMPLE_ROOT.parents[2],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "ok:" in result.stdout
+
+
+def test_detect_validation_mode_prefers_workspace_and_bundle(tmp_path: Path) -> None:
+    workspace_root = tmp_path / "workspace"
+    workspace_root.mkdir(parents=True)
+    (workspace_root / "episode_manifest.json").write_text("{}", encoding="utf-8")
+
+    bundle_root = tmp_path / "bundle"
+    (bundle_root / "workspace").mkdir(parents=True)
+    (bundle_root / "workspace" / "episode_manifest.json").write_text(
+        "{}",
+        encoding="utf-8",
+    )
+
+    assert detect_validation_mode(workspace_root) == "workspace"
+    assert detect_validation_mode(bundle_root) == "bundle"
+    assert detect_validation_mode(tmp_path / "other") == "tree"

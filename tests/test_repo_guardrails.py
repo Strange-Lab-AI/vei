@@ -6,8 +6,15 @@ from pathlib import Path
 def test_hotspot_modules_stay_below_foundation_size_budget() -> None:
     repo_root = Path(__file__).resolve().parents[1]
     budgets = {
+        "vei/context/normalize.py": 117,
+        "vei/whatif/benchmark.py": 2875,
+        "vei/whatif/research.py": 2039,
+        "vei/cli/vei_whatif.py": 1122,
+        "vei/whatif/episode/_snapshot.py": 1234,
         "vei/twin/_runtime.py": 1200,
+        "vei/twin/api.py": 1329,
         "vei/router/core.py": 1200,
+        "vei/sdk/api.py": 1295,
         "vei/workspace/api.py": 1200,
     }
 

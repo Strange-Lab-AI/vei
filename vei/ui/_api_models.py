@@ -266,12 +266,12 @@ def resolve_whatif_rosetta_dir(workspace_root: Path) -> Path | None:
 
 def resolve_whatif_mail_archive_path(workspace_root: Path) -> Path | None:
     candidates: list[Path] = []
-    saved_workspace_archive = _workspace_saved_mail_archive_path(workspace_root)
-    if saved_workspace_archive is not None:
-        candidates.append(saved_workspace_archive)
     manifest_source_dir = _resolve_manifest_mail_archive_source(workspace_root)
     if manifest_source_dir is not None:
         candidates.append(manifest_source_dir)
+    saved_workspace_archive = _workspace_saved_mail_archive_path(workspace_root)
+    if saved_workspace_archive is not None:
+        candidates.append(saved_workspace_archive)
     configured = os.environ.get("VEI_WHATIF_SOURCE_DIR")
     if configured and configured.strip():
         candidates.append(Path(configured).expanduser())
@@ -287,12 +287,12 @@ def resolve_whatif_mail_archive_path(workspace_root: Path) -> Path | None:
 
 def resolve_whatif_company_history_path(workspace_root: Path) -> Path | None:
     candidates: list[Path] = []
-    saved_workspace_bundle = _workspace_saved_company_history_path(workspace_root)
-    if saved_workspace_bundle is not None:
-        candidates.append(saved_workspace_bundle)
     manifest_source_dir = _resolve_manifest_company_history_source(workspace_root)
     if manifest_source_dir is not None:
         candidates.append(manifest_source_dir)
+    saved_workspace_bundle = _workspace_saved_company_history_path(workspace_root)
+    if saved_workspace_bundle is not None:
+        candidates.append(saved_workspace_bundle)
     configured = os.environ.get("VEI_WHATIF_SOURCE_DIR")
     if configured and configured.strip():
         candidates.append(Path(configured).expanduser())
