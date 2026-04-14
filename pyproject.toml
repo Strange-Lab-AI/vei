@@ -58,6 +58,7 @@ rl = [
   "gymnasium>=0.29.0"
 ]
 test = [
+  "hypothesis==6.151.14",
   "pytest==9.0.2",
   "pytest-timeout==2.4.0",
   "pytest-cov==7.0.0",
