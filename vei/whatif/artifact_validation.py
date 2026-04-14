@@ -7,7 +7,6 @@ from typing import Any
 CANONICAL_CONTEXT_FILE = "context_snapshot.json"
 CANONICAL_MANIFEST_FILE = "episode_manifest.json"
 CANONICAL_PUBLIC_CONTEXT_FILE = "whatif_public_context.json"
-LEGACY_MANIFEST_FILES = ("whatif_episode_manifest.json",)
 
 
 def validate_saved_workspace(
@@ -20,27 +19,25 @@ def validate_saved_workspace(
 
     manifest_path = resolved_workspace / CANONICAL_MANIFEST_FILE
     snapshot_path = resolved_workspace / CANONICAL_CONTEXT_FILE
-    legacy_manifest_paths = [
-        resolved_workspace / name
-        for name in LEGACY_MANIFEST_FILES
-        if (resolved_workspace / name).exists()
-    ]
+    unexpected_manifest_paths = _unexpected_manifest_paths(resolved_workspace)
     if not manifest_path.exists():
-        if legacy_manifest_paths:
-            legacy_names = ", ".join(str(path.name) for path in legacy_manifest_paths)
+        if unexpected_manifest_paths:
+            manifest_names = ", ".join(
+                str(path.name) for path in unexpected_manifest_paths
+            )
             issues.append(
-                f"legacy workspace manifest present in {resolved_workspace}: "
-                f"{legacy_names}; expected {CANONICAL_MANIFEST_FILE}"
+                f"unexpected workspace manifest present in {resolved_workspace}: "
+                f"{manifest_names}; expected {CANONICAL_MANIFEST_FILE}"
             )
         else:
             issues.append(f"missing workspace manifest: {manifest_path}")
         return issues
     if not snapshot_path.exists():
         issues.append(f"missing workspace snapshot: {snapshot_path}")
-    for legacy_manifest_path in legacy_manifest_paths:
+    for unexpected_manifest_path in unexpected_manifest_paths:
         issues.append(
-            f"legacy workspace manifest present alongside canonical manifest: "
-            f"{legacy_manifest_path}"
+            f"unexpected workspace manifest present alongside canonical manifest: "
+            f"{unexpected_manifest_path}"
         )
 
     manifest = _read_json(manifest_path)
@@ -106,17 +103,17 @@ def validate_packaged_example_bundle(root: str | Path) -> list[str]:
 def validate_artifact_tree(root: str | Path) -> list[str]:
     resolved_root = Path(root).expanduser().resolve()
     issues: list[str] = []
-    seen_workspaces: set[Path] = set()
-    for manifest_path in resolved_root.rglob(CANONICAL_MANIFEST_FILE):
-        workspace_root = manifest_path.parent
-        seen_workspaces.add(workspace_root)
+    workspace_roots = {
+        manifest_path.parent
+        for manifest_path in resolved_root.rglob(CANONICAL_MANIFEST_FILE)
+    }
+    workspace_roots.update(
+        manifest_path.parent
+        for manifest_path in resolved_root.rglob("*episode_manifest.json")
+        if manifest_path.name != CANONICAL_MANIFEST_FILE
+    )
+    for workspace_root in sorted(workspace_roots):
         issues.extend(validate_saved_workspace(workspace_root))
-    for legacy_name in LEGACY_MANIFEST_FILES:
-        for manifest_path in resolved_root.rglob(legacy_name):
-            workspace_root = manifest_path.parent
-            if workspace_root in seen_workspaces:
-                continue
-            issues.extend(validate_saved_workspace(workspace_root))
     return issues
 
 
@@ -137,3 +134,11 @@ def _check_path_value(
         issues.append(
             f"{key} mismatch in {path}: expected {expected!r}, got {actual_text!r}"
         )
+
+
+def _unexpected_manifest_paths(workspace_root: Path) -> list[Path]:
+    return sorted(
+        candidate
+        for candidate in workspace_root.glob("*episode_manifest.json")
+        if candidate.name != CANONICAL_MANIFEST_FILE
+    )

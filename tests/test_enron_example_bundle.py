@@ -176,18 +176,38 @@ def test_validate_artifact_tree_flags_workspace_root_mismatch(tmp_path: Path) ->
     assert any("workspace_root mismatch" in issue for issue in issues)
 
 
-def test_validate_artifact_tree_flags_legacy_manifest_name(tmp_path: Path) -> None:
+def test_validate_artifact_tree_flags_unexpected_manifest_name(tmp_path: Path) -> None:
     workspace_root = tmp_path / "workspace"
     workspace_root.mkdir(parents=True)
     (workspace_root / "context_snapshot.json").write_text("{}", encoding="utf-8")
-    (workspace_root / "whatif_episode_manifest.json").write_text(
+    (workspace_root / "stale_episode_manifest.json").write_text(
         json.dumps({"workspace_root": str(workspace_root)}),
         encoding="utf-8",
     )
 
     issues = validate_artifact_tree(tmp_path)
 
-    assert any("legacy workspace manifest present" in issue for issue in issues)
+    assert any("unexpected workspace manifest present" in issue for issue in issues)
+
+
+def test_validate_artifact_tree_ignores_non_episode_manifest_files(
+    tmp_path: Path,
+) -> None:
+    workspace_root = tmp_path / "workspace"
+    workspace_root.mkdir(parents=True)
+    (workspace_root / "context_snapshot.json").write_text("{}", encoding="utf-8")
+    (workspace_root / "episode_manifest.json").write_text(
+        json.dumps({"workspace_root": str(workspace_root)}),
+        encoding="utf-8",
+    )
+    (workspace_root / "twin_manifest.json").write_text("{}", encoding="utf-8")
+    compiled_root = workspace_root / "compiled" / "default"
+    compiled_root.mkdir(parents=True)
+    (compiled_root / "scenario_manifest.json").write_text("{}", encoding="utf-8")
+
+    issues = validate_artifact_tree(tmp_path)
+
+    assert issues == []
 
 
 def test_repo_owned_enron_example_workspace_loads_saved_scene() -> None:

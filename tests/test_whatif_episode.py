@@ -534,7 +534,7 @@ def test_materialize_episode_defaults_to_generic_archive_domain_when_missing(
     assert materialization.organization_domain == "archive.local"
 
 
-def test_vei_whatif_cli_explore_and_open_episode(tmp_path: Path) -> None:
+def test_vei_whatif_cli_explore_and_open(tmp_path: Path) -> None:
     rosetta_dir = tmp_path / "rosetta"
     _write_rosetta_fixture(rosetta_dir)
     runner = CliRunner()
@@ -560,7 +560,7 @@ def test_vei_whatif_cli_explore_and_open_episode(tmp_path: Path) -> None:
         cli_app,
         [
             "whatif",
-            "open-episode",
+            "open",
             "--rosetta-dir",
             str(rosetta_dir),
             "--root",

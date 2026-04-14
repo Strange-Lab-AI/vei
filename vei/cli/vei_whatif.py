@@ -195,8 +195,7 @@ def explore_command(
     _emit(payload, format=format)
 
 
-@app.command("open-episode")
-def open_episode_command(
+def _open_episode(
     source: str = typer.Option(
         "auto", help="What-if source: auto | enron | mail_archive | company_history"
     ),
@@ -211,8 +210,6 @@ def open_episode_command(
     event_id: str | None = typer.Option(None, help="Optional branch event override"),
     format: str = typer.Option("json", help="Output format: json | markdown"),
 ) -> None:
-    """Compatibility alias for `vei whatif open`."""
-
     world = load_world(source=source, source_dir=source_dir)
     materialization = materialize_episode(
         world,
@@ -246,7 +243,7 @@ def open_command(
 ) -> None:
     """Build a strict historical workspace from one event or thread."""
 
-    open_episode_command(
+    _open_episode(
         source=source,
         source_dir=source_dir,
         root=root,

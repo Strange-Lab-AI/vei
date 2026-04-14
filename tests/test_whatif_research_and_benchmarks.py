@@ -901,7 +901,7 @@ def test_vei_whatif_cli_supports_generic_mail_archive_source(tmp_path: Path) -> 
         cli_app,
         [
             "whatif",
-            "open-episode",
+            "open",
             "--source-dir",
             str(archive_path),
             "--root",
