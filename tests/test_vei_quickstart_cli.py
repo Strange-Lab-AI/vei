@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 from types import SimpleNamespace
 
+import pytest
 from typer.testing import CliRunner
 
 from vei.cli import vei_quickstart
@@ -16,6 +17,8 @@ from vei.twin.models import (
     TwinServiceRecord,
 )
 from vei.twin.models import CompatibilitySurfaceSpec
+
+pytestmark = pytest.mark.integration
 
 
 def test_quickstart_reports_invalid_live_demo_combo(

@@ -8,6 +8,7 @@ from .models import (
     WhatIfBenchmarkJudgeResult,
     WhatIfBenchmarkStudyResult,
     WhatIfBenchmarkTrainResult,
+    WhatIfDecisionScene,
     WhatIfEpisodeMaterialization,
     WhatIfEventSearchResult,
     WhatIfExperimentResult,
@@ -797,4 +798,59 @@ def render_benchmark_study(result: WhatIfBenchmarkStudyResult) -> str:
             f"- Study overview: {result.artifacts.overview_path}",
         ]
     )
+    return "\n".join(lines)
+
+
+def render_decision_scene(scene: WhatIfDecisionScene) -> str:
+    lines = [
+        f"# Decision Scene — {scene.thread_subject or scene.thread_id}",
+        "",
+        f"- Source: {scene.source}",
+        f"- Organization: {scene.organization_name} ({scene.organization_domain})",
+        f"- Surface: {scene.surface}",
+        f"- Thread: `{scene.thread_id}`",
+        f"- Branch event: `{scene.branch_event_id}`",
+        f"- History messages: {scene.history_message_count}",
+        f"- Future events: {scene.future_event_count}",
+    ]
+    if scene.content_notice:
+        lines.extend(["", f"> {scene.content_notice}"])
+    if scene.branch_summary:
+        lines.extend(["", "## Branch Point", scene.branch_summary])
+    if scene.historical_action_summary:
+        lines.append(scene.historical_action_summary)
+    if scene.historical_outcome_summary:
+        lines.append(scene.historical_outcome_summary)
+    if scene.stakes_summary:
+        lines.extend(["", "## Stakes", scene.stakes_summary])
+    if scene.decision_question:
+        lines.extend(["", "## Decision Question", scene.decision_question])
+    if scene.history_preview:
+        lines.extend(["", "## History Preview"])
+        for event in scene.history_preview:
+            lines.append(
+                f"- [{event.surface}] {event.timestamp[:10]} "
+                f"{event.actor_id}: {event.subject or event.thread_id}"
+            )
+    if scene.historical_future_preview:
+        lines.extend(["", "## Historical Future Preview"])
+        for event in scene.historical_future_preview:
+            lines.append(
+                f"- [{event.surface}] {event.timestamp[:10]} "
+                f"{event.actor_id}: {event.subject or event.thread_id}"
+            )
+    if scene.candidate_options:
+        lines.extend(["", "## Candidate Options"])
+        for option in scene.candidate_options:
+            lines.append(f"### {option.label} (`{option.option_id}`)")
+            lines.append(option.summary)
+    lines.extend(_public_context_lines(scene.public_context))
+    lines.extend(
+        _business_state_assessment_lines(
+            scene.historical_business_state,
+            heading="Historical Business State",
+        )
+    )
+    lines.extend(_case_context_lines(scene.case_context))
+    lines.extend(_situation_context_lines(scene.situation_context))
     return "\n".join(lines)

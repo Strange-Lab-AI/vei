@@ -5,6 +5,8 @@ import pytest
 from vei.router.core import MCPError, Router
 from vei.world.scenarios import scenario_multi_channel
 
+pytestmark = pytest.mark.integration
+
 
 def _router() -> Router:
     router = Router(seed=2026, artifacts_dir=None, scenario=scenario_multi_channel())

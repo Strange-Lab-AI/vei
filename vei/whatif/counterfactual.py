@@ -14,7 +14,7 @@ from vei.twin import load_customer_twin
 
 try:
     from dotenv import load_dotenv
-except Exception:  # pragma: no cover
+except ImportError:  # pragma: no cover
 
     def load_dotenv(*args: object, **kwargs: object) -> None:
         return None
@@ -50,6 +50,21 @@ from ._helpers import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def _run_async(coro):  # type: ignore[type-arg]
+    """Run a coroutine, handling the case where an event loop is already running."""
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        loop = None
+    if loop is not None and loop.is_running():
+        import concurrent.futures
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+            return pool.submit(asyncio.run, coro).result()
+    return asyncio.run(coro)
+
 
 # ---------------------------------------------------------------------------
 # Private helpers
@@ -538,7 +553,7 @@ def run_llm_counterfactual(
         allowed_recipients=recipient_scope,
     )
     try:
-        response = asyncio.run(
+        response = _run_async(
             providers.plan_once_with_usage(
                 provider=provider,
                 model=model,

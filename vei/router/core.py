@@ -29,7 +29,7 @@ from ._lifecycle import RouterLifecycle
 from ._observation_delegate import RouterObservation
 from .tool_providers import ToolProvider
 from .tool_registry import ToolRegistry, ToolSpec
-from ._event_bus import Event, EventBus, LinearCongruentialGenerator  # noqa: F401
+from ._event_bus import BusEvent, EventBus, LinearCongruentialGenerator  # noqa: F401
 from ._trace import TraceLogger  # noqa: F401
 from ._reducers import (  # noqa: F401
     FAULT_PROFILES,
@@ -363,7 +363,7 @@ class Router:
     def _deliver_event(self, target: str, payload: Dict[str, Any]) -> Dict[str, Any]:
         return RouterDispatch.deliver_event(self, target, payload)
 
-    def _deliver_due_event(self, evt: Event) -> Dict[str, Any]:
+    def _deliver_due_event(self, evt: BusEvent) -> Dict[str, Any]:
         try:
             emitted = self._deliver_event(evt.target, evt.payload)
         except Exception as exc:

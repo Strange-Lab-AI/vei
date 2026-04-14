@@ -1,4 +1,8 @@
+import pytest
+
 from vei.router.core import Router
+
+pytestmark = pytest.mark.integration
 
 
 def test_inject_slack_message():

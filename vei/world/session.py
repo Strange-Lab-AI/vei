@@ -161,7 +161,7 @@ def restore_router_state(router: "Router", state: WorldState) -> None:
     router.bus._seq = int(state.queue_seq)
     heap: list[tuple[int, int, Any]] = []
     seq = 0
-    from vei.router import Event as RuntimeEvent
+    from vei.router import BusEvent as RuntimeEvent
 
     for item in state.pending_events:
         seq += 1

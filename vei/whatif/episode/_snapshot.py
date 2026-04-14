@@ -1,47 +1,29 @@
 from __future__ import annotations
 
+import json
 import logging
 import shutil
 from pathlib import Path
 from typing import Any, Sequence
 
-from vei.blueprint.api import create_world_session_from_blueprint
-from vei.blueprint.models import BlueprintAsset
+from pydantic import ValidationError
 from vei.context.models import ContextSnapshot, ContextSourceResult
-from vei.data.models import BaseEvent, DatasetMetadata, VEIDataset
-from vei.twin import load_customer_twin
-from vei.twin.api import build_customer_twin
-from vei.twin.models import ContextMoldConfig
 
-from .models import (
+from ..models import (
     WhatIfCaseContext,
     WhatIfEpisodeManifest,
-    WhatIfEpisodeMaterialization,
     WhatIfEvent,
     WhatIfEventReference,
-    WhatIfHistoricalScore,
     WhatIfPublicContext,
-    WhatIfReplaySummary,
     WhatIfSituationContext,
     WhatIfWorld,
 )
-from .corpus import (
+from ..corpus import (
     CONTENT_NOTICE,
-    ENRON_DOMAIN,
     _load_history_snapshot,
-    choose_branch_event,
     display_name,
-    event_by_id,
-    event_reference,
-    has_external_recipients,
-    hydrate_event_snippets,
-    thread_events,
-    thread_subject,
 )
-from .cases import build_case_context
-from .public_context import slice_public_context_to_branch
-from .business_state import assess_historical_business_state
-from ._helpers import (
+from .._helpers import (
     chat_channel_name as _chat_channel_name,
     chat_channel_name_from_reference as _chat_channel_name_from_reference,
     historical_archive_address as _historical_archive_address,
@@ -49,229 +31,9 @@ from ._helpers import (
     primary_recipient as _primary_recipient,
     reference_primary_recipient as _reference_primary_recipient,
 )
-from .situations import build_situation_context, recommend_branch_thread
+from ._dataset import _historical_body, _historical_chat_text
 
 logger = logging.getLogger(__name__)
-
-
-def materialize_episode(
-    world: WhatIfWorld,
-    *,
-    root: str | Path,
-    thread_id: str | None = None,
-    event_id: str | None = None,
-    organization_name: str | None = None,
-    organization_domain: str | None = None,
-) -> WhatIfEpisodeMaterialization:
-    workspace_root = Path(root).expanduser().resolve()
-    resolved_organization_name = (
-        (organization_name or "").strip()
-        or world.summary.organization_name
-        or "Historical Archive"
-    )
-    resolved_organization_domain = (
-        (organization_domain or "").strip().lower()
-        or world.summary.organization_domain
-        or "archive.local"
-    )
-    (
-        selected_thread_id,
-        thread_history,
-        branch_event,
-        past_events,
-        future_events,
-        selected_thread_subject,
-    ) = resolve_thread_branch(
-        world,
-        thread_id=thread_id,
-        event_id=event_id,
-    )
-    branch_public_context = slice_public_context_to_branch(
-        world.public_context,
-        branch_timestamp=branch_event.timestamp,
-    )
-    source_snapshot = _source_snapshot_for_world(world)
-    case_context = build_case_context(
-        snapshot=source_snapshot,
-        events=world.events,
-        case_id=branch_event.case_id,
-        branch_thread_id=selected_thread_id,
-        branch_timestamp_ms=branch_event.timestamp_ms,
-    )
-    situation_context = build_situation_context(
-        world,
-        branch_thread_id=selected_thread_id,
-        branch_timestamp_ms=branch_event.timestamp_ms,
-    )
-    forecast = score_historical_tail(
-        future_events,
-        organization_domain=resolved_organization_domain,
-    )
-    historical_business_state = assess_historical_business_state(
-        branch_event=event_reference(branch_event),
-        forecast=forecast,
-        organization_domain=resolved_organization_domain,
-        public_context=branch_public_context,
-    )
-    history_preview = [event_reference(event) for event in past_events[-12:]]
-    snapshot = _episode_context_snapshot(
-        thread_history=thread_history,
-        past_events=past_events,
-        thread_id=selected_thread_id,
-        thread_subject=selected_thread_subject,
-        organization_name=resolved_organization_name,
-        organization_domain=resolved_organization_domain,
-        world=world,
-        branch_event=branch_event,
-        public_context=branch_public_context,
-        case_context=case_context,
-        situation_context=situation_context,
-        historical_business_state=historical_business_state,
-        source_snapshot=source_snapshot,
-    )
-    included_surfaces = _included_surfaces_for_thread(
-        thread_history,
-        case_context=case_context,
-        situation_context=situation_context,
-    )
-    bundle = build_customer_twin(
-        workspace_root,
-        snapshot=snapshot,
-        organization_name=resolved_organization_name,
-        organization_domain=resolved_organization_domain,
-        mold=ContextMoldConfig(
-            archetype="b2b_saas",
-            density_level="medium",
-            named_team_expansion="minimal",
-            included_surfaces=included_surfaces,
-            synthetic_expansion_strength="light",
-        ),
-        overwrite=True,
-    )
-    baseline_dataset = _baseline_dataset(
-        thread_subject=selected_thread_subject,
-        branch_event=branch_event,
-        future_events=future_events,
-        organization_domain=resolved_organization_domain,
-        source_name=world.source,
-    )
-    baseline_dataset_path = workspace_root / "whatif_baseline_dataset.json"
-    baseline_dataset_path.write_text(
-        baseline_dataset.model_dump_json(indent=2),
-        encoding="utf-8",
-    )
-    _persist_workspace_historical_source(world, workspace_root)
-    manifest = WhatIfEpisodeManifest(
-        source=world.source,
-        source_dir=world.source_dir,
-        workspace_root=workspace_root,
-        organization_name=resolved_organization_name,
-        organization_domain=resolved_organization_domain,
-        thread_id=selected_thread_id,
-        thread_subject=selected_thread_subject,
-        case_id=branch_event.case_id,
-        surface=branch_event.surface,
-        branch_event_id=branch_event.event_id,
-        branch_timestamp=branch_event.timestamp,
-        branch_event=event_reference(branch_event),
-        history_message_count=len(past_events),
-        future_event_count=len(future_events),
-        baseline_dataset_path=str(baseline_dataset_path.relative_to(workspace_root)),
-        content_notice=str(world.metadata.get("content_notice", CONTENT_NOTICE)),
-        actor_ids=sorted(
-            {
-                actor_id
-                for event in thread_history
-                for actor_id in {event.actor_id, event.target_id}
-                if actor_id
-            }
-        ),
-        history_preview=history_preview,
-        baseline_future_preview=[event_reference(event) for event in future_events[:5]],
-        forecast=forecast,
-        public_context=branch_public_context,
-        case_context=case_context,
-        situation_context=situation_context,
-        historical_business_state=historical_business_state,
-    )
-    manifest_path = workspace_root / "episode_manifest.json"
-    manifest_path.write_text(manifest.model_dump_json(indent=2), encoding="utf-8")
-    return WhatIfEpisodeMaterialization(
-        manifest_path=manifest_path,
-        bundle_path=workspace_root / "twin_manifest.json",
-        context_snapshot_path=workspace_root / bundle.context_snapshot_path,
-        baseline_dataset_path=baseline_dataset_path,
-        workspace_root=workspace_root,
-        organization_name=resolved_organization_name,
-        organization_domain=resolved_organization_domain,
-        thread_id=selected_thread_id,
-        case_id=branch_event.case_id,
-        surface=branch_event.surface,
-        branch_event_id=branch_event.event_id,
-        branch_event=manifest.branch_event,
-        history_message_count=len(past_events),
-        future_event_count=len(future_events),
-        history_preview=history_preview,
-        baseline_future_preview=list(manifest.baseline_future_preview),
-        forecast=forecast,
-        public_context=branch_public_context,
-        case_context=case_context,
-        situation_context=situation_context,
-        historical_business_state=historical_business_state,
-    )
-
-
-def resolve_thread_branch(
-    world: WhatIfWorld,
-    *,
-    thread_id: str | None = None,
-    event_id: str | None = None,
-) -> tuple[
-    str, list[WhatIfEvent], WhatIfEvent, list[WhatIfEvent], list[WhatIfEvent], str
-]:
-    selected_thread_id = thread_id
-    if selected_thread_id is None:
-        if event_id:
-            selected_event = event_by_id(world.events, event_id)
-            if selected_event is None:
-                raise ValueError(f"event not found in world: {event_id}")
-            selected_thread_id = selected_event.thread_id
-        else:
-            selected_thread_id = recommend_branch_thread(world).thread_id
-
-    thread_history = thread_events(world.events, selected_thread_id)
-    if not thread_history:
-        raise ValueError(f"thread not found in world: {selected_thread_id}")
-    if world.source == "enron":
-        thread_history = hydrate_event_snippets(
-            rosetta_dir=world.source_dir,
-            events=thread_history,
-        )
-
-    branch_event = choose_branch_event(thread_history, requested_event_id=event_id)
-    branch_index = next(
-        (
-            index
-            for index, event in enumerate(thread_history)
-            if event.event_id == branch_event.event_id
-        ),
-        None,
-    )
-    if branch_index is None:
-        raise ValueError(f"branch event not found in thread: {branch_event.event_id}")
-
-    return (
-        selected_thread_id,
-        thread_history,
-        branch_event,
-        list(thread_history[:branch_index]),
-        list(thread_history[branch_index:]),
-        thread_subject(
-            world.threads,
-            selected_thread_id,
-            fallback=branch_event.subject,
-        ),
-    )
 
 
 def _episode_context_snapshot(
@@ -603,7 +365,7 @@ def _source_snapshot_for_world(world: WhatIfWorld) -> ContextSnapshot | None:
         return None
     try:
         return _load_history_snapshot(world.source_dir)
-    except Exception as exc:  # noqa: BLE001
+    except (OSError, json.JSONDecodeError, ValueError, ValidationError) as exc:
         logger.warning(
             "whatif source snapshot load failed for %s (%s)",
             world.source,
@@ -1342,47 +1104,6 @@ def _context_source_record_counts(
     return {}
 
 
-def _included_surfaces_for_thread(
-    events: Sequence[WhatIfEvent],
-    *,
-    case_context: WhatIfCaseContext | None = None,
-    situation_context: WhatIfSituationContext | None = None,
-) -> list[str]:
-    surfaces = {event.surface or "mail" for event in events}
-    if case_context is not None:
-        surfaces.update(
-            reference.surface
-            for reference in case_context.related_history
-            if reference.surface
-        )
-        surfaces.update(
-            record.surface for record in case_context.records if record.surface
-        )
-    if situation_context is not None:
-        surfaces.update(
-            thread.surface
-            for thread in situation_context.related_threads
-            if thread.surface
-        )
-        surfaces.update(
-            reference.surface
-            for reference in situation_context.related_history
-            if reference.surface
-        )
-    included: list[str] = ["identity"]
-    if "mail" in surfaces:
-        included.insert(0, "mail")
-    if "slack" in surfaces:
-        included.insert(0, "slack")
-    if "tickets" in surfaces:
-        included.insert(0, "tickets")
-    if "docs" in surfaces:
-        included.insert(0, "docs")
-    if "crm" in surfaces:
-        included.insert(0, "crm")
-    return included
-
-
 def _history_preview_from_saved_context(
     workspace_root: Path,
     *,
@@ -1393,7 +1114,7 @@ def _history_preview_from_saved_context(
         return list(manifest.history_preview[-max(1, history_limit) :])
     try:
         context = _load_episode_context(workspace_root)
-    except Exception as exc:  # noqa: BLE001
+    except (OSError, json.JSONDecodeError, ValueError) as exc:
         logger.warning(
             "whatif saved episode context load failed for %s (%s)",
             manifest.thread_id,
@@ -1462,151 +1183,6 @@ def _historical_source_file(source_dir: Path) -> Path | None:
     return None
 
 
-def load_episode_manifest(root: str | Path) -> WhatIfEpisodeManifest:
-    workspace_root = Path(root).expanduser().resolve()
-    manifest_path = workspace_root / "episode_manifest.json"
-    if not manifest_path.exists():
-        raise ValueError(f"what-if episode manifest not found: {manifest_path}")
-    return WhatIfEpisodeManifest.model_validate_json(
-        manifest_path.read_text(encoding="utf-8")
-    )
-
-
-def replay_episode_baseline(
-    root: str | Path,
-    *,
-    tick_ms: int = 0,
-    seed: int = 42042,
-) -> WhatIfReplaySummary:
-    workspace_root = Path(root).expanduser().resolve()
-    manifest = load_episode_manifest(workspace_root)
-    bundle = load_customer_twin(workspace_root)
-    asset_path = workspace_root / bundle.blueprint_asset_path
-    dataset_path = workspace_root / manifest.baseline_dataset_path
-    asset = BlueprintAsset.model_validate_json(asset_path.read_text(encoding="utf-8"))
-    dataset = VEIDataset.model_validate_json(dataset_path.read_text(encoding="utf-8"))
-    session = create_world_session_from_blueprint(asset, seed=seed)
-    replay_result = session.replay(mode="overlay", dataset_events=dataset.events)
-
-    delivered_event_count = 0
-    current_time_ms = session.router.bus.clock_ms
-    pending_events = session.pending()
-    if tick_ms > 0:
-        tick_result = session.router.tick(dt_ms=tick_ms)
-        delivered_event_count = sum(tick_result.get("delivered", {}).values())
-        current_time_ms = int(tick_result.get("time_ms", current_time_ms))
-        pending_events = dict(tick_result.get("pending", {}))
-
-    inbox_count = 0
-    top_subjects: list[str] = []
-    visible_item_count = 0
-    top_items: list[str] = []
-    if manifest.surface == "mail":
-        inbox = session.call_tool("mail.list", {})
-        inbox_count = len(inbox)
-        top_subjects = [
-            str(item.get("subj", ""))
-            for item in inbox[:5]
-            if isinstance(item, dict) and item.get("subj")
-        ]
-        visible_item_count = inbox_count
-        top_items = list(top_subjects)
-    elif manifest.surface == "slack":
-        channel_name = _chat_channel_name_from_reference(manifest.branch_event)
-        channel_payload = session.call_tool(
-            "slack.open_channel",
-            {"channel": channel_name},
-        )
-        channel_messages = (
-            channel_payload.get("messages", [])
-            if isinstance(channel_payload, dict)
-            else []
-        )
-        messages = _slack_thread_messages(
-            channel_messages,
-            conversation_anchor=manifest.branch_event.conversation_anchor,
-        )
-        visible_item_count = len(messages)
-        top_items = [
-            str(item.get("text", ""))
-            for item in messages[:5]
-            if isinstance(item, dict) and item.get("text")
-        ]
-    elif manifest.surface == "tickets":
-        tickets_payload = session.call_tool("tickets.list", {})
-        tickets = tickets_payload if isinstance(tickets_payload, list) else []
-        visible_item_count = len(tickets)
-        top_items = [
-            str(item.get("title", ""))
-            for item in tickets[:5]
-            if isinstance(item, dict) and item.get("title")
-        ]
-    return WhatIfReplaySummary(
-        workspace_root=workspace_root,
-        baseline_dataset_path=dataset_path,
-        surface=manifest.surface,
-        scheduled_event_count=int(replay_result.get("scheduled", 0)),
-        delivered_event_count=delivered_event_count,
-        current_time_ms=current_time_ms,
-        pending_events=pending_events,
-        inbox_count=inbox_count,
-        top_subjects=top_subjects,
-        visible_item_count=visible_item_count,
-        top_items=top_items,
-        baseline_future_preview=list(manifest.baseline_future_preview),
-        forecast=manifest.forecast,
-    )
-
-
-def score_historical_tail(
-    events: Sequence[WhatIfEvent],
-    *,
-    organization_domain: str = ENRON_DOMAIN,
-) -> WhatIfHistoricalScore:
-    future_event_count = len(events)
-    future_escalation_count = sum(
-        1
-        for event in events
-        if event.flags.is_escalation or event.event_type == "escalation"
-    )
-    future_assignment_count = sum(
-        1 for event in events if event.event_type == "assignment"
-    )
-    future_approval_count = sum(1 for event in events if event.event_type == "approval")
-    future_external_event_count = sum(
-        1
-        for event in events
-        if has_external_recipients(
-            event.flags.to_recipients,
-            organization_domain=organization_domain,
-        )
-    )
-    risk_score = min(
-        1.0,
-        (
-            (future_escalation_count * 0.25)
-            + (future_assignment_count * 0.15)
-            + (future_external_event_count * 0.2)
-            + max(0, future_event_count - future_approval_count) * 0.02
-        ),
-    )
-    summary = (
-        f"{future_event_count} future events remain, including "
-        f"{future_escalation_count} escalations and {future_external_event_count} "
-        "externally addressed messages."
-    )
-    return WhatIfHistoricalScore(
-        backend="historical",
-        future_event_count=future_event_count,
-        future_escalation_count=future_escalation_count,
-        future_assignment_count=future_assignment_count,
-        future_approval_count=future_approval_count,
-        future_external_event_count=future_external_event_count,
-        risk_score=round(risk_score, 3),
-        summary=summary,
-    )
-
-
 def _archive_message_payload(
     event: WhatIfEvent,
     *,
@@ -1625,106 +1201,10 @@ def _archive_message_payload(
     }
 
 
-def _baseline_event_payload(
-    event: WhatIfEvent,
-    *,
-    branch_event: WhatIfEvent,
-    thread_subject: str,
-    organization_domain: str,
-) -> BaseEvent:
-    delay_ms = max(1, event.timestamp_ms - branch_event.timestamp_ms)
-    if event.surface == "slack":
-        return BaseEvent(
-            time_ms=delay_ms,
-            actor_id=event.actor_id,
-            channel="slack",
-            type=event.event_type,
-            correlation_id=event.thread_id,
-            payload={
-                "channel": _chat_channel_name(event),
-                "text": _historical_chat_text(event),
-                "thread_ts": event.conversation_anchor or None,
-                "user": event.actor_id,
-            },
-        )
-    if event.surface == "tickets":
-        return BaseEvent(
-            time_ms=delay_ms,
-            actor_id=event.actor_id,
-            channel="tickets",
-            type=event.event_type,
-            correlation_id=event.thread_id,
-            payload=_ticket_event_payload(event),
-        )
-    return BaseEvent(
-        time_ms=delay_ms,
-        actor_id=event.actor_id,
-        channel="mail",
-        type=event.event_type,
-        correlation_id=event.thread_id,
-        payload={
-            "from": event.actor_id
-            or _historical_archive_address(organization_domain, "unknown"),
-            "to": _primary_recipient(event),
-            "subj": event.subject or thread_subject,
-            "body_text": _historical_body(event),
-            "thread_id": event.thread_id,
-            "category": "historical",
-        },
-    )
-
-
 def _chat_message_ts(event: WhatIfEvent, *, fallback_index: int) -> str:
     if event.timestamp_ms > 0:
         return str(event.timestamp_ms)
     return str(max(1, fallback_index))
-
-
-def _historical_chat_text(event: WhatIfEvent) -> str:
-    if event.snippet:
-        return event.snippet
-    return f"[Historical {event.event_type}] {event.subject or event.thread_id}"
-
-
-def _ticket_event_payload(event: WhatIfEvent) -> dict[str, Any]:
-    ticket_id = event.thread_id.split(":", 1)[-1]
-    if event.event_type == "assignment":
-        return {
-            "ticket_id": ticket_id,
-            "assignee": event.actor_id,
-            "description": event.snippet or event.subject,
-        }
-    if event.event_type == "approval":
-        return {
-            "ticket_id": ticket_id,
-            "status": "resolved",
-        }
-    if event.event_type == "escalation":
-        return {
-            "ticket_id": ticket_id,
-            "status": "blocked",
-        }
-    return {
-        "ticket_id": ticket_id,
-        "comment": event.snippet or event.subject,
-        "author": event.actor_id,
-    }
-
-
-def _slack_thread_messages(
-    messages: Sequence[dict[str, Any]],
-    *,
-    conversation_anchor: str,
-) -> list[dict[str, Any]]:
-    if not conversation_anchor:
-        return [item for item in messages if isinstance(item, dict)]
-    return [
-        item
-        for item in messages
-        if isinstance(item, dict)
-        and str(item.get("thread_ts") or item.get("ts") or "").split(".", 1)[0]
-        == conversation_anchor
-    ] or [item for item in messages if isinstance(item, dict)]
 
 
 def _ticket_status_for_event(event: WhatIfEvent) -> str:
@@ -1735,64 +1215,3 @@ def _ticket_status_for_event(event: WhatIfEvent) -> str:
     if event.event_type == "assignment":
         return "in_progress"
     return "open"
-
-
-def _baseline_dataset(
-    *,
-    thread_subject: str,
-    branch_event: WhatIfEvent,
-    future_events: Sequence[WhatIfEvent],
-    organization_domain: str,
-    source_name: str,
-) -> VEIDataset:
-    baseline_events = [
-        _baseline_event_payload(
-            event,
-            branch_event=branch_event,
-            thread_subject=thread_subject,
-            organization_domain=organization_domain,
-        )
-        for event in future_events
-    ]
-    return VEIDataset(
-        metadata=DatasetMetadata(
-            name=f"whatif-baseline-{branch_event.thread_id}",
-            description="Historical future events scheduled after the branch point.",
-            tags=["whatif", "baseline", "historical"],
-            source=(
-                "enron_rosetta"
-                if source_name == "enron"
-                else (
-                    "historical_mail_archive"
-                    if source_name == "mail_archive"
-                    else "historical_company_history"
-                )
-            ),
-        ),
-        events=baseline_events,
-    )
-
-
-def _historical_body(event: WhatIfEvent) -> str:
-    lines: list[str] = []
-    if event.snippet:
-        lines.append("[Historical email excerpt]")
-        lines.append(event.snippet.strip())
-        lines.append("")
-        lines.append("[Excerpt limited by source data. Original body may be longer.]")
-    else:
-        lines.append("[Historical event recorded without body text excerpt]")
-    notes = [f"Event type: {event.event_type}"]
-    if event.flags.is_forward:
-        notes.append("Forward detected in source metadata.")
-    if event.flags.is_escalation:
-        notes.append("Escalation detected in source metadata.")
-    if event.flags.consult_legal_specialist:
-        notes.append("Legal specialist signal present.")
-    if event.flags.consult_trading_specialist:
-        notes.append("Trading specialist signal present.")
-    if event.flags.cc_count:
-        notes.append(f"CC count: {event.flags.cc_count}.")
-    if event.flags.bcc_count:
-        notes.append(f"BCC count: {event.flags.bcc_count}.")
-    return "\n".join(lines + ["", *notes]).strip()

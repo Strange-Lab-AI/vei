@@ -8,6 +8,8 @@ from datetime import datetime
 
 import pytest
 
+pytestmark = pytest.mark.integration
+
 
 @pytest.mark.anyio("asyncio")
 @pytest.mark.timeout(120)

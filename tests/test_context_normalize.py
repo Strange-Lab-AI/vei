@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import json
 import shutil
+import tarfile
+import zipfile
 from pathlib import Path
 
 from typer.testing import CliRunner
@@ -475,6 +477,167 @@ def test_verify_context_snapshot_flags_bundle_identity_and_time_range_issues() -
         check.code == "bundle.identity_name_emails" and check.passed is False
         for check in verification.checks
     )
+
+
+def test_normalize_raw_exports_from_zip_archive(tmp_path: Path) -> None:
+    export_dir = tmp_path / "exports"
+    _write_slack_export(export_dir)
+    (export_dir / "google.json").write_text(
+        json.dumps(
+            {
+                "documents": [
+                    {
+                        "doc_id": "doc-zip-1",
+                        "title": "Zipped plan",
+                        "body": "From zip.",
+                        "owner": "maya@acme.example.com",
+                        "modified_time": "2026-03-01T10:00:00Z",
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    zip_path = tmp_path / "exports.zip"
+    with zipfile.ZipFile(zip_path, "w") as zf:
+        for file in export_dir.rglob("*"):
+            if file.is_file():
+                zf.write(file, file.relative_to(tmp_path))
+
+    snapshot = normalize_raw_exports(
+        zip_path,
+        organization_name="Acme Cloud",
+        organization_domain="acme.example.com",
+    )
+
+    assert snapshot.organization_name == "Acme Cloud"
+    providers = {s.provider for s in snapshot.sources}
+    assert "slack" in providers
+    assert "google" in providers
+    assert snapshot.source_for("google").record_counts["documents"] == 1  # type: ignore[union-attr]
+
+
+def test_normalize_raw_exports_from_tar_gz_archive(tmp_path: Path) -> None:
+    export_dir = tmp_path / "exports"
+    _write_slack_export(export_dir)
+    (export_dir / "crm.json").write_text(
+        json.dumps(
+            {
+                "companies": [
+                    {
+                        "id": "acct-tar-1",
+                        "name": "Tar Buyer",
+                        "created_ms": 1_772_329_200_000,
+                    }
+                ],
+                "contacts": [],
+                "deals": [
+                    {
+                        "id": "deal-tar-1",
+                        "name": "Tar deal",
+                        "stage": "negotiation",
+                        "owner": "maya@acme.example.com",
+                        "created_ms": 1_772_329_200_000,
+                        "updated_ms": 1_772_329_560_000,
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    tar_path = tmp_path / "exports.tar.gz"
+    with tarfile.open(tar_path, "w:gz") as tf:
+        tf.add(export_dir, arcname="exports")
+
+    snapshot = normalize_raw_exports(
+        tar_path,
+        organization_name="Acme Cloud",
+        organization_domain="acme.example.com",
+    )
+
+    assert snapshot.organization_name == "Acme Cloud"
+    providers = {s.provider for s in snapshot.sources}
+    assert "slack" in providers
+    assert "crm" in providers
+    assert snapshot.source_for("crm").record_counts["deals"] == 1  # type: ignore[union-attr]
+
+
+def test_deduplicate_actors_merges_cross_source_identities(tmp_path: Path) -> None:
+    source_dir = tmp_path / "exports"
+    source_dir.mkdir(parents=True, exist_ok=True)
+
+    (source_dir / "context_snapshot.json").write_text(
+        json.dumps(
+            {
+                "version": "1",
+                "organization_name": "Acme Cloud",
+                "organization_domain": "acme.example.com",
+                "captured_at": "2026-03-01T10:00:00Z",
+                "sources": [
+                    {
+                        "provider": "mail_archive",
+                        "captured_at": "2026-03-01T09:00:00Z",
+                        "status": "ok",
+                        "record_counts": {"threads": 1, "actors": 1},
+                        "data": {
+                            "threads": [
+                                {
+                                    "thread_id": "t-1",
+                                    "subject": "Contract review",
+                                    "messages": [
+                                        {
+                                            "message_id": "msg-1",
+                                            "from": "maya@acme.example.com",
+                                            "to": "legal@acme.example.com",
+                                            "subject": "Contract review",
+                                            "body_text": "Please review.",
+                                            "date": "2026-03-01T09:00:00Z",
+                                        }
+                                    ],
+                                }
+                            ],
+                            "actors": [
+                                {
+                                    "actor_id": "maya-mail",
+                                    "email": "maya@acme.example.com",
+                                    "display_name": "Maya",
+                                }
+                            ],
+                        },
+                    }
+                ],
+            },
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+
+    _write_slack_export(source_dir)
+
+    snapshot = normalize_raw_exports(
+        source_dir,
+        organization_name="Acme Cloud",
+        organization_domain="acme.example.com",
+    )
+
+    dedup_map = snapshot.metadata.get("actor_dedup_map", {})
+
+    assert len(dedup_map) > 0, "expected at least one alias mapping"
+
+    all_keys = set(dedup_map.keys()) | set(dedup_map.values())
+    has_slack = any(k.startswith("slack:") for k in all_keys)
+    has_mail = any(k.startswith("mail_archive:") for k in all_keys)
+    assert (
+        has_slack and has_mail
+    ), f"dedup map should link slack and mail_archive actors, got {dedup_map}"
+
+    for alias, canonical in dedup_map.items():
+        assert alias != canonical, "alias must differ from canonical"
+        assert (
+            canonical not in dedup_map
+        ), f"canonical {canonical} should not itself be an alias"
 
 
 def _write_slack_export(root: Path) -> None:

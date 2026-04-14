@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
 from typer.testing import CliRunner
 
 from vei.benchmark.models import (
@@ -12,6 +13,8 @@ from vei.benchmark.models import (
     BenchmarkCaseSpec,
 )
 from vei.cli.vei_eval import app as eval_app
+
+pytestmark = pytest.mark.integration
 
 
 def _make_batch(specs: list[BenchmarkCaseSpec], run_id: str) -> BenchmarkBatchResult:

@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
 from typer.testing import CliRunner
 
 from vei.cli.vei import app
@@ -20,6 +21,8 @@ from vei.twin.models import (
     CustomerTwinBundle,
     WorkspaceGovernorStatus,
 )
+
+pytestmark = pytest.mark.integration
 
 
 def test_twin_cli_builds_and_reports_status(tmp_path: Path) -> None:

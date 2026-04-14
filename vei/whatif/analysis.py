@@ -18,6 +18,7 @@ from .corpus import (
 from .models import (
     WhatIfActorImpact,
     WhatIfConsequence,
+    WhatIfEvent,
     WhatIfResult,
     WhatIfScenarioId,
     WhatIfThreadImpact,
@@ -262,12 +263,12 @@ def select_specific_event(
 
 
 def _matched_events_for_scenario(
-    events: Sequence[Any],
+    events: Sequence[WhatIfEvent],
     thread_by_id: dict[str, WhatIfThreadSummary],
     scenario_id: WhatIfScenarioId,
     *,
     organization_domain: str,
-) -> list[Any]:
+) -> list[WhatIfEvent]:
     if scenario_id == "compliance_gateway":
         matched_threads = {
             thread_id
@@ -315,7 +316,7 @@ def _matched_events_for_scenario(
 
 
 def _build_actor_impacts(
-    events: Sequence[Any],
+    events: Sequence[WhatIfEvent],
     *,
     organization_domain: str,
 ) -> list[WhatIfActorImpact]:
@@ -351,7 +352,7 @@ def _build_actor_impacts(
 
 
 def _build_thread_impacts(
-    events: Sequence[Any],
+    events: Sequence[WhatIfEvent],
     thread_by_id: dict[str, WhatIfThreadSummary],
     scenario_id: WhatIfScenarioId,
     *,
@@ -430,7 +431,7 @@ def _build_consequences(
 
 def _timeline_impact(
     scenario_id: WhatIfScenarioId,
-    events: Sequence[Any],
+    events: Sequence[WhatIfEvent],
 ) -> str:
     if not events:
         return "No historical events matched this rule."

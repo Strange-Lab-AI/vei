@@ -9,6 +9,8 @@ import typer.testing
 from vei.cli.vei_blueprint import app
 from vei.project_settings import default_model_for_provider
 
+pytestmark = pytest.mark.integration
+
 
 def test_vei_blueprint_list_and_show_family() -> None:
     runner = typer.testing.CliRunner()

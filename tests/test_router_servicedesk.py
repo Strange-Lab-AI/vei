@@ -1,7 +1,11 @@
 from __future__ import annotations
 
+import pytest
+
 from vei.router.core import Router
 from vei.world.scenarios import scenario_multi_channel
+
+pytestmark = pytest.mark.integration
 
 
 def _router() -> Router:

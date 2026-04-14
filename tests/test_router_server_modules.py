@@ -16,6 +16,8 @@ from vei.router.errors import MCPError
 from vei.twin import app as twin_app
 from vei.ui import app as ui_app
 
+pytestmark = pytest.mark.integration
+
 
 class _DumpModel:
     def __init__(self, payload: dict[str, Any]) -> None:

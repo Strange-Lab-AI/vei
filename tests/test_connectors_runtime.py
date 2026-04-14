@@ -6,6 +6,8 @@ from vei.connectors import adapters as connector_adapters
 from vei.router.core import Router
 from vei.router.errors import MCPError
 
+pytestmark = pytest.mark.integration
+
 
 def test_connector_runtime_records_receipts_in_state_snapshot() -> None:
     router = Router(seed=123, artifacts_dir=None, connector_mode="sim")

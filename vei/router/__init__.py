@@ -15,7 +15,7 @@ __all__ = [
     "CampaignOpsSim",
     "CampaignOpsToolProvider",
     "ErpSim",
-    "Event",
+    "BusEvent",
     "EventBus",
     "FeatureFlagSim",
     "FeatureFlagToolProvider",
@@ -56,7 +56,7 @@ def __getattr__(name: str) -> Any:  # pragma: no cover - thin import facade
     if name == "Router":
         module = import_module("vei.router.core")
         return getattr(module, name)
-    if name in {"Event", "EventBus", "LinearCongruentialGenerator"}:
+    if name in {"BusEvent", "EventBus", "LinearCongruentialGenerator"}:
         module = import_module("vei.router._event_bus")
         return getattr(module, name)
     if name in {"BrowserVirtual", "MailSim", "SlackSim"}:

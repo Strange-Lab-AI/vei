@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
 import typer.testing
 
 from vei.benchmark.api import list_benchmark_family_manifest, run_benchmark_case
@@ -10,6 +11,8 @@ from vei.benchmark.models import BenchmarkCaseSpec
 from vei.cli.vei_eval import app as eval_app
 from vei.cli.vei_train import bc as train_bc
 from vei.data.rollout import rollout_procurement
+
+pytestmark = pytest.mark.integration
 
 
 def test_vei_eval_scripted_creates_score(tmp_path: Path) -> None:

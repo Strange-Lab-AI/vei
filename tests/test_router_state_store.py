@@ -1,6 +1,10 @@
 from __future__ import annotations
 
+import pytest
+
 from vei.router.core import Router
+
+pytestmark = pytest.mark.integration
 
 
 def test_router_records_tool_calls() -> None:

@@ -8,6 +8,8 @@ import typer
 from vei.project_settings import default_model_for_provider
 from vei.whatif import (
     build_branch_point_benchmark,
+    build_decision_scene,
+    build_saved_decision_scene,
     default_forecast_backend,
     evaluate_branch_point_benchmark_model,
     get_research_pack,
@@ -41,6 +43,7 @@ from vei.whatif.render import (
     render_benchmark_judge,
     render_benchmark_study,
     render_benchmark_train,
+    render_decision_scene,
     render_episode,
     render_event_search,
     render_experiment,
@@ -221,6 +224,73 @@ def open_episode_command(
         render_episode(materialization)
         if format == "markdown"
         else materialization.model_dump(mode="json")
+    )
+    _emit(payload, format=format)
+
+
+@app.command("open")
+def open_command(
+    source: str = typer.Option(
+        "auto", help="What-if source: auto | enron | mail_archive | company_history"
+    ),
+    source_dir: Path = typer.Option(
+        ...,
+        "--source-dir",
+        "--rosetta-dir",
+        help="Historical source directory or file",
+    ),
+    root: Path = typer.Option(..., help="Workspace root for the replayable episode"),
+    thread_id: str | None = typer.Option(None, help="Thread to materialize"),
+    event_id: str | None = typer.Option(None, help="Optional branch event override"),
+    format: str = typer.Option("json", help="Output format: json | markdown"),
+) -> None:
+    """Alias for open-episode: build a strict historical workspace from one event or thread."""
+
+    open_episode_command(
+        source=source,
+        source_dir=source_dir,
+        root=root,
+        thread_id=thread_id,
+        event_id=event_id,
+        format=format,
+    )
+
+
+@app.command("scene")
+def scene_command(
+    source: str = typer.Option(
+        "auto", help="What-if source: auto | enron | mail_archive | company_history"
+    ),
+    source_dir: Path | None = typer.Option(
+        None,
+        "--source-dir",
+        "--rosetta-dir",
+        help="Historical source directory or file",
+    ),
+    thread_id: str | None = typer.Option(None, help="Thread to build the scene from"),
+    event_id: str | None = typer.Option(None, help="Optional branch event override"),
+    workspace_root: Path | None = typer.Option(
+        None,
+        "--workspace-root",
+        help="Saved episode workspace root (uses saved context instead of loading a world)",
+    ),
+    format: str = typer.Option("markdown", help="Output format: json | markdown"),
+) -> None:
+    """Build a decision scene for a branch point — either from a live world or a saved episode workspace."""
+
+    if workspace_root is not None:
+        scene = build_saved_decision_scene(workspace_root)
+    else:
+        if source_dir is None:
+            raise typer.BadParameter(
+                "Provide --source-dir (or --workspace-root for saved episodes)"
+            )
+        world = load_world(source=source, source_dir=source_dir)
+        scene = build_decision_scene(world, thread_id=thread_id, event_id=event_id)
+    payload = (
+        render_decision_scene(scene)
+        if format == "markdown"
+        else scene.model_dump(mode="json")
     )
     _emit(payload, format=format)
 

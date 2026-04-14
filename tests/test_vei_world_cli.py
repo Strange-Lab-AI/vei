@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
 import typer.testing
 
 from vei.blueprint.api import (
@@ -11,6 +12,8 @@ from vei.blueprint.api import (
 )
 from vei.cli.vei_world import app as world_app
 from vei.world.state import Event, StateStore
+
+pytestmark = pytest.mark.integration
 
 
 def _seed_state(base: Path) -> None:

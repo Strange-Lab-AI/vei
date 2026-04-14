@@ -3,7 +3,11 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
+
 from vei.cli.vei_train import bc
+
+pytestmark = pytest.mark.integration
 
 
 def test_bc_cli_loads_dataset(tmp_path: Path) -> None:

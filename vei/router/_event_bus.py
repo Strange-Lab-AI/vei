@@ -8,7 +8,7 @@ from typing import Any, Dict, List, Optional
 
 
 @dataclass
-class Event:
+class BusEvent:
     t_due_ms: int
     target: str
     payload: Dict[str, Any]
@@ -37,7 +37,7 @@ class EventBus:
     def __init__(self, seed: int):
         self.rng = LinearCongruentialGenerator(seed)
         self.clock_ms = 0
-        self._heap: list[tuple[int, int, Event]] = []
+        self._heap: list[tuple[int, int, BusEvent]] = []
         self._seq = 0
 
     def schedule(
@@ -52,7 +52,7 @@ class EventBus:
         kind: str = "scheduled",
     ) -> str:
         self._seq += 1
-        evt = Event(
+        evt = BusEvent(
             self.clock_ms + dt_ms,
             target,
             payload,
@@ -64,7 +64,7 @@ class EventBus:
         heapq.heappush(self._heap, (evt.t_due_ms, self._seq, evt))
         return evt.event_id
 
-    def next_if_due(self) -> Optional[Event]:
+    def next_if_due(self) -> Optional[BusEvent]:
         if self._heap and self._heap[0][0] <= self.clock_ms:
             _, _, evt = heapq.heappop(self._heap)
             return evt
@@ -96,5 +96,5 @@ class EventBus:
     def clear(self) -> None:
         self._heap = []
 
-    def list_events(self) -> List[Event]:
+    def list_events(self) -> List[BusEvent]:
         return [event for _, _, event in sorted(self._heap)]

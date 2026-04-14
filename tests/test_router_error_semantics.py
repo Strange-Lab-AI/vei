@@ -4,6 +4,8 @@ import pytest
 
 from vei.router.core import MCPError, Router
 
+pytestmark = pytest.mark.integration
+
 
 def test_mail_reply_unknown_message_raises_mcperror() -> None:
     router = Router(seed=21, artifacts_dir=None)

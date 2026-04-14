@@ -68,6 +68,28 @@ def historical_archive_address(organization_domain: str, local_part: str) -> str
     return f"{local_part}@{normalized_domain}"
 
 
+def event_reference(event: WhatIfEvent) -> WhatIfEventReference:
+    return WhatIfEventReference(
+        event_id=event.event_id,
+        timestamp=event.timestamp,
+        actor_id=event.actor_id,
+        target_id=event.target_id,
+        event_type=event.event_type,
+        thread_id=event.thread_id,
+        case_id=event.case_id,
+        surface=event.surface,
+        conversation_anchor=event.conversation_anchor,
+        subject=event.subject,
+        snippet=event.snippet,
+        to_recipients=list(event.flags.to_recipients),
+        cc_recipients=list(event.flags.cc_recipients),
+        has_attachment_reference=event.flags.has_attachment_reference,
+        is_forward=event.flags.is_forward,
+        is_reply=event.flags.is_reply,
+        is_escalation=event.flags.is_escalation,
+    )
+
+
 def load_episode_snapshot(root: Path) -> dict[str, Any]:
     snapshot_path = root / "context_snapshot.json"
     if not snapshot_path.exists():

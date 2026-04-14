@@ -21,7 +21,7 @@ def build_mail_events(
 ) -> list[WhatIfEvent]:
     try:
         threads_payload = _archive_threads_from_snapshot(snapshot)
-    except Exception:  # noqa: BLE001
+    except ValueError:
         return []
 
     events: list[WhatIfEvent] = []

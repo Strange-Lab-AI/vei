@@ -17,6 +17,9 @@ def compute_diff(
     _diff_gmail(before, after, entries)
     _diff_teams(before, after, entries)
     _diff_okta(before, after, entries)
+    _diff_crm(before, after, entries)
+    _diff_salesforce(before, after, entries)
+    _diff_mail_archive(before, after, entries)
 
     added = sum(1 for e in entries if e.kind == "added")
     removed = sum(1 for e in entries if e.kind == "removed")
@@ -143,6 +146,73 @@ def _diff_okta(
         "id",
     )
     _diff_keyed("users", b_users, a_users, entries)
+
+
+def _diff_crm(
+    before: ContextSnapshot,
+    after: ContextSnapshot,
+    entries: list[ContextDiffEntry],
+) -> None:
+    b_source = before.source_for("crm")
+    a_source = after.source_for("crm")
+    b_data = b_source.data if b_source else {}
+    a_data = a_source.data if a_source else {}
+    for collection, key in (
+        ("companies", "id"),
+        ("contacts", "id"),
+        ("deals", "id"),
+    ):
+        _diff_keyed(
+            collection,
+            _keyed_list(b_data.get(collection, []), key),
+            _keyed_list(a_data.get(collection, []), key),
+            entries,
+        )
+
+
+def _diff_salesforce(
+    before: ContextSnapshot,
+    after: ContextSnapshot,
+    entries: list[ContextDiffEntry],
+) -> None:
+    b_source = before.source_for("salesforce")
+    a_source = after.source_for("salesforce")
+    b_data = b_source.data if b_source else {}
+    a_data = a_source.data if a_source else {}
+    for collection, key in (
+        ("companies", "id"),
+        ("contacts", "id"),
+        ("deals", "id"),
+    ):
+        _diff_keyed(
+            collection,
+            _keyed_list(b_data.get(collection, []), key),
+            _keyed_list(a_data.get(collection, []), key),
+            entries,
+        )
+
+
+def _diff_mail_archive(
+    before: ContextSnapshot,
+    after: ContextSnapshot,
+    entries: list[ContextDiffEntry],
+) -> None:
+    b_source = before.source_for("mail_archive")
+    a_source = after.source_for("mail_archive")
+    b_data = b_source.data if b_source else {}
+    a_data = a_source.data if a_source else {}
+    _diff_keyed(
+        "archive_threads",
+        _keyed_list(b_data.get("threads", []), "thread_id"),
+        _keyed_list(a_data.get("threads", []), "thread_id"),
+        entries,
+    )
+    _diff_keyed(
+        "actors",
+        _keyed_list(b_data.get("actors", []), "actor_id"),
+        _keyed_list(a_data.get("actors", []), "actor_id"),
+        entries,
+    )
 
 
 def _keyed_list(

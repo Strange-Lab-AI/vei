@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
 from typer.testing import CliRunner
 
 from vei.cli import vei_dataset
@@ -14,6 +15,8 @@ from vei.dataset.models import (
     DatasetRunRecord,
     DatasetSplitManifest,
 )
+
+pytestmark = pytest.mark.integration
 
 
 def test_dataset_cli_commands_are_wired_into_root_app(

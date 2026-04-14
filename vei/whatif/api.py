@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from vei.llm import providers
+import importlib
+from typing import Any
 
 from .analysis import (
     list_objective_packs,
@@ -76,7 +77,7 @@ __all__ = [
     "load_research_pack_run_result",
     "load_world",
     "materialize_episode",
-    "providers",
+    "providers",  # noqa: F822 — lazy-loaded via __getattr__
     "recommend_branch_thread",
     "replay_episode_baseline",
     "run_branch_point_benchmark_study",
@@ -91,3 +92,9 @@ __all__ = [
     "select_specific_event",
     "train_branch_point_benchmark_model",
 ]
+
+
+def __getattr__(name: str) -> Any:
+    if name == "providers":
+        return importlib.import_module("vei.llm.providers")
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

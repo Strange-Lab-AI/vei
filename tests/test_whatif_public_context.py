@@ -208,7 +208,7 @@ def test_load_enron_public_context_soft_fails_when_fixture_is_unavailable(
     caplog,
 ) -> None:
     monkeypatch.setattr(
-        "vei.whatif.public_context.resources.files",
+        "vei.whatif.public_context._core.resources.files",
         lambda *_args, **_kwargs: (_ for _ in ()).throw(FileNotFoundError("missing")),
     )
 
@@ -334,8 +334,12 @@ def test_build_public_context_live_aggregates_sec_and_news(monkeypatch) -> None:
         </rss>
         """
 
-    monkeypatch.setattr("vei.whatif.public_context._fetch_json", fake_fetch_json)
-    monkeypatch.setattr("vei.whatif.public_context._fetch_text", fake_fetch_text)
+    monkeypatch.setattr(
+        "vei.whatif.public_context._fetchers._fetch_json", fake_fetch_json
+    )
+    monkeypatch.setattr(
+        "vei.whatif.public_context._fetchers._fetch_text", fake_fetch_text
+    )
 
     context = build_public_context(
         organization_name="Apple",

@@ -1,6 +1,11 @@
 from __future__ import annotations
 
 import json
+import logging
+import shutil
+import tarfile
+import tempfile
+import zipfile
 from datetime import UTC, datetime
 from email.utils import parseaddr, parsedate_to_datetime
 from pathlib import Path
@@ -22,8 +27,8 @@ from vei.context.providers.salesforce import (
 )
 from vei.context.providers.slack import capture_from_export as capture_slack_export
 from vei.imports.api import normalize_identity_import_package
-from vei.whatif.api import build_public_context as build_whatif_public_context
-from vei.whatif.api import empty_public_context
+
+logger = logging.getLogger(__name__)
 
 
 def normalize_raw_exports(
@@ -32,39 +37,54 @@ def normalize_raw_exports(
     organization_name: str,
     organization_domain: str = "",
 ) -> ContextSnapshot:
-    root = Path(source_dir).expanduser().resolve()
-    sources: list[ContextSourceResult] = []
-    existing_snapshot = _load_existing_snapshot(root)
-    if existing_snapshot is not None:
-        sources.extend(existing_snapshot.sources)
+    raw = Path(source_dir).expanduser().resolve()
+    tmp_dir: str | None = None
+    try:
+        root = _extract_archive_if_needed(raw)
+        if root != raw:
+            tmp_dir = str(root.parent) if root != root.parent else str(root)
 
-    if _looks_like_import_package(root):
-        import_snapshot = _snapshot_from_import_package(root)
-        sources = _merge_source_results(sources + import_snapshot.sources)
-        organization_name = organization_name or import_snapshot.organization_name
-        organization_domain = organization_domain or import_snapshot.organization_domain
-    else:
-        detected = _detect_export_sources(root)
-        sources = _merge_source_results(sources + detected)
+        sources: list[ContextSourceResult] = []
+        existing_snapshot = _load_existing_snapshot(root)
+        if existing_snapshot is not None:
+            sources.extend(existing_snapshot.sources)
 
-    if not sources:
-        raise ValueError(f"no supported exports detected under: {root}")
+        if _looks_like_import_package(root):
+            import_snapshot = _snapshot_from_import_package(root)
+            sources = _merge_source_results(sources + import_snapshot.sources)
+            organization_name = organization_name or import_snapshot.organization_name
+            organization_domain = (
+                organization_domain or import_snapshot.organization_domain
+            )
+        else:
+            detected = _detect_export_sources(root)
+            sources = _merge_source_results(sources + detected)
 
-    resolved_org_name = (
-        organization_name
-        or (existing_snapshot.organization_name if existing_snapshot else "")
-        or "Imported Context"
-    )
-    resolved_org_domain = organization_domain or (
-        existing_snapshot.organization_domain if existing_snapshot else ""
-    )
-    return ContextSnapshot(
-        organization_name=resolved_org_name,
-        organization_domain=resolved_org_domain,
-        captured_at=iso_now(),
-        sources=sources,
-        metadata={"normalized_from": str(root)},
-    )
+        if not sources:
+            raise ValueError(f"no supported exports detected under: {root}")
+
+        resolved_org_name = (
+            organization_name
+            or (existing_snapshot.organization_name if existing_snapshot else "")
+            or "Imported Context"
+        )
+        resolved_org_domain = organization_domain or (
+            existing_snapshot.organization_domain if existing_snapshot else ""
+        )
+        snapshot = ContextSnapshot(
+            organization_name=resolved_org_name,
+            organization_domain=resolved_org_domain,
+            captured_at=iso_now(),
+            sources=sources,
+            metadata={"normalized_from": str(raw)},
+        )
+        dedup_map = _deduplicate_actors(snapshot)
+        if dedup_map:
+            snapshot.metadata["actor_dedup_map"] = dedup_map
+        return snapshot
+    finally:
+        if tmp_dir is not None:
+            shutil.rmtree(tmp_dir, ignore_errors=True)
 
 
 def verify_context_snapshot(
@@ -131,13 +151,16 @@ def build_public_context_sidecar(
     organization_domain: str,
     live: bool = True,
 ):
+    from vei.whatif.public_context import build_public_context as _build
+    from vei.whatif.public_context import empty_public_context as _empty
+
     if live:
-        return build_whatif_public_context(
+        return _build(
             organization_name=organization_name,
             organization_domain=organization_domain,
             live=True,
         )
-    template = empty_public_context(
+    template = _empty(
         organization_name=organization_name,
         organization_domain=organization_domain,
     )
@@ -149,6 +172,33 @@ def build_public_context_sidecar(
             ),
         }
     )
+
+
+def _extract_archive_if_needed(path: Path) -> Path:
+    """Extract zip/tar archives to a temp dir, returning the effective root."""
+    if not path.is_file():
+        return path
+
+    suffix_lower = path.name.lower()
+    tmp = Path(tempfile.mkdtemp(prefix="vei_normalize_"))
+
+    if suffix_lower.endswith(".zip"):
+        with zipfile.ZipFile(path, "r") as zf:
+            zf.extractall(tmp)
+    elif suffix_lower.endswith((".tar.gz", ".tgz")):
+        with tarfile.open(path, "r:gz") as tf:
+            tf.extractall(tmp, filter="data")
+    elif suffix_lower.endswith(".tar"):
+        with tarfile.open(path, "r:") as tf:
+            tf.extractall(tmp, filter="data")
+    else:
+        shutil.rmtree(tmp, ignore_errors=True)
+        return path
+
+    children = [c for c in tmp.iterdir() if not c.name.startswith(".")]
+    if len(children) == 1 and children[0].is_dir():
+        return children[0]
+    return tmp
 
 
 def _load_existing_snapshot(root: Path) -> ContextSnapshot | None:
@@ -935,3 +985,200 @@ def _normalized_name(value: object) -> str:
     if not text or "@" in text:
         return ""
     return " ".join(text.lower().split())
+
+
+# ---------------------------------------------------------------------------
+# Cross-source actor identity deduplication
+# ---------------------------------------------------------------------------
+
+
+def _deduplicate_actors(snapshot: ContextSnapshot) -> dict[str, str]:
+    """Build a cross-source actor dedup map via an equivalence graph.
+
+    Groups actors sharing emails (case-insensitive) or, for actors without
+    emails, matching display names (lowercase, whitespace-normalized).
+
+    Returns ``{alias_id: canonical_id}`` where canonical is the actor whose
+    email appears most frequently across records.
+    """
+    records = _extract_all_actors(snapshot)
+    if not records:
+        return {}
+
+    all_ids = [r[0] for r in records]
+    parent: dict[str, str] = {aid: aid for aid in all_ids}
+    rank: dict[str, int] = {aid: 0 for aid in all_ids}
+
+    def find(x: str) -> str:
+        while parent[x] != x:
+            parent[x] = parent[parent[x]]
+            x = parent[x]
+        return x
+
+    def union(a: str, b: str) -> None:
+        ra, rb = find(a), find(b)
+        if ra == rb:
+            return
+        if rank[ra] < rank[rb]:
+            ra, rb = rb, ra
+        parent[rb] = ra
+        if rank[ra] == rank[rb]:
+            rank[ra] += 1
+
+    # Edge type 1: shared email → equivalent
+    email_to_ids: dict[str, list[str]] = {}
+    for actor_id, email, _ in records:
+        if email:
+            email_to_ids.setdefault(email, []).append(actor_id)
+    for ids in email_to_ids.values():
+        for i in range(1, len(ids)):
+            union(ids[0], ids[i])
+
+    # Edge type 2: actors without email grouped by display name
+    name_to_ids: dict[str, list[str]] = {}
+    for actor_id, email, name in records:
+        if not email and name:
+            name_to_ids.setdefault(name, []).append(actor_id)
+    for ids in name_to_ids.values():
+        for i in range(1, len(ids)):
+            union(ids[0], ids[i])
+
+    # Collect equivalence groups
+    groups: dict[str, list[tuple[str, str, str]]] = {}
+    for actor_id, email, name in records:
+        root = find(actor_id)
+        groups.setdefault(root, []).append((actor_id, email, name))
+
+    # Pick canonical per group (most frequent email wins)
+    dedup_map: dict[str, str] = {}
+    for group in groups.values():
+        if len(group) < 2:
+            continue
+        email_counts: dict[str, int] = {}
+        for _, email, _ in group:
+            if email:
+                email_counts[email] = email_counts.get(email, 0) + 1
+        if email_counts:
+            best_email = max(email_counts, key=lambda e: email_counts[e])
+            canonical = next(aid for aid, em, _ in group if em == best_email)
+        else:
+            canonical = group[0][0]
+        for aid, _, _ in group:
+            if aid != canonical:
+                dedup_map[aid] = canonical
+
+    if dedup_map:
+        logger.info(
+            "actors_deduplicated",
+            extra={
+                "dedup_count": len(dedup_map),
+                "group_count": sum(1 for g in groups.values() if len(g) >= 2),
+            },
+        )
+    return dedup_map
+
+
+def _extract_all_actors(
+    snapshot: ContextSnapshot,
+) -> list[tuple[str, str, str]]:
+    """Return ``(qualified_actor_id, normalized_email, normalized_name)`` tuples."""
+    records: list[tuple[str, str, str]] = []
+    for source in snapshot.sources:
+        records.extend(_actors_from_source(source))
+    return records
+
+
+def _actors_from_source(
+    source: ContextSourceResult,
+) -> list[tuple[str, str, str]]:
+    """Extract actor identity triples from a single source."""
+    data = source.data if isinstance(source.data, dict) else {}
+    provider = source.provider
+    records: list[tuple[str, str, str]] = []
+
+    if provider == "slack":
+        for user in data.get("users", []):
+            if not isinstance(user, dict):
+                continue
+            uid = str(user.get("id") or "").strip()
+            if not uid:
+                continue
+            email = _normalized_email(user.get("email"))
+            name = _normalized_name(user.get("real_name") or user.get("name"))
+            records.append((f"slack:{uid}", email, name))
+
+    elif provider in {"mail_archive", "gmail"}:
+        for actor in data.get("actors", []):
+            if not isinstance(actor, dict):
+                continue
+            aid = str(actor.get("actor_id") or actor.get("id") or "").strip()
+            if not aid:
+                continue
+            email = _normalized_email(actor.get("email") or aid)
+            name = _normalized_name(
+                actor.get("display_name") or actor.get("name") or aid
+            )
+            records.append((f"{provider}:{aid}", email, name))
+        seen_from: set[str] = set()
+        for thread in data.get("threads", []):
+            if not isinstance(thread, dict):
+                continue
+            for message in thread.get("messages", []):
+                if not isinstance(message, dict):
+                    continue
+                from_field = str(message.get("from") or "").strip()
+                if not from_field or from_field in seen_from:
+                    continue
+                seen_from.add(from_field)
+                email = _normalized_email(from_field)
+                if email:
+                    actor_key = f"{provider}:{email}"
+                    if not any(r[0] == actor_key for r in records):
+                        name_part, _ = parseaddr(from_field)
+                        name = _normalized_name(name_part) if name_part else ""
+                        records.append((actor_key, email, name))
+
+    elif provider == "google":
+        for user in data.get("users", []):
+            if not isinstance(user, dict):
+                continue
+            uid = str(user.get("id") or "").strip()
+            if not uid:
+                continue
+            email = _normalized_email(user.get("email"))
+            name = _normalized_name(user.get("name") or user.get("display_name"))
+            records.append((f"google:{uid}", email, name))
+
+    elif provider == "jira":
+        seen: set[str] = set()
+        for issue in data.get("issues", []):
+            if not isinstance(issue, dict):
+                continue
+            assignee = str(issue.get("assignee") or "").strip()
+            if not assignee or assignee in seen:
+                continue
+            seen.add(assignee)
+            email = _normalized_email(assignee) if "@" in assignee else ""
+            name = _normalized_name(assignee) if "@" not in assignee else ""
+            records.append((f"jira:{assignee.lower()}", email, name))
+
+    elif provider in {"crm", "salesforce"}:
+        for contact in data.get("contacts", []):
+            if not isinstance(contact, dict):
+                continue
+            cid = str(contact.get("id") or "").strip()
+            if not cid:
+                continue
+            email = _normalized_email(contact.get("email"))
+            name_parts = " ".join(
+                part
+                for part in (
+                    str(contact.get("first_name") or "").strip(),
+                    str(contact.get("last_name") or "").strip(),
+                )
+                if part
+            )
+            name = _normalized_name(name_parts)
+            records.append((f"{provider}:{cid}", email, name))
+
+    return records

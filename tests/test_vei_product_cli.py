@@ -4,11 +4,14 @@ import json
 import shutil
 from pathlib import Path
 
+import pytest
 import typer.testing
 
 from vei.cli.vei import app
 from vei.imports.api import get_import_package_example_path
 from vei.workspace.models import WorkspaceSourceConfig, WorkspaceSourceSyncRecord
+
+pytestmark = pytest.mark.integration
 
 
 def test_product_cli_workspace_run_and_inspect_flow(tmp_path: Path) -> None:

@@ -1,7 +1,11 @@
 from __future__ import annotations
 
+import pytest
+
 from vei.router.core import Router
 from vei.world.scenario import CalendarEvent, Document, Scenario, Ticket
+
+pytestmark = pytest.mark.integration
 
 
 def _make_scenario() -> Scenario:

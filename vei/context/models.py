@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List, Literal, Optional
+from typing import Any, Dict, List, Literal, Optional, Union
 
 from pydantic import BaseModel, Field
 
@@ -16,6 +16,103 @@ ContextProviderName = Literal[
     "salesforce",
     "mail_archive",
 ]
+
+
+# ---------------------------------------------------------------------------
+# Per-provider typed data models
+#
+# These document the expected shape of ``ContextSourceResult.data`` for each
+# provider.  The actual ``data`` field remains ``Dict[str, Any]`` for backward
+# compatibility; use ``ContextSourceResult.typed_data()`` to get a validated
+# instance.
+# ---------------------------------------------------------------------------
+
+
+class SlackSourceData(BaseModel):
+    """Shape of ContextSourceResult.data for the Slack provider."""
+
+    channels: List[Dict[str, Any]] = Field(default_factory=list)
+    users: List[Dict[str, Any]] = Field(default_factory=list)
+
+
+class GmailSourceData(BaseModel):
+    """Shape of ContextSourceResult.data for the Gmail provider."""
+
+    threads: List[Dict[str, Any]] = Field(default_factory=list)
+    profile: Dict[str, Any] = Field(default_factory=dict)
+
+
+class JiraSourceData(BaseModel):
+    """Shape of ContextSourceResult.data for the Jira provider."""
+
+    issues: List[Dict[str, Any]] = Field(default_factory=list)
+    projects: List[Dict[str, Any]] = Field(default_factory=list)
+    parse_warnings: List[str] = Field(default_factory=list)
+
+
+class GoogleSourceData(BaseModel):
+    """Shape of ContextSourceResult.data for the Google Workspace provider."""
+
+    users: List[Dict[str, Any]] = Field(default_factory=list)
+    documents: List[Dict[str, Any]] = Field(default_factory=list)
+    drive_shares: List[Dict[str, Any]] = Field(default_factory=list)
+    parse_warnings: List[str] = Field(default_factory=list)
+
+
+class CrmSourceData(BaseModel):
+    """Shape of ContextSourceResult.data for CRM / Salesforce providers."""
+
+    companies: List[Dict[str, Any]] = Field(default_factory=list)
+    contacts: List[Dict[str, Any]] = Field(default_factory=list)
+    deals: List[Dict[str, Any]] = Field(default_factory=list)
+    parse_warnings: List[str] = Field(default_factory=list)
+
+
+class TeamsSourceData(BaseModel):
+    """Shape of ContextSourceResult.data for the Microsoft Teams provider."""
+
+    channels: List[Dict[str, Any]] = Field(default_factory=list)
+    profile: Dict[str, Any] = Field(default_factory=dict)
+
+
+class OktaSourceData(BaseModel):
+    """Shape of ContextSourceResult.data for the Okta provider."""
+
+    users: List[Dict[str, Any]] = Field(default_factory=list)
+    groups: List[Dict[str, Any]] = Field(default_factory=list)
+    applications: List[Dict[str, Any]] = Field(default_factory=list)
+
+
+class MailArchiveSourceData(BaseModel):
+    """Shape of ContextSourceResult.data for the mail_archive provider."""
+
+    threads: List[Dict[str, Any]] = Field(default_factory=list)
+    actors: List[Dict[str, Any]] = Field(default_factory=list)
+
+
+ContextSourceData = Union[
+    SlackSourceData,
+    GmailSourceData,
+    JiraSourceData,
+    GoogleSourceData,
+    CrmSourceData,
+    TeamsSourceData,
+    OktaSourceData,
+    MailArchiveSourceData,
+    Dict[str, Any],
+]
+
+_SOURCE_DATA_MODEL_MAP: Dict[str, type[BaseModel]] = {
+    "slack": SlackSourceData,
+    "gmail": GmailSourceData,
+    "jira": JiraSourceData,
+    "google": GoogleSourceData,
+    "crm": CrmSourceData,
+    "salesforce": CrmSourceData,
+    "teams": TeamsSourceData,
+    "okta": OktaSourceData,
+    "mail_archive": MailArchiveSourceData,
+}
 
 
 class ContextProviderConfig(BaseModel):
@@ -35,6 +132,13 @@ class ContextSourceResult(BaseModel):
     record_counts: Dict[str, int] = Field(default_factory=dict)
     data: Dict[str, Any] = Field(default_factory=dict)
     error: Optional[str] = None
+
+    def typed_data(self) -> ContextSourceData:
+        """Return data validated against the provider-specific model, or as raw dict."""
+        model_cls = _SOURCE_DATA_MODEL_MAP.get(self.provider)
+        if model_cls is not None and isinstance(self.data, dict):
+            return model_cls.model_validate(self.data)
+        return self.data
 
 
 class ContextSnapshot(BaseModel):

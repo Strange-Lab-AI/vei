@@ -3,9 +3,12 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
 import typer.testing
 
 from vei.cli.vei_det_pipeline import app
+
+pytestmark = pytest.mark.integration
 
 
 def test_det_pipeline_generate_and_filter(tmp_path: Path) -> None:
