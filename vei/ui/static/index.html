@@ -11,72 +11,69 @@
     <link rel="stylesheet" href="/static/styles.css" />
   </head>
   <body>
-    <div class="backdrop">
-      <div class="orb orb-a"></div>
-      <div class="orb orb-b"></div>
-      <div class="orb orb-c"></div>
-    </div>
-
     <div class="shell">
       <header class="hero studio-topbar">
-        <div class="studio-topbar-brand">
-          <div class="brand-mark">VEI Studio</div>
-          <div class="brand-copy">
-            <p class="eyebrow">Company</p>
-            <h1 id="workspace-title">Loading company&hellip;</h1>
-            <p id="workspace-subtitle" class="studio-topbar-subtitle loading-pulse">Loading scenario context&hellip;</p>
+        <div class="studio-topbar-inner">
+          <div class="studio-topbar-brand">
+            <div class="brand-mark">VEI Studio</div>
+            <div class="brand-copy">
+              <p class="eyebrow">Company</p>
+              <h1 id="workspace-title">Loading company&hellip;</h1>
+              <p id="workspace-subtitle" class="studio-topbar-subtitle loading-pulse">Loading scenario context&hellip;</p>
+            </div>
           </div>
-        </div>
 
-        <div class="studio-topbar-controls">
-          <label class="toolbar-field toolbar-field-world">
-            <span>Company</span>
-            <details id="world-menu" class="toolbar-menu">
-              <summary><span id="world-menu-label">Loading company&hellip;</span></summary>
-              <div id="world-menu-panel" class="toolbar-menu-panel"></div>
-            </details>
-          </label>
-          <label class="toolbar-field sandbox-only">
-            <span id="mission-field-label">Crisis</span>
-            <select id="mission-select"></select>
-          </label>
-          <label class="toolbar-field sandbox-only">
-            <span id="objective-field-label">Success criteria</span>
-            <select id="objective-select" aria-label="Success criteria"></select>
-          </label>
-          <div class="toolbar-actions">
-            <button id="start-mission-button" type="button" class="sandbox-only">Start</button>
-            <div id="skin-switcher" class="skin-switcher"></div>
-            <details id="views-menu" class="toolbar-menu toolbar-menu-actions">
-              <summary>Views</summary>
-              <div class="toolbar-menu-panel toolbar-menu-actions-panel">
-                <span class="toolbar-menu-group">Analysis</span>
-                <button id="timeline-toggle" type="button" class="ghost-button timeline-toggle">Event timeline</button>
-                <button id="compare-toggle" type="button" class="ghost-button compare-toggle">Compare paths</button>
-                <hr class="menu-separator" />
-                <span class="toolbar-menu-group">Display</span>
-                <button id="cinema-toggle" type="button" class="ghost-button cinema-toggle">Demo mode</button>
-                <button id="developer-toggle" type="button" class="ghost-button developer-toggle">Technical detail</button>
-                <button id="connect-toggle" type="button" class="ghost-button connect-toggle">Connections</button>
-                <hr class="menu-separator" />
-                <span class="toolbar-menu-group">Actions</span>
-                <button id="branch-mission-button" type="button" class="ghost-button">Branch from here</button>
-                <button id="finish-mission-button" type="button" class="ghost-button">End run</button>
-              </div>
-            </details>
+          <div class="studio-topbar-controls">
+            <label class="toolbar-field toolbar-field-world">
+              <span>Company</span>
+              <details id="world-menu" class="toolbar-menu">
+                <summary><span id="world-menu-label">Loading company&hellip;</span></summary>
+                <div id="world-menu-panel" class="toolbar-menu-panel"></div>
+              </details>
+            </label>
+            <label class="toolbar-field sandbox-only">
+              <span id="mission-field-label">Crisis</span>
+              <select id="mission-select"></select>
+            </label>
+            <label class="toolbar-field sandbox-only">
+              <span id="objective-field-label">Success criteria</span>
+              <select id="objective-select" aria-label="Success criteria"></select>
+            </label>
+            <div class="toolbar-actions">
+              <button id="start-mission-button" type="button" class="sandbox-only">Start</button>
+              <div id="skin-switcher" class="skin-switcher"></div>
+              <details id="views-menu" class="toolbar-menu toolbar-menu-actions">
+                <summary>Views</summary>
+                <div class="toolbar-menu-panel toolbar-menu-actions-panel">
+                  <span class="toolbar-menu-group">Analysis</span>
+                  <button id="timeline-toggle" type="button" class="ghost-button timeline-toggle">Event timeline</button>
+                  <button id="compare-toggle" type="button" class="ghost-button compare-toggle">Compare paths</button>
+                  <hr class="menu-separator" />
+                  <span class="toolbar-menu-group">Display</span>
+                  <button id="cinema-toggle" type="button" class="ghost-button cinema-toggle">Demo mode</button>
+                  <button id="developer-toggle" type="button" class="ghost-button developer-toggle">Technical detail</button>
+                  <button id="connect-toggle" type="button" class="ghost-button connect-toggle">Connections</button>
+                  <hr class="menu-separator" />
+                  <span class="toolbar-menu-group">Actions</span>
+                  <button id="branch-mission-button" type="button" class="ghost-button">Branch from here</button>
+                  <button id="finish-mission-button" type="button" class="ghost-button">End run</button>
+                </div>
+              </details>
+            </div>
           </div>
-        </div>
 
-        <div class="studio-topbar-meta">
-          <p id="workspace-trust-strip" class="workspace-trust-strip" aria-live="polite"></p>
-          <div id="workspace-metrics" class="workspace-metrics-inline"></div>
-          <p id="mission-form-status" class="form-status">
-            Read the company state, then make the next move.
-          </p>
+          <div class="studio-topbar-meta">
+            <p id="workspace-trust-strip" class="workspace-trust-strip" aria-live="polite"></p>
+            <div id="workspace-metrics" class="workspace-metrics-inline"></div>
+            <p id="mission-form-status" class="form-status">
+              Read the company state, then make the next move.
+            </p>
+          </div>
         </div>
       </header>
 
-      <section class="card studio-shell-card">
+      <div class="layout-container">
+        <section class="card studio-shell-card">
         <p class="eyebrow" id="shell-context-hint">Track the company, then make the next move</p>
         <div id="studio-nav" class="studio-nav">
           <button type="button" class="studio-nav-button active" data-studio-view="company">Company</button>
@@ -503,6 +500,7 @@
           </details>
         </section>
       </main>
+      </div>
     </div>
 
     <script src="/static/studio-core.js"></script>
