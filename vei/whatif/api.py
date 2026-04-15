@@ -31,6 +31,16 @@ from .counterfactual import (
 )
 from .decision import build_decision_scene, build_saved_decision_scene
 from .ejepa import default_forecast_backend, run_ejepa_counterfactual
+from ._saved_bundle import (
+    build_saved_ranked_result_payload,
+    resolve_saved_whatif_bundle,
+)
+from ._source_locator import (
+    resolve_whatif_company_history_path,
+    resolve_whatif_mail_archive_path,
+    resolve_whatif_rosetta_dir,
+    resolve_whatif_source_path,
+)
 from .episode import (
     load_episode_manifest,
     materialize_episode,
@@ -79,9 +89,15 @@ __all__ = [
     "load_research_pack_run_result",
     "load_world",
     "materialize_episode",
+    "build_saved_ranked_result_payload",
     "providers",  # noqa: F822 — lazy-loaded via __getattr__
     "recommend_branch_thread",
     "replay_episode_baseline",
+    "resolve_saved_whatif_bundle",
+    "resolve_whatif_company_history_path",
+    "resolve_whatif_mail_archive_path",
+    "resolve_whatif_rosetta_dir",
+    "resolve_whatif_source_path",
     "run_branch_point_benchmark_study",
     "run_counterfactual_experiment",
     "run_ejepa_counterfactual",

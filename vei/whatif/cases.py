@@ -11,12 +11,12 @@ from vei.context.models import (
     source_payload,
 )
 
+from ._helpers import event_reference
 from .models import (
     WhatIfCaseContext,
     WhatIfCaseRecord,
     WhatIfCaseSummary,
     WhatIfEvent,
-    WhatIfEventReference,
 )
 
 _CASE_TOKEN_PATTERN = re.compile(r"\b[A-Z][A-Z0-9]{1,12}-\d{1,8}\b")
@@ -99,7 +99,7 @@ def build_case_context(
     if not case_id:
         return None
     related_history = [
-        _event_reference(event)
+        event_reference(event)
         for event in events
         if event.case_id == case_id
         and event.thread_id != branch_thread_id
@@ -313,25 +313,3 @@ def _dedupe(values: Sequence[str]) -> list[str]:
         seen.add(normalized)
         ordered.append(normalized)
     return ordered
-
-
-def _event_reference(event: WhatIfEvent) -> WhatIfEventReference:
-    return WhatIfEventReference(
-        event_id=event.event_id,
-        timestamp=event.timestamp,
-        actor_id=event.actor_id,
-        target_id=event.target_id,
-        event_type=event.event_type,
-        thread_id=event.thread_id,
-        case_id=event.case_id,
-        surface=event.surface,
-        conversation_anchor=event.conversation_anchor,
-        subject=event.subject,
-        snippet=event.snippet,
-        to_recipients=list(event.flags.to_recipients),
-        cc_recipients=list(event.flags.cc_recipients),
-        has_attachment_reference=event.flags.has_attachment_reference,
-        is_forward=event.flags.is_forward,
-        is_reply=event.flags.is_reply,
-        is_escalation=event.flags.is_escalation,
-    )

@@ -110,11 +110,28 @@ vei whatif experiment \
 - experiment overview Markdown
 - LLM path JSON
 - forecast path JSON
+- business-state comparison JSON
+- business-state comparison Markdown
 - the strict replay workspace used for the run
 
 The forecast bundle is written as `whatif_ejepa_result.json` when the real JEPA path runs, or `whatif_ejepa_proxy_result.json` when the fallback path is used.
 
 This makes it easy to inspect the result in Studio later, compare runs, or hand the output to another tool.
+
+Use `python scripts/validate_whatif_artifacts.py <workspace-or-bundle-path>` after you refresh a saved workspace or a repo-owned example bundle.
+
+The saved bundle that Studio reads has one stable core shape:
+
+- `whatif_experiment_result.json`: combined saved result and artifact pointers
+- `whatif_experiment_overview.md`: short human-readable run summary
+- `workspace/context_snapshot.json`: normalized company-history bundle for the saved branch
+- `workspace/episode_manifest.json`: saved what-if workspace manifest
+
+Optional sidecars are validated when present:
+
+- `whatif_llm_result.json`: saved bounded continuation result
+- `whatif_ejepa_result.json` or `whatif_ejepa_proxy_result.json`: saved forecast result
+- `whatif_business_state_comparison.json` + `whatif_business_state_comparison.md`: ranked comparison payload and summary when the ranked path is saved
 
 For Enron, VEI also ships a packaged public-company context fixture under `vei/whatif/fixtures/enron_public_context`. Refresh it with `python scripts/prepare_enron_public_context.py`. The current fixture carries 11 dated financial checkpoints and 13 dated public news events from 17 archived public source files, spanning December 31, 1998 through December 2, 2001. VEI slices that fixture to the active Enron email window and then to the chosen branch date before it is shown in Studio, written into the saved episode manifest, added to the LLM counterfactual prompt, or attached to benchmark dossiers.
 
@@ -202,10 +219,20 @@ The committed example bundle also carries:
 - `whatif_experiment_overview.md`
 - `whatif_llm_result.json`
 - `whatif_ejepa_result.json`
+- `whatif_experiment_result.json`
 - `whatif_business_state_comparison.md`
 - `whatif_business_state_comparison.json`
 
+Unlike a plain saved run (which may omit ranked sidecars), this repo-owned example intentionally includes ranked comparison artifacts as part of the reference story.
+
 Those files live under `docs/examples/enron-master-agreement-public-context/` beside the saved workspace. The branch date is September 27, 2000, so the saved scene shows 5 financial checkpoints and 6 public-news items. Use the real Rosetta archive when you want whole-history Enron search or a new run from the full corpus.
+
+Refresh the repo-owned example and validate it before you report a change:
+
+```bash
+python scripts/build_enron_business_state_example.py
+python scripts/validate_whatif_artifacts.py docs/examples/enron-master-agreement-public-context
+```
 
 ## Enron business-outcome benchmark
 

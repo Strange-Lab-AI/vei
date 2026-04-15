@@ -1,19 +1,15 @@
 from __future__ import annotations
 
-import json
-import logging
 from pathlib import Path
 from typing import Any, Sequence
 
-from pydantic import ValidationError
-
-from vei.context.api import ContextSnapshot
-
+from .._constants import CONTEXT_SNAPSHOT_FILE
 from .._helpers import (
     historical_archive_address as _historical_archive_address,
     primary_recipient as _primary_recipient,
 )
-from ..corpus import CONTENT_NOTICE, _load_history_snapshot
+from .._source_snapshot import source_snapshot_for_world
+from ..corpus import CONTENT_NOTICE
 from ..models import (
     WhatIfCaseContext,
     WhatIfEvent,
@@ -22,8 +18,6 @@ from ..models import (
     WhatIfWorld,
 )
 from ._dataset import _historical_body, _historical_chat_text
-
-logger = logging.getLogger(__name__)
 
 
 def _episode_snapshot_metadata(
@@ -91,27 +85,6 @@ def _thread_actor_payload(
     ]
 
 
-def _source_snapshot_for_world(world: WhatIfWorld) -> ContextSnapshot | None:
-    if world.source not in {"mail_archive", "company_history"}:
-        return None
-    try:
-        return _load_history_snapshot(world.source_dir)
-    except (OSError, json.JSONDecodeError, ValueError, ValidationError) as exc:
-        logger.warning(
-            "whatif source snapshot load failed for %s (%s)",
-            world.source,
-            type(exc).__name__,
-            extra={
-                "source": "episode",
-                "provider": world.source,
-                "file_path": str(world.source_dir),
-                "exception_type": type(exc).__name__,
-            },
-            exc_info=True,
-        )
-        return None
-
-
 def _persist_workspace_historical_source(
     world: WhatIfWorld,
     workspace_root: Path,
@@ -124,10 +97,9 @@ def _historical_source_file(source_dir: Path) -> Path | None:
     resolved = source_dir.expanduser().resolve()
     if resolved.is_file():
         return resolved
-    for filename in ("context_snapshot.json",):
-        candidate = resolved / filename
-        if candidate.exists():
-            return candidate
+    candidate = resolved / CONTEXT_SNAPSHOT_FILE
+    if candidate.exists():
+        return candidate
     return None
 
 
@@ -173,7 +145,7 @@ __all__ = [
     "_historical_chat_text",
     "_historical_source_file",
     "_persist_workspace_historical_source",
-    "_source_snapshot_for_world",
+    "source_snapshot_for_world",
     "_thread_actor_payload",
     "_ticket_status_for_event",
 ]

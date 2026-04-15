@@ -4,7 +4,13 @@ import json
 from pathlib import Path
 from typing import Any
 
-from .models import WhatIfEvent, WhatIfEventReference
+from ._constants import CONTEXT_SNAPSHOT_FILE
+from .models import (
+    WhatIfEvent,
+    WhatIfEventReference,
+    WhatIfScenarioId,
+    WhatIfThreadSummary,
+)
 
 
 def chat_channel_name_from_reference(
@@ -90,8 +96,22 @@ def event_reference(event: WhatIfEvent) -> WhatIfEventReference:
     )
 
 
+def thread_reason_labels(
+    thread: WhatIfThreadSummary,
+    scenario_id: WhatIfScenarioId,
+) -> list[str]:
+    del thread
+    if scenario_id == "compliance_gateway":
+        return ["legal", "trading"]
+    if scenario_id == "escalation_firewall":
+        return ["executive_escalation"]
+    if scenario_id == "external_dlp":
+        return ["attachment", "external_recipient"]
+    return ["assignment_without_approval"]
+
+
 def load_episode_snapshot(root: Path) -> dict[str, Any]:
-    snapshot_path = root / "context_snapshot.json"
+    snapshot_path = root / CONTEXT_SNAPSHOT_FILE
     if not snapshot_path.exists():
         raise ValueError(f"context snapshot not found: {snapshot_path}")
     return json.loads(snapshot_path.read_text(encoding="utf-8"))

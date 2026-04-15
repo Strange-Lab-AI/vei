@@ -765,6 +765,15 @@ def test_split_modules_support_episode_scene_and_counterfactual_flow(
     assert replay.delivered_event_count >= 1
     assert live_scene.branch_event_id == "evt-002"
     assert saved_scene.branch_event_id == "evt-002"
+    assert live_scene.thread_id == materialization.thread_id
+    assert live_scene.case_context == materialization.case_context
+    assert live_scene.situation_context == materialization.situation_context
+    assert (
+        live_scene.historical_business_state
+        == materialization.historical_business_state
+    )
+    assert saved_scene.case_context == materialization.case_context
+    assert saved_scene.situation_context == materialization.situation_context
     assert llm_result.status == "ok"
     assert llm_result.delivered_event_count == 1
     assert forecast_result.status == "ok"

@@ -118,7 +118,7 @@ async function getJson(path, options = {}) {
     try {
       const payload = await response.json();
       if (payload?.detail) {
-        detail = String(payload.detail);
+        detail = formatErrorDetail(payload.detail);
       }
     } catch {
       try {
@@ -131,6 +131,43 @@ async function getJson(path, options = {}) {
     throw new Error(detail);
   }
   return await response.json();
+}
+
+function formatErrorDetail(detail) {
+  if (typeof detail === "string") {
+    return detail;
+  }
+  if (Array.isArray(detail)) {
+    const parts = detail
+      .map((item) => formatErrorDetail(item))
+      .filter((item) => Boolean(item));
+    return parts.join("; ") || "Request failed";
+  }
+  if (detail && typeof detail === "object") {
+    if (typeof detail.msg === "string" && detail.loc) {
+      const location = Array.isArray(detail.loc)
+        ? detail.loc.join(".")
+        : String(detail.loc);
+      return location ? `${location}: ${detail.msg}` : detail.msg;
+    }
+    if (typeof detail.detail === "string") {
+      return detail.detail;
+    }
+    const parts = Object.entries(detail)
+      .map(([key, value]) => {
+        const rendered = formatErrorDetail(value);
+        if (!rendered) {
+          return "";
+        }
+        return `${key}: ${rendered}`;
+      })
+      .filter((item) => Boolean(item));
+    return parts.join("; ") || JSON.stringify(detail);
+  }
+  if (detail === null || detail === undefined) {
+    return "Request failed";
+  }
+  return String(detail);
 }
 
 async function fetchStoryArtifacts() {
@@ -161,6 +198,7 @@ async function fetchPlayableArtifacts() {
 }
 
 studio.getJson = getJson;
+studio.formatErrorDetail = formatErrorDetail;
 studio.fetchStoryArtifacts = fetchStoryArtifacts;
 studio.fetchExerciseArtifacts = fetchExerciseArtifacts;
 studio.fetchPlayableArtifacts = fetchPlayableArtifacts;

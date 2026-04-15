@@ -4,16 +4,27 @@ import json
 from pathlib import Path
 from typing import Any
 
-CANONICAL_CONTEXT_FILE = "context_snapshot.json"
-CANONICAL_MANIFEST_FILE = "episode_manifest.json"
-CANONICAL_PUBLIC_CONTEXT_FILE = "whatif_public_context.json"
+from ._constants import (
+    BUSINESS_STATE_COMPARISON_FILE,
+    BUSINESS_STATE_COMPARISON_OVERVIEW_FILE,
+    CONTEXT_SNAPSHOT_FILE as CANONICAL_CONTEXT_FILE,
+    EJEPA_PROXY_RESULT_FILE,
+    EJEPA_RESULT_FILE,
+    EPISODE_MANIFEST_FILE as CANONICAL_MANIFEST_FILE,
+    EXPERIMENT_OVERVIEW_FILE,
+    EXPERIMENT_RESULT_FILE,
+    LLM_RESULT_FILE,
+    SCRUBBED_PATH_PLACEHOLDER,
+    STUDIO_SAVED_FORECAST_FILES,
+    WORKSPACE_DIRECTORY,
+)
 
 
 def detect_validation_mode(path: str | Path) -> str:
     resolved = Path(path).expanduser().resolve()
-    if (resolved / "episode_manifest.json").exists():
+    if (resolved / CANONICAL_MANIFEST_FILE).exists():
         return "workspace"
-    if (resolved / "workspace" / "episode_manifest.json").exists():
+    if (resolved / WORKSPACE_DIRECTORY / CANONICAL_MANIFEST_FILE).exists():
         return "bundle"
     return "tree"
 
@@ -65,10 +76,12 @@ def validate_saved_workspace(
 def validate_packaged_example_bundle(root: str | Path) -> list[str]:
     bundle_root = Path(root).expanduser().resolve()
     issues = validate_saved_workspace(
-        bundle_root / "workspace",
+        bundle_root / WORKSPACE_DIRECTORY,
         allow_relative_workspace_root=True,
     )
-    experiment_path = bundle_root / "whatif_experiment_result.json"
+    _validate_required_bundle_files(issues, bundle_root)
+
+    experiment_path = bundle_root / EXPERIMENT_RESULT_FILE
     if experiment_path.exists():
         payload = _read_json(experiment_path)
         materialization = payload.get("materialization")
@@ -78,34 +91,65 @@ def validate_packaged_example_bundle(root: str | Path) -> list[str]:
                 path=experiment_path,
                 key="manifest_path",
                 actual=materialization.get("manifest_path"),
-                expected="workspace/episode_manifest.json",
+                expected=f"{WORKSPACE_DIRECTORY}/{CANONICAL_MANIFEST_FILE}",
             )
             _check_path_value(
                 issues,
                 path=experiment_path,
                 key="context_snapshot_path",
                 actual=materialization.get("context_snapshot_path"),
-                expected="workspace/context_snapshot.json",
+                expected=f"{WORKSPACE_DIRECTORY}/{CANONICAL_CONTEXT_FILE}",
             )
             _check_path_value(
                 issues,
                 path=experiment_path,
                 key="workspace_root",
                 actual=materialization.get("workspace_root"),
-                expected="workspace",
+                expected=WORKSPACE_DIRECTORY,
             )
-    for relative_path in (
-        "whatif_experiment_result.json",
-        "whatif_ejepa_result.json",
-        "whatif_ejepa_proxy_result.json",
-        "workspace/episode_manifest.json",
-    ):
+        artifacts = payload.get("artifacts")
+        if isinstance(artifacts, dict):
+            _check_path_value(
+                issues,
+                path=experiment_path,
+                key="result_json_path",
+                actual=artifacts.get("result_json_path"),
+                expected=EXPERIMENT_RESULT_FILE,
+            )
+            _check_path_value(
+                issues,
+                path=experiment_path,
+                key="overview_markdown_path",
+                actual=artifacts.get("overview_markdown_path"),
+                expected=EXPERIMENT_OVERVIEW_FILE,
+            )
+            _check_optional_path_value(
+                issues,
+                bundle_root=bundle_root,
+                path=experiment_path,
+                key="llm_json_path",
+                actual=artifacts.get("llm_json_path"),
+                expected=LLM_RESULT_FILE,
+            )
+            _check_optional_forecast_path_value(
+                issues,
+                bundle_root=bundle_root,
+                path=experiment_path,
+                key="forecast_json_path",
+                actual=artifacts.get("forecast_json_path"),
+            )
+    _validate_optional_business_state_files(issues, bundle_root)
+
+    for relative_path in _scrubbed_bundle_paths(bundle_root):
         candidate = bundle_root / relative_path
         if not candidate.exists():
             continue
         text = candidate.read_text(encoding="utf-8")
         if "/Users/" in text:
             issues.append(f"unscrubbed absolute path in {candidate}")
+        if relative_path in {EJEPA_RESULT_FILE, EJEPA_PROXY_RESULT_FILE}:
+            if SCRUBBED_PATH_PLACEHOLDER not in text:
+                issues.append(f"missing scrubbed-path placeholder in {candidate}")
     return issues
 
 
@@ -145,9 +189,103 @@ def _check_path_value(
         )
 
 
+def _check_optional_path_value(
+    issues: list[str],
+    *,
+    bundle_root: Path,
+    path: Path,
+    key: str,
+    actual: Any,
+    expected: str,
+) -> None:
+    actual_text = str(actual or "").strip()
+    if not actual_text:
+        return
+    _check_path_value(
+        issues,
+        path=path,
+        key=key,
+        actual=actual_text,
+        expected=expected,
+    )
+    candidate = bundle_root / expected
+    if not candidate.exists():
+        issues.append(f"missing bundle artifact: {candidate}")
+
+
+def _check_optional_forecast_path_value(
+    issues: list[str],
+    *,
+    bundle_root: Path,
+    path: Path,
+    key: str,
+    actual: Any,
+) -> None:
+    actual_text = str(actual or "").strip()
+    if not actual_text:
+        return
+    if actual_text not in STUDIO_SAVED_FORECAST_FILES:
+        expected = " or ".join(filename for filename in STUDIO_SAVED_FORECAST_FILES)
+        issues.append(
+            f"{key} mismatch in {path}: expected {expected!r}, got {actual_text!r}"
+        )
+        return
+    candidate = bundle_root / actual_text
+    if not candidate.exists():
+        issues.append(f"missing bundle artifact: {candidate}")
+
+
 def _unexpected_manifest_paths(workspace_root: Path) -> list[Path]:
     return sorted(
         candidate
         for candidate in workspace_root.glob("*episode_manifest.json")
         if candidate.name != CANONICAL_MANIFEST_FILE
     )
+
+
+def _validate_required_bundle_files(issues: list[str], bundle_root: Path) -> None:
+    for relative_path in (
+        EXPERIMENT_RESULT_FILE,
+        EXPERIMENT_OVERVIEW_FILE,
+        f"{WORKSPACE_DIRECTORY}/{CANONICAL_CONTEXT_FILE}",
+        f"{WORKSPACE_DIRECTORY}/{CANONICAL_MANIFEST_FILE}",
+    ):
+        candidate = bundle_root / relative_path
+        if not candidate.exists():
+            issues.append(f"missing bundle artifact: {candidate}")
+
+
+def _validate_optional_business_state_files(
+    issues: list[str],
+    bundle_root: Path,
+) -> None:
+    comparison_json = bundle_root / BUSINESS_STATE_COMPARISON_FILE
+    comparison_md = bundle_root / BUSINESS_STATE_COMPARISON_OVERVIEW_FILE
+    if not comparison_json.exists() and not comparison_md.exists():
+        return
+    if not comparison_json.exists():
+        issues.append(f"missing bundle artifact: {comparison_json}")
+        return
+    if not comparison_md.exists():
+        issues.append(f"missing bundle artifact: {comparison_md}")
+    payload = _read_json(comparison_json)
+    if not isinstance(payload.get("candidates"), list):
+        issues.append(f"missing candidates in {comparison_json}")
+
+
+def _scrubbed_bundle_paths(bundle_root: Path) -> list[str]:
+    candidates = [
+        EXPERIMENT_RESULT_FILE,
+        EXPERIMENT_OVERVIEW_FILE,
+        LLM_RESULT_FILE,
+        EJEPA_RESULT_FILE,
+        EJEPA_PROXY_RESULT_FILE,
+        BUSINESS_STATE_COMPARISON_FILE,
+        BUSINESS_STATE_COMPARISON_OVERVIEW_FILE,
+        f"{WORKSPACE_DIRECTORY}/{CANONICAL_MANIFEST_FILE}",
+    ]
+    return [
+        relative_path
+        for relative_path in candidates
+        if (bundle_root / relative_path).exists()
+    ]

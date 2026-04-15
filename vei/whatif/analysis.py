@@ -3,8 +3,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Sequence
 
-from vei.context.models import ContextSnapshot
-
+from ._helpers import thread_reason_labels
+from ._source_snapshot import source_snapshot_for_world
 from .cases import build_case_context
 from .corpus import (
     detect_whatif_source,
@@ -13,7 +13,6 @@ from .corpus import (
     event_by_id,
     event_reason_labels,
     has_external_recipients,
-    load_history_snapshot,
     load_company_history_world,
     load_mail_archive_world,
     load_enron_world,
@@ -52,7 +51,7 @@ def list_branch_candidates(
     limit: int = 10,
 ) -> WhatIfBranchCandidateResult:
     resolved_limit = max(1, int(limit))
-    source_snapshot = _source_snapshot_for_world(world)
+    source_snapshot = source_snapshot_for_world(world)
     ranked: list[WhatIfBranchCandidate] = []
     for thread in world.threads:
         history = thread_events(world.events, thread.thread_id)
@@ -406,15 +405,6 @@ def _matched_events_for_scenario(
     raise ValueError(f"unsupported what-if scenario: {scenario_id}")
 
 
-def _source_snapshot_for_world(world: WhatIfWorld) -> ContextSnapshot | None:
-    if world.source not in {"mail_archive", "company_history"}:
-        return None
-    try:
-        return load_history_snapshot(world.source_dir)
-    except Exception:  # noqa: BLE001
-        return None
-
-
 def _branch_candidate_score(
     *,
     world: WhatIfWorld,
@@ -530,7 +520,7 @@ def _build_thread_impacts(
         if thread is None:
             continue
         reasons = sorted(
-            payload["reasons"] or _thread_reason_labels(thread, scenario_id)
+            payload["reasons"] or thread_reason_labels(thread, scenario_id)
         )
         impacts.append(
             WhatIfThreadImpact(
@@ -595,16 +585,3 @@ def _timeline_impact(
     if scenario_id == "external_dlp":
         return "Holds external attachment sends until review completes."
     return "Requires approval before the next assignment handoff proceeds."
-
-
-def _thread_reason_labels(
-    thread: WhatIfThreadSummary,
-    scenario_id: WhatIfScenarioId,
-) -> list[str]:
-    if scenario_id == "compliance_gateway":
-        return ["legal", "trading"]
-    if scenario_id == "escalation_firewall":
-        return ["executive_escalation"]
-    if scenario_id == "external_dlp":
-        return ["attachment", "external_recipient"]
-    return ["assignment_without_approval"]
