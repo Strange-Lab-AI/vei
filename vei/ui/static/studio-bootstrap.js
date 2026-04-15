@@ -291,82 +291,44 @@ async function runEvalAgent() {
     if (created.run_id) {
       await selectRun(created.run_id);
     }
-    await autoCompareForTestSkin();
+    await autoCompareForEvalRun();
     if (status) status.textContent = `Run ${created.run_id} complete. Comparison loaded.`;
   } catch (error) {
     if (status) status.textContent = `Agent run failed: ${error?.message || error}`;
   }
 }
 
-const VALID_SKINS = ["sandbox", "governor", "test", "train"];
+const STUDIO_MODE = "studio";
 
 async function applyVeiSkin() {
-  const params = new URLSearchParams(window.location.search);
-  let skin = params.get("skin");
-  if (!skin || !VALID_SKINS.includes(skin)) {
-    try {
-      const res = await getJson("/api/skin");
-      skin = res?.skin;
-    } catch {
-      skin = null;
-    }
+  try {
+    await getJson("/api/skin");
+  } catch {}
+  document.body.dataset.veiSkin = STUDIO_MODE;
+  applyStudioChrome();
+  const url = new URL(window.location);
+  if (url.searchParams.has("skin")) {
+    url.searchParams.delete("skin");
+    window.history.replaceState({}, "", url);
   }
-  if (!skin || !VALID_SKINS.includes(skin)) {
-    skin = "sandbox";
+  if (typeof syncStudioTone === "function") {
+    syncStudioTone();
   }
-  document.body.dataset.veiSkin = skin;
-  renderSkinSwitcher(skin);
-  updateNavLabelsForSkin(skin);
 }
 
-function renderSkinSwitcher(activeSkin) {
-  const container = document.getElementById("skin-switcher");
-  if (!container) return;
-  container.innerHTML = VALID_SKINS.map((s) =>
-    `<button type="button" class="ghost-button skin-option ${s === activeSkin ? "active" : ""}" data-skin="${s}">${s.charAt(0).toUpperCase() + s.slice(1)}</button>`
-  ).join("");
-  container.querySelectorAll(".skin-option").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const chosen = btn.dataset.skin;
-      document.body.dataset.veiSkin = chosen;
-      renderSkinSwitcher(chosen);
-      updateNavLabelsForSkin(chosen);
-      const url = new URL(window.location);
-      url.searchParams.set("skin", chosen);
-      window.history.replaceState({}, "", url);
-    });
-  });
-}
-
-const SKIN_NAV_LABELS = {
-  sandbox: ["Company", "Crisis", "Outcome", "Audit"],
-  governor: ["Control Room", "Fleet", "Governance", "Audit"],
-  test:    ["World", "Runs", "Eval", "Audit"],
-  train:   ["World", "Corpus", "Export", "Audit"],
-};
-
-const SKIN_HINTS = {
-  sandbox: "Track the company, then make the next move",
-  governor: "Live control room \u2014 watch and steer outside agents",
-  test:    "Evaluate agent performance against the company world",
-  train:   "Build datasets and export traces from completed runs",
-};
-
-function updateNavLabelsForSkin(skin) {
-  const labels = SKIN_NAV_LABELS[skin] || SKIN_NAV_LABELS.sandbox;
+function applyStudioChrome() {
+  const labels = ["Company", "Crisis", "Outcome", "Audit"];
   const buttons = document.querySelectorAll("#studio-nav .studio-nav-button");
   buttons.forEach((btn, i) => {
     if (labels[i]) btn.textContent = labels[i];
   });
   const hint = document.getElementById("shell-context-hint");
   if (hint && !state.missionState?.run_id) {
-    hint.textContent = SKIN_HINTS[skin] || SKIN_HINTS.sandbox;
+    hint.textContent = "Track the company, then make the next move";
   }
 }
 
-async function autoCompareForTestSkin() {
-  const skin = document.body.dataset.veiSkin;
-  if (skin !== "test") return;
+async function autoCompareForEvalRun() {
   const runs = state.runs || [];
   if (runs.length < 2) return;
   if (!state.compareMode) {
@@ -434,7 +396,6 @@ function renderEvalNarrative() {
 applyVeiSkin()
   .then(() => loadWorkspace())
   .then(loadRuns)
-  .then(autoCompareForTestSkin)
   .catch((error) => {
     renderJson("workspace-panel", { error: String(error) });
     renderJson("run-panel", { error: String(error) });

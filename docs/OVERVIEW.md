@@ -126,7 +126,7 @@ Run pickers for path comparison are always visible. Fork-from-here and snapshot 
 
 ### Governor Control Room
 
-The operator experience now lives directly inside Studio. One command (`vei twin up`) starts the twin gateway and Studio, writes the launch details, and opens the governor skin where the operator can watch live or demo agent activity, check outcome status, and reset, finalize, or sync runs.
+The operator experience now lives directly inside Studio. One command (`vei twin up`) starts the twin gateway and Studio, writes the launch details, and opens the control-room view where the operator can watch live or demo agent activity, check outcome status, and reset, finalize, or sync runs.
 
 The same control room can bridge an outside orchestrator into VEI. For the first adapter, Paperclip workforce state is normalized into a vendor-neutral snapshot, shown beside VEI activity, and routeable workers are synced into governor registration using provider-prefixed agent IDs such as `paperclip:agent-42`.
 

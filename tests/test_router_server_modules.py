@@ -430,7 +430,7 @@ def test_ui_and_twin_app_wrappers_invoke_uvicorn(
         lambda root: {"kind": "twin", "root": str(root)},
     )
 
-    ui_app.serve_ui(tmp_path, host="0.0.0.0", port=3010)
+    ui_app.serve_ui(tmp_path, host="0.0.0.0", port=3010, skin="governor")
     twin_app.serve_customer_twin(tmp_path, host="0.0.0.0", port=3020)
 
     assert runs == [

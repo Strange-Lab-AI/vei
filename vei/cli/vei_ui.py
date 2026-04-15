@@ -12,16 +12,12 @@ def serve(
     root: Path = typer.Option(Path("."), help="Workspace root directory"),
     host: str = typer.Option("127.0.0.1", help="Bind host"),
     port: int = typer.Option(3010, help="Bind port"),
-    skin: str = typer.Option(
-        "sandbox",
-        help="UI skin: sandbox, governor, test, or train",
-    ),
 ) -> None:
     """Serve the local VEI playback UI for one workspace."""
 
     from vei.ui.app import serve_ui
 
-    serve_ui(root, host=host, port=port, skin=skin)
+    serve_ui(root, host=host, port=port)
 
 
 @app.command("play")
@@ -44,10 +40,6 @@ def play(
     max_steps: int = typer.Option(18, help="Max steps for comparison runs"),
     host: str = typer.Option("127.0.0.1", help="Bind host"),
     port: int = typer.Option(3011, help="Bind port"),
-    skin: str = typer.Option(
-        "sandbox",
-        help="UI skin: sandbox, governor, test, or train",
-    ),
     serve_ui_flag: bool = typer.Option(
         True, "--serve/--no-serve", help="Serve UI after preparing"
     ),
@@ -92,7 +84,7 @@ def play(
         return
     from vei.ui.app import serve_ui as _serve
 
-    _serve(root, host=host, port=port, skin=skin)
+    _serve(root, host=host, port=port)
 
 
 if __name__ == "__main__":

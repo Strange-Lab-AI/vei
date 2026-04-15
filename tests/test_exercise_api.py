@@ -101,7 +101,7 @@ def _sample_pilot_status(root: Path) -> TwinLaunchStatus:
         archetype="b2b_saas",
         crisis_name="Tenant Opening Conflict",
         studio_url="http://127.0.0.1:3011",
-        control_room_url="http://127.0.0.1:3011/?skin=governor",
+        control_room_url="http://127.0.0.1:3011/",
         gateway_url="http://127.0.0.1:3020",
         gateway_status_url="http://127.0.0.1:3020/api/twin",
         bearer_token="pilot-token",

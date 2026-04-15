@@ -774,7 +774,7 @@ def example(
 
     Creates a workspace from a vertical, runs a cautious workflow baseline
     and a scripted comparison, then prints the workspace path so you can
-    serve it with `vei ui serve --root <path> --skin test`.
+    serve it with `vei ui serve --root <path>`.
     """
     from vei.verticals.demo import (
         VerticalDemoSpec,
@@ -800,7 +800,7 @@ def example(
     typer.echo(f"  Compare:   {result.comparison_run_id}")
     typer.echo("")
     typer.echo("View it with:")
-    typer.echo(f"  vei ui serve --root {root} --skin test")
+    typer.echo(f"  vei ui serve --root {root}")
 
 
 if __name__ == "__main__":

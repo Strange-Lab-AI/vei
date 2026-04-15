@@ -99,7 +99,7 @@ def start_pilot(
     host: str = "127.0.0.1",
     gateway_port: int = 3020,
     studio_port: int = 3011,
-    ui_skin: str = "governor",
+    ui_skin: str = "studio",
     rebuild: bool = False,
     orchestrator: str | None = None,
     orchestrator_url: str | None = None,
@@ -206,8 +206,6 @@ def start_pilot(
                 host,
                 "--port",
                 str(studio_port),
-                "--skin",
-                ui_skin,
             ],
             log_path=studio_log,
         )
@@ -605,7 +603,7 @@ def _ensure_twin_bundle(
     governor_demo: bool,
     governor_demo_interval_ms: int,
     gateway_token: str | None,
-    ui_skin: str = "governor",
+    ui_skin: str = "studio",
     rebuild: bool,
 ) -> CustomerTwinBundle:
     manifest_path = workspace_root / "twin_manifest.json"
@@ -738,7 +736,7 @@ def _build_existing_workspace_twin_bundle(
             ],
             ui_command=(
                 "python -m vei.cli.vei ui serve "
-                f"--root {workspace_root} --host 127.0.0.1 --port 3011 --skin {ui_skin}"
+                f"--root {workspace_root} --host 127.0.0.1 --port 3011"
             ),
         ),
         summary=(
@@ -869,7 +867,7 @@ def _persist_twin_launch_manifest(
     manifest = _build_manifest(
         bundle,
         studio_url=studio_url,
-        control_room_url=f"{studio_url}/?skin=governor",
+        control_room_url=studio_url,
         gateway_url=gateway_url,
         orchestrator_config=orchestrator_config,
     )

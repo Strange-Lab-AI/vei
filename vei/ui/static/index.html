@@ -7,19 +7,29 @@
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="/static/styles.css" />
   </head>
   <body>
     <div class="shell">
       <header class="hero studio-topbar">
         <div class="studio-topbar-inner">
-          <div class="studio-topbar-brand">
-            <div class="brand-mark">VEI Studio</div>
-            <div class="brand-copy">
-              <p class="eyebrow">Company</p>
-              <h1 id="workspace-title">Loading company&hellip;</h1>
-              <p id="workspace-subtitle" class="studio-topbar-subtitle loading-pulse">Loading scenario context&hellip;</p>
+          <div class="studio-topbar-stage">
+            <div class="studio-topbar-brand">
+              <div class="brand-mark">VEI Studio</div>
+              <div class="brand-copy">
+                <p class="eyebrow">Company</p>
+                <h1 id="workspace-title">Loading company&hellip;</h1>
+                <p id="workspace-subtitle" class="studio-topbar-subtitle loading-pulse">Loading scenario context&hellip;</p>
+              </div>
+            </div>
+
+            <div class="studio-topbar-meta">
+              <p id="workspace-trust-strip" class="workspace-trust-strip" aria-live="polite"></p>
+              <div id="workspace-metrics" class="workspace-metrics-inline"></div>
+              <p id="mission-form-status" class="form-status">
+                Read the company state, then make the next move.
+              </p>
             </div>
           </div>
 
@@ -41,7 +51,6 @@
             </label>
             <div class="toolbar-actions">
               <button id="start-mission-button" type="button" class="sandbox-only">Start</button>
-              <div id="skin-switcher" class="skin-switcher"></div>
               <details id="views-menu" class="toolbar-menu toolbar-menu-actions">
                 <summary>Views</summary>
                 <div class="toolbar-menu-panel toolbar-menu-actions-panel">
@@ -60,14 +69,6 @@
                 </div>
               </details>
             </div>
-          </div>
-
-          <div class="studio-topbar-meta">
-            <p id="workspace-trust-strip" class="workspace-trust-strip" aria-live="polite"></p>
-            <div id="workspace-metrics" class="workspace-metrics-inline"></div>
-            <p id="mission-form-status" class="form-status">
-              Read the company state, then make the next move.
-            </p>
           </div>
         </div>
       </header>
@@ -275,7 +276,7 @@
 
         <!-- ========== TAB: OUTCOME ========== -->
         <section class="card run-card outcome-card" data-studio-view="outcome">
-          <div id="eval-narrative-panel" class="eval-narrative test-only" style="display:none"></div>
+          <div id="eval-narrative-panel" class="eval-narrative developer-only" style="display:none"></div>
           <div class="section-header">
             <div>
               <p class="eyebrow">Outcome</p>
@@ -292,7 +293,7 @@
             </div>
           </div>
           <div id="run-outcome-summary" class="contract-scorecard"></div>
-          <section class="eval-agent-form test-only">
+          <section class="eval-agent-form developer-only">
             <h3>Run your agent against this world</h3>
             <div class="eval-agent-fields">
               <label>

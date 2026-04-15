@@ -228,7 +228,7 @@ def _sample_pilot_status(root: Path) -> TwinLaunchStatus:
             archetype="service_ops",
             crisis_name="Dispatch overload",
             studio_url="http://127.0.0.1:3011",
-            control_room_url="http://127.0.0.1:3011/?skin=governor",
+            control_room_url="http://127.0.0.1:3011/",
             gateway_url="http://127.0.0.1:3020",
             gateway_status_url="http://127.0.0.1:3020/api/twin",
             bearer_token="token-123",

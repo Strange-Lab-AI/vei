@@ -92,6 +92,7 @@ const state = {
   compareTimelineB: [],
   compareMissionA: null,
   compareMissionB: null,
+  visualTone: "control-room",
   cinemaAutoAdvance: false,
   cinemaAutoTimer: null,
   playbackTimer: null,
@@ -276,6 +277,23 @@ function hasExerciseMode() {
     return false;
   }
   return Boolean(state.exercise?.manifest);
+}
+
+function inferStudioTone() {
+  if (hasHistoricalWorkspace()) {
+    return "casebook";
+  }
+  return "control-room";
+}
+
+function applyStudioTone(tone) {
+  const resolvedTone = tone === "casebook" ? "casebook" : "control-room";
+  state.visualTone = resolvedTone;
+  document.body.dataset.veiTone = resolvedTone;
+}
+
+function syncStudioTone() {
+  applyStudioTone(inferStudioTone());
 }
 
 function historicalBranchSummary() {
@@ -933,6 +951,7 @@ function renderWorkspaceHero() {
   if (!workspace) {
     return;
   }
+  syncStudioTone();
   const manifest = workspace.manifest || {};
   const story = state.story || {};
   const title = document.getElementById("workspace-title");

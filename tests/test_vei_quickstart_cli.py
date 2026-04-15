@@ -129,7 +129,6 @@ def test_quickstart_uses_shared_twin_launcher(
     assert captured["kwargs"]["studio_port"] == 3311
     assert captured["kwargs"]["gateway_port"] == 3312
     assert captured["kwargs"]["governor_demo"] is True
-    assert captured["kwargs"]["ui_skin"] == "sandbox"
     assert stopped == [root]
     quickstart_info = json.loads((root / ".vei" / "quickstart.json").read_text())
     assert quickstart_info["studio_url"] == "http://127.0.0.1:3011"
@@ -149,7 +148,7 @@ def _sample_pilot_status(root: Path) -> TwinLaunchStatus:
             archetype="service_ops",
             crisis_name="Dispatch overload",
             studio_url="http://127.0.0.1:3011",
-            control_room_url="http://127.0.0.1:3011/?skin=governor",
+            control_room_url="http://127.0.0.1:3011/",
             gateway_url="http://127.0.0.1:3020",
             gateway_status_url="http://127.0.0.1:3020/api/twin",
             bearer_token="token-123",

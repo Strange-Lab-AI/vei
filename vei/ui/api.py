@@ -88,13 +88,22 @@ __all__ = [
 ]
 
 
-_VALID_SKINS = {"sandbox", "governor", "test", "train"}
+_STUDIO_MODE = "studio"
+_LEGACY_SKIN_ALIASES = {
+    "sandbox": _STUDIO_MODE,
+    "governor": _STUDIO_MODE,
+    "test": _STUDIO_MODE,
+    "train": _STUDIO_MODE,
+    _STUDIO_MODE: _STUDIO_MODE,
+}
 
 
-def create_ui_app(workspace_root: str | Path, *, skin: str = "sandbox") -> FastAPI:
+def create_ui_app(workspace_root: str | Path, *, skin: str = _STUDIO_MODE) -> FastAPI:
     root = Path(workspace_root).expanduser().resolve()
     static_dir = Path(__file__).with_name("static")
-    resolved_skin = skin if skin in _VALID_SKINS else "sandbox"
+    resolved_skin = _LEGACY_SKIN_ALIASES.get(
+        str(skin or "").strip().lower(), _STUDIO_MODE
+    )
     app = FastAPI(title="VEI UI", version=vei_version)
     app.state.workspace_root = root
     app.state.vei_skin = resolved_skin

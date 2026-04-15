@@ -176,7 +176,7 @@ After a full benchmark cycle (build, train, judge, audit, eval), the artifact tr
 
 ## Studio audit UI
 
-The Studio UI exposes the human audit workflow at the `/audit` view (or the Audit tab when using the `test` skin).
+The Studio UI exposes the human audit workflow at the `/audit` view and on the Audit tab.
 
 ### Queue view
 
@@ -199,7 +199,6 @@ For one (case, objective) pair:
 # Serve the audit UI pointed at a benchmark root
 vei ui serve \
   --root <benchmark_root> \
-  --skin test \
   --host 127.0.0.1 \
   --port 3055
 ```

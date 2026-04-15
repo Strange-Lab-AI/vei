@@ -252,6 +252,73 @@ def test_repo_owned_enron_example_workspace_loads_saved_scene() -> None:
     assert scene_payload["public_context"]["public_news_events"] == []
 
 
+def test_repo_owned_enron_example_workspace_uses_saved_experiment_without_rosetta(
+    monkeypatch,
+) -> None:
+    monkeypatch.delenv("VEI_WHATIF_ROSETTA_DIR", raising=False)
+    monkeypatch.delenv("VEI_WHATIF_SOURCE", raising=False)
+    monkeypatch.delenv("VEI_WHATIF_SOURCE_DIR", raising=False)
+    workspace_root = EXAMPLE_ROOT / "workspace"
+    client = TestClient(ui_api.create_ui_app(workspace_root))
+
+    historical_payload = client.get("/api/workspace/historical").json()
+    response = client.post(
+        "/api/workspace/whatif/run",
+        json={
+            "source": "auto",
+            "event_id": historical_payload["branch_event_id"],
+            "thread_id": historical_payload["thread_id"],
+            "label": "ignored-for-saved-bundle",
+            "prompt": "Keep the draft inside Enron and hold the outside send.",
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert (
+        payload["label"] == "master_agreement_internal_review_public_context_20260412"
+    )
+    assert payload["materialization"]["branch_event_id"] == "enron_bcda1b925800af8c"
+    assert payload["forecast_result"]["business_state_change"]["summary"]
+
+
+def test_repo_owned_enron_example_workspace_uses_saved_ranked_result_without_rosetta(
+    monkeypatch,
+) -> None:
+    monkeypatch.delenv("VEI_WHATIF_ROSETTA_DIR", raising=False)
+    monkeypatch.delenv("VEI_WHATIF_SOURCE", raising=False)
+    monkeypatch.delenv("VEI_WHATIF_SOURCE_DIR", raising=False)
+    workspace_root = EXAMPLE_ROOT / "workspace"
+    client = TestClient(ui_api.create_ui_app(workspace_root))
+
+    historical_payload = client.get("/api/workspace/historical").json()
+    response = client.post(
+        "/api/workspace/whatif/rank",
+        json={
+            "source": "auto",
+            "event_id": historical_payload["branch_event_id"],
+            "thread_id": historical_payload["thread_id"],
+            "label": "ignored-for-saved-bundle",
+            "objective_pack_id": "contain_exposure",
+            "candidates": [
+                {
+                    "label": "Hold for internal review",
+                    "prompt": "Keep the draft inside Enron and hold the outside send.",
+                }
+            ],
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["recommended_candidate_label"] == "Hold for internal review"
+    assert payload["objective_pack"]["pack_id"] == "contain_exposure"
+    assert (
+        payload["candidates"][0]["intervention"]["label"] == "Hold for internal review"
+    )
+    assert payload["candidates"][0]["saved_result"] is True
+
+
 def test_validate_whatif_artifacts_script_auto_detects_bundle_mode() -> None:
     result = subprocess.run(
         [

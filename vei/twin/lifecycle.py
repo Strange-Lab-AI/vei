@@ -43,7 +43,7 @@ def start_twin(
     host: str = "127.0.0.1",
     gateway_port: int = 3020,
     studio_port: int = 3011,
-    ui_skin: str = "governor",
+    ui_skin: str = "studio",
     rebuild: bool = False,
     orchestrator: str | None = None,
     orchestrator_url: str | None = None,

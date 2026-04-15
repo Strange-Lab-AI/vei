@@ -515,43 +515,173 @@ function useWhatIfCustomMove() {
   renderWhatIfStudio();
 }
 
+function formatWhatIfTimestamp(value) {
+  if (!value) {
+    return "";
+  }
+  if (typeof shortWhen === "function") {
+    const formatted = shortWhen(value);
+    if (formatted) {
+      return formatted;
+    }
+  }
+  return String(value).replace("T", " ").replace("Z", "");
+}
+
+function renderWhatIfSceneFact(label, value) {
+  if (!value) {
+    return "";
+  }
+  return `
+    <div class="whatif-scene-fact">
+      <span>${escapeHtml(label)}</span>
+      <strong>${escapeHtml(value)}</strong>
+    </div>
+  `;
+}
+
+function renderWhatIfLeadDeltas(change, signals) {
+  const impacts = Array.isArray(change?.impacts) ? change.impacts.filter(Boolean) : [];
+  const cards = impacts.slice(0, 3).map((impact) => ({
+    label: impact.label || impact.state_id || "Business state",
+    summary: impact.summary || "",
+    value: `${impact.effect || "flat"} · ${impact.magnitude || "flat"}`,
+    effect: impact.effect || "",
+  }));
+  if (!cards.length && signals && typeof signals === "object") {
+    [
+      ["Exposure", signals.exposure_risk],
+      ["Delay", signals.delay_risk],
+      ["Relationship", signals.relationship_protection],
+    ]
+      .filter(([, value]) => value)
+      .forEach(([label, value]) => {
+        cards.push({
+          label,
+          summary: "",
+          value,
+          effect: "",
+        });
+      });
+  }
+  if (!cards.length) {
+    return "";
+  }
+  return `
+    <div class="whatif-delta-strip">
+      ${cards
+        .map(
+          (card) => `
+            <div class="whatif-delta-card ${card.effect === "better" ? "is-better" : card.effect === "worse" ? "is-worse" : ""}">
+              <span>${escapeHtml(card.label)}</span>
+              <strong>${escapeHtml(card.value)}</strong>
+              ${card.summary ? `<small>${escapeHtml(card.summary)}</small>` : ""}
+            </div>
+          `,
+        )
+        .join("")}
+    </div>
+  `;
+}
+
+function renderWhatIfCandidateCard(candidate, { chosenLabel = "", recommendedLabel = "", objectiveTitle = "" } = {}) {
+  const label = candidate.intervention?.label || candidate.label || "";
+  const score = candidate.outcome_score?.overall_score
+    ?? candidate.business_state_change?.net_effect_score
+    ?? "n/a";
+  const shadowScore = candidate.shadow?.outcome_score?.overall_score;
+  const summary = candidate.reason
+    || candidate.forecast?.summary
+    || candidate.business_state_change?.summary
+    || "";
+  const isRecommended = label === recommendedLabel;
+  const isPicked = label === chosenLabel;
+  const sourceChip = candidate.saved_result
+    ? `<span class="whatif-chip">Saved forecast</span>`
+    : `<span class="whatif-chip">${escapeHtml(candidate.rollout_count || 0)} rollouts</span>`;
+  return `
+    <article class="whatif-ranking-card ${isRecommended ? "is-recommended" : ""} ${isPicked ? "is-picked" : ""}">
+      <div class="whatif-ranking-top">
+        <div class="whatif-ranking-rank">
+          <p class="eyebrow">Rank ${escapeHtml(candidate.rank || "n/a")}</p>
+          <div class="whatif-chip-row">
+            ${isPicked ? `<span class="whatif-chip is-selected">Your pick</span>` : ""}
+            ${isRecommended ? `<span class="whatif-chip">VEI pick</span>` : ""}
+            ${sourceChip}
+          </div>
+        </div>
+        <div class="whatif-ranking-copy">
+          <strong>${escapeHtml(label)}</strong>
+          <span class="whatif-option-summary">${escapeHtml(summary)}</span>
+        </div>
+        <div class="whatif-ranking-score">
+          <span class="whatif-option-badge">Score</span>
+          <strong>${escapeHtml(score)}</strong>
+          <span class="whatif-result-caption">${escapeHtml(objectiveTitle || "Objective score")}</span>
+        </div>
+      </div>
+      ${renderWhatIfLeadDeltas(candidate.business_state_change, candidate.average_outcome_signals)}
+      <details class="whatif-ranked-details">
+        <summary>Show forecasted change</summary>
+        ${renderWhatIfBusinessChange(candidate.business_state_change, { title: "Forecasted business change" })}
+        ${
+          shadowScore != null
+            ? `<span class="whatif-result-caption">Shadow ${escapeHtml(candidate.shadow?.backend || "forecast")} ${escapeHtml(shadowScore)}</span>`
+            : ""
+        }
+      </details>
+    </article>
+  `;
+}
+
 function renderWhatIfScene(scene) {
   const selectedOption = whatIfSelectedOption();
   const customPrompt = state.whatIfCustomMovePrompt || "";
   const customSelected = state.whatIfChosenOptionLabel === WHATIF_CUSTOM_MOVE_LABEL;
+  const branchEvent = scene.branch_event || {};
   return `
     <div class="whatif-scene-shell">
       <div class="whatif-scene-hero">
-        <div class="whatif-scene-copy">
-          <p class="eyebrow">Decision Scene</p>
-          <strong>${escapeHtml(scene.thread_subject || scene.branch_event.subject || scene.thread_id)}</strong>
-          <span>${escapeHtml(scene.branch_summary || "")}</span>
-          <span class="metric-detail">${escapeHtml(scene.decision_question || "")}</span>
+        <div class="whatif-scene-hero-copy">
+          <div class="whatif-thread-head">
+            <div class="whatif-scene-copy">
+              <p class="eyebrow">Decision Scene</p>
+              <strong>${escapeHtml(scene.thread_subject || branchEvent.subject || scene.thread_id)}</strong>
+            </div>
+            <div class="whatif-chip-row">
+              <span class="whatif-chip">${escapeHtml(scene.organization_name || "Company")}</span>
+              <span class="whatif-chip">${escapeHtml(scene.history_message_count || 0)} prior items</span>
+              <span class="whatif-chip">${escapeHtml(scene.future_event_count || 0)} recorded future events</span>
+            </div>
+          </div>
+          <p class="whatif-scene-question">${escapeHtml(scene.decision_question || "")}</p>
+          <p class="whatif-scene-summary">${escapeHtml(scene.branch_summary || "")}</p>
         </div>
-        <div class="whatif-chip-row">
-          <span class="whatif-chip">${escapeHtml(scene.organization_name || "Company")}</span>
-          <span class="whatif-chip">${escapeHtml(scene.history_message_count || 0)} prior items</span>
-          <span class="whatif-chip">${escapeHtml(scene.future_event_count || 0)} recorded future events</span>
+        <div class="whatif-scene-facts">
+          ${renderWhatIfSceneFact("Branch date", formatWhatIfTimestamp(branchEvent.timestamp || scene.branch_timestamp))}
+          ${renderWhatIfSceneFact("Actor", branchEvent.actor_id || "")}
+          ${renderWhatIfSceneFact("Recipient", whatIfRecipients(branchEvent) || "")}
+          ${renderWhatIfSceneFact("Case", scene.case_context?.title || scene.thread_id || "")}
         </div>
       </div>
-      <div class="whatif-scene-grid">
-        <div class="whatif-scene-panel">
+      <div class="whatif-scene-grid whatif-scene-grid-story">
+        <div class="whatif-scene-panel is-branch-card">
           <p class="eyebrow">Branch Moment</p>
-          <strong>${escapeHtml(scene.branch_event.subject || scene.branch_event.event_id)}</strong>
-          <span class="whatif-result-meta">${escapeHtml(scene.branch_event.timestamp || "")} · ${escapeHtml(scene.branch_event.actor_id || "")}</span>
-          <span class="whatif-result-caption">${escapeHtml(whatIfRecipients(scene.branch_event) || "")}</span>
+          <strong>${escapeHtml(branchEvent.subject || branchEvent.event_id)}</strong>
+          <span class="whatif-result-meta">${escapeHtml(formatWhatIfTimestamp(branchEvent.timestamp || ""))} · ${escapeHtml(branchEvent.actor_id || "")}</span>
+          <span class="whatif-result-caption">${escapeHtml(whatIfRecipients(branchEvent) || "")}</span>
           ${
-            scene.branch_event.snippet
-              ? `<p class="whatif-event-snippet">${escapeHtml(scene.branch_event.snippet)}</p>`
+            branchEvent.snippet
+              ? `<p class="whatif-event-snippet">${escapeHtml(branchEvent.snippet)}</p>`
               : ""
           }
         </div>
-      <div class="whatif-scene-panel">
-        <p class="eyebrow">What Actually Happened</p>
-        <strong>${escapeHtml(scene.historical_action_summary || "")}</strong>
-        <span>${escapeHtml(scene.historical_outcome_summary || "")}</span>
-        <span class="metric-detail">${escapeHtml(scene.stakes_summary || "")}</span>
-      </div>
+        <div class="whatif-scene-panel is-historical-card">
+          <p class="eyebrow">What Actually Happened</p>
+          <strong>${escapeHtml(scene.historical_action_summary || "")}</strong>
+          <span>${escapeHtml(scene.historical_outcome_summary || "")}</span>
+          <span class="metric-detail">${escapeHtml(scene.stakes_summary || "")}</span>
+        </div>
       </div>
       ${renderWhatIfPublicContext(scene.public_context)}
       ${renderWhatIfCaseContext(scene.case_context)}
@@ -883,38 +1013,16 @@ function renderWhatIfStudio() {
             : ""
         }
       </div>
-      <div class="whatif-ranked-list">
-        ${candidates
-          .map((candidate) => {
-            const score = candidate.outcome_score?.overall_score ?? "n/a";
-            const shadowScore = candidate.shadow?.outcome_score?.overall_score;
-            const isRecommended =
-              candidate.intervention?.label === ranked.recommended_candidate_label;
-            const isPicked = candidate.intervention?.label === chosenLabel;
-            return `
-              <div class="whatif-summary-card ${isRecommended ? "is-recommended" : ""} ${isPicked ? "is-picked" : ""}">
-                <div class="whatif-summary-flags">
-                  <p class="eyebrow">Rank ${escapeHtml(candidate.rank || "n/a")}</p>
-                  ${isPicked ? `<span class="whatif-chip is-selected">Your pick</span>` : ""}
-                  ${isRecommended ? `<span class="whatif-chip">VEI pick</span>` : ""}
-                </div>
-                <strong>${escapeHtml(candidate.intervention?.label || "")}</strong>
-                <span>${escapeHtml(candidate.reason || "")}</span>
-                <span>Score ${escapeHtml(score)} across ${escapeHtml(candidate.rollout_count || 0)} rollouts</span>
-                <span>Exposure ${escapeHtml(candidate.average_outcome_signals?.exposure_risk ?? "n/a")} · Delay ${escapeHtml(candidate.average_outcome_signals?.delay_risk ?? "n/a")} · Relationship ${escapeHtml(candidate.average_outcome_signals?.relationship_protection ?? "n/a")}</span>
-                <details class="whatif-ranked-details">
-                  <summary>Show forecasted change</summary>
-                  ${renderWhatIfBusinessChange(candidate.business_state_change, { title: "Forecasted business change" })}
-                  ${
-                    shadowScore != null
-                      ? `<span>Shadow ${escapeHtml(candidate.shadow?.backend || "forecast")} ${escapeHtml(shadowScore)}</span>`
-                      : ""
-                  }
-                </details>
-              </div>
-            `;
-          })
-          .join("")}
+        <div class="whatif-ranked-list">
+          ${candidates
+            .map((candidate) =>
+              renderWhatIfCandidateCard(candidate, {
+                chosenLabel,
+                recommendedLabel: ranked.recommended_candidate_label,
+                objectiveTitle: objective.title || "Objective",
+              }),
+            )
+            .join("")}
       </div>
       <div class="whatif-artifacts">
         <span><strong>Saved result</strong> ${escapeHtml(ranked.artifacts?.result_json_path || "")}</span>

@@ -99,7 +99,6 @@ def quickstart_command(
             connector_mode=connector_mode,
             governor_demo=governor_demo,
             governor_demo_interval_ms=governor_demo_interval_ms,
-            ui_skin="sandbox",
         )
     except (ValueError, RuntimeError) as exc:
         raise typer.BadParameter(str(exc)) from exc

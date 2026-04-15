@@ -50,12 +50,160 @@ from ._api_models import (
     gateway_json_request,
     load_workspace_historical_summary,
     load_workspace_workforce_payload,
+    resolve_whatif_rosetta_dir,
     resolve_whatif_source_path,
 )
 from ._root_mode import load_ui_workspace_summary
 
 
 def register_workspace_routes(app: FastAPI, root: Path, *, deps: Any) -> None:
+    def _saved_whatif_bundle_root() -> Path | None:
+        if root.name != "workspace":
+            return None
+        bundle_root = root.parent
+        if not (bundle_root / "whatif_experiment_result.json").exists():
+            return None
+        return bundle_root
+
+    def _load_saved_whatif_json(filename: str) -> dict[str, Any] | None:
+        bundle_root = _saved_whatif_bundle_root()
+        if bundle_root is None:
+            return None
+        path = bundle_root / filename
+        if not path.exists():
+            return None
+        try:
+            return json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            return None
+
+    def _saved_historical_request_matches(
+        *,
+        event_id: str | None = None,
+        thread_id: str | None = None,
+    ) -> Any | None:
+        historical = load_workspace_historical_summary(root)
+        if historical is None:
+            return None
+        if event_id and event_id != historical.branch_event_id:
+            return None
+        if thread_id and thread_id != historical.thread_id:
+            return None
+        return historical
+
+    def _can_use_saved_enron_bundle(
+        *,
+        event_id: str | None = None,
+        thread_id: str | None = None,
+    ) -> bool:
+        historical = _saved_historical_request_matches(
+            event_id=event_id,
+            thread_id=thread_id,
+        )
+        if historical is None or historical.source != "enron":
+            return False
+        if resolve_whatif_rosetta_dir(root) is not None:
+            return False
+        return _saved_whatif_bundle_root() is not None
+
+    def _saved_source_dir_text() -> str:
+        saved_snapshot = root / "context_snapshot.json"
+        if saved_snapshot.exists():
+            return str(saved_snapshot.resolve())
+        return str(root)
+
+    def _build_saved_ranked_result_payload() -> dict[str, Any] | None:
+        comparison_payload = _load_saved_whatif_json(
+            "whatif_business_state_comparison.json"
+        )
+        experiment_payload = _load_saved_whatif_json("whatif_experiment_result.json")
+        if comparison_payload is None:
+            return None
+        objective_pack = next(
+            (
+                pack.model_dump(mode="json")
+                for pack in list_objective_packs()
+                if pack.pack_id == "contain_exposure"
+            ),
+            {
+                "pack_id": "contain_exposure",
+                "title": "Contain Exposure",
+                "summary": "Saved business-state comparison",
+                "weights": {},
+                "evidence_labels": [],
+            },
+        )
+        transformed_candidates: list[dict[str, Any]] = []
+        for index, candidate in enumerate(
+            comparison_payload.get("candidates", []),
+            start=1,
+        ):
+            if not isinstance(candidate, dict):
+                continue
+            business_state_change = candidate.get("business_state_change") or {}
+            if not isinstance(business_state_change, dict):
+                business_state_change = {}
+            net_effect_score = business_state_change.get("net_effect_score", 0.0)
+            transformed_candidates.append(
+                {
+                    "intervention": {
+                        "label": candidate.get("label") or f"Candidate {index}",
+                        "prompt": candidate.get("prompt") or "",
+                    },
+                    "rank": candidate.get("rank") or index,
+                    "rollout_count": 0,
+                    "saved_result": True,
+                    "average_outcome_signals": {},
+                    "outcome_score": {
+                        "objective_pack_id": objective_pack["pack_id"],
+                        "overall_score": net_effect_score,
+                        "components": {},
+                        "evidence": [],
+                    },
+                    "reason": (
+                        ((candidate.get("forecast") or {}).get("summary"))
+                        or business_state_change.get("summary")
+                        or ""
+                    ),
+                    "rollouts": [],
+                    "business_state_change": business_state_change,
+                }
+            )
+        return {
+            "version": "1",
+            "label": (
+                comparison_payload.get("label")
+                or "saved_enron_business_state_comparison"
+            ),
+            "objective_pack": objective_pack,
+            "selection": (
+                experiment_payload.get("selection", {})
+                if isinstance(experiment_payload, dict)
+                else {}
+            ),
+            "materialization": (
+                experiment_payload.get("materialization", {})
+                if isinstance(experiment_payload, dict)
+                else {}
+            ),
+            "baseline": (
+                experiment_payload.get("baseline", {})
+                if isinstance(experiment_payload, dict)
+                else {}
+            ),
+            "recommended_candidate_label": (
+                transformed_candidates[0]["intervention"]["label"]
+                if transformed_candidates
+                else ""
+            ),
+            "candidates": transformed_candidates,
+            "artifacts": {
+                "root": ".",
+                "result_json_path": "whatif_business_state_comparison.json",
+                "overview_markdown_path": "whatif_business_state_comparison.md",
+            },
+        }
+
     def _resolve_whatif_source(source: str, *, max_events: int | None = None):
         resolved = resolve_whatif_source_path(root, requested_source=source)
         if resolved is None:
@@ -139,6 +287,24 @@ def register_workspace_routes(app: FastAPI, root: Path, *, deps: Any) -> None:
 
     @app.post("/api/workspace/whatif/open")
     def api_workspace_whatif_open(request: WhatIfOpenRequest) -> JSONResponse:
+        if _can_use_saved_enron_bundle(
+            event_id=request.event_id,
+            thread_id=request.thread_id,
+        ):
+            experiment_payload = _load_saved_whatif_json(
+                "whatif_experiment_result.json"
+            )
+            if isinstance(experiment_payload, dict):
+                materialization = experiment_payload.get("materialization")
+                if isinstance(materialization, dict):
+                    return JSONResponse(
+                        {
+                            "source": "enron",
+                            "source_dir": _saved_source_dir_text(),
+                            "episode_root": str(root),
+                            "materialization": materialization,
+                        }
+                    )
         world, source_dir = _resolve_whatif_source(
             request.source,
             max_events=request.max_events,
@@ -194,6 +360,17 @@ def register_workspace_routes(app: FastAPI, root: Path, *, deps: Any) -> None:
 
     @app.post("/api/workspace/whatif/run")
     def api_workspace_whatif_run(request: WhatIfRunRequest) -> JSONResponse:
+        if _can_use_saved_enron_bundle(
+            event_id=request.event_id,
+            thread_id=request.thread_id,
+        ):
+            experiment_payload = _load_saved_whatif_json(
+                "whatif_experiment_result.json"
+            )
+            if isinstance(experiment_payload, dict):
+                saved_payload = dict(experiment_payload)
+                saved_payload["source_dir"] = _saved_source_dir_text()
+                return JSONResponse(saved_payload)
         world, source_dir = _resolve_whatif_source(
             request.source,
             max_events=request.max_events,
@@ -227,6 +404,14 @@ def register_workspace_routes(app: FastAPI, root: Path, *, deps: Any) -> None:
                 status_code=400,
                 detail="at least one candidate is required",
             )
+        if _can_use_saved_enron_bundle(
+            event_id=request.event_id,
+            thread_id=request.thread_id,
+        ):
+            payload = _build_saved_ranked_result_payload()
+            if payload is not None:
+                payload["source_dir"] = _saved_source_dir_text()
+                return JSONResponse(payload)
         world, source_dir = _resolve_whatif_source(
             request.source,
             max_events=request.max_events,

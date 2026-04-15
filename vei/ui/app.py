@@ -10,7 +10,7 @@ def serve_ui(
     *,
     host: str = "127.0.0.1",
     port: int = 3010,
-    skin: str = "sandbox",
+    skin: str = "studio",
 ) -> None:
     import uvicorn
 

@@ -25,15 +25,19 @@ function renderLivingCompanyContext() {
     panel.innerHTML = "";
     return;
   }
-  const crisisLine = crisisTitle
-    ? `<strong>${escapeHtml(crisisTitle)}</strong>: ${escapeHtml(briefing)}`
-    : "";
   const mirror = state.governorStatus;
   const workforce = state.workforceStatus;
   const mirrorActive = (
     (mirror && mirror.config && (Array.isArray(mirror.agents) ? mirror.agents.length > 0 : false || mirror.config.demo_mode))
     || (workforce && workforce.snapshot && Array.isArray(workforce.snapshot.agents) && workforce.snapshot.agents.length > 0)
   );
+  const stageLabel = hasHistoricalWorkspace()
+    ? "Historical replay"
+    : mirrorActive
+      ? "Control room live"
+      : hasExerciseMode()
+        ? "Scenario deck"
+        : "Company state";
   const modeBanner = mirrorActive
     ? `<div class="context-mode-banner"><span class="context-mode-dot"></span>Control Room live &mdash; VEI is watching and steering outside work against the company world</div>`
     : "";
@@ -41,11 +45,15 @@ function renderLivingCompanyContext() {
   panel.innerHTML = `
     ${modeBanner}
     <div class="context-strip">
-      <div class="context-strip-company">
-        <strong>${escapeHtml(companyName)}</strong> &mdash; ${escapeHtml(briefing)}
+      <div class="context-strip-lede">
+        <p class="eyebrow">${escapeHtml(stageLabel)}</p>
+        <strong>${escapeHtml(companyName)}</strong>
+        ${crisisTitle ? `<span class="context-strip-crisis">${escapeHtml(crisisTitle)}</span>` : ""}
       </div>
-      ${crisisLine ? `<div class="context-strip-crisis">${crisisLine}</div>` : ""}
-      ${failureImpact ? `<div class="context-strip-stakes">${escapeHtml(failureImpact)}</div>` : ""}
+      <div class="context-strip-body">
+        <p class="context-strip-brief">${escapeHtml(briefing)}</p>
+        ${failureImpact ? `<p class="context-strip-stakes">${escapeHtml(failureImpact)}</p>` : ""}
+      </div>
     </div>
   `;
 }

@@ -164,7 +164,7 @@ The current combined Enron setup has two repo-owned inputs:
 - the Rosetta mail archive for branch history and recorded futures
 - the packaged public-company context fixture for dated financial and public-news facts
 
-The screenshots below were refreshed from the real local Enron archive. The search example uses the `Master Agreement` thread. The decision-scene example uses the July 12, 2001 `FW: Confidentiality Agreement` branch (`enron_e9dc5f3ac8e91c03`), which is late enough to show both financial checkpoints and public news.
+The screenshots below were refreshed from the repo-owned `Master Agreement` bundle under `docs/examples/enron-master-agreement-public-context/`, so a fresh clone can show the same branch point, search it, and inspect the saved comparisons without depending on ignored local output folders.
 
 ![Enron historical what-if flow](assets/enron-whatif/enron-whatif-flow.gif)
 
@@ -172,7 +172,7 @@ The screenshots below were refreshed from the real local Enron archive. The sear
 
 ![Enron decision scene with public context](assets/enron-whatif/enron-decision-scene-top.png)
 
-The public-company panel is its own dated slice. Earlier branches only show the rows that were already public at that time. If nothing public had landed yet, the panel stays visible and says so. Later 2001 branches show both columns.
+The public-company panel is its own dated slice. This saved `Master Agreement` branch is on September 27, 2000, so it shows the two financial checkpoints that were already public by that date and no public-news rows yet.
 
 ![Enron public company context panel](assets/enron-whatif/enron-public-context.png)
 
