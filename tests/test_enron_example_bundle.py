@@ -8,10 +8,26 @@ from pathlib import Path
 from fastapi.testclient import TestClient
 
 from scripts import package_enron_master_agreement_example as enron_example_packager
+from vei.whatif.api import (
+    build_saved_ranked_result_payload,
+    resolve_saved_whatif_bundle,
+)
 from vei.whatif.artifact_validation import (
     detect_validation_mode,
     validate_artifact_tree,
     validate_packaged_example_bundle,
+)
+from vei.whatif._constants import (
+    BUSINESS_STATE_COMPARISON_FILE,
+    BUSINESS_STATE_COMPARISON_OVERVIEW_FILE,
+    CONTEXT_SNAPSHOT_FILE,
+    EJEPA_PROXY_RESULT_FILE,
+    EJEPA_RESULT_FILE,
+    EPISODE_MANIFEST_FILE,
+    EXPERIMENT_OVERVIEW_FILE,
+    EXPERIMENT_RESULT_FILE,
+    LLM_RESULT_FILE,
+    PUBLIC_CONTEXT_FILE,
 )
 from vei.ui import api as ui_api
 
@@ -32,7 +48,10 @@ def _write_packaging_source_fixture(root: Path, *, forecast_filename: str) -> Pa
         encoding="utf-8",
     )
     (source_root / "whatif_llm_result.json").write_text("{}", encoding="utf-8")
-    (source_root / forecast_filename).write_text("{}", encoding="utf-8")
+    (source_root / forecast_filename).write_text(
+        json.dumps({"cache_root": "not-included-in-repo-example"}),
+        encoding="utf-8",
+    )
     (source_root / "whatif_experiment_result.json").write_text(
         json.dumps({"artifacts": {"forecast_json_path": forecast_filename}}),
         encoding="utf-8",
@@ -142,6 +161,178 @@ def test_repo_owned_enron_example_bundle_is_present_and_clean() -> None:
     )
 
 
+def test_canonical_whatif_filenames_remain_stable() -> None:
+    assert CONTEXT_SNAPSHOT_FILE == "context_snapshot.json"
+    assert EPISODE_MANIFEST_FILE == "episode_manifest.json"
+    assert PUBLIC_CONTEXT_FILE == "whatif_public_context.json"
+    assert EXPERIMENT_RESULT_FILE == "whatif_experiment_result.json"
+    assert EXPERIMENT_OVERVIEW_FILE == "whatif_experiment_overview.md"
+    assert LLM_RESULT_FILE == "whatif_llm_result.json"
+    assert EJEPA_RESULT_FILE == "whatif_ejepa_result.json"
+    assert EJEPA_PROXY_RESULT_FILE == "whatif_ejepa_proxy_result.json"
+    assert BUSINESS_STATE_COMPARISON_FILE == "whatif_business_state_comparison.json"
+    assert (
+        BUSINESS_STATE_COMPARISON_OVERVIEW_FILE == "whatif_business_state_comparison.md"
+    )
+
+
+def test_repo_owned_enron_example_bundle_exposes_generic_saved_bundle_loader() -> None:
+    bundle = resolve_saved_whatif_bundle(EXAMPLE_ROOT / "workspace")
+
+    assert bundle is not None
+    assert bundle.bundle_root == EXAMPLE_ROOT
+    assert bundle.source_dir_text().endswith("context_snapshot.json")
+
+    ranked_payload = build_saved_ranked_result_payload(bundle)
+
+    assert ranked_payload is not None
+    assert ranked_payload["objective_pack"]["pack_id"] == "contain_exposure"
+    assert ranked_payload["candidates"][0]["saved_result"] is True
+
+
+def test_saved_ranked_result_payload_sorts_candidates_and_uses_requested_objective(
+    tmp_path: Path,
+) -> None:
+    bundle_root = tmp_path / "bundle"
+    workspace_root = bundle_root / "workspace"
+    workspace_root.mkdir(parents=True)
+    (bundle_root / "whatif_experiment_result.json").write_text(
+        json.dumps({"selection": {}, "baseline": {}, "materialization": {}}),
+        encoding="utf-8",
+    )
+    (bundle_root / "whatif_business_state_comparison.json").write_text(
+        json.dumps(
+            {
+                "label": "saved_ranked",
+                "candidates": [
+                    {
+                        "label": "Second",
+                        "prompt": "Prompt B",
+                        "rank": 2,
+                        "business_state_change": {"net_effect_score": 0.1},
+                    },
+                    {
+                        "label": "First",
+                        "prompt": "Prompt A",
+                        "rank": 1,
+                        "business_state_change": {"net_effect_score": 0.3},
+                    },
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    bundle = resolve_saved_whatif_bundle(workspace_root)
+
+    assert bundle is not None
+    ranked_payload = build_saved_ranked_result_payload(
+        bundle,
+        objective_pack_id="reduce_delay",
+    )
+    assert ranked_payload is not None
+    assert ranked_payload["objective_pack"]["pack_id"] == "reduce_delay"
+    candidate_ranks = [
+        candidate["rank"] for candidate in ranked_payload.get("candidates", [])
+    ]
+    assert candidate_ranks == sorted(candidate_ranks)
+    assert (
+        ranked_payload["recommended_candidate_label"]
+        == ranked_payload["candidates"][0]["intervention"]["label"]
+    )
+
+
+def test_validate_packaged_example_bundle_accepts_plain_experiment_bundle_without_ranked_sidecars(
+    tmp_path: Path,
+) -> None:
+    bundle_root = tmp_path / "bundle"
+    workspace_root = bundle_root / "workspace"
+    workspace_root.mkdir(parents=True)
+    (bundle_root / "whatif_experiment_result.json").write_text(
+        json.dumps(
+            {
+                "artifacts": {
+                    "result_json_path": "whatif_experiment_result.json",
+                    "overview_markdown_path": "whatif_experiment_overview.md",
+                    "llm_json_path": "whatif_llm_result.json",
+                },
+                "materialization": {
+                    "manifest_path": "workspace/episode_manifest.json",
+                    "context_snapshot_path": "workspace/context_snapshot.json",
+                    "workspace_root": "workspace",
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    (bundle_root / "whatif_experiment_overview.md").write_text(
+        "# Example\n",
+        encoding="utf-8",
+    )
+    (bundle_root / "whatif_llm_result.json").write_text("{}", encoding="utf-8")
+    (bundle_root / "whatif_ejepa_result.json").write_text(
+        json.dumps({"cache_root": "not-included-in-repo-example"}),
+        encoding="utf-8",
+    )
+    (workspace_root / "context_snapshot.json").write_text("{}", encoding="utf-8")
+    (workspace_root / "episode_manifest.json").write_text(
+        json.dumps({"workspace_root": "workspace"}),
+        encoding="utf-8",
+    )
+
+    issues = validate_packaged_example_bundle(bundle_root)
+
+    assert issues == []
+
+
+def test_validate_packaged_example_bundle_flags_partial_ranked_sidecars(
+    tmp_path: Path,
+) -> None:
+    bundle_root = tmp_path / "bundle"
+    workspace_root = bundle_root / "workspace"
+    workspace_root.mkdir(parents=True)
+    (bundle_root / "whatif_experiment_result.json").write_text(
+        json.dumps(
+            {
+                "artifacts": {
+                    "result_json_path": "whatif_experiment_result.json",
+                    "overview_markdown_path": "whatif_experiment_overview.md",
+                    "llm_json_path": "whatif_llm_result.json",
+                },
+                "materialization": {
+                    "manifest_path": "workspace/episode_manifest.json",
+                    "context_snapshot_path": "workspace/context_snapshot.json",
+                    "workspace_root": "workspace",
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    (bundle_root / "whatif_experiment_overview.md").write_text(
+        "# Example\n",
+        encoding="utf-8",
+    )
+    (bundle_root / "whatif_llm_result.json").write_text("{}", encoding="utf-8")
+    (bundle_root / "whatif_ejepa_result.json").write_text(
+        json.dumps({"cache_root": "not-included-in-repo-example"}),
+        encoding="utf-8",
+    )
+    (bundle_root / "whatif_business_state_comparison.json").write_text(
+        json.dumps({"candidates": []}),
+        encoding="utf-8",
+    )
+    (workspace_root / "context_snapshot.json").write_text("{}", encoding="utf-8")
+    (workspace_root / "episode_manifest.json").write_text(
+        json.dumps({"workspace_root": "workspace"}),
+        encoding="utf-8",
+    )
+
+    issues = validate_packaged_example_bundle(bundle_root)
+
+    assert any(
+        "whatif_business_state_comparison.md" in issue for issue in issues
+    ), issues
+
+
 def test_package_example_accepts_proxy_forecast_bundle(
     tmp_path: Path,
     monkeypatch,
@@ -157,10 +348,21 @@ def test_package_example_accepts_proxy_forecast_bundle(
         "_enrich_packaged_business_state",
         lambda *args, **kwargs: None,
     )
+
+    def fake_build_business_state_example(output_root: Path) -> None:
+        (output_root / "whatif_business_state_comparison.json").write_text(
+            json.dumps({"candidates": []}),
+            encoding="utf-8",
+        )
+        (output_root / "whatif_business_state_comparison.md").write_text(
+            "# Comparison\n",
+            encoding="utf-8",
+        )
+
     monkeypatch.setattr(
         enron_example_packager,
         "build_business_state_example",
-        lambda *args, **kwargs: None,
+        fake_build_business_state_example,
     )
 
     enron_example_packager.package_example(source_root, output_root)
@@ -324,7 +526,7 @@ def test_repo_owned_enron_example_workspace_uses_saved_ranked_result_without_ros
             "event_id": historical_payload["branch_event_id"],
             "thread_id": historical_payload["thread_id"],
             "label": "ignored-for-saved-bundle",
-            "objective_pack_id": "contain_exposure",
+            "objective_pack_id": "reduce_delay",
             "candidates": [
                 {
                     "label": "Hold for internal review",
@@ -337,7 +539,7 @@ def test_repo_owned_enron_example_workspace_uses_saved_ranked_result_without_ros
     assert response.status_code == 200
     payload = response.json()
     assert payload["recommended_candidate_label"] == "Hold for internal review"
-    assert payload["objective_pack"]["pack_id"] == "contain_exposure"
+    assert payload["objective_pack"]["pack_id"] == "reduce_delay"
     assert (
         payload["candidates"][0]["intervention"]["label"] == "Hold for internal review"
     )

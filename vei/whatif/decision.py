@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from ._branch_context import build_branch_context
 from .models import (
     WhatIfDecisionOption,
     WhatIfDecisionScene,
@@ -15,17 +16,10 @@ from .corpus import (
     event_reference,
     has_external_recipients,
 )
-from .cases import build_case_context
-from .public_context import slice_public_context_to_branch
-from .business_state import assess_historical_business_state
-from .situations import build_situation_context
 from .episode import (
-    resolve_thread_branch,
-    score_historical_tail,
     load_episode_manifest,
-    _source_snapshot_for_world,
-    _history_preview_from_saved_context,
 )
+from .episode._snapshot_preview import _history_preview_from_saved_context
 
 
 def build_decision_scene(
@@ -36,93 +30,62 @@ def build_decision_scene(
     history_limit: int = 6,
     future_limit: int = 5,
 ) -> WhatIfDecisionScene:
-    (
-        selected_thread_id,
-        _thread_history,
-        branch_event,
-        past_events,
-        future_events,
-        selected_thread_subject,
-    ) = resolve_thread_branch(
+    branch_context = build_branch_context(
         world,
         thread_id=thread_id,
         event_id=event_id,
     )
     organization_name = world.summary.organization_name or "Historical Archive"
     organization_domain = world.summary.organization_domain or "archive.local"
-    branch_reference = event_reference(branch_event)
-    branch_public_context = slice_public_context_to_branch(
-        world.public_context,
-        branch_timestamp=branch_event.timestamp,
-    )
-    case_context = build_case_context(
-        snapshot=_source_snapshot_for_world(world),
-        events=world.events,
-        case_id=branch_event.case_id,
-        branch_thread_id=selected_thread_id,
-        branch_timestamp_ms=branch_event.timestamp_ms,
-    )
-    situation_context = build_situation_context(
-        world,
-        branch_thread_id=selected_thread_id,
-        branch_timestamp_ms=branch_event.timestamp_ms,
-    )
-    forecast = score_historical_tail(
-        future_events,
-        organization_domain=organization_domain,
-    )
-    historical_business_state = assess_historical_business_state(
-        branch_event=branch_reference,
-        forecast=forecast,
-        organization_domain=organization_domain,
-        public_context=branch_public_context,
-    )
+    branch_reference = branch_context.branch_reference
     return WhatIfDecisionScene(
         source=world.source,
         organization_name=organization_name,
         organization_domain=organization_domain,
-        thread_id=selected_thread_id,
-        thread_subject=selected_thread_subject,
+        thread_id=branch_context.thread_id,
+        thread_subject=branch_context.thread_subject,
         case_id=branch_reference.case_id,
         surface=branch_reference.surface,
-        branch_event_id=branch_event.event_id,
+        branch_event_id=branch_context.branch_event.event_id,
         branch_event=branch_reference,
-        history_message_count=len(past_events),
-        future_event_count=len(future_events),
+        history_message_count=len(branch_context.past_events),
+        future_event_count=len(branch_context.future_events),
         content_notice=str(world.metadata.get("content_notice", CONTENT_NOTICE)),
         branch_summary=_decision_branch_summary(
             branch_reference,
-            thread_subject=selected_thread_subject,
+            thread_subject=branch_context.thread_subject,
             organization_domain=organization_domain,
         ),
         historical_action_summary=_historical_action_summary(
             branch_reference,
-            thread_subject=selected_thread_subject,
+            thread_subject=branch_context.thread_subject,
             organization_domain=organization_domain,
         ),
-        historical_outcome_summary=_historical_outcome_summary(forecast),
+        historical_outcome_summary=_historical_outcome_summary(branch_context.forecast),
         stakes_summary=_decision_stakes_summary(
             branch_reference,
-            forecast,
+            branch_context.forecast,
             organization_domain=organization_domain,
         ),
-        decision_question=_decision_question(selected_thread_subject),
+        decision_question=_decision_question(branch_context.thread_subject),
         history_preview=[
-            event_reference(event) for event in past_events[-max(1, history_limit) :]
+            event_reference(event)
+            for event in branch_context.past_events[-max(1, history_limit) :]
         ],
         historical_future_preview=[
-            event_reference(event) for event in future_events[: max(1, future_limit)]
+            event_reference(event)
+            for event in branch_context.future_events[: max(1, future_limit)]
         ],
         candidate_options=_decision_options_for_branch(
             branch_reference,
-            thread_subject=selected_thread_subject,
+            thread_subject=branch_context.thread_subject,
             organization_name=organization_name,
             organization_domain=organization_domain,
         ),
-        public_context=branch_public_context,
-        case_context=case_context,
-        situation_context=situation_context,
-        historical_business_state=historical_business_state,
+        public_context=branch_context.public_context,
+        case_context=branch_context.case_context,
+        situation_context=branch_context.situation_context,
+        historical_business_state=branch_context.historical_business_state,
     )
 
 

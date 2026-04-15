@@ -24,7 +24,8 @@ from vei.blueprint.models import (
     BlueprintWorkGraphAsset,
 )
 
-from .models import ContextSnapshot, ContextSourceResult
+from ._hydrate_inputs import build_hydrate_source_inputs
+from .models import ContextSnapshot
 from .models import (
     CrmSourceData,
     GmailSourceData,
@@ -34,7 +35,6 @@ from .models import (
     SlackSourceData,
     TeamsSourceData,
     JiraSourceData,
-    source_payload,
 )
 
 
@@ -44,42 +44,41 @@ def hydrate_snapshot_to_blueprint(
     scenario_name: str = "captured_context",
     workflow_name: str = "captured_context",
 ) -> BlueprintAsset:
-    slack_source = snapshot.source_for("slack")
-    jira_source = snapshot.source_for("jira")
-    google_source = snapshot.source_for("google")
-    okta_source = snapshot.source_for("okta")
-    gmail_source = snapshot.source_for("gmail")
-    mail_archive_source = snapshot.source_for("mail_archive")
-    teams_source = snapshot.source_for("teams")
-    crm_source = snapshot.source_for("crm")
-    salesforce_source = snapshot.source_for("salesforce")
+    inputs = build_hydrate_source_inputs(snapshot)
 
-    comm_graph = _build_comm_graph(slack_source, teams_source)
-    mail_threads = _build_mail_threads(gmail_source, mail_archive_source)
+    comm_graph = _build_comm_graph(inputs.slack_data, inputs.teams_data)
+    mail_threads = _build_mail_threads(inputs.gmail_data, inputs.mail_archive_data)
     if comm_graph and mail_threads:
         comm_graph.mail_threads = mail_threads
     elif mail_threads:
         comm_graph = BlueprintCommGraphAsset(mail_threads=mail_threads)
 
-    doc_graph = _build_doc_graph(google_source)
-    work_graph = _build_work_graph(jira_source)
-    revenue_graph = _build_revenue_graph(crm_source, salesforce_source)
+    doc_graph = _build_doc_graph(inputs.google_data)
+    work_graph = _build_work_graph(inputs.jira_data)
+    revenue_graph = _build_revenue_graph(
+        inputs.crm_data,
+        inputs.salesforce_data,
+        crm_provider=("crm" if inputs.crm_data is not None else None),
+        salesforce_provider=(
+            "salesforce" if inputs.salesforce_data is not None else None
+        ),
+    )
     identity_graph = _build_identity_graph(
-        okta_source,
-        google_source,
-        mail_archive_source,
+        inputs.okta_data,
+        inputs.google_data,
+        inputs.mail_archive_data,
     )
 
     facades = _infer_facades(
-        slack_source,
-        jira_source,
-        google_source,
-        okta_source,
-        gmail_source,
-        mail_archive_source,
-        teams_source,
-        crm_source,
-        salesforce_source,
+        inputs.slack_data,
+        inputs.jira_data,
+        inputs.google_data,
+        inputs.okta_data,
+        inputs.gmail_data,
+        inputs.mail_archive_data,
+        inputs.teams_data,
+        inputs.crm_data,
+        inputs.salesforce_data,
     )
 
     return BlueprintAsset(
@@ -103,7 +102,7 @@ def hydrate_snapshot_to_blueprint(
             metadata={
                 "source": "context_capture",
                 "captured_at": snapshot.captured_at,
-                "providers": [s.provider for s in snapshot.sources],
+                "providers": inputs.providers,
             },
         ),
         metadata={
@@ -114,12 +113,11 @@ def hydrate_snapshot_to_blueprint(
 
 
 def _build_comm_graph(
-    slack_source: Optional[ContextSourceResult],
-    teams_source: Optional[ContextSourceResult] = None,
+    slack_data: SlackSourceData | None,
+    teams_data: TeamsSourceData | None = None,
 ) -> Optional[BlueprintCommGraphAsset]:
     channels: list[BlueprintSlackChannelAsset] = []
 
-    slack_data = source_payload(slack_source, SlackSourceData)
     if slack_data is not None:
         for ch in slack_data.channels:
             if not isinstance(ch, dict):
@@ -142,7 +140,6 @@ def _build_comm_graph(
                 )
             )
 
-    teams_data = source_payload(teams_source, TeamsSourceData)
     if teams_data is not None:
         for ch in teams_data.channels:
             if not isinstance(ch, dict):
@@ -175,9 +172,8 @@ def _build_comm_graph(
 
 
 def _build_mail_from_gmail(
-    gmail_source: Optional[ContextSourceResult],
+    gmail_data: GmailSourceData | None,
 ) -> list[BlueprintMailThreadAsset]:
-    gmail_data = source_payload(gmail_source, GmailSourceData)
     if gmail_data is None:
         return []
 
@@ -223,9 +219,8 @@ def _build_mail_from_gmail(
 
 
 def _build_mail_from_archive(
-    mail_archive_source: Optional[ContextSourceResult],
+    mail_archive_data: MailArchiveSourceData | None,
 ) -> list[BlueprintMailThreadAsset]:
-    mail_archive_data = source_payload(mail_archive_source, MailArchiveSourceData)
     if mail_archive_data is None:
         return []
 
@@ -271,11 +266,11 @@ def _build_mail_from_archive(
 
 
 def _build_mail_threads(
-    gmail_source: Optional[ContextSourceResult],
-    mail_archive_source: Optional[ContextSourceResult],
+    gmail_data: GmailSourceData | None,
+    mail_archive_data: MailArchiveSourceData | None,
 ) -> list[BlueprintMailThreadAsset]:
-    archive_threads = _build_mail_from_archive(mail_archive_source)
-    gmail_threads = _build_mail_from_gmail(gmail_source)
+    archive_threads = _build_mail_from_archive(mail_archive_data)
+    gmail_threads = _build_mail_from_gmail(gmail_data)
     if not archive_threads:
         return gmail_threads
     if not gmail_threads:
@@ -291,9 +286,8 @@ def _build_mail_threads(
 
 
 def _build_doc_graph(
-    google_source: Optional[ContextSourceResult],
+    google_data: GoogleSourceData | None,
 ) -> Optional[BlueprintDocGraphAsset]:
-    google_data = source_payload(google_source, GoogleSourceData)
     if google_data is None:
         return None
 
@@ -316,9 +310,8 @@ def _build_doc_graph(
 
 
 def _build_work_graph(
-    jira_source: Optional[ContextSourceResult],
+    jira_data: JiraSourceData | None,
 ) -> Optional[BlueprintWorkGraphAsset]:
-    jira_data = source_payload(jira_source, JiraSourceData)
     if jira_data is None:
         return None
 
@@ -342,15 +335,14 @@ def _build_work_graph(
 
 
 def _build_identity_graph(
-    okta_source: Optional[ContextSourceResult],
-    google_source: Optional[ContextSourceResult],
-    mail_archive_source: Optional[ContextSourceResult] = None,
+    okta_data: OktaSourceData | None,
+    google_data: GoogleSourceData | None,
+    mail_archive_data: MailArchiveSourceData | None = None,
 ) -> Optional[BlueprintIdentityGraphAsset]:
     users: list[BlueprintIdentityUserAsset] = []
     groups: list[BlueprintIdentityGroupAsset] = []
     apps: list[BlueprintIdentityApplicationAsset] = []
 
-    okta_data = source_payload(okta_source, OktaSourceData)
     if okta_data is not None:
         for u in okta_data.users:
             if not isinstance(u, dict):
@@ -394,7 +386,6 @@ def _build_identity_graph(
                 )
             )
 
-    google_data = source_payload(google_source, GoogleSourceData)
     if google_data is not None:
         for u in google_data.users:
             if not isinstance(u, dict):
@@ -415,7 +406,6 @@ def _build_identity_graph(
                 )
             )
 
-    mail_archive_data = source_payload(mail_archive_source, MailArchiveSourceData)
     if mail_archive_data is not None:
         _append_mail_archive_users(users, mail_archive_data)
 
@@ -430,14 +420,13 @@ def _build_identity_graph(
 
 
 def _build_revenue_graph(
-    crm_source: Optional[ContextSourceResult],
-    salesforce_source: Optional[ContextSourceResult] = None,
+    crm_data: CrmSourceData | None,
+    salesforce_data: CrmSourceData | None = None,
+    *,
+    crm_provider: str | None = None,
+    salesforce_provider: str | None = None,
 ) -> Optional[BlueprintRevenueGraphAsset]:
-    sources = [
-        source
-        for source in (crm_source, salesforce_source)
-        if source is not None and source.status != "error"
-    ]
+    sources = [data for data in (crm_data, salesforce_data) if data is not None]
     if not sources:
         return None
 
@@ -447,9 +436,7 @@ def _build_revenue_graph(
             name=str(item.get("name", "")),
             domain=str(item.get("domain", "")),
         )
-        for source in sources
-        for data in [source_payload(source, CrmSourceData)]
-        if data is not None
+        for data in sources
         for index, item in enumerate(data.companies)
         if isinstance(item, dict)
     ]
@@ -461,9 +448,7 @@ def _build_revenue_graph(
             last_name=str(item.get("last_name", "")),
             company_id=(str(item.get("company_id", "")).strip() or None),
         )
-        for source in sources
-        for data in [source_payload(source, CrmSourceData)]
-        if data is not None
+        for data in sources
         for index, item in enumerate(data.contacts)
         if isinstance(item, dict)
     ]
@@ -477,9 +462,7 @@ def _build_revenue_graph(
             contact_id=(str(item.get("contact_id", "")).strip() or None),
             company_id=(str(item.get("company_id", "")).strip() or None),
         )
-        for source in sources
-        for data in [source_payload(source, CrmSourceData)]
-        if data is not None
+        for data in sources
         for index, item in enumerate(data.deals)
         if isinstance(item, dict)
     ]
@@ -487,7 +470,11 @@ def _build_revenue_graph(
     if not companies and not contacts and not deals:
         return None
 
-    source_providers = [source.provider for source in sources]
+    source_providers = [
+        provider
+        for provider in (crm_provider, salesforce_provider)
+        if provider is not None
+    ]
     return BlueprintRevenueGraphAsset(
         companies=_dedupe_crm_companies(companies),
         contacts=_dedupe_crm_contacts(contacts),
@@ -546,42 +533,34 @@ def _dedupe_crm_deals(
 
 
 def _infer_facades(
-    slack_source: Optional[ContextSourceResult],
-    jira_source: Optional[ContextSourceResult],
-    google_source: Optional[ContextSourceResult],
-    okta_source: Optional[ContextSourceResult],
-    gmail_source: Optional[ContextSourceResult] = None,
-    mail_archive_source: Optional[ContextSourceResult] = None,
-    teams_source: Optional[ContextSourceResult] = None,
-    crm_source: Optional[ContextSourceResult] = None,
-    salesforce_source: Optional[ContextSourceResult] = None,
+    slack_data: SlackSourceData | None,
+    jira_data: JiraSourceData | None,
+    google_data: GoogleSourceData | None,
+    okta_data: OktaSourceData | None,
+    gmail_data: GmailSourceData | None = None,
+    mail_archive_data: MailArchiveSourceData | None = None,
+    teams_data: TeamsSourceData | None = None,
+    crm_data: CrmSourceData | None = None,
+    salesforce_data: CrmSourceData | None = None,
 ) -> list[str]:
     facades: list[str] = []
-    if slack_source and slack_source.status != "error":
+    if slack_data is not None:
         facades.append("slack")
-    if teams_source and teams_source.status != "error":
+    if teams_data is not None:
         if "slack" not in facades:
             facades.append("slack")
-    if jira_source and jira_source.status != "error":
+    if jira_data is not None:
         facades.extend(["jira", "servicedesk"])
-    if google_source and google_source.status != "error":
+    if google_data is not None:
         facades.append("docs")
-    if (gmail_source and gmail_source.status != "error") or (
-        mail_archive_source and mail_archive_source.status != "error"
-    ):
+    if gmail_data is not None or mail_archive_data is not None:
         if "mail" not in facades:
             facades.append("mail")
-    if (
-        mail_archive_source
-        and mail_archive_source.status != "error"
-        and "identity" not in facades
-    ):
+    if mail_archive_data is not None and "identity" not in facades:
         facades.append("identity")
-    if okta_source and okta_source.status != "error":
+    if okta_data is not None:
         facades.append("identity")
-    if (crm_source and crm_source.status != "error") or (
-        salesforce_source and salesforce_source.status != "error"
-    ):
+    if crm_data is not None or salesforce_data is not None:
         facades.append("crm")
     return facades
 

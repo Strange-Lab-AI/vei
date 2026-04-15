@@ -1156,6 +1156,329 @@ def test_ui_api_saved_enron_workspace_without_rosetta_uses_saved_context_snapsho
     )
 
 
+def test_ui_api_saved_bundle_routes_recheck_bundle_after_app_start(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    monkeypatch.delenv("VEI_WHATIF_ROSETTA_DIR", raising=False)
+    monkeypatch.delenv("VEI_WHATIF_SOURCE", raising=False)
+    monkeypatch.delenv("VEI_WHATIF_SOURCE_DIR", raising=False)
+    workspace_root = tmp_path / "saved_bundle" / "workspace"
+    create_workspace_from_template(
+        root=workspace_root,
+        source_kind="vertical",
+        source_ref="b2b_saas",
+    )
+    snapshot_path = _write_saved_context_snapshot(workspace_root)
+    episode = WhatIfEpisodeManifest(
+        source="enron",
+        source_dir="/missing/rosetta",
+        workspace_root=workspace_root,
+        organization_name="Enron Corporation",
+        organization_domain="enron.com",
+        thread_id="thr-master-agreement",
+        thread_subject="Master Agreement",
+        branch_event_id="enron_bcda1b925800af8c",
+        branch_timestamp="2000-09-27T13:42:00Z",
+        branch_event=WhatIfEventReference(
+            event_id="enron_bcda1b925800af8c",
+            timestamp="2000-09-27T13:42:00Z",
+            actor_id="debra.perlingiere@enron.com",
+            target_id="kathy_gerken@cargill.com",
+            event_type="assignment",
+            thread_id="thr-master-agreement",
+            subject="Master Agreement",
+            snippet="Historical branch point.",
+            to_recipients=["kathy_gerken@cargill.com"],
+        ),
+        history_message_count=1,
+        future_event_count=84,
+        baseline_dataset_path="whatif_baseline_dataset.json",
+        content_notice="Historical email bodies are grounded in archive excerpts and metadata.",
+        forecast=WhatIfHistoricalScore(backend="historical", risk_score=1.0),
+    )
+    (workspace_root / "episode_manifest.json").write_text(
+        episode.model_dump_json(indent=2),
+        encoding="utf-8",
+    )
+
+    client = TestClient(ui_api.create_ui_app(workspace_root))
+
+    bundle_root = workspace_root.parent
+    (bundle_root / "whatif_experiment_result.json").write_text(
+        json.dumps(
+            {
+                "label": "saved_bundle_run",
+                "selection": {},
+                "baseline": {},
+                "materialization": {
+                    "branch_event_id": "enron_bcda1b925800af8c",
+                    "future_event_count": 84,
+                },
+                "forecast_result": {
+                    "business_state_change": {
+                        "summary": "Saved business-state summary.",
+                    }
+                },
+                "artifacts": {
+                    "result_json_path": "whatif_experiment_result.json",
+                    "overview_markdown_path": "whatif_experiment_overview.md",
+                    "llm_json_path": "whatif_llm_result.json",
+                    "forecast_json_path": "whatif_ejepa_result.json",
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    (bundle_root / "whatif_experiment_overview.md").write_text(
+        "# Saved bundle\n",
+        encoding="utf-8",
+    )
+    (bundle_root / "whatif_llm_result.json").write_text("{}", encoding="utf-8")
+    (bundle_root / "whatif_ejepa_result.json").write_text(
+        json.dumps({"cache_root": "not-included-in-repo-example"}),
+        encoding="utf-8",
+    )
+    (bundle_root / "whatif_business_state_comparison.json").write_text(
+        json.dumps(
+            {
+                "label": "saved_ranked",
+                "candidates": [
+                    {
+                        "label": "Hold internal",
+                        "prompt": "Keep the draft inside Enron.",
+                        "rank": 1,
+                        "business_state_change": {
+                            "summary": "Fewer outside sends.",
+                            "net_effect_score": 0.42,
+                        },
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    (bundle_root / "whatif_business_state_comparison.md").write_text(
+        "# Saved ranked comparison\n",
+        encoding="utf-8",
+    )
+
+    open_response = client.post(
+        "/api/workspace/whatif/open",
+        json={
+            "source": "auto",
+            "event_id": "enron_bcda1b925800af8c",
+            "thread_id": "thr-master-agreement",
+            "label": "ignored-after-start",
+        },
+    )
+    assert open_response.status_code == 200
+    open_payload = open_response.json()
+    assert (
+        open_payload["materialization"]["branch_event_id"] == "enron_bcda1b925800af8c"
+    )
+
+    run_response = client.post(
+        "/api/workspace/whatif/run",
+        json={
+            "source": "auto",
+            "event_id": "enron_bcda1b925800af8c",
+            "thread_id": "thr-master-agreement",
+            "label": "ignored-after-start",
+            "prompt": "Keep the draft inside Enron.",
+        },
+    )
+    assert run_response.status_code == 200
+    run_payload = run_response.json()
+    assert run_payload["label"] == "saved_bundle_run"
+    assert run_payload["source_dir"] == str(snapshot_path.resolve())
+
+    rank_response = client.post(
+        "/api/workspace/whatif/rank",
+        json={
+            "source": "auto",
+            "event_id": "enron_bcda1b925800af8c",
+            "thread_id": "thr-master-agreement",
+            "label": "ignored-after-start",
+            "objective_pack_id": "contain_exposure",
+            "candidates": [
+                {
+                    "label": "Hold internal",
+                    "prompt": "Keep the draft inside Enron.",
+                }
+            ],
+        },
+    )
+    assert rank_response.status_code == 200
+    rank_payload = rank_response.json()
+    assert rank_payload["recommended_candidate_label"] == "Hold internal"
+    assert rank_payload["candidates"][0]["saved_result"] is True
+
+
+def test_ui_api_saved_bundle_routes_support_non_enron_saved_branches(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    monkeypatch.delenv("VEI_WHATIF_ROSETTA_DIR", raising=False)
+    monkeypatch.delenv("VEI_WHATIF_SOURCE", raising=False)
+    monkeypatch.delenv("VEI_WHATIF_SOURCE_DIR", raising=False)
+
+    workspace_root = tmp_path / "saved_mail_bundle" / "workspace"
+    create_workspace_from_template(
+        root=workspace_root,
+        source_kind="vertical",
+        source_ref="b2b_saas",
+    )
+    episode = WhatIfEpisodeManifest(
+        source="mail_archive",
+        source_dir="/missing/mail_archive.json",
+        workspace_root=workspace_root,
+        organization_name="Py Corp",
+        organization_domain="pycorp.example.com",
+        thread_id="py-legal-001",
+        thread_subject="Pricing addendum",
+        branch_event_id="py-msg-002",
+        branch_timestamp="2026-03-01T09:05:00Z",
+        branch_event=WhatIfEventReference(
+            event_id="py-msg-002",
+            timestamp="2026-03-01T09:05:00Z",
+            actor_id="legal@pycorp.example.com",
+            target_id="emma@pycorp.example.com",
+            event_type="reply",
+            thread_id="py-legal-001",
+            subject="Pricing addendum",
+            snippet="Hold for one markup round.",
+            to_recipients=["emma@pycorp.example.com"],
+        ),
+        history_message_count=1,
+        future_event_count=2,
+        baseline_dataset_path="whatif_baseline_dataset.json",
+        content_notice="Historical email bodies are grounded in archive excerpts and metadata.",
+        forecast=WhatIfHistoricalScore(backend="historical", risk_score=0.82),
+    )
+    (workspace_root / "episode_manifest.json").write_text(
+        episode.model_dump_json(indent=2),
+        encoding="utf-8",
+    )
+
+    bundle_root = workspace_root.parent
+    (bundle_root / "whatif_experiment_result.json").write_text(
+        json.dumps(
+            {
+                "label": "saved_mail_bundle_run",
+                "selection": {},
+                "baseline": {},
+                "materialization": {
+                    "branch_event_id": "py-msg-002",
+                    "future_event_count": 2,
+                },
+                "forecast_result": {
+                    "business_state_change": {
+                        "summary": "Outside exposure drops with one internal hold.",
+                    }
+                },
+                "artifacts": {
+                    "result_json_path": "whatif_experiment_result.json",
+                    "overview_markdown_path": "whatif_experiment_overview.md",
+                    "llm_json_path": "whatif_llm_result.json",
+                    "forecast_json_path": "whatif_ejepa_proxy_result.json",
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    (bundle_root / "whatif_experiment_overview.md").write_text(
+        "# Saved mail bundle\n",
+        encoding="utf-8",
+    )
+    (bundle_root / "whatif_llm_result.json").write_text("{}", encoding="utf-8")
+    (bundle_root / "whatif_ejepa_proxy_result.json").write_text(
+        json.dumps({"cache_root": "not-included-in-repo-example"}),
+        encoding="utf-8",
+    )
+    (bundle_root / "whatif_business_state_comparison.json").write_text(
+        json.dumps(
+            {
+                "label": "saved_mail_ranked",
+                "candidates": [
+                    {
+                        "label": "Hold for internal review",
+                        "prompt": "Keep the draft internal for one more review pass.",
+                        "rank": 1,
+                        "business_state_change": {
+                            "summary": "Reduced outside spread risk.",
+                            "net_effect_score": 0.31,
+                        },
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    (bundle_root / "whatif_business_state_comparison.md").write_text(
+        "# Saved mail ranked comparison\n",
+        encoding="utf-8",
+    )
+
+    client = TestClient(ui_api.create_ui_app(workspace_root))
+
+    status_response = client.get("/api/workspace/whatif")
+    assert status_response.status_code == 200
+    status_payload = status_response.json()
+    assert status_payload["available"] is True
+    assert status_payload["source"] == "mail_archive"
+    assert status_payload["source_dir"] == str(workspace_root.resolve())
+
+    open_response = client.post(
+        "/api/workspace/whatif/open",
+        json={
+            "source": "auto",
+            "event_id": "py-msg-002",
+            "thread_id": "py-legal-001",
+            "label": "ignored-for-saved-mail-bundle",
+        },
+    )
+    assert open_response.status_code == 200
+    open_payload = open_response.json()
+    assert open_payload["source"] == "mail_archive"
+    assert open_payload["materialization"]["branch_event_id"] == "py-msg-002"
+
+    run_response = client.post(
+        "/api/workspace/whatif/run",
+        json={
+            "source": "auto",
+            "event_id": "py-msg-002",
+            "thread_id": "py-legal-001",
+            "label": "ignored-for-saved-mail-bundle",
+            "prompt": "Keep this inside while legal reviews.",
+        },
+    )
+    assert run_response.status_code == 200
+    run_payload = run_response.json()
+    assert run_payload["label"] == "saved_mail_bundle_run"
+
+    rank_response = client.post(
+        "/api/workspace/whatif/rank",
+        json={
+            "source": "auto",
+            "event_id": "py-msg-002",
+            "thread_id": "py-legal-001",
+            "label": "ignored-for-saved-mail-bundle",
+            "objective_pack_id": "contain_exposure",
+            "candidates": [
+                {
+                    "label": "Hold for internal review",
+                    "prompt": "Keep the draft internal for one more review pass.",
+                }
+            ],
+        },
+    )
+    assert rank_response.status_code == 200
+    rank_payload = rank_response.json()
+    assert rank_payload["recommended_candidate_label"] == "Hold for internal review"
+    assert rank_payload["candidates"][0]["saved_result"] is True
+
+
 def test_ui_api_saved_enron_workspace_prefers_live_rosetta_for_auto_actions(
     tmp_path: Path,
     monkeypatch,

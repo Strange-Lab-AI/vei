@@ -6,10 +6,10 @@ from dataclasses import dataclass
 from itertools import combinations
 from typing import Iterable, Sequence
 
+from ._helpers import event_reference
 from .models import (
     WhatIfCaseSummary,
     WhatIfEvent,
-    WhatIfEventReference,
     WhatIfSituationCluster,
     WhatIfSituationContext,
     WhatIfSituationGraph,
@@ -186,7 +186,7 @@ def build_situation_context(
         return None
 
     related_history = [
-        _event_reference(event)
+        event_reference(event)
         for event in world.events
         if event.thread_id in visible_thread_ids
         and event.timestamp_ms <= branch_timestamp_ms
@@ -712,28 +712,6 @@ def _situation_thread_reference(thread: WhatIfThreadSummary) -> WhatIfSituationT
         actor_ids=list(thread.actor_ids),
         first_timestamp=thread.first_timestamp,
         last_timestamp=thread.last_timestamp,
-    )
-
-
-def _event_reference(event: WhatIfEvent) -> WhatIfEventReference:
-    return WhatIfEventReference(
-        event_id=event.event_id,
-        timestamp=event.timestamp,
-        actor_id=event.actor_id,
-        target_id=event.target_id,
-        event_type=event.event_type,
-        thread_id=event.thread_id,
-        case_id=event.case_id,
-        surface=event.surface,
-        conversation_anchor=event.conversation_anchor,
-        subject=event.subject,
-        snippet=event.snippet,
-        to_recipients=list(event.flags.to_recipients),
-        cc_recipients=list(event.flags.cc_recipients),
-        has_attachment_reference=event.flags.has_attachment_reference,
-        is_forward=event.flags.is_forward,
-        is_reply=event.flags.is_reply,
-        is_escalation=event.flags.is_escalation,
     )
 
 

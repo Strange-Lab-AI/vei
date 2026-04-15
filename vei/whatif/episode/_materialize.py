@@ -8,6 +8,8 @@ from vei.twin.api import build_customer_twin
 from vei.twin.models import ContextMoldConfig
 from vei.whatif.artifact_validation import validate_saved_workspace
 
+from .._branch_context import build_branch_context
+from .._constants import EPISODE_MANIFEST_FILE
 from ..models import (
     WhatIfCaseContext,
     WhatIfEpisodeManifest,
@@ -18,25 +20,14 @@ from ..models import (
 )
 from ..corpus import (
     CONTENT_NOTICE,
-    choose_branch_event,
-    event_by_id,
     event_reference,
-    hydrate_event_snippets,
-    thread_events,
-    thread_subject,
 )
-from ..cases import build_case_context
-from ..public_context import slice_public_context_to_branch
-from ..business_state import assess_historical_business_state
-from ..situations import build_situation_context, recommend_branch_thread
 
 from ._snapshot import (
     _episode_context_snapshot,
-    _source_snapshot_for_world,
     _persist_workspace_historical_source,
 )
 from ._dataset import _baseline_dataset
-from ._replay import score_historical_tail
 
 logger = logging.getLogger(__name__)
 
@@ -61,65 +52,34 @@ def materialize_episode(
         or world.summary.organization_domain
         or "archive.local"
     )
-    (
-        selected_thread_id,
-        thread_history,
-        branch_event,
-        past_events,
-        future_events,
-        selected_thread_subject,
-    ) = resolve_thread_branch(
+    branch_context = build_branch_context(
         world,
         thread_id=thread_id,
         event_id=event_id,
-    )
-    branch_public_context = slice_public_context_to_branch(
-        world.public_context,
-        branch_timestamp=branch_event.timestamp,
-    )
-    source_snapshot = _source_snapshot_for_world(world)
-    case_context = build_case_context(
-        snapshot=source_snapshot,
-        events=world.events,
-        case_id=branch_event.case_id,
-        branch_thread_id=selected_thread_id,
-        branch_timestamp_ms=branch_event.timestamp_ms,
-    )
-    situation_context = build_situation_context(
-        world,
-        branch_thread_id=selected_thread_id,
-        branch_timestamp_ms=branch_event.timestamp_ms,
-    )
-    forecast = score_historical_tail(
-        future_events,
         organization_domain=resolved_organization_domain,
     )
-    historical_business_state = assess_historical_business_state(
-        branch_event=event_reference(branch_event),
-        forecast=forecast,
-        organization_domain=resolved_organization_domain,
-        public_context=branch_public_context,
-    )
-    history_preview = [event_reference(event) for event in past_events[-12:]]
+    history_preview = [
+        event_reference(event) for event in branch_context.past_events[-12:]
+    ]
     snapshot = _episode_context_snapshot(
-        thread_history=thread_history,
-        past_events=past_events,
-        thread_id=selected_thread_id,
-        thread_subject=selected_thread_subject,
+        thread_history=branch_context.thread_history,
+        past_events=branch_context.past_events,
+        thread_id=branch_context.thread_id,
+        thread_subject=branch_context.thread_subject,
         organization_name=resolved_organization_name,
         organization_domain=resolved_organization_domain,
         world=world,
-        branch_event=branch_event,
-        public_context=branch_public_context,
-        case_context=case_context,
-        situation_context=situation_context,
-        historical_business_state=historical_business_state,
-        source_snapshot=source_snapshot,
+        branch_event=branch_context.branch_event,
+        public_context=branch_context.public_context,
+        case_context=branch_context.case_context,
+        situation_context=branch_context.situation_context,
+        historical_business_state=branch_context.historical_business_state,
+        source_snapshot=branch_context.source_snapshot,
     )
     included_surfaces = _included_surfaces_for_thread(
-        thread_history,
-        case_context=case_context,
-        situation_context=situation_context,
+        branch_context.thread_history,
+        case_context=branch_context.case_context,
+        situation_context=branch_context.situation_context,
     )
     bundle = build_customer_twin(
         workspace_root,
@@ -136,9 +96,9 @@ def materialize_episode(
         overwrite=True,
     )
     baseline_dataset = _baseline_dataset(
-        thread_subject=selected_thread_subject,
-        branch_event=branch_event,
-        future_events=future_events,
+        thread_subject=branch_context.thread_subject,
+        branch_event=branch_context.branch_event,
+        future_events=branch_context.future_events,
         organization_domain=resolved_organization_domain,
         source_name=world.source,
     )
@@ -154,34 +114,36 @@ def materialize_episode(
         workspace_root=workspace_root,
         organization_name=resolved_organization_name,
         organization_domain=resolved_organization_domain,
-        thread_id=selected_thread_id,
-        thread_subject=selected_thread_subject,
-        case_id=branch_event.case_id,
-        surface=branch_event.surface,
-        branch_event_id=branch_event.event_id,
-        branch_timestamp=branch_event.timestamp,
-        branch_event=event_reference(branch_event),
-        history_message_count=len(past_events),
-        future_event_count=len(future_events),
+        thread_id=branch_context.thread_id,
+        thread_subject=branch_context.thread_subject,
+        case_id=branch_context.branch_event.case_id,
+        surface=branch_context.branch_event.surface,
+        branch_event_id=branch_context.branch_event.event_id,
+        branch_timestamp=branch_context.branch_event.timestamp,
+        branch_event=branch_context.branch_reference,
+        history_message_count=len(branch_context.past_events),
+        future_event_count=len(branch_context.future_events),
         baseline_dataset_path=str(baseline_dataset_path.relative_to(workspace_root)),
         content_notice=str(world.metadata.get("content_notice", CONTENT_NOTICE)),
         actor_ids=sorted(
             {
                 actor_id
-                for event in thread_history
+                for event in branch_context.thread_history
                 for actor_id in {event.actor_id, event.target_id}
                 if actor_id
             }
         ),
         history_preview=history_preview,
-        baseline_future_preview=[event_reference(event) for event in future_events[:5]],
-        forecast=forecast,
-        public_context=branch_public_context,
-        case_context=case_context,
-        situation_context=situation_context,
-        historical_business_state=historical_business_state,
+        baseline_future_preview=[
+            event_reference(event) for event in branch_context.future_events[:5]
+        ],
+        forecast=branch_context.forecast,
+        public_context=branch_context.public_context,
+        case_context=branch_context.case_context,
+        situation_context=branch_context.situation_context,
+        historical_business_state=branch_context.historical_business_state,
     )
-    manifest_path = workspace_root / "episode_manifest.json"
+    manifest_path = workspace_root / EPISODE_MANIFEST_FILE
     manifest_path.write_text(manifest.model_dump_json(indent=2), encoding="utf-8")
     issues = validate_saved_workspace(workspace_root)
     if issues:
@@ -195,73 +157,20 @@ def materialize_episode(
         workspace_root=workspace_root,
         organization_name=resolved_organization_name,
         organization_domain=resolved_organization_domain,
-        thread_id=selected_thread_id,
-        case_id=branch_event.case_id,
-        surface=branch_event.surface,
-        branch_event_id=branch_event.event_id,
+        thread_id=branch_context.thread_id,
+        case_id=branch_context.branch_event.case_id,
+        surface=branch_context.branch_event.surface,
+        branch_event_id=branch_context.branch_event.event_id,
         branch_event=manifest.branch_event,
-        history_message_count=len(past_events),
-        future_event_count=len(future_events),
+        history_message_count=len(branch_context.past_events),
+        future_event_count=len(branch_context.future_events),
         history_preview=history_preview,
         baseline_future_preview=list(manifest.baseline_future_preview),
-        forecast=forecast,
-        public_context=branch_public_context,
-        case_context=case_context,
-        situation_context=situation_context,
-        historical_business_state=historical_business_state,
-    )
-
-
-def resolve_thread_branch(
-    world: WhatIfWorld,
-    *,
-    thread_id: str | None = None,
-    event_id: str | None = None,
-) -> tuple[
-    str, list[WhatIfEvent], WhatIfEvent, list[WhatIfEvent], list[WhatIfEvent], str
-]:
-    selected_thread_id = thread_id
-    if selected_thread_id is None:
-        if event_id:
-            selected_event = event_by_id(world.events, event_id)
-            if selected_event is None:
-                raise ValueError(f"event not found in world: {event_id}")
-            selected_thread_id = selected_event.thread_id
-        else:
-            selected_thread_id = recommend_branch_thread(world).thread_id
-
-    thread_history = thread_events(world.events, selected_thread_id)
-    if not thread_history:
-        raise ValueError(f"thread not found in world: {selected_thread_id}")
-    if world.source == "enron":
-        thread_history = hydrate_event_snippets(
-            rosetta_dir=world.source_dir,
-            events=thread_history,
-        )
-
-    branch_event = choose_branch_event(thread_history, requested_event_id=event_id)
-    branch_index = next(
-        (
-            index
-            for index, event in enumerate(thread_history)
-            if event.event_id == branch_event.event_id
-        ),
-        None,
-    )
-    if branch_index is None:
-        raise ValueError(f"branch event not found in thread: {branch_event.event_id}")
-
-    return (
-        selected_thread_id,
-        thread_history,
-        branch_event,
-        list(thread_history[:branch_index]),
-        list(thread_history[branch_index:]),
-        thread_subject(
-            world.threads,
-            selected_thread_id,
-            fallback=branch_event.subject,
-        ),
+        forecast=branch_context.forecast,
+        public_context=branch_context.public_context,
+        case_context=branch_context.case_context,
+        situation_context=branch_context.situation_context,
+        historical_business_state=branch_context.historical_business_state,
     )
 
 

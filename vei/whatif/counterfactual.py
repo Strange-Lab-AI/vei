@@ -31,8 +31,6 @@ from .models import (
     WhatIfLLMReplayResult,
     WhatIfLLMUsage,
     WhatIfPublicContext,
-    WhatIfScenarioId,
-    WhatIfThreadSummary,
 )
 from .corpus import (
     ENRON_DOMAIN,
@@ -191,19 +189,6 @@ def _llm_replay_event(
             "category": "counterfactual",
         },
     )
-
-
-def _thread_reason_labels(
-    thread: WhatIfThreadSummary,
-    scenario_id: WhatIfScenarioId,
-) -> list[str]:
-    if scenario_id == "compliance_gateway":
-        return ["legal", "trading"]
-    if scenario_id == "escalation_firewall":
-        return ["executive_escalation"]
-    if scenario_id == "external_dlp":
-        return ["attachment", "external_recipient"]
-    return ["assignment_without_approval"]
 
 
 def _session_for_episode(

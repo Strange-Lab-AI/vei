@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import importlib
 from pathlib import Path
 
 
@@ -7,10 +8,13 @@ def test_hotspot_modules_stay_below_foundation_size_budget() -> None:
     repo_root = Path(__file__).resolve().parents[1]
     budgets = {
         "vei/context/normalize.py": 117,
-        "vei/whatif/benchmark.py": 2875,
-        "vei/whatif/research.py": 2039,
+        "vei/context/hydrate.py": 660,
+        "vei/whatif/benchmark.py": 2700,
+        "vei/whatif/research.py": 1810,
         "vei/cli/vei_whatif.py": 1122,
         "vei/whatif/episode/_snapshot.py": 1234,
+        "vei/ui/_workspace_routes.py": 900,
+        "vei/ui/_api_models.py": 400,
         "vei/twin/_runtime.py": 1200,
         "vei/twin/api.py": 1329,
         "vei/router/core.py": 1200,
@@ -28,3 +32,11 @@ def test_hotspot_modules_stay_below_foundation_size_budget() -> None:
             )
 
     assert not over_budget, " | ".join(over_budget)
+
+
+def test_public_api_modules_do_not_export_private_symbols() -> None:
+    for module_name in ("vei.whatif.api", "vei.whatif.episode"):
+        module = importlib.import_module(module_name)
+        exported = getattr(module, "__all__", [])
+        private = [name for name in exported if str(name).startswith("_")]
+        assert not private, f"{module_name} exports private symbols: {private}"

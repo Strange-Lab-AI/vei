@@ -43,10 +43,13 @@ The saved ranked comparison turns that into a choice. `Hold for internal review`
 - `whatif_business_state_comparison.md`: three-way comparison in business language for the saved branch scene
 - `whatif_business_state_comparison.json`: structured version of that comparison
 
+For general saved bundles, only the experiment core files plus `workspace/context_snapshot.json` and `workspace/episode_manifest.json` are required. This repo-owned Enron example intentionally includes the ranked comparison sidecars.
+
 ## Refresh
 
 ```bash
 python scripts/build_enron_business_state_example.py
+python scripts/validate_whatif_artifacts.py docs/examples/enron-master-agreement-public-context
 ```
 
 ## Constraint
