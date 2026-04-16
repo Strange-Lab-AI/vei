@@ -6,10 +6,13 @@ Requires ``psycopg``.  Import-safe when the dependency is absent.
 from __future__ import annotations
 
 import json
+import logging
 from typing import Any, Dict, List, Optional
 
 from vei.events.models import CanonicalEvent
 from vei.ingest.api import SessionSlice
+
+logger = logging.getLogger(__name__)
 
 _PG_AVAILABLE = False
 try:
@@ -75,8 +78,13 @@ class PostgresMaterializer:
                         ],
                     )
                     applied += 1
-                except Exception:
-                    pass
+                except (
+                    Exception
+                ) as exc:  # noqa: BLE001 - psycopg errors are opaque; log and skip
+                    logger.warning(
+                        "postgres_apply_failed",
+                        extra={"event_id": event.event_id, "error": str(exc)[:200]},
+                    )
         return applied
 
     def query_graph(

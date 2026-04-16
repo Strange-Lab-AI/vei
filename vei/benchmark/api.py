@@ -44,7 +44,7 @@ from vei.blueprint.api import (
 from vei.blueprint.models import BlueprintAsset
 from vei.contract.api import build_contract_from_workflow
 from vei.data.models import VEIDataset
-from vei.rl.policy_bc import BCPPolicy, run_policy
+from vei.rl.policy_frequency import FrequencyPolicy, run_policy
 from vei.scenario_engine.api import compile_workflow
 from vei.scenario_runner.api import run_workflow
 from vei.scenario_runner.api import validate_workflow_outcome
@@ -198,7 +198,7 @@ def _run_local_case(spec: BenchmarkCaseSpec) -> BenchmarkCaseResult:
     elif spec.runner == "bc":
         if spec.bc_model_path is None:
             raise ValueError("bc runner requires bc_model_path")
-        policy = BCPPolicy.load(spec.bc_model_path)
+        policy = FrequencyPolicy.load(spec.bc_model_path)
         transcript = run_policy(session.router, policy, max_steps=spec.max_steps)
     else:
         raise ValueError(f"unsupported local runner: {spec.runner}")

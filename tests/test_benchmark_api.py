@@ -27,7 +27,7 @@ from vei.cli.vei_report import (
     load_all_results,
 )
 from vei.data.rollout import rollout_procurement
-from vei.rl.policy_bc import BCPPolicy
+from vei.rl.policy_frequency import FrequencyPolicy
 from vei.world.api import create_world_session, get_catalog_scenario
 
 
@@ -335,7 +335,7 @@ def test_run_benchmark_case_bc_family_includes_workflow_validation(
     tmp_path: Path,
 ) -> None:
     policy_path = tmp_path / "bc_policy.json"
-    BCPPolicy(
+    FrequencyPolicy(
         tool_counts={"browser.read": 1},
         arg_templates={"browser.read": {}},
     ).save(policy_path)

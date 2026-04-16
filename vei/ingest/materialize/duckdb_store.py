@@ -6,11 +6,14 @@ Provides graph projection queries and case event retrieval.
 
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from vei.events.models import CanonicalEvent
 from vei.ingest.api import SessionSlice
+
+logger = logging.getLogger(__name__)
 
 _DUCKDB_AVAILABLE = False
 try:
@@ -34,7 +37,8 @@ class DuckDBMaterializer:
             self._conn = None
 
     def _init_schema(self) -> None:
-        assert self._conn is not None
+        if self._conn is None:
+            return
         self._conn.execute("""
             CREATE TABLE IF NOT EXISTS canonical_events (
                 event_id VARCHAR PRIMARY KEY,
@@ -77,8 +81,13 @@ class DuckDBMaterializer:
                     ],
                 )
                 applied += 1
-            except Exception:
-                pass
+            except (
+                Exception
+            ) as exc:  # noqa: BLE001 - duckdb errors are opaque; log and skip
+                logger.warning(
+                    "duckdb_apply_failed",
+                    extra={"event_id": event.event_id, "error": str(exc)[:200]},
+                )
         return applied
 
     def query_graph(
