@@ -59,7 +59,7 @@ from .research import (
     load_research_pack_run_result,
     run_research_pack,
 )
-from .public_context import build_public_context, empty_public_context
+from vei.context.api import build_public_context, empty_public_context
 from .scenario_registry import list_supported_scenarios
 
 __all__ = [

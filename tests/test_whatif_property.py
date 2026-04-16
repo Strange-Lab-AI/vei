@@ -7,7 +7,7 @@ from hypothesis import HealthCheck, given, settings
 from hypothesis import strategies as st
 
 from vei.whatif.cases import _event_anchor_tokens
-from vei.whatif.interventions import intervention_tags
+from vei.whatif._helpers import intervention_tags
 from vei.whatif.models import (
     WhatIfArtifactFlags,
     WhatIfCaseSummary,

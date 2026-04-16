@@ -2,19 +2,21 @@
 
 VEI now supports a company-history historical what-if workflow for archive-backed datasets such as the Enron Rosetta event tables and normalized multi-source context snapshots.
 
-The flow has four steps:
+The flow has five steps:
 
-1. Explore the whole history to see what a rule or intervention would have touched.
-2. Pick one exact historical event.
-3. Materialize that event's thread into a strict historical workspace.
-4. Compare the baseline future against one or more counterfactual paths.
+1. **Normalize** — turn raw company records into a verified `context_snapshot.json` (`vei context normalize`).
+2. **Branch** — explore the whole history, pick one exact historical event as the branch point.
+3. **Materialize** — build a strict historical workspace with `episode_manifest.json` and optional `whatif_public_context.json`.
+4. **Compare** — run the baseline future against one or more counterfactual paths.
+5. **Validate** — verify the saved bundle (`python scripts/validate_whatif_artifacts.py`).
 
-Studio now supports this same loop directly:
+Studio supports the same loop directly:
 
 1. search the archive for a real historical moment
 2. choose one event from the results
 3. materialize the baseline workspace
 4. run the counterfactual and inspect the saved comparison bundle
+5. validate the resulting bundle
 
 ## Why this shape
 

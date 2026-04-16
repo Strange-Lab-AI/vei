@@ -7,7 +7,7 @@ from vei.whatif.business_state import (
     assess_historical_business_state,
     describe_forecast_business_change,
 )
-from vei.whatif.interventions import intervention_tags
+from vei.whatif._helpers import intervention_tags
 from vei.whatif.models import (
     WhatIfEpisodeManifest,
     WhatIfEventReference,

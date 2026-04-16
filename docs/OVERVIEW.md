@@ -34,8 +34,8 @@ For Enron, that mail-first branch point can also carry a packaged public-company
 
 Two compare paths exist today:
 
-- **LLM actor continuation** — bounded email-only continuation on the affected thread
-- **E-JEPA forecast** — a real local JEPA-backed forecaster when the sibling `ARP_Jepa_exp` runtime is available, trained on a deterministic local slice around the chosen branch point, with an automatic proxy fallback otherwise
+- **LLM actor continuation** — bounded multi-channel continuation on the affected thread, supporting mail, chat (Slack/Teams-style), and Jira-style ticket adapters
+- **Dynamics forecast** — a pluggable forecast backend registered through `vei.dynamics.api`; the default is `heuristic_baseline` with optional learned backends (E-JEPA, reference transformer) when a trained checkpoint is available
 
 ## The Five Layers
 

@@ -29,7 +29,7 @@ from .episode import (
     materialize_episode,
     replay_episode_baseline,
 )
-from .interventions import intervention_tags
+from ._helpers import intervention_tags
 from .models import (
     WhatIfBackendBranchContract,
     WhatIfBackendScore,

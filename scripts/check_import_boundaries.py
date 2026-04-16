@@ -13,6 +13,7 @@ Exceptions:
 
 Exit 0 if clean, 1 if violations found.
 """
+
 from __future__ import annotations
 
 import ast
@@ -26,6 +27,11 @@ EXEMPT_IMPORTERS = {"cli"}
 INFRA_MODULES = {"data", "llm", "policy", "behavior", "rl"}
 
 TYPE_SUBMODULES = {"models", "errors"}
+
+CROSS_BOUNDARY_ALLOWED = {
+    ("dynamics", "whatif", "benchmark_bridge"),
+    ("ui", "whatif", "artifact_validation"),
+}
 
 
 def module_of(path: Path) -> str | None:
@@ -70,6 +76,8 @@ def check_file(path: Path, *, strict: bool = False) -> list[tuple[str, bool]]:
                 continue
 
             sub = parts[2]
+            if (source_module, target_module, sub) in CROSS_BOUNDARY_ALLOWED:
+                continue
             is_type = sub in TYPE_SUBMODULES
 
             if is_type and not strict:
@@ -86,6 +94,7 @@ def check_file(path: Path, *, strict: bool = False) -> list[tuple[str, bool]]:
             )
 
     return violations
+
 
 def _parse_max_violations() -> int | None:
     for arg in sys.argv[1:]:

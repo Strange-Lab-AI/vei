@@ -1033,7 +1033,7 @@ def test_ui_api_historical_workspace_prefers_manifest_rosetta_dir(
     episode = WhatIfEpisodeManifest(
         source="enron",
         source_dir=primary_rosetta,
-        workspace_root=workspace_root,
+        workspace_root="workspace",
         organization_name="Enron Corporation",
         organization_domain="enron.com",
         thread_id="thr-external",
@@ -1084,7 +1084,7 @@ def test_ui_api_saved_enron_workspace_without_rosetta_uses_saved_context_snapsho
     episode = WhatIfEpisodeManifest(
         source="enron",
         source_dir="/missing/rosetta",
-        workspace_root=workspace_root,
+        workspace_root="workspace",
         organization_name="Enron Corporation",
         organization_domain="enron.com",
         thread_id="thr-master-agreement",
@@ -1172,7 +1172,7 @@ def test_ui_api_saved_bundle_routes_recheck_bundle_after_app_start(
     episode = WhatIfEpisodeManifest(
         source="enron",
         source_dir="/missing/rosetta",
-        workspace_root=workspace_root,
+        workspace_root="workspace",
         organization_name="Enron Corporation",
         organization_domain="enron.com",
         thread_id="thr-master-agreement",
@@ -1337,7 +1337,7 @@ def test_ui_api_saved_bundle_routes_support_non_enron_saved_branches(
     episode = WhatIfEpisodeManifest(
         source="mail_archive",
         source_dir="/missing/mail_archive.json",
-        workspace_root=workspace_root,
+        workspace_root="workspace",
         organization_name="Py Corp",
         organization_domain="pycorp.example.com",
         thread_id="py-legal-001",
@@ -1505,7 +1505,7 @@ def test_ui_api_saved_enron_workspace_prefers_live_rosetta_for_auto_actions(
     episode = WhatIfEpisodeManifest(
         source="enron",
         source_dir="not-included-in-repo-example",
-        workspace_root=workspace_root,
+        workspace_root="workspace",
         organization_name="Enron Corporation",
         organization_domain="enron.com",
         thread_id="thr-master-agreement",
@@ -1617,7 +1617,7 @@ def test_ui_api_saved_bundle_respects_explicit_company_history_source(
     episode = WhatIfEpisodeManifest(
         source="enron",
         source_dir="not-included-in-repo-example",
-        workspace_root=workspace_root,
+        workspace_root="workspace",
         organization_name="Enron Corporation",
         organization_domain="enron.com",
         thread_id="thr-master-agreement",

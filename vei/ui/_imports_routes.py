@@ -5,6 +5,7 @@ from pathlib import Path
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
 
+from vei.whatif_filenames import CONTEXT_SNAPSHOT_FILE
 from vei.workspace import build_identity_flow_summary
 from vei.workspace.api import (
     activate_workspace_contract_variant,
@@ -238,7 +239,7 @@ def register_imports_routes(app: FastAPI, root: Path) -> None:
             organization_domain="",
         )
 
-        out_path = root / "context_snapshot.json"
+        out_path = root / CONTEXT_SNAPSHOT_FILE
         out_path.write_text(
             snapshot.model_dump_json(indent=2),
             encoding="utf-8",

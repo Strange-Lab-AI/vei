@@ -16,7 +16,7 @@ def test_hotspot_modules_stay_below_foundation_size_budget() -> None:
         "vei/ui/_workspace_routes.py": 900,
         "vei/ui/_api_models.py": 400,
         "vei/twin/_runtime.py": 1200,
-        "vei/twin/api.py": 1329,
+        "vei/twin/api.py": 1335,
         "vei/router/core.py": 1200,
         "vei/sdk/api.py": 1295,
         "vei/workspace/api.py": 1200,

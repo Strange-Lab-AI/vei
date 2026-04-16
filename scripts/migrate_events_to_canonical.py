@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 """Migrate legacy events.jsonl (StateStore format) to CanonicalEvent v1 JSONL.
 
+One-shot migration utility. Not part of the regular ``make check`` or
+``make test`` contract. Remove after 2026-09-01 if no longer needed.
+
 Reads each line from a legacy events.jsonl file produced by
 ``vei.world.state.StateStore``, converts it to a ``CanonicalEvent`` v1
 envelope via ``vei.events.legacy``, and writes one JSON object per line to
@@ -56,7 +59,9 @@ def _validate(input_path: Path, output_path: Path, tenant_id: str) -> list[str]:
             if not line:
                 continue
             raw = json.loads(line)
-            source_ids.append((str(raw.get("event_id", "")), int(raw.get("clock_ms", 0))))
+            source_ids.append(
+                (str(raw.get("event_id", "")), int(raw.get("clock_ms", 0)))
+            )
 
     output_ids: list[tuple[str, int]] = []
     with output_path.open("r", encoding="utf-8") as fh:

@@ -40,7 +40,7 @@ from .corpus import (
     hydrate_event_snippets,
     recipient_scope,
 )
-from .interventions import intervention_tags
+from ._helpers import intervention_tags
 from .models import (
     WhatIfActionSchema,
     WhatIfAuditRecord,
@@ -85,7 +85,7 @@ from .models import (
     WhatIfAuditSummary,
 )
 from .research import get_research_pack
-from .public_context import slice_public_context_to_branch
+from vei.context.api import slice_public_context_to_branch
 
 
 @dataclass(frozen=True)

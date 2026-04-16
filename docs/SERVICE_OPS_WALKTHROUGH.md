@@ -7,6 +7,15 @@ This walkthrough describes the current Studio experience for the `service_ops` p
 1. **Control plane** — governed agent activity with visible denials, approval holds, connector status, and operator controls.
 2. **What-if replay** — change a small set of service-ops policy knobs, replay from the same starting point, and compare the new outcome side by side.
 
+### Quick start (from a fresh clone)
+
+```bash
+make setup
+vei quickstart --archetype service_ops --governor-demo
+```
+
+This launches the Clearwater Field Services world with governor mode and opens Studio. No API keys required for the built-in deterministic demo.
+
 ---
 
 ## 1. Entering the World

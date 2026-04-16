@@ -20,7 +20,7 @@ from vei.whatif.corpus import (
     recipient_scope as shared_recipient_scope,
     thread_events,
 )
-from vei.whatif.interventions import intervention_tags
+from vei.whatif._helpers import intervention_tags
 from vei.whatif.models import (
     WhatIfHistoricalScore,
     WhatIfCounterfactualEstimateArtifacts,

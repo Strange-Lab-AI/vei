@@ -11,7 +11,7 @@ SETUP_FULL_EXTRAS := dev,llm,sse,ui,test,rl
 COVERAGE_FAIL_UNDER ?= $(or $(shell awk 'BEGIN { section = 0 } $$1 == "coverage:" { section = 1; next } section && $$1 == "global:" { print int($$2 * 100); exit }' $(AGENTS_FILE) 2>/dev/null),80)
 PIPAPI_PYTHON := $(abspath $(VENV_BIN)/python)
 
-.PHONY: setup bootstrap setup-full check test dynamics-eval llm-live deps-audit all clean clean-workspace
+.PHONY: setup bootstrap setup-full check test dynamics-eval llm-live deps-audit enron-example all clean clean-workspace
 
 $(VENV)/bin/activate:
 	$(PYTHON) -m venv $(VENV)
@@ -95,6 +95,10 @@ dynamics-eval: $(SETUP_FULL_STAMP)
 	@echo "--- dynamics evaluation ---"
 	$(VENV_BIN)/python -m pytest tests/dynamics/ -v --tb=short
 	@echo "Dynamics evaluation passed."
+
+enron-example: $(SETUP_FULL_STAMP)
+	$(VENV_BIN)/python scripts/package_enron_master_agreement_example.py
+	$(VENV_BIN)/python scripts/validate_whatif_artifacts.py docs/examples/enron-master-agreement-public-context
 
 all: check test dynamics-eval llm-live deps-audit
 

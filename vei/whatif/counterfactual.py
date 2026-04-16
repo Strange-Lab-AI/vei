@@ -36,11 +36,11 @@ from .corpus import (
     ENRON_DOMAIN,
     safe_int,
 )
-from .public_context import public_context_prompt_lines
+from vei.context.api import public_context_prompt_lines
 from .cases import case_context_prompt_lines
 from .business_state import describe_forecast_business_change
 from .episode import load_episode_manifest
-from .interventions import intervention_tags
+from ._helpers import intervention_tags
 from .situations import situation_context_prompt_lines
 from ._helpers import (
     chat_channel_name_from_reference as _chat_channel_name_from_reference,

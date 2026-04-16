@@ -21,6 +21,7 @@ from vei.orchestrators.api import (
     OrchestratorSyncHealth,
     OrchestratorTask,
 )
+from vei import pilot as _pilot_compat
 from vei.pilot import api as pilot_api
 from vei.twin.models import (
     CompatibilitySurfaceSpec,
@@ -29,6 +30,19 @@ from vei.twin.models import (
     TwinGatewayConfig,
 )
 from vei.workspace.api import create_workspace_from_template
+
+PILOT_GUIDE_FILE = _pilot_compat.PILOT_GUIDE_FILE
+PILOT_MANIFEST_FILE = _pilot_compat.PILOT_MANIFEST_FILE
+PILOT_ORCHESTRATOR_CACHE_FILE = _pilot_compat.PILOT_ORCHESTRATOR_CACHE_FILE
+PILOT_ORCHESTRATOR_SYNC_FILE = _pilot_compat.PILOT_ORCHESTRATOR_SYNC_FILE
+PILOT_RUNTIME_FILE = _pilot_compat.PILOT_RUNTIME_FILE
+
+pilot_api.PilotManifest = _pilot_compat.PilotManifest  # type: ignore[attr-defined]
+pilot_api.PilotOutcomeSummary = _pilot_compat.PilotOutcomeSummary  # type: ignore[attr-defined]
+pilot_api.PilotRuntime = _pilot_compat.PilotRuntime  # type: ignore[attr-defined]
+pilot_api.PilotServiceRecord = _pilot_compat.PilotServiceRecord  # type: ignore[attr-defined]
+pilot_api.PilotSnippet = _pilot_compat.PilotSnippet  # type: ignore[attr-defined]
+pilot_api.PilotStatus = _pilot_compat.PilotStatus  # type: ignore[attr-defined]
 
 
 def test_start_pilot_writes_handoff_files_and_status(
@@ -129,13 +143,13 @@ def test_start_pilot_writes_handoff_files_and_status(
     assert status.activity[0].tool == "slack.send_message"
     assert status.activity[0].agent_name == "starter-agent"
     assert status.active_agents[0].role == "external-agent"
-    assert (root / pilot_api.PILOT_MANIFEST_FILE).exists()
-    assert (root / pilot_api.PILOT_GUIDE_FILE).exists()
-    assert (root / pilot_api.PILOT_RUNTIME_FILE).exists()
+    assert (root / PILOT_MANIFEST_FILE).exists()
+    assert (root / PILOT_GUIDE_FILE).exists()
+    assert (root / PILOT_RUNTIME_FILE).exists()
 
     manifest = pilot_api.load_pilot_manifest(root)
     runtime = pilot_api.load_pilot_runtime(root)
-    guide = (root / pilot_api.PILOT_GUIDE_FILE).read_text(encoding="utf-8")
+    guide = (root / PILOT_GUIDE_FILE).read_text(encoding="utf-8")
 
     assert manifest.organization_name == "Acme Cloud"
     assert manifest.crisis_name
@@ -322,7 +336,7 @@ def test_start_pilot_rebuild_stops_existing_services_first(
         started_at="2026-03-25T18:00:00+00:00",
         updated_at="2026-03-25T18:00:00+00:00",
     )
-    (root / pilot_api.PILOT_RUNTIME_FILE).write_text(
+    (root / PILOT_RUNTIME_FILE).write_text(
         runtime.model_dump_json(indent=2),
         encoding="utf-8",
     )
@@ -336,7 +350,7 @@ def test_start_pilot_rebuild_stops_existing_services_first(
         for service in stopped_runtime.services:
             service.pid = None
             service.state = "stopped"
-        (root / pilot_api.PILOT_RUNTIME_FILE).write_text(
+        (root / PILOT_RUNTIME_FILE).write_text(
             stopped_runtime.model_dump_json(indent=2),
             encoding="utf-8",
         )
@@ -466,11 +480,11 @@ def test_build_pilot_status_merges_orchestrator_snapshot_and_syncs_mirror_agents
         started_at="2026-04-01T10:00:00+00:00",
         updated_at="2026-04-01T10:05:00+00:00",
     )
-    (root / pilot_api.PILOT_MANIFEST_FILE).write_text(
+    (root / PILOT_MANIFEST_FILE).write_text(
         manifest.model_dump_json(indent=2),
         encoding="utf-8",
     )
-    (root / pilot_api.PILOT_RUNTIME_FILE).write_text(
+    (root / PILOT_RUNTIME_FILE).write_text(
         runtime.model_dump_json(indent=2),
         encoding="utf-8",
     )
@@ -778,19 +792,19 @@ def test_build_pilot_status_uses_cached_orchestrator_snapshot_without_refresh(
         last_success_at="2026-04-02T01:00:00+00:00",
         message="Cached previously.",
     )
-    (root / pilot_api.PILOT_MANIFEST_FILE).write_text(
+    (root / PILOT_MANIFEST_FILE).write_text(
         manifest.model_dump_json(indent=2),
         encoding="utf-8",
     )
-    (root / pilot_api.PILOT_RUNTIME_FILE).write_text(
+    (root / PILOT_RUNTIME_FILE).write_text(
         runtime.model_dump_json(indent=2),
         encoding="utf-8",
     )
-    (root / pilot_api.PILOT_ORCHESTRATOR_CACHE_FILE).write_text(
+    (root / PILOT_ORCHESTRATOR_CACHE_FILE).write_text(
         cached_snapshot.model_dump_json(indent=2),
         encoding="utf-8",
     )
-    (root / pilot_api.PILOT_ORCHESTRATOR_SYNC_FILE).write_text(
+    (root / PILOT_ORCHESTRATOR_SYNC_FILE).write_text(
         cached_sync.model_dump_json(indent=2),
         encoding="utf-8",
     )
@@ -920,19 +934,19 @@ def test_build_pilot_status_force_sync_uses_cached_orchestrator_snapshot_when_re
         last_success_at="2026-04-02T01:00:00+00:00",
         message="Cached previously.",
     )
-    (root / pilot_api.PILOT_MANIFEST_FILE).write_text(
+    (root / PILOT_MANIFEST_FILE).write_text(
         manifest.model_dump_json(indent=2),
         encoding="utf-8",
     )
-    (root / pilot_api.PILOT_RUNTIME_FILE).write_text(
+    (root / PILOT_RUNTIME_FILE).write_text(
         runtime.model_dump_json(indent=2),
         encoding="utf-8",
     )
-    (root / pilot_api.PILOT_ORCHESTRATOR_CACHE_FILE).write_text(
+    (root / PILOT_ORCHESTRATOR_CACHE_FILE).write_text(
         cached_snapshot.model_dump_json(indent=2),
         encoding="utf-8",
     )
-    (root / pilot_api.PILOT_ORCHESTRATOR_SYNC_FILE).write_text(
+    (root / PILOT_ORCHESTRATOR_SYNC_FILE).write_text(
         cached_sync.model_dump_json(indent=2),
         encoding="utf-8",
     )
@@ -1077,15 +1091,15 @@ def test_build_pilot_status_prunes_stale_orchestrator_agents_from_mirror(
             ),
         ],
     )
-    (root / pilot_api.PILOT_MANIFEST_FILE).write_text(
+    (root / PILOT_MANIFEST_FILE).write_text(
         manifest.model_dump_json(indent=2),
         encoding="utf-8",
     )
-    (root / pilot_api.PILOT_RUNTIME_FILE).write_text(
+    (root / PILOT_RUNTIME_FILE).write_text(
         runtime.model_dump_json(indent=2),
         encoding="utf-8",
     )
-    (root / pilot_api.PILOT_ORCHESTRATOR_CACHE_FILE).write_text(
+    (root / PILOT_ORCHESTRATOR_CACHE_FILE).write_text(
         previous_snapshot.model_dump_json(indent=2),
         encoding="utf-8",
     )
@@ -1264,11 +1278,11 @@ def test_start_pilot_updates_live_manifest_with_new_orchestrator_config(
             ),
         ],
     )
-    (root / pilot_api.PILOT_MANIFEST_FILE).write_text(
+    (root / PILOT_MANIFEST_FILE).write_text(
         manifest.model_dump_json(indent=2),
         encoding="utf-8",
     )
-    (root / pilot_api.PILOT_RUNTIME_FILE).write_text(
+    (root / PILOT_RUNTIME_FILE).write_text(
         runtime.model_dump_json(indent=2),
         encoding="utf-8",
     )
@@ -1318,7 +1332,7 @@ def test_start_pilot_updates_live_manifest_with_new_orchestrator_config(
     )
 
     updated_manifest = pilot_api.load_pilot_manifest(root)
-    guide = (root / pilot_api.PILOT_GUIDE_FILE).read_text(encoding="utf-8")
+    guide = (root / PILOT_GUIDE_FILE).read_text(encoding="utf-8")
 
     assert status == expected_status
     assert captured_force_sync == [True]
@@ -1373,11 +1387,11 @@ def test_pause_pilot_orchestrator_agent_raises_when_workforce_recording_fails(
             )
         ],
     )
-    (root / pilot_api.PILOT_MANIFEST_FILE).write_text(
+    (root / PILOT_MANIFEST_FILE).write_text(
         manifest.model_dump_json(indent=2),
         encoding="utf-8",
     )
-    (root / pilot_api.PILOT_ORCHESTRATOR_CACHE_FILE).write_text(
+    (root / PILOT_ORCHESTRATOR_CACHE_FILE).write_text(
         snapshot.model_dump_json(indent=2),
         encoding="utf-8",
     )
@@ -1473,11 +1487,11 @@ def test_build_pilot_status_merges_vei_workforce_commands_into_activity(
             ),
         ],
     )
-    (root / pilot_api.PILOT_MANIFEST_FILE).write_text(
+    (root / PILOT_MANIFEST_FILE).write_text(
         manifest.model_dump_json(indent=2),
         encoding="utf-8",
     )
-    (root / pilot_api.PILOT_RUNTIME_FILE).write_text(
+    (root / PILOT_RUNTIME_FILE).write_text(
         runtime.model_dump_json(indent=2),
         encoding="utf-8",
     )
@@ -1581,11 +1595,11 @@ def test_comment_on_pilot_orchestrator_task_posts_guidance_and_refreshes(
             )
         ],
     )
-    (root / pilot_api.PILOT_MANIFEST_FILE).write_text(
+    (root / PILOT_MANIFEST_FILE).write_text(
         manifest.model_dump_json(indent=2),
         encoding="utf-8",
     )
-    (root / pilot_api.PILOT_ORCHESTRATOR_CACHE_FILE).write_text(
+    (root / PILOT_ORCHESTRATOR_CACHE_FILE).write_text(
         snapshot.model_dump_json(indent=2),
         encoding="utf-8",
     )
@@ -1743,11 +1757,11 @@ def test_pilot_orchestrator_approval_actions_refresh_status(
             )
         ],
     )
-    (root / pilot_api.PILOT_MANIFEST_FILE).write_text(
+    (root / PILOT_MANIFEST_FILE).write_text(
         manifest.model_dump_json(indent=2),
         encoding="utf-8",
     )
-    (root / pilot_api.PILOT_ORCHESTRATOR_CACHE_FILE).write_text(
+    (root / PILOT_ORCHESTRATOR_CACHE_FILE).write_text(
         snapshot.model_dump_json(indent=2),
         encoding="utf-8",
     )
@@ -1921,11 +1935,11 @@ def test_pilot_orchestrator_agent_actions_record_workforce_command(
             )
         ],
     )
-    (root / pilot_api.PILOT_MANIFEST_FILE).write_text(
+    (root / PILOT_MANIFEST_FILE).write_text(
         manifest.model_dump_json(indent=2),
         encoding="utf-8",
     )
-    (root / pilot_api.PILOT_ORCHESTRATOR_CACHE_FILE).write_text(
+    (root / PILOT_ORCHESTRATOR_CACHE_FILE).write_text(
         snapshot.model_dump_json(indent=2),
         encoding="utf-8",
     )
