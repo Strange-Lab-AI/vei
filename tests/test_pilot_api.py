@@ -21,8 +21,14 @@ from vei.orchestrators.api import (
     OrchestratorSyncHealth,
     OrchestratorTask,
 )
-from vei import pilot as _pilot_compat
 from vei.pilot import api as pilot_api
+from vei.pilot.models import (
+    PilotManifest,
+    PilotOutcomeSummary,
+    PilotRuntime,
+    PilotServiceRecord,
+    PilotStatus,
+)
 from vei.twin.models import (
     CompatibilitySurfaceSpec,
     ContextMoldConfig,
@@ -31,18 +37,11 @@ from vei.twin.models import (
 )
 from vei.workspace.api import create_workspace_from_template
 
-PILOT_GUIDE_FILE = _pilot_compat.PILOT_GUIDE_FILE
-PILOT_MANIFEST_FILE = _pilot_compat.PILOT_MANIFEST_FILE
-PILOT_ORCHESTRATOR_CACHE_FILE = _pilot_compat.PILOT_ORCHESTRATOR_CACHE_FILE
-PILOT_ORCHESTRATOR_SYNC_FILE = _pilot_compat.PILOT_ORCHESTRATOR_SYNC_FILE
-PILOT_RUNTIME_FILE = _pilot_compat.PILOT_RUNTIME_FILE
-
-pilot_api.PilotManifest = _pilot_compat.PilotManifest  # type: ignore[attr-defined]
-pilot_api.PilotOutcomeSummary = _pilot_compat.PilotOutcomeSummary  # type: ignore[attr-defined]
-pilot_api.PilotRuntime = _pilot_compat.PilotRuntime  # type: ignore[attr-defined]
-pilot_api.PilotServiceRecord = _pilot_compat.PilotServiceRecord  # type: ignore[attr-defined]
-pilot_api.PilotSnippet = _pilot_compat.PilotSnippet  # type: ignore[attr-defined]
-pilot_api.PilotStatus = _pilot_compat.PilotStatus  # type: ignore[attr-defined]
+GUIDE_FILE = pilot_api.TWIN_LAUNCH_GUIDE_FILE
+MANIFEST_FILE = pilot_api.TWIN_LAUNCH_MANIFEST_FILE
+ORCHESTRATOR_CACHE_FILE = pilot_api.TWIN_ORCHESTRATOR_CACHE_FILE
+ORCHESTRATOR_SYNC_FILE = pilot_api.TWIN_ORCHESTRATOR_SYNC_FILE
+RUNTIME_FILE = pilot_api.TWIN_LAUNCH_RUNTIME_FILE
 
 
 def test_start_pilot_writes_handoff_files_and_status(
@@ -143,13 +142,13 @@ def test_start_pilot_writes_handoff_files_and_status(
     assert status.activity[0].tool == "slack.send_message"
     assert status.activity[0].agent_name == "starter-agent"
     assert status.active_agents[0].role == "external-agent"
-    assert (root / PILOT_MANIFEST_FILE).exists()
-    assert (root / PILOT_GUIDE_FILE).exists()
-    assert (root / PILOT_RUNTIME_FILE).exists()
+    assert (root / MANIFEST_FILE).exists()
+    assert (root / GUIDE_FILE).exists()
+    assert (root / RUNTIME_FILE).exists()
 
     manifest = pilot_api.load_pilot_manifest(root)
     runtime = pilot_api.load_pilot_runtime(root)
-    guide = (root / PILOT_GUIDE_FILE).read_text(encoding="utf-8")
+    guide = (root / GUIDE_FILE).read_text(encoding="utf-8")
 
     assert manifest.organization_name == "Acme Cloud"
     assert manifest.crisis_name
@@ -313,10 +312,10 @@ def test_start_pilot_rebuild_stops_existing_services_first(
     root.mkdir(parents=True, exist_ok=True)
     gateway_port = 49220
     studio_port = 49211
-    runtime = pilot_api.PilotRuntime(
+    runtime = PilotRuntime(
         workspace_root=root,
         services=[
-            pilot_api.PilotServiceRecord(
+            PilotServiceRecord(
                 name="gateway",
                 host="127.0.0.1",
                 port=gateway_port,
@@ -324,7 +323,7 @@ def test_start_pilot_rebuild_stops_existing_services_first(
                 pid=4101,
                 state="running",
             ),
-            pilot_api.PilotServiceRecord(
+            PilotServiceRecord(
                 name="studio",
                 host="127.0.0.1",
                 port=studio_port,
@@ -336,7 +335,7 @@ def test_start_pilot_rebuild_stops_existing_services_first(
         started_at="2026-03-25T18:00:00+00:00",
         updated_at="2026-03-25T18:00:00+00:00",
     )
-    (root / PILOT_RUNTIME_FILE).write_text(
+    (root / RUNTIME_FILE).write_text(
         runtime.model_dump_json(indent=2),
         encoding="utf-8",
     )
@@ -350,12 +349,12 @@ def test_start_pilot_rebuild_stops_existing_services_first(
         for service in stopped_runtime.services:
             service.pid = None
             service.state = "stopped"
-        (root / PILOT_RUNTIME_FILE).write_text(
+        (root / RUNTIME_FILE).write_text(
             stopped_runtime.model_dump_json(indent=2),
             encoding="utf-8",
         )
-        return pilot_api.PilotStatus(
-            manifest=pilot_api.PilotManifest(
+        return PilotStatus(
+            manifest=PilotManifest(
                 workspace_root=root,
                 workspace_name="pilot",
                 organization_name="Pinnacle Analytics",
@@ -371,7 +370,7 @@ def test_start_pilot_rebuild_stops_existing_services_first(
                 sample_client_path="/tmp/governor_client.py",
             ),
             runtime=stopped_runtime,
-            outcome=pilot_api.PilotOutcomeSummary(
+            outcome=PilotOutcomeSummary(
                 status="stopped",
                 summary="stopped",
             ),
@@ -426,7 +425,7 @@ def test_build_pilot_status_merges_orchestrator_snapshot_and_syncs_mirror_agents
 ) -> None:
     root = tmp_path / "pilot_orchestrator"
     root.mkdir(parents=True, exist_ok=True)
-    manifest = pilot_api.PilotManifest(
+    manifest = PilotManifest(
         workspace_root=root,
         workspace_name="pilot",
         organization_name="Pinnacle Analytics",
@@ -457,10 +456,10 @@ def test_build_pilot_status_merges_orchestrator_snapshot_and_syncs_mirror_agents
             company_id="company-1",
         ),
     )
-    runtime = pilot_api.PilotRuntime(
+    runtime = PilotRuntime(
         workspace_root=root,
         services=[
-            pilot_api.PilotServiceRecord(
+            PilotServiceRecord(
                 name="gateway",
                 host="127.0.0.1",
                 port=3020,
@@ -468,7 +467,7 @@ def test_build_pilot_status_merges_orchestrator_snapshot_and_syncs_mirror_agents
                 pid=4101,
                 state="running",
             ),
-            pilot_api.PilotServiceRecord(
+            PilotServiceRecord(
                 name="studio",
                 host="127.0.0.1",
                 port=3011,
@@ -480,11 +479,11 @@ def test_build_pilot_status_merges_orchestrator_snapshot_and_syncs_mirror_agents
         started_at="2026-04-01T10:00:00+00:00",
         updated_at="2026-04-01T10:05:00+00:00",
     )
-    (root / PILOT_MANIFEST_FILE).write_text(
+    (root / MANIFEST_FILE).write_text(
         manifest.model_dump_json(indent=2),
         encoding="utf-8",
     )
-    (root / PILOT_RUNTIME_FILE).write_text(
+    (root / RUNTIME_FILE).write_text(
         runtime.model_dump_json(indent=2),
         encoding="utf-8",
     )
@@ -735,7 +734,7 @@ def test_build_pilot_status_uses_cached_orchestrator_snapshot_without_refresh(
 ) -> None:
     root = tmp_path / "pilot_orchestrator_cache"
     root.mkdir(parents=True, exist_ok=True)
-    manifest = pilot_api.PilotManifest(
+    manifest = PilotManifest(
         workspace_root=root,
         workspace_name="pilot",
         organization_name="Pinnacle Analytics",
@@ -755,10 +754,10 @@ def test_build_pilot_status_uses_cached_orchestrator_snapshot_without_refresh(
             company_id="company-1",
         ),
     )
-    runtime = pilot_api.PilotRuntime(
+    runtime = PilotRuntime(
         workspace_root=root,
         services=[
-            pilot_api.PilotServiceRecord(
+            PilotServiceRecord(
                 name="gateway",
                 host="127.0.0.1",
                 port=3020,
@@ -766,7 +765,7 @@ def test_build_pilot_status_uses_cached_orchestrator_snapshot_without_refresh(
                 pid=4101,
                 state="running",
             ),
-            pilot_api.PilotServiceRecord(
+            PilotServiceRecord(
                 name="studio",
                 host="127.0.0.1",
                 port=3011,
@@ -792,19 +791,19 @@ def test_build_pilot_status_uses_cached_orchestrator_snapshot_without_refresh(
         last_success_at="2026-04-02T01:00:00+00:00",
         message="Cached previously.",
     )
-    (root / PILOT_MANIFEST_FILE).write_text(
+    (root / MANIFEST_FILE).write_text(
         manifest.model_dump_json(indent=2),
         encoding="utf-8",
     )
-    (root / PILOT_RUNTIME_FILE).write_text(
+    (root / RUNTIME_FILE).write_text(
         runtime.model_dump_json(indent=2),
         encoding="utf-8",
     )
-    (root / PILOT_ORCHESTRATOR_CACHE_FILE).write_text(
+    (root / ORCHESTRATOR_CACHE_FILE).write_text(
         cached_snapshot.model_dump_json(indent=2),
         encoding="utf-8",
     )
-    (root / PILOT_ORCHESTRATOR_SYNC_FILE).write_text(
+    (root / ORCHESTRATOR_SYNC_FILE).write_text(
         cached_sync.model_dump_json(indent=2),
         encoding="utf-8",
     )
@@ -877,7 +876,7 @@ def test_build_pilot_status_force_sync_uses_cached_orchestrator_snapshot_when_re
 ) -> None:
     root = tmp_path / "pilot_orchestrator_cache_force_sync"
     root.mkdir(parents=True, exist_ok=True)
-    manifest = pilot_api.PilotManifest(
+    manifest = PilotManifest(
         workspace_root=root,
         workspace_name="pilot",
         organization_name="Pinnacle Analytics",
@@ -897,10 +896,10 @@ def test_build_pilot_status_force_sync_uses_cached_orchestrator_snapshot_when_re
             company_id="company-1",
         ),
     )
-    runtime = pilot_api.PilotRuntime(
+    runtime = PilotRuntime(
         workspace_root=root,
         services=[
-            pilot_api.PilotServiceRecord(
+            PilotServiceRecord(
                 name="gateway",
                 host="127.0.0.1",
                 port=3020,
@@ -908,7 +907,7 @@ def test_build_pilot_status_force_sync_uses_cached_orchestrator_snapshot_when_re
                 pid=4101,
                 state="running",
             ),
-            pilot_api.PilotServiceRecord(
+            PilotServiceRecord(
                 name="studio",
                 host="127.0.0.1",
                 port=3011,
@@ -934,19 +933,19 @@ def test_build_pilot_status_force_sync_uses_cached_orchestrator_snapshot_when_re
         last_success_at="2026-04-02T01:00:00+00:00",
         message="Cached previously.",
     )
-    (root / PILOT_MANIFEST_FILE).write_text(
+    (root / MANIFEST_FILE).write_text(
         manifest.model_dump_json(indent=2),
         encoding="utf-8",
     )
-    (root / PILOT_RUNTIME_FILE).write_text(
+    (root / RUNTIME_FILE).write_text(
         runtime.model_dump_json(indent=2),
         encoding="utf-8",
     )
-    (root / PILOT_ORCHESTRATOR_CACHE_FILE).write_text(
+    (root / ORCHESTRATOR_CACHE_FILE).write_text(
         cached_snapshot.model_dump_json(indent=2),
         encoding="utf-8",
     )
-    (root / PILOT_ORCHESTRATOR_SYNC_FILE).write_text(
+    (root / ORCHESTRATOR_SYNC_FILE).write_text(
         cached_sync.model_dump_json(indent=2),
         encoding="utf-8",
     )
@@ -1019,7 +1018,7 @@ def test_build_pilot_status_prunes_stale_orchestrator_agents_from_mirror(
 ) -> None:
     root = tmp_path / "pilot_orchestrator_prune"
     root.mkdir(parents=True, exist_ok=True)
-    manifest = pilot_api.PilotManifest(
+    manifest = PilotManifest(
         workspace_root=root,
         workspace_name="pilot",
         organization_name="Pinnacle Analytics",
@@ -1044,10 +1043,10 @@ def test_build_pilot_status_prunes_stale_orchestrator_agents_from_mirror(
             company_id="company-2",
         ),
     )
-    runtime = pilot_api.PilotRuntime(
+    runtime = PilotRuntime(
         workspace_root=root,
         services=[
-            pilot_api.PilotServiceRecord(
+            PilotServiceRecord(
                 name="gateway",
                 host="127.0.0.1",
                 port=3020,
@@ -1055,7 +1054,7 @@ def test_build_pilot_status_prunes_stale_orchestrator_agents_from_mirror(
                 pid=4101,
                 state="running",
             ),
-            pilot_api.PilotServiceRecord(
+            PilotServiceRecord(
                 name="studio",
                 host="127.0.0.1",
                 port=3011,
@@ -1091,15 +1090,15 @@ def test_build_pilot_status_prunes_stale_orchestrator_agents_from_mirror(
             ),
         ],
     )
-    (root / PILOT_MANIFEST_FILE).write_text(
+    (root / MANIFEST_FILE).write_text(
         manifest.model_dump_json(indent=2),
         encoding="utf-8",
     )
-    (root / PILOT_RUNTIME_FILE).write_text(
+    (root / RUNTIME_FILE).write_text(
         runtime.model_dump_json(indent=2),
         encoding="utf-8",
     )
-    (root / PILOT_ORCHESTRATOR_CACHE_FILE).write_text(
+    (root / ORCHESTRATOR_CACHE_FILE).write_text(
         previous_snapshot.model_dump_json(indent=2),
         encoding="utf-8",
     )
@@ -1232,7 +1231,7 @@ def test_start_pilot_updates_live_manifest_with_new_orchestrator_config(
 ) -> None:
     root = tmp_path / "pilot_live_manifest"
     root.mkdir(parents=True, exist_ok=True)
-    manifest = pilot_api.PilotManifest(
+    manifest = PilotManifest(
         workspace_root=root,
         workspace_name="pilot",
         organization_name="Pinnacle Analytics",
@@ -1257,10 +1256,10 @@ def test_start_pilot_updates_live_manifest_with_new_orchestrator_config(
             company_id="company-old",
         ),
     )
-    runtime = pilot_api.PilotRuntime(
+    runtime = PilotRuntime(
         workspace_root=root,
         services=[
-            pilot_api.PilotServiceRecord(
+            PilotServiceRecord(
                 name="gateway",
                 host="127.0.0.1",
                 port=3020,
@@ -1268,7 +1267,7 @@ def test_start_pilot_updates_live_manifest_with_new_orchestrator_config(
                 pid=4101,
                 state="running",
             ),
-            pilot_api.PilotServiceRecord(
+            PilotServiceRecord(
                 name="studio",
                 host="127.0.0.1",
                 port=3011,
@@ -1278,19 +1277,19 @@ def test_start_pilot_updates_live_manifest_with_new_orchestrator_config(
             ),
         ],
     )
-    (root / PILOT_MANIFEST_FILE).write_text(
+    (root / MANIFEST_FILE).write_text(
         manifest.model_dump_json(indent=2),
         encoding="utf-8",
     )
-    (root / PILOT_RUNTIME_FILE).write_text(
+    (root / RUNTIME_FILE).write_text(
         runtime.model_dump_json(indent=2),
         encoding="utf-8",
     )
 
-    expected_status = pilot_api.PilotStatus(
+    expected_status = PilotStatus(
         manifest=manifest,
         runtime=runtime,
-        outcome=pilot_api.PilotOutcomeSummary(status="running", summary="ok"),
+        outcome=PilotOutcomeSummary(status="running", summary="ok"),
     )
     captured_force_sync: list[bool] = []
 
@@ -1332,7 +1331,7 @@ def test_start_pilot_updates_live_manifest_with_new_orchestrator_config(
     )
 
     updated_manifest = pilot_api.load_pilot_manifest(root)
-    guide = (root / PILOT_GUIDE_FILE).read_text(encoding="utf-8")
+    guide = (root / GUIDE_FILE).read_text(encoding="utf-8")
 
     assert status == expected_status
     assert captured_force_sync == [True]
@@ -1349,7 +1348,7 @@ def test_pause_pilot_orchestrator_agent_raises_when_workforce_recording_fails(
 ) -> None:
     root = tmp_path / "pilot_pause_record_failure"
     root.mkdir(parents=True, exist_ok=True)
-    manifest = pilot_api.PilotManifest(
+    manifest = PilotManifest(
         workspace_root=root,
         workspace_name="pilot",
         organization_name="Pinnacle Analytics",
@@ -1387,11 +1386,11 @@ def test_pause_pilot_orchestrator_agent_raises_when_workforce_recording_fails(
             )
         ],
     )
-    (root / PILOT_MANIFEST_FILE).write_text(
+    (root / MANIFEST_FILE).write_text(
         manifest.model_dump_json(indent=2),
         encoding="utf-8",
     )
-    (root / PILOT_ORCHESTRATOR_CACHE_FILE).write_text(
+    (root / ORCHESTRATOR_CACHE_FILE).write_text(
         snapshot.model_dump_json(indent=2),
         encoding="utf-8",
     )
@@ -1451,7 +1450,7 @@ def test_build_pilot_status_merges_vei_workforce_commands_into_activity(
 ) -> None:
     root = tmp_path / "pilot_workforce_activity"
     root.mkdir(parents=True, exist_ok=True)
-    manifest = pilot_api.PilotManifest(
+    manifest = PilotManifest(
         workspace_root=root,
         workspace_name="pilot",
         organization_name="Pinnacle Analytics",
@@ -1466,10 +1465,10 @@ def test_build_pilot_status_merges_vei_workforce_commands_into_activity(
         recommended_first_exercise="Keep the customer safe.",
         sample_client_path="/tmp/governor_client.py",
     )
-    runtime = pilot_api.PilotRuntime(
+    runtime = PilotRuntime(
         workspace_root=root,
         services=[
-            pilot_api.PilotServiceRecord(
+            PilotServiceRecord(
                 name="gateway",
                 host="127.0.0.1",
                 port=3020,
@@ -1477,7 +1476,7 @@ def test_build_pilot_status_merges_vei_workforce_commands_into_activity(
                 pid=4101,
                 state="running",
             ),
-            pilot_api.PilotServiceRecord(
+            PilotServiceRecord(
                 name="studio",
                 host="127.0.0.1",
                 port=3011,
@@ -1487,11 +1486,11 @@ def test_build_pilot_status_merges_vei_workforce_commands_into_activity(
             ),
         ],
     )
-    (root / PILOT_MANIFEST_FILE).write_text(
+    (root / MANIFEST_FILE).write_text(
         manifest.model_dump_json(indent=2),
         encoding="utf-8",
     )
-    (root / PILOT_RUNTIME_FILE).write_text(
+    (root / RUNTIME_FILE).write_text(
         runtime.model_dump_json(indent=2),
         encoding="utf-8",
     )
@@ -1557,7 +1556,7 @@ def test_comment_on_pilot_orchestrator_task_posts_guidance_and_refreshes(
 ) -> None:
     root = tmp_path / "pilot_comment_task"
     root.mkdir(parents=True, exist_ok=True)
-    manifest = pilot_api.PilotManifest(
+    manifest = PilotManifest(
         workspace_root=root,
         workspace_name="pilot",
         organization_name="Pinnacle Analytics",
@@ -1595,11 +1594,11 @@ def test_comment_on_pilot_orchestrator_task_posts_guidance_and_refreshes(
             )
         ],
     )
-    (root / PILOT_MANIFEST_FILE).write_text(
+    (root / MANIFEST_FILE).write_text(
         manifest.model_dump_json(indent=2),
         encoding="utf-8",
     )
-    (root / PILOT_ORCHESTRATOR_CACHE_FILE).write_text(
+    (root / ORCHESTRATOR_CACHE_FILE).write_text(
         snapshot.model_dump_json(indent=2),
         encoding="utf-8",
     )
@@ -1649,10 +1648,10 @@ def test_comment_on_pilot_orchestrator_task_posts_guidance_and_refreshes(
         def sync_capabilities(self):
             return OrchestratorSyncCapabilities()
 
-    expected_status = pilot_api.PilotStatus(
+    expected_status = PilotStatus(
         manifest=manifest,
-        runtime=pilot_api.PilotRuntime(workspace_root=root),
-        outcome=pilot_api.PilotOutcomeSummary(status="running", summary="ok"),
+        runtime=PilotRuntime(workspace_root=root),
+        outcome=PilotOutcomeSummary(status="running", summary="ok"),
     )
 
     monkeypatch.setattr(
@@ -1719,7 +1718,7 @@ def test_pilot_orchestrator_approval_actions_refresh_status(
 ) -> None:
     root = tmp_path / f"pilot_{action_name}_approval"
     root.mkdir(parents=True, exist_ok=True)
-    manifest = pilot_api.PilotManifest(
+    manifest = PilotManifest(
         workspace_root=root,
         workspace_name="pilot",
         organization_name="Pinnacle Analytics",
@@ -1757,11 +1756,11 @@ def test_pilot_orchestrator_approval_actions_refresh_status(
             )
         ],
     )
-    (root / PILOT_MANIFEST_FILE).write_text(
+    (root / MANIFEST_FILE).write_text(
         manifest.model_dump_json(indent=2),
         encoding="utf-8",
     )
-    (root / PILOT_ORCHESTRATOR_CACHE_FILE).write_text(
+    (root / ORCHESTRATOR_CACHE_FILE).write_text(
         snapshot.model_dump_json(indent=2),
         encoding="utf-8",
     )
@@ -1830,10 +1829,10 @@ def test_pilot_orchestrator_approval_actions_refresh_status(
         def sync_capabilities(self):
             return OrchestratorSyncCapabilities()
 
-    expected_status = pilot_api.PilotStatus(
+    expected_status = PilotStatus(
         manifest=manifest,
-        runtime=pilot_api.PilotRuntime(workspace_root=root),
-        outcome=pilot_api.PilotOutcomeSummary(status="running", summary="ok"),
+        runtime=PilotRuntime(workspace_root=root),
+        outcome=PilotOutcomeSummary(status="running", summary="ok"),
     )
 
     monkeypatch.setattr(
@@ -1897,7 +1896,7 @@ def test_pilot_orchestrator_agent_actions_record_workforce_command(
 ) -> None:
     root = tmp_path / f"pilot_{action_name}_agent"
     root.mkdir(parents=True, exist_ok=True)
-    manifest = pilot_api.PilotManifest(
+    manifest = PilotManifest(
         workspace_root=root,
         workspace_name="pilot",
         organization_name="Pinnacle Analytics",
@@ -1935,11 +1934,11 @@ def test_pilot_orchestrator_agent_actions_record_workforce_command(
             )
         ],
     )
-    (root / PILOT_MANIFEST_FILE).write_text(
+    (root / MANIFEST_FILE).write_text(
         manifest.model_dump_json(indent=2),
         encoding="utf-8",
     )
-    (root / PILOT_ORCHESTRATOR_CACHE_FILE).write_text(
+    (root / ORCHESTRATOR_CACHE_FILE).write_text(
         snapshot.model_dump_json(indent=2),
         encoding="utf-8",
     )
@@ -1997,10 +1996,10 @@ def test_pilot_orchestrator_agent_actions_record_workforce_command(
         def sync_capabilities(self):
             return OrchestratorSyncCapabilities()
 
-    expected_status = pilot_api.PilotStatus(
+    expected_status = PilotStatus(
         manifest=manifest,
-        runtime=pilot_api.PilotRuntime(workspace_root=root),
-        outcome=pilot_api.PilotOutcomeSummary(status="running", summary="ok"),
+        runtime=PilotRuntime(workspace_root=root),
+        outcome=PilotOutcomeSummary(status="running", summary="ok"),
     )
 
     monkeypatch.setattr(

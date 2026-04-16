@@ -59,6 +59,7 @@ from ._whatif_helpers import (
 )
 from ._root_mode import load_ui_workspace_summary
 from vei.whatif.api import resolve_saved_whatif_bundle, resolve_whatif_source_path
+from vei.whatif.artifact_validation import validate_saved_workspace
 
 
 def register_workspace_routes(app: FastAPI, root: Path, *, deps: Any) -> None:
@@ -92,6 +93,9 @@ def register_workspace_routes(app: FastAPI, root: Path, *, deps: Any) -> None:
         payload = _load_historical_summary_or_400(root)
         return JSONResponse(payload.model_dump(mode="json") if payload else {})
 
+    def _llm_available() -> bool:
+        return bool(os.environ.get("OPENAI_API_KEY", "").strip())
+
     @app.get("/api/workspace/whatif")
     def api_workspace_whatif_status() -> JSONResponse:
         resolved = resolve_whatif_source_path(root)
@@ -110,12 +114,17 @@ def register_workspace_routes(app: FastAPI, root: Path, *, deps: Any) -> None:
                 root,
                 requested_source="auto",
             )
+        validation_issues: list[str] = []
+        if saved_bundle_active:
+            validation_issues = validate_saved_workspace(root)
         return JSONResponse(
             {
                 "available": source_dir is not None,
                 "source": source,
                 "source_dir": source_dir,
                 "saved_bundle_active": saved_bundle_active,
+                "llm_available": _llm_available(),
+                "validation_issues": validation_issues,
                 "objective_packs": [
                     pack.model_dump(mode="json") for pack in list_objective_packs()
                 ],
@@ -261,6 +270,9 @@ def register_workspace_routes(app: FastAPI, root: Path, *, deps: Any) -> None:
             request.source,
             max_events=request.max_events,
         )
+        effective_mode = request.mode
+        if effective_mode in {"llm", "both"} and not _llm_available():
+            effective_mode = "heuristic_baseline"
         try:
             result = run_counterfactual_experiment(
                 world,
@@ -269,7 +281,7 @@ def register_workspace_routes(app: FastAPI, root: Path, *, deps: Any) -> None:
                 counterfactual_prompt=request.prompt,
                 event_id=request.event_id,
                 thread_id=request.thread_id,
-                mode=request.mode,
+                mode=effective_mode,
                 provider=request.provider,
                 model=request.model,
                 ejepa_epochs=request.ejepa_epochs,

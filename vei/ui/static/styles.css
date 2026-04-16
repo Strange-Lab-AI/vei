@@ -2468,6 +2468,26 @@ body.developer-mode .studio-nav-button.developer-only {
   gap: 6px;
 }
 
+.whatif-notice {
+  background: rgba(220, 170, 50, 0.12);
+  border-left: 3px solid rgba(220, 170, 50, 0.6);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3);
+  font-size: 0.82rem;
+  color: var(--ink-secondary);
+}
+
+.whatif-notice code {
+  background: rgba(220, 170, 50, 0.08);
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+
+.whatif-notice-warn {
+  background: rgba(210, 80, 50, 0.1);
+  border-left-color: rgba(210, 80, 50, 0.6);
+}
+
 .whatif-controls,
 .whatif-playbar,
 .whatif-runner {

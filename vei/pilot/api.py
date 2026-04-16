@@ -61,6 +61,9 @@ TWIN_LAUNCH_RUNTIME_FILE = "twin_launch_runtime.json"
 TWIN_ORCHESTRATOR_CACHE_FILE = "twin_orchestrator_snapshot.json"
 TWIN_ORCHESTRATOR_SYNC_FILE = "twin_orchestrator_sync.json"
 
+# Legacy on-disk filenames for migration cleanup. These are only used by
+# _remove_legacy_artifact to delete old-named files during twin start/sync.
+# Remove after 2026-09-01 along with all _remove_legacy_artifact calls.
 _LEGACY_PILOT_MANIFEST_FILE = "pilot_manifest.json"
 _LEGACY_PILOT_GUIDE_FILE = "pilot_guide.md"
 _LEGACY_PILOT_RUNTIME_FILE = "pilot_runtime.json"

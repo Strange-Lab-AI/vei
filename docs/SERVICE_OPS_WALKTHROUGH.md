@@ -11,10 +11,33 @@ This walkthrough describes the current Studio experience for the `service_ops` p
 
 ```bash
 make setup
-vei quickstart --archetype service_ops --governor-demo
+vei quickstart run --world service_ops --governor-demo
 ```
 
 This launches the Clearwater Field Services world with governor mode and opens Studio. No API keys required for the built-in deterministic demo.
+
+### What-if from a Dispatch workspace
+
+After a run completes, the workspace contains a `context_snapshot.json` with the full company graph. You can run a historical what-if branch from it:
+
+```bash
+vei whatif events --source company_history \
+  --source-dir <workspace_path>
+
+vei whatif open --source company_history \
+  --source-dir <workspace_path> \
+  --event-id <chosen_event> \
+  --root <output_whatif_workspace>
+
+vei whatif experiment --source company_history \
+  --source-dir <workspace_path> \
+  --event-id <chosen_event> \
+  --counterfactual-prompt "What if the tech had been dispatched immediately instead of waiting for SLA review?" \
+  --mode heuristic_baseline \
+  --root <output_whatif_workspace>
+```
+
+No API keys required for `heuristic_baseline` mode. Add `OPENAI_API_KEY` to `.env` for LLM-driven counterfactual continuations.
 
 ---
 

@@ -877,16 +877,26 @@ function renderWhatIfStudio() {
 
   const statusLabel = state.whatIfSceneLoading ? "Loading scene" : "Archive ready";
   const usingSavedBundle = Boolean(status.saved_bundle_active);
+  const llmAvailable = Boolean(status.llm_available);
   const statusDetail = state.whatIfSceneLoading
     ? state.whatIfSelectedEvent?.event?.subject || "Historical decision"
     : usingSavedBundle
       ? "Saved branch workspace"
       : status.source_dir || whatIfSourceLabel();
+  const llmNotice = llmAvailable
+    ? ""
+    : `<div class="whatif-notice">No LLM key configured — counterfactual runs use the heuristic baseline. Set <code>OPENAI_API_KEY</code> in <code>.env</code> for LLM-driven continuations.</div>`;
+  const validationIssues = (status.validation_issues || []);
+  const validationNotice = validationIssues.length
+    ? `<div class="whatif-notice whatif-notice-warn">${validationIssues.map((i) => escapeHtml(i)).join("<br>")}</div>`
+    : "";
   statusNode.innerHTML = `
     <div class="whatif-status-pill">
       <strong>${escapeHtml(statusLabel)}</strong>
       <span>${escapeHtml(statusDetail)}</span>
     </div>
+    ${llmNotice}
+    ${validationNotice}
   `;
 
   if (objectiveSelect) {
