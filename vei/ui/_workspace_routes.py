@@ -55,6 +55,7 @@ from ._whatif_helpers import (
     load_historical_summary_or_400 as _load_historical_summary_or_400,
     resolve_whatif_source_or_400 as _resolve_whatif_source,
     saved_historical_request_matches as _saved_historical_request_matches,
+    saved_workspace_source_matches_request as _saved_workspace_source_matches_request,
 )
 from ._root_mode import load_ui_workspace_summary
 from vei.whatif.api import resolve_saved_whatif_bundle, resolve_whatif_source_path
@@ -206,15 +207,14 @@ def register_workspace_routes(app: FastAPI, root: Path, *, deps: Any) -> None:
             (not request.event_id or request.event_id == historical.branch_event_id)
             and (not request.thread_id or request.thread_id == historical.thread_id)
         )
-        normalized_source = str(request.source or "").strip().lower()
         historical_source = (
             str(historical.source).strip().lower() if historical is not None else ""
         )
-        source_allows_saved_scene = normalized_source in {
-            "",
-            "auto",
-            historical_source,
-        }
+        source_allows_saved_scene = _saved_workspace_source_matches_request(
+            root,
+            requested_source=request.source,
+            historical_source=historical_source,
+        )
         if matches_saved_branch and source_allows_saved_scene:
             try:
                 scene = build_saved_decision_scene(root)

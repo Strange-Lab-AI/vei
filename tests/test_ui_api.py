@@ -1141,7 +1141,7 @@ def test_ui_api_saved_enron_workspace_without_rosetta_uses_saved_context_snapsho
     scene_response = client.post(
         "/api/workspace/whatif/scene",
         json={
-            "source": "auto",
+            "source": status_payload["source"],
             "event_id": "enron_bcda1b925800af8c",
             "thread_id": "thr-master-agreement",
         },
@@ -1202,6 +1202,12 @@ def test_ui_api_saved_bundle_routes_recheck_bundle_after_app_start(
     )
 
     client = TestClient(ui_api.create_ui_app(workspace_root))
+    status_response = client.get("/api/workspace/whatif")
+    assert status_response.status_code == 200
+    status_payload = status_response.json()
+    assert status_payload["available"] is True
+    assert status_payload["source"] == "mail_archive"
+    assert status_payload["source_dir"] == str(snapshot_path.resolve())
 
     bundle_root = workspace_root.parent
     (bundle_root / "whatif_experiment_result.json").write_text(
@@ -1265,7 +1271,7 @@ def test_ui_api_saved_bundle_routes_recheck_bundle_after_app_start(
     open_response = client.post(
         "/api/workspace/whatif/open",
         json={
-            "source": "auto",
+            "source": status_payload["source"],
             "event_id": "enron_bcda1b925800af8c",
             "thread_id": "thr-master-agreement",
             "label": "ignored-after-start",
@@ -1280,7 +1286,7 @@ def test_ui_api_saved_bundle_routes_recheck_bundle_after_app_start(
     run_response = client.post(
         "/api/workspace/whatif/run",
         json={
-            "source": "auto",
+            "source": status_payload["source"],
             "event_id": "enron_bcda1b925800af8c",
             "thread_id": "thr-master-agreement",
             "label": "ignored-after-start",
@@ -1295,7 +1301,7 @@ def test_ui_api_saved_bundle_routes_recheck_bundle_after_app_start(
     rank_response = client.post(
         "/api/workspace/whatif/rank",
         json={
-            "source": "auto",
+            "source": status_payload["source"],
             "event_id": "enron_bcda1b925800af8c",
             "thread_id": "thr-master-agreement",
             "label": "ignored-after-start",

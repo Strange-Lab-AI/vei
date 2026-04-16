@@ -549,7 +549,7 @@ def test_repo_owned_enron_example_workspace_loads_saved_scene() -> None:
     scene_response = client.post(
         "/api/workspace/whatif/scene",
         json={
-            "source": "auto",
+            "source": status_payload["source"],
             "event_id": historical_payload["branch_event_id"],
             "thread_id": historical_payload["thread_id"],
         },
@@ -592,11 +592,12 @@ def test_repo_owned_enron_example_workspace_uses_saved_experiment_without_rosett
     workspace_root = EXAMPLE_ROOT / "workspace"
     client = TestClient(ui_api.create_ui_app(workspace_root))
 
+    status_payload = client.get("/api/workspace/whatif").json()
     historical_payload = client.get("/api/workspace/historical").json()
     response = client.post(
         "/api/workspace/whatif/run",
         json={
-            "source": "auto",
+            "source": status_payload["source"],
             "event_id": historical_payload["branch_event_id"],
             "thread_id": historical_payload["thread_id"],
             "label": "ignored-for-saved-bundle",
@@ -622,11 +623,12 @@ def test_repo_owned_enron_example_workspace_uses_saved_ranked_result_without_ros
     workspace_root = EXAMPLE_ROOT / "workspace"
     client = TestClient(ui_api.create_ui_app(workspace_root))
 
+    status_payload = client.get("/api/workspace/whatif").json()
     historical_payload = client.get("/api/workspace/historical").json()
     response = client.post(
         "/api/workspace/whatif/rank",
         json={
-            "source": "auto",
+            "source": status_payload["source"],
             "event_id": historical_payload["branch_event_id"],
             "thread_id": historical_payload["thread_id"],
             "label": "ignored-for-saved-bundle",
