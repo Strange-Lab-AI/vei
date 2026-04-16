@@ -33,6 +33,7 @@ class DefaultCaseResolver:
             matched_case_id = self._find_case(event)
 
             if matched_case_id is not None:
+                event.case_id = matched_case_id
                 case = self._cases[matched_case_id]
                 case.event_ids.append(event.event_id)
                 case.end_ts = max(case.end_ts, event.ts_ms)
@@ -42,6 +43,7 @@ class DefaultCaseResolver:
                 for p in self._event_participants(event):
                     if p not in case.participants:
                         case.participants.append(p)
+                    self._participant_to_cases[p].add(matched_case_id)
                 for obj_ref in event.object_refs:
                     ref_key = f"{obj_ref.domain}:{obj_ref.object_id}"
                     if ref_key not in case.linked_object_refs:
@@ -49,6 +51,7 @@ class DefaultCaseResolver:
                     self._object_to_case[ref_key] = matched_case_id
             else:
                 case_id = f"case-{uuid.uuid4().hex[:12]}"
+                event.case_id = case_id
                 participants = self._event_participants(event)
                 surface = event.domain.value
                 obj_refs = [f"{o.domain}:{o.object_id}" for o in event.object_refs]

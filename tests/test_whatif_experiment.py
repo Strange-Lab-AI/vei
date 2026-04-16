@@ -8,9 +8,15 @@ import pyarrow.parquet as pq
 from typer.testing import CliRunner
 
 from vei.cli.vei import app as cli_app
+from vei.dynamics.models import DynamicsResponse
 from vei.llm.providers import PlanResult, PlanUsage
 from vei.whatif import (
     list_objective_packs,
+    load_world,
+)
+from vei.whatif.experiment import (
+    run_counterfactual_experiment,
+    run_ranked_counterfactual_experiment,
 )
 from vei.whatif.ejepa import _default_cache_root
 from vei.whatif.models import (
@@ -435,14 +441,28 @@ def test_vei_whatif_cli_rank_and_show_ranked_result(
         fake_run_llm_counterfactual,
     )
     monkeypatch.setattr(
-        "vei.whatif.experiment.estimate_counterfactual_delta",
-        lambda *_args, prompt, **_kwargs: _make_forecast_result(
-            prompt=prompt,
-            risk_score=0.3,
-            future_event_count=1,
-            future_external_event_count=0,
-            summary="Shadow forecast completed.",
-        ),
+        "vei.whatif.dynamics_bridge.get_backend",
+        lambda name: type(
+            "StubBackend",
+            (),
+            {
+                "forecast": lambda self, request: DynamicsResponse(
+                    backend_id=name,
+                    backend_version="test",
+                    state_delta_summary={
+                        "whatif_result": _make_forecast_result(
+                            prompt=request.company_graph_slice.metadata["whatif"][
+                                "prompt"
+                            ],
+                            risk_score=0.3,
+                            future_event_count=1,
+                            future_external_event_count=0,
+                            summary="Shadow forecast completed.",
+                        ).model_dump(mode="json")
+                    },
+                )
+            },
+        )(),
     )
 
     artifacts_root = tmp_path / "whatif_ranked_out"
@@ -490,3 +510,120 @@ def test_vei_whatif_cli_rank_and_show_ranked_result(
     assert show_result.exit_code == 0, show_result.output
     assert "Ranked Candidates" in show_result.output
     assert "Keep this internal and pause." in show_result.output
+
+
+def test_run_counterfactual_experiment_uses_dynamics_backend(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    rosetta_dir = tmp_path / "rosetta"
+    _write_rosetta_fixture(rosetta_dir)
+    world = load_world(source="enron", rosetta_dir=rosetta_dir)
+    called_backends: list[str] = []
+
+    class StubBackend:
+        def __init__(self, name: str) -> None:
+            self._name = name
+
+        def forecast(self, request) -> DynamicsResponse:
+            del request
+            called_backends.append(self._name)
+            return DynamicsResponse(
+                backend_id=self._name,
+                backend_version="test",
+                state_delta_summary={
+                    "whatif_result": _make_forecast_result(
+                        prompt="Keep this internal.",
+                        risk_score=0.2,
+                        future_event_count=1,
+                        future_external_event_count=0,
+                        summary="Dynamics backend handled the forecast.",
+                    ).model_dump(mode="json")
+                },
+            )
+
+    monkeypatch.setattr(
+        "vei.whatif.dynamics_bridge.get_backend",
+        lambda name: StubBackend(name),
+    )
+
+    result = run_counterfactual_experiment(
+        world,
+        artifacts_root=tmp_path / "artifacts",
+        label="dyn_main",
+        counterfactual_prompt="Keep this internal.",
+        selection_scenario="external_dlp",
+        mode="heuristic_baseline",
+    )
+
+    assert called_backends == ["heuristic_baseline"]
+    assert result.forecast_result is not None
+    assert result.forecast_result.summary == "Dynamics backend handled the forecast."
+
+
+def test_run_ranked_counterfactual_experiment_uses_dynamics_backend(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    rosetta_dir = tmp_path / "rosetta"
+    _write_rosetta_fixture(rosetta_dir)
+    world = load_world(source="enron", rosetta_dir=rosetta_dir)
+    called_backends: list[str] = []
+
+    class StubBackend:
+        def __init__(self, name: str) -> None:
+            self._name = name
+
+        def forecast(self, request) -> DynamicsResponse:
+            del request
+            called_backends.append(self._name)
+            return DynamicsResponse(
+                backend_id=self._name,
+                backend_version="test",
+                state_delta_summary={
+                    "whatif_result": _make_forecast_result(
+                        prompt="Keep this internal and pause.",
+                        risk_score=0.2,
+                        future_event_count=1,
+                        future_external_event_count=0,
+                        summary="Dynamics shadow forecast completed.",
+                    ).model_dump(mode="json")
+                },
+            )
+
+    monkeypatch.setattr(
+        "vei.whatif.dynamics_bridge.get_backend",
+        lambda name: StubBackend(name),
+    )
+    monkeypatch.setattr(
+        "vei.whatif.experiment.run_llm_counterfactual",
+        lambda *_args, prompt, **_kwargs: _make_llm_replay_result(
+            prompt=prompt,
+            to="jeff.skilling@enron.com",
+            subject="Please hold for review",
+            body_text="Keep this inside while legal reviews it.",
+            delay_ms=1000,
+            summary="Internal review replaces the outside send.",
+        ),
+    )
+
+    result = run_ranked_counterfactual_experiment(
+        world,
+        artifacts_root=tmp_path / "artifacts_ranked",
+        label="dyn_ranked",
+        objective_pack_id="contain_exposure",
+        candidate_interventions=[
+            "Keep this internal and pause.",
+            "Send the draft outside now.",
+        ],
+        event_id="evt-005",
+        rollout_count=1,
+        shadow_forecast_backend="heuristic_baseline",
+    )
+
+    assert called_backends == ["heuristic_baseline", "heuristic_baseline"]
+    assert result.candidates[0].shadow is not None
+    assert (
+        result.candidates[0].shadow.forecast_result.summary
+        == "Dynamics shadow forecast completed."
+    )

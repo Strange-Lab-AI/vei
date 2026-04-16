@@ -114,7 +114,18 @@ class IngestPipeline:
             events = self.normalizer.normalize(raw)
             all_events.extend(events)
         if all_events:
-            self.case_resolver.resolve(all_events)
+            assignments = self.case_resolver.resolve(all_events)
+            case_by_event_id = {
+                event_id: assignment.case_id
+                for assignment in assignments
+                for event_id in assignment.event_ids
+            }
+            for event in all_events:
+                if event.case_id:
+                    continue
+                case_id = case_by_event_id.get(event.event_id)
+                if case_id:
+                    event.case_id = case_id
             return self.materializer.apply(all_events)
         return 0
 

@@ -3,11 +3,15 @@ from __future__ import annotations
 from pathlib import Path
 
 from vei.data.models import BaseEvent
+from vei.events.api import build_event
+from vei.events.models import ActorRef, EventDomain
+from vei.ingest.api import SessionSlice
 from vei.llm import providers
 from vei.world.api import (
     ActorState,
     InjectedEvent,
     ScheduledEvent,
+    WorldSession,
     create_world_session,
     get_catalog_scenario,
 )
@@ -225,3 +229,68 @@ def test_world_session_typed_inject_lists_event_ids(
     assert result["event_id"]
     assert queued[0]["event_id"] == result["event_id"]
     assert queued[0]["kind"] == "injected"
+
+
+def test_world_session_from_session_materializer_replays_real_surfaces(
+    tmp_path: Path, monkeypatch
+) -> None:
+    monkeypatch.setenv("VEI_STATE_DIR", str(tmp_path / "state"))
+
+    class StubSessionMaterializer:
+        def materialize(
+            self,
+            tenant_id: str,
+            case_id: str,
+            *,
+            window_ms: int | None = None,
+        ) -> SessionSlice:
+            del tenant_id, case_id, window_ms
+            return SessionSlice(
+                tenant_id="acme.example",
+                case_id="case-1",
+                events=[
+                    build_event(
+                        domain=EventDomain.COMM_GRAPH,
+                        kind="mail.received",
+                        case_id="case-1",
+                        ts_ms=1_000,
+                        actor_ref=ActorRef(actor_id="vendor@example.com"),
+                        delta_data={
+                            "target": "mail",
+                            "from": "vendor@example.com",
+                            "to": "me@example",
+                            "subject": "Quote",
+                            "body_text": "Price is 2400",
+                            "thread_id": "thread-quote",
+                        },
+                    ),
+                    build_event(
+                        domain=EventDomain.COMM_GRAPH,
+                        kind="slack.message",
+                        case_id="case-1",
+                        ts_ms=2_000,
+                        actor_ref=ActorRef(actor_id="finance-reviewer"),
+                        delta_data={
+                            "target": "slack",
+                            "channel": "#approvals",
+                            "text": "Need one more approval.",
+                        },
+                    ),
+                ],
+            )
+
+    session = WorldSession.from_session_materializer(
+        StubSessionMaterializer(),
+        "case-1",
+        seed=42042,
+        tenant_id="acme.example",
+    )
+
+    mail_items = session.router.mail.list()
+    slack_messages = session.router.slack.open_channel("#approvals")["messages"]
+
+    assert any(item["subj"] == "Quote" for item in mail_items)
+    assert any(
+        message["text"] == "Need one more approval." for message in slack_messages
+    )
+    assert session.pending()["total"] == 0

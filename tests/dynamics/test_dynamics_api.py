@@ -16,7 +16,10 @@ from vei.dynamics.api import (
 )
 from vei.dynamics.backends.heuristic import HeuristicBaseline
 from vei.dynamics.backends.null import NullBackend
+from vei.dynamics.backends.reference import ReferenceBackend
 from vei.dynamics.models import DynamicsRequest
+from vei.events.api import build_event
+from vei.events.models import ActorRef, EventDomain
 
 GOLDENS_DIR = Path(__file__).parent / "goldens"
 
@@ -104,6 +107,11 @@ class TestRegistry:
         assert "null" in backends
         assert "heuristic_baseline" in backends
 
+    def test_get_backend_restores_builtin_defaults_after_reset(self) -> None:
+        reset_registry()
+        backend = get_backend("heuristic_baseline")
+        assert isinstance(backend, HeuristicBaseline)
+
     def test_get_backend_unknown(self) -> None:
         with pytest.raises(KeyError, match="no_such_backend"):
             get_backend("no_such_backend")
@@ -112,3 +120,64 @@ class TestRegistry:
         a = get_backend("null")
         b = get_backend("null")
         assert a is b
+
+
+class TestReferenceBackend:
+    def test_returns_explicit_error_without_checkpoint(self) -> None:
+        backend = ReferenceBackend()
+
+        response = backend.forecast(DynamicsRequest(seed=42042))
+
+        assert response.backend_id == "reference"
+        assert "checkpoint" in response.state_delta_summary["error"]
+
+    def test_loads_checkpoint_and_predicts(self, tmp_path: Path) -> None:
+        torch = pytest.importorskip("torch")
+        from vei.whatif.benchmark_bridge import _BenchmarkPreprocessor, _TorchTrainer
+
+        torch.manual_seed(42042)
+        preprocessor = _BenchmarkPreprocessor(
+            summary_feature_names=["history_event_count", "participant_count"],
+            summary_mean=[0.0, 0.0],
+            summary_std=[1.0, 1.0],
+            action_tag_names=["hold", "legal"],
+            event_type_names=["__summary__", "mail.received", "mail.send"],
+            target_mean=[0.0] * 22,
+            target_std=[1.0] * 22,
+        )
+        trainer = _TorchTrainer(model_id="ft_transformer", preprocessor=preprocessor)
+        model = trainer.build_model(device="cpu")
+        checkpoint_path = tmp_path / "reference-model.pt"
+        torch.save(
+            {
+                "state_dict": model.state_dict(),
+                "metadata": preprocessor.to_metadata(),
+                "model_id": "ft_transformer",
+            },
+            checkpoint_path,
+        )
+        backend = ReferenceBackend(checkpoint_path=str(checkpoint_path))
+        request = DynamicsRequest(
+            recent_events=[
+                build_event(
+                    domain=EventDomain.COMM_GRAPH,
+                    kind="mail.received",
+                    ts_ms=1_000,
+                    actor_ref=ActorRef(actor_id="vendor@example.com"),
+                    delta_data={
+                        "target": "mail",
+                        "from": "vendor@example.com",
+                        "to": ["me@example"],
+                        "subj": "Quote",
+                        "body_text": "Please review with legal.",
+                    },
+                )
+            ],
+        )
+
+        response = backend.forecast(request)
+
+        assert response.backend_id == "reference"
+        assert response.state_delta_summary["model_id"] == "ft_transformer"
+        assert "evidence_heads" in response.state_delta_summary
+        assert response.predicted_events

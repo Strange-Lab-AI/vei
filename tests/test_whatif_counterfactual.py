@@ -8,6 +8,7 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
 
+from vei.dynamics.models import DynamicsResponse
 from vei.llm.providers import PlanResult, PlanUsage
 from vei.project_settings import default_model_for_provider
 from vei.whatif import (
@@ -32,6 +33,21 @@ from vei.whatif.models import (
     WhatIfLLMGeneratedMessage,
     WhatIfLLMReplayResult,
 )
+
+
+def _stub_backend_from_result(name: str, result_factory):
+    class StubBackend:
+        def forecast(self, request) -> DynamicsResponse:
+            result = result_factory(request)
+            return DynamicsResponse(
+                backend_id=name,
+                backend_version="test",
+                state_delta_summary={
+                    "whatif_result": result.model_dump(mode="json"),
+                },
+            )
+
+    return StubBackend()
 
 
 def _write_rosetta_fixture(root: Path) -> None:
@@ -656,13 +672,18 @@ def test_split_experiment_module_writes_counterfactual_artifacts(
         ),
     )
     monkeypatch.setattr(
-        "vei.whatif.experiment.estimate_counterfactual_delta",
-        lambda *_args, prompt, **_kwargs: _make_forecast_result(
-            prompt=prompt,
-            risk_score=0.2,
-            future_event_count=2,
-            future_external_event_count=0,
-            summary="Proxy forecast completed through the split experiment module.",
+        "vei.whatif.dynamics_bridge.get_backend",
+        lambda name: _stub_backend_from_result(
+            name,
+            lambda request: _make_forecast_result(
+                prompt=request.company_graph_slice.metadata["whatif"]["prompt"],
+                risk_score=0.2,
+                future_event_count=2,
+                future_external_event_count=0,
+                summary=(
+                    "Proxy forecast completed through the split experiment module."
+                ),
+            ),
         ),
     )
 
@@ -716,13 +737,12 @@ def test_counterfactual_experiment_can_use_ejepa_backend(
         fake_plan_once_with_usage,
     )
 
-    def fake_run_ejepa_counterfactual(
-        *_: object, **kwargs: object
-    ) -> WhatIfCounterfactualEstimateResult:
-        assert kwargs["epochs"] == 2
-        assert kwargs["batch_size"] == 16
-        assert kwargs["force_retrain"] is True
-        assert kwargs["device"] == "cpu"
+    def fake_ejepa_result(request) -> WhatIfCounterfactualEstimateResult:
+        whatif = request.company_graph_slice.metadata["whatif"]
+        assert whatif["ejepa_epochs"] == 2
+        assert whatif["ejepa_batch_size"] == 16
+        assert whatif["ejepa_force_retrain"] is True
+        assert whatif["ejepa_device"] == "cpu"
         return WhatIfCounterfactualEstimateResult(
             status="ok",
             backend="e_jepa",
@@ -756,8 +776,8 @@ def test_counterfactual_experiment_can_use_ejepa_backend(
         )
 
     monkeypatch.setattr(
-        "vei.whatif.experiment.run_ejepa_counterfactual",
-        fake_run_ejepa_counterfactual,
+        "vei.whatif.dynamics_bridge.get_backend",
+        lambda name: _stub_backend_from_result(name, fake_ejepa_result),
     )
 
     experiment = run_counterfactual_experiment(
@@ -809,11 +829,10 @@ def test_counterfactual_experiment_can_use_ejepa_backend_for_generic_archive(
 
     captured: dict[str, str] = {}
 
-    def fake_run_ejepa_counterfactual(
-        *_: object, **kwargs: object
-    ) -> WhatIfCounterfactualEstimateResult:
-        captured["source"] = str(kwargs["source"])
-        captured["source_dir"] = str(kwargs["source_dir"])
+    def fake_ejepa_result(request) -> WhatIfCounterfactualEstimateResult:
+        whatif = request.company_graph_slice.metadata["whatif"]
+        captured["source"] = str(whatif["source"])
+        captured["source_dir"] = str(whatif["source_dir"])
         return WhatIfCounterfactualEstimateResult(
             status="ok",
             backend="e_jepa",
@@ -850,8 +869,8 @@ def test_counterfactual_experiment_can_use_ejepa_backend_for_generic_archive(
         fake_plan_once_with_usage,
     )
     monkeypatch.setattr(
-        "vei.whatif.experiment.run_ejepa_counterfactual",
-        fake_run_ejepa_counterfactual,
+        "vei.whatif.dynamics_bridge.get_backend",
+        lambda name: _stub_backend_from_result(name, fake_ejepa_result),
     )
 
     experiment = run_counterfactual_experiment(
@@ -907,10 +926,8 @@ def test_run_ranked_counterfactual_experiment_writes_artifacts_and_keeps_shadow_
             notes=["Attachment still included."],
         )
 
-    def fake_run_ejepa_proxy_counterfactual(
-        *_: object,
-        prompt: str,
-    ) -> WhatIfCounterfactualEstimateResult:
+    def fake_shadow_result(request) -> WhatIfCounterfactualEstimateResult:
+        prompt = request.company_graph_slice.metadata["whatif"]["prompt"]
         if "internal" in prompt.lower():
             return _make_forecast_result(
                 prompt=prompt,
@@ -932,8 +949,8 @@ def test_run_ranked_counterfactual_experiment_writes_artifacts_and_keeps_shadow_
         fake_run_llm_counterfactual,
     )
     monkeypatch.setattr(
-        "vei.whatif.experiment.estimate_counterfactual_delta",
-        fake_run_ejepa_proxy_counterfactual,
+        "vei.whatif.dynamics_bridge.get_backend",
+        lambda name: _stub_backend_from_result(name, fake_shadow_result),
     )
 
     result = run_ranked_counterfactual_experiment(
@@ -1014,12 +1031,11 @@ def test_run_ranked_counterfactual_experiment_can_use_ejepa_shadow_for_generic_a
 
     captured_sources: list[str] = []
 
-    def fake_run_ejepa_counterfactual(
-        *_: object,
-        prompt: str,
-        **kwargs: object,
-    ) -> WhatIfCounterfactualEstimateResult:
-        captured_sources.append(str(kwargs["source"]))
+    def fake_ejepa_result(request) -> WhatIfCounterfactualEstimateResult:
+        prompt = request.company_graph_slice.metadata["whatif"]["prompt"]
+        captured_sources.append(
+            str(request.company_graph_slice.metadata["whatif"]["source"])
+        )
         if "internal" in prompt.lower():
             return _make_forecast_result(
                 prompt=prompt,
@@ -1041,8 +1057,8 @@ def test_run_ranked_counterfactual_experiment_can_use_ejepa_shadow_for_generic_a
         fake_run_llm_counterfactual,
     )
     monkeypatch.setattr(
-        "vei.whatif.experiment.run_ejepa_counterfactual",
-        fake_run_ejepa_counterfactual,
+        "vei.whatif.dynamics_bridge.get_backend",
+        lambda name: _stub_backend_from_result(name, fake_ejepa_result),
     )
 
     result = run_ranked_counterfactual_experiment(
@@ -1090,13 +1106,9 @@ def test_run_ranked_counterfactual_experiment_validates_artifacts(
             summary="The draft stays inside Py Corp.",
         )
 
-    def fake_estimate_counterfactual_delta(
-        *_: object,
-        prompt: str,
-        **__: object,
-    ) -> WhatIfCounterfactualEstimateResult:
+    def fake_shadow_result(request) -> WhatIfCounterfactualEstimateResult:
         return _make_forecast_result(
-            prompt=prompt,
+            prompt=request.company_graph_slice.metadata["whatif"]["prompt"],
             risk_score=0.2,
             future_event_count=2,
             future_external_event_count=0,
@@ -1108,8 +1120,8 @@ def test_run_ranked_counterfactual_experiment_validates_artifacts(
         fake_run_llm_counterfactual,
     )
     monkeypatch.setattr(
-        "vei.whatif.experiment.estimate_counterfactual_delta",
-        fake_estimate_counterfactual_delta,
+        "vei.whatif.dynamics_bridge.get_backend",
+        lambda name: _stub_backend_from_result(name, fake_shadow_result),
     )
     monkeypatch.setattr(
         "vei.whatif.experiment.validate_artifact_tree",

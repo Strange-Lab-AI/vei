@@ -10,6 +10,7 @@ from vei.events.models import ActorRef, CanonicalEvent, EventDomain, ObjectRef
 from vei.ingest.api import CaseAssignment, IngestPipeline
 from vei.ingest.cases.resolver import DefaultCaseResolver
 from vei.ingest.normalize.pipeline import StreamingNormalizer
+from vei.ingest.raw.postgres_log import _decode_cursor, _encode_cursor
 from vei.ingest.raw.jsonl_log import JsonlRawLog
 
 
@@ -155,3 +156,19 @@ class TestIngestPipeline:
         )
         assert applied == 2
         assert len(mat.events) == 2
+        assert all(event.case_id for event in mat.events)
+
+
+class TestPostgresRawLogCursor:
+    def test_roundtrip_cursor(self) -> None:
+        from datetime import datetime, timezone
+
+        created_at = datetime(2026, 4, 16, 12, 30, tzinfo=timezone.utc)
+        cursor = _encode_cursor(created_at, "rec-123")
+
+        decoded = _decode_cursor(cursor)
+
+        assert decoded == (created_at, "rec-123")
+
+    def test_decode_cursor_rejects_legacy_ids(self) -> None:
+        assert _decode_cursor("legacy-record-id") is None

@@ -11,7 +11,12 @@ from .world import WhatIfBusinessStateChange, WhatIfEventReference
 
 class WhatIfHistoricalScore(BaseModel):
     backend: Literal[
-        "historical", "heuristic", "e_jepa", "e_jepa_proxy", "heuristic_baseline"
+        "historical",
+        "heuristic",
+        "e_jepa",
+        "e_jepa_proxy",
+        "heuristic_baseline",
+        "reference",
     ] = "historical"
     future_event_count: int = 0
     future_escalation_count: int = 0

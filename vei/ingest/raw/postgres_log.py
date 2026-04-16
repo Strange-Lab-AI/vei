@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 import re
 import uuid
+from datetime import datetime
 from typing import Any, Dict, Iterator, Optional
 
 _PG_AVAILABLE = False
@@ -21,6 +22,19 @@ except ImportError:
 
 
 _SAFE_IDENT_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+
+
+def _encode_cursor(created_at: datetime, record_id: str) -> str:
+    return f"{created_at.isoformat()}|{record_id}"
+
+
+def _decode_cursor(cursor: str) -> tuple[datetime, str] | None:
+    if not cursor or "|" not in cursor:
+        return None
+    raw_created_at, record_id = cursor.split("|", 1)
+    if not raw_created_at or not record_id:
+        return None
+    return datetime.fromisoformat(raw_created_at), record_id
 
 
 def _validate_identifier(value: str, *, label: str) -> str:
@@ -69,7 +83,7 @@ class PostgresRawLog:
             return record_id
         data_json = json.dumps(raw_record)
         table = self._table
-        sql = f"INSERT INTO {table} (record_id, tenant_id, source, ts_ms, data) VALUES (%s, %s, %s, %s, %s) ON CONFLICT (record_id) DO NOTHING"  # nosec B608 - table identifier validated in _validate_identifier  # noqa: E501
+        sql = f"INSERT INTO {table} (record_id, tenant_id, source, ts_ms, data) VALUES (%s, %s, %s, %s, %s) ON CONFLICT (record_id) DO UPDATE SET record_id = {table}.record_id RETURNING created_at, record_id"  # nosec B608 - table identifier validated in _validate_identifier  # noqa: E501
         with self._conn.cursor() as cur:
             cur.execute(
                 sql,
@@ -81,22 +95,48 @@ class PostgresRawLog:
                     data_json,
                 ],
             )
-        return record_id
+            row = cur.fetchone()
+        if row is None:
+            return record_id
+        created_at, stored_record_id = row
+        if not isinstance(created_at, datetime):
+            return str(stored_record_id)
+        return _encode_cursor(created_at, str(stored_record_id))
 
     def iter_since(self, cursor: str) -> Iterator[Dict[str, Any]]:
         if self._conn is None:
             return
         table = self._table
-        if cursor:
-            sql = f"SELECT data FROM {table} WHERE tenant_id = %s AND record_id > %s ORDER BY created_at"  # nosec B608 - table identifier validated in _validate_identifier  # noqa: E501
-            params = [self._tenant_id, cursor]
+        decoded_cursor = _decode_cursor(cursor)
+        if decoded_cursor is None and cursor:
+            with self._conn.cursor() as cur:
+                cur.execute(
+                    f"SELECT created_at, record_id FROM {table} WHERE tenant_id = %s AND record_id = %s",  # nosec B608 - table identifier validated in _validate_identifier  # noqa: E501
+                    [self._tenant_id, cursor],
+                )
+                row = cur.fetchone()
+            if row is not None:
+                created_at, stored_record_id = row
+                if isinstance(created_at, datetime):
+                    decoded_cursor = (created_at, str(stored_record_id))
+        if decoded_cursor is not None:
+            created_at, record_id = decoded_cursor
+            sql = f"SELECT data, created_at, record_id FROM {table} WHERE tenant_id = %s AND (created_at > %s OR (created_at = %s AND record_id > %s)) ORDER BY created_at, record_id"  # nosec B608 - table identifier validated in _validate_identifier  # noqa: E501
+            params = [self._tenant_id, created_at, created_at, record_id]
         else:
-            sql = f"SELECT data FROM {table} WHERE tenant_id = %s ORDER BY created_at"  # nosec B608 - table identifier validated in _validate_identifier  # noqa: E501
+            sql = f"SELECT data, created_at, record_id FROM {table} WHERE tenant_id = %s ORDER BY created_at, record_id"  # nosec B608 - table identifier validated in _validate_identifier  # noqa: E501
             params = [self._tenant_id]
         with self._conn.cursor() as cur:
             cur.execute(sql, params)
             for row in cur:
-                yield json.loads(row[0]) if isinstance(row[0], str) else row[0]
+                payload = (
+                    json.loads(row[0]) if isinstance(row[0], str) else dict(row[0])
+                )
+                created_at = row[1]
+                record_id = row[2]
+                if isinstance(created_at, datetime):
+                    payload["_cursor"] = _encode_cursor(created_at, str(record_id))
+                yield payload
 
     def close(self) -> None:
         if self._conn is not None:

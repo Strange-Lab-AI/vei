@@ -34,10 +34,10 @@ from .episode import (
 from .counterfactual import (
     _attach_business_state_to_forecast_result,
     _baseline_tick_ms,
-    estimate_counterfactual_delta,
     run_llm_counterfactual,
 )
-from .ejepa import default_forecast_backend, run_ejepa_counterfactual
+from .dynamics_bridge import run_dynamics_counterfactual
+from .ejepa import default_forecast_backend
 from .ranking import (
     aggregate_outcome_signals,
     get_objective_pack,
@@ -133,39 +133,19 @@ def run_counterfactual_experiment(
         else default_forecast_backend()
     )
     if mode in {"e_jepa", "e_jepa_proxy", "heuristic_baseline", "both"}:
-        if resolved_forecast_backend == "e_jepa":
-            forecast_result = run_ejepa_counterfactual(
-                workspace_root,
-                prompt=counterfactual_prompt,
-                source=world.source,
-                source_dir=world.source_dir,
-                thread_id=selected_thread_id,
-                branch_event_id=materialization.branch_event_id,
-                llm_messages=llm_result.messages if llm_result is not None else None,
-                epochs=ejepa_epochs,
-                batch_size=ejepa_batch_size,
-                force_retrain=ejepa_force_retrain,
-                device=ejepa_device,
-            )
-            if forecast_result.status == "error" and allow_proxy_fallback:
-                proxy_result = estimate_counterfactual_delta(
-                    workspace_root,
-                    prompt=counterfactual_prompt,
-                )
-                proxy_result.notes.insert(
-                    0,
-                    "Real E-JEPA forecast failed, so this experiment fell back to the proxy forecast.",
-                )
-                if forecast_result.error:
-                    proxy_result.notes.append(
-                        f"Original E-JEPA error: {forecast_result.error}"
-                    )
-                forecast_result = proxy_result
-        else:
-            forecast_result = estimate_counterfactual_delta(
-                workspace_root,
-                prompt=counterfactual_prompt,
-            )
+        forecast_result = run_dynamics_counterfactual(
+            world=world,
+            materialization=materialization,
+            prompt=counterfactual_prompt,
+            forecast_backend=resolved_forecast_backend,
+            allow_proxy_fallback=allow_proxy_fallback,
+            llm_messages=llm_result.messages if llm_result is not None else None,
+            seed=seed,
+            ejepa_epochs=ejepa_epochs,
+            ejepa_batch_size=ejepa_batch_size,
+            ejepa_force_retrain=ejepa_force_retrain,
+            ejepa_device=ejepa_device,
+        )
     if forecast_result is not None:
         forecast_result = _attach_business_state_to_forecast_result(
             forecast_result,
@@ -496,38 +476,26 @@ def _run_ranked_shadow_score(
     ejepa_force_retrain: bool,
     ejepa_device: str | None,
 ) -> WhatIfShadowOutcomeScore:
-    if forecast_backend == "e_jepa":
-        forecast_result = run_ejepa_counterfactual(
-            workspace_root,
-            prompt=prompt,
-            source=world.source,
-            source_dir=world.source_dir,
-            thread_id=materialization.thread_id,
-            branch_event_id=materialization.branch_event_id,
-            llm_messages=llm_result.messages if llm_result is not None else None,
-            epochs=ejepa_epochs,
-            batch_size=ejepa_batch_size,
-            force_retrain=ejepa_force_retrain,
-            device=ejepa_device,
-        )
-        if forecast_result.status == "error" and allow_proxy_fallback:
-            proxy_result = estimate_counterfactual_delta(
-                workspace_root,
-                prompt=prompt,
-            )
-            proxy_result.notes.insert(
-                0,
-                "Real E-JEPA shadow scoring failed, so this candidate used the proxy forecast.",
-            )
-            if forecast_result.error:
-                proxy_result.notes.append(
-                    f"Original E-JEPA error: {forecast_result.error}"
-                )
-            forecast_result = proxy_result
-    else:
-        forecast_result = estimate_counterfactual_delta(
-            workspace_root,
-            prompt=prompt,
+    forecast_result = run_dynamics_counterfactual(
+        world=world,
+        materialization=materialization,
+        prompt=prompt,
+        forecast_backend=forecast_backend,
+        allow_proxy_fallback=allow_proxy_fallback,
+        llm_messages=llm_result.messages if llm_result is not None else None,
+        seed=42042,
+        ejepa_epochs=ejepa_epochs,
+        ejepa_batch_size=ejepa_batch_size,
+        ejepa_force_retrain=ejepa_force_retrain,
+        ejepa_device=ejepa_device,
+    )
+    if (
+        forecast_backend == "e_jepa"
+        and forecast_result.backend == "heuristic_baseline"
+        and forecast_result.notes
+    ):
+        forecast_result.notes[0] = (
+            "Real E-JEPA shadow scoring failed, so this candidate used the proxy forecast."
         )
 
     outcome_signals = summarize_forecast_branch(forecast_result)

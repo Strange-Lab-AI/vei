@@ -55,7 +55,13 @@ _instances: Dict[str, DynamicsBackend] = {}
 def register_backend(name: str, factory: _BackendFactory) -> None:
     """Register a backend factory under a name."""
     _registry[name] = factory
+    _instances.pop(name, None)
     logger.info("dynamics_backend_registered", extra={"backend": name})
+
+
+def ensure_builtin_backends_registered() -> None:
+    """Re-register built-in backends after tests or helpers clear the registry."""
+    _auto_register()
 
 
 def get_backend(name: str, **kwargs: Any) -> DynamicsBackend:
@@ -63,6 +69,9 @@ def get_backend(name: str, **kwargs: Any) -> DynamicsBackend:
     if name in _instances:
         return _instances[name]
     factory = _registry.get(name)
+    if factory is None:
+        ensure_builtin_backends_registered()
+        factory = _registry.get(name)
     if factory is None:
         available = sorted(_registry.keys())
         raise KeyError(
@@ -102,6 +111,7 @@ def _auto_register() -> None:
         from vei.dynamics.backends.heuristic import HeuristicBaseline
 
         register_backend("heuristic_baseline", HeuristicBaseline)
+        register_backend("e_jepa_proxy", HeuristicBaseline)
     except Exception:
         pass
 
@@ -124,6 +134,7 @@ __all__ = [
     "DynamicsBackend",
     "DynamicsRequest",
     "DynamicsResponse",
+    "ensure_builtin_backends_registered",
     "get_backend",
     "list_backends",
     "register_backend",

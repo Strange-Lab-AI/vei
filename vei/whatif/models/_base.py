@@ -13,7 +13,12 @@ WhatIfRenderFormat = Literal["json", "markdown"]
 WhatIfExperimentMode = Literal[
     "llm", "e_jepa", "e_jepa_proxy", "heuristic_baseline", "both"
 ]
-WhatIfForecastBackend = Literal["e_jepa", "e_jepa_proxy", "heuristic_baseline"]
+WhatIfForecastBackend = Literal[
+    "e_jepa",
+    "e_jepa_proxy",
+    "heuristic_baseline",
+    "reference",
+]
 WhatIfOutcomeBackendId = Literal[
     "e_jepa",
     "e_jepa_proxy",

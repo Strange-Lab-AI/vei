@@ -41,6 +41,169 @@ if TYPE_CHECKING:
     from vei.router import Router
 
 
+_MATERIALIZER_TARGET_ALIASES = {
+    "calendar": "calendar",
+    "chat": "slack",
+    "db": "db",
+    "database": "db",
+    "doc": "docs",
+    "docs": "docs",
+    "mail": "mail",
+    "slack": "slack",
+    "ticket": "tickets",
+    "tickets": "tickets",
+    "tool": "tool",
+}
+
+
+def _materializer_event_payload(event: Any) -> Dict[str, Any]:
+    delta = getattr(event, "delta", None)
+    data = getattr(delta, "data", None)
+    if not isinstance(data, dict):
+        return {}
+    return dict(data)
+
+
+def _materializer_target_from_kind(kind: str) -> Optional[str]:
+    lowered = str(kind or "").strip().lower().replace("-", "_")
+    if not lowered:
+        return None
+    for part in lowered.split("."):
+        for token in part.split("_"):
+            target = _MATERIALIZER_TARGET_ALIASES.get(token)
+            if target:
+                return target
+    return None
+
+
+def _materializer_target_for_event(
+    event: Any, payload: Dict[str, Any]
+) -> Optional[str]:
+    for key in ("target", "surface"):
+        raw_value = payload.get(key)
+        if not isinstance(raw_value, str):
+            continue
+        target = _MATERIALIZER_TARGET_ALIASES.get(raw_value.strip().lower())
+        if target:
+            return target
+    if isinstance(payload.get("tool"), str):
+        return "tool"
+    target = _materializer_target_from_kind(str(getattr(event, "kind", "")))
+    if target:
+        return target
+    domain_value = str(getattr(getattr(event, "domain", None), "value", "")).strip()
+    if domain_value == "doc_graph":
+        return "docs"
+    if domain_value == "work_graph":
+        return "tickets"
+    if domain_value == "data_graph" and isinstance(payload.get("row"), dict):
+        return "db"
+    if domain_value == "comm_graph":
+        if "channel" in payload or "thread_ts" in payload:
+            return "slack"
+        if "start_ms" in payload or "attendees" in payload:
+            return "calendar"
+        return "mail"
+    return None
+
+
+def _materializer_delivery_for_event(
+    event: Any,
+) -> Optional[tuple[str, Dict[str, Any]]]:
+    payload = _materializer_event_payload(event)
+    target = _materializer_target_for_event(event, payload)
+    if target is None:
+        return None
+
+    actor_id = str(
+        getattr(getattr(event, "actor_ref", None), "actor_id", "") or "system"
+    )
+    subject = str(
+        payload.get("subj")
+        or payload.get("subject")
+        or payload.get("title")
+        or payload.get("text")
+        or getattr(event, "kind", "ingest_event")
+    )
+    body_text = str(
+        payload.get("body_text")
+        or payload.get("body")
+        or payload.get("text")
+        or payload.get("comment")
+        or subject
+    )
+
+    if target == "mail":
+        normalized = dict(payload)
+        normalized["from"] = str(payload.get("from") or actor_id)
+        normalized["to"] = str(payload.get("to") or "me@example")
+        normalized["subj"] = subject
+        normalized["body_text"] = body_text
+        normalized["thread_id"] = str(
+            payload.get("thread_id") or getattr(event, "case_id", "") or event.event_id
+        )
+        return target, normalized
+
+    if target == "slack":
+        normalized = dict(payload)
+        normalized["channel"] = str(payload.get("channel") or "#procurement")
+        normalized["text"] = str(payload.get("text") or body_text)
+        normalized["user"] = str(payload.get("user") or actor_id)
+        if payload.get("thread_ts") is not None:
+            normalized["thread_ts"] = str(payload["thread_ts"])
+        return target, normalized
+
+    if target == "docs":
+        normalized = dict(payload)
+        normalized["title"] = subject
+        normalized["body"] = str(
+            payload.get("body") or payload.get("body_text") or body_text
+        )
+        return target, normalized
+
+    if target == "tickets":
+        normalized = dict(payload)
+        if isinstance(payload.get("ticket_id"), str):
+            if "comment" not in normalized and "body_text" in payload:
+                normalized["comment"] = body_text
+            normalized["author"] = str(payload.get("author") or actor_id)
+            return target, normalized
+        normalized["title"] = subject
+        if "description" not in normalized:
+            normalized["description"] = body_text
+        normalized["assignee"] = payload.get("assignee")
+        return target, normalized
+
+    if target == "calendar":
+        normalized = dict(payload)
+        start_ms = int(payload.get("start_ms", getattr(event, "ts_ms", 0)))
+        end_ms = int(payload.get("end_ms", start_ms + 1_800_000))
+        normalized["title"] = subject
+        normalized["start_ms"] = start_ms
+        normalized["end_ms"] = end_ms
+        if "organizer" not in normalized:
+            normalized["organizer"] = actor_id
+        return target, normalized
+
+    if target == "db":
+        normalized = dict(payload)
+        normalized["op"] = str(payload.get("op") or "upsert")
+        return target, normalized
+
+    if target == "tool":
+        normalized = dict(payload)
+        normalized["args"] = (
+            dict(payload.get("args", {}))
+            if isinstance(payload.get("args"), dict)
+            else {}
+        )
+        if not isinstance(normalized.get("tool"), str):
+            return None
+        return target, normalized
+
+    return None
+
+
 def _jsonable(value: Any) -> Any:
     if hasattr(value, "model_dump"):
         return value.model_dump()
@@ -273,21 +436,48 @@ class WorldSession:
 
             if isinstance(sm, SessionMaterializer):
                 slice_data = sm.materialize(tenant_id, case_id)
-                for event in getattr(slice_data, "events", []):
-                    payload = {}
-                    if hasattr(event, "delta") and event.delta is not None:
-                        payload = dict(event.delta.data)
+                events = sorted(
+                    list(getattr(slice_data, "events", [])),
+                    key=lambda item: (
+                        int(getattr(item, "ts_ms", 0)),
+                        str(item.event_id),
+                    ),
+                )
+                if not events:
+                    return session
+                base_ts = int(getattr(events[0], "ts_ms", 0))
+                max_dt = 0
+                scheduled = 0
+                for event in events:
+                    delivery = _materializer_delivery_for_event(event)
+                    if delivery is None:
+                        continue
+                    target, payload = delivery
+                    if target == "slack":
+                        channel = str(payload.get("channel") or "#procurement")
+                        session.router.slack.channels.setdefault(
+                            channel,
+                            {"messages": [], "unread": 0},
+                        )
+                        payload["channel"] = channel
+                    dt_ms = max(0, int(getattr(event, "ts_ms", 0)) - base_ts)
+                    max_dt = max(max_dt, dt_ms)
+                    scheduled += 1
                     session.router.bus.schedule(
-                        dt_ms=max(0, int(event.ts_ms) - session.router.bus.clock_ms),
-                        target=(
-                            event.domain.value
-                            if hasattr(event, "domain")
-                            else "internal"
-                        ),
+                        dt_ms=dt_ms,
+                        target=target,
                         payload=payload,
+                        event_id=str(getattr(event, "event_id", "")) or None,
                         source="ingest_materializer",
-                        kind="scheduled",
+                        actor_id=getattr(
+                            getattr(event, "actor_ref", None),
+                            "actor_id",
+                            None,
+                        ),
+                        kind=str(getattr(event, "kind", "scheduled")),
                     )
+                if scheduled:
+                    session.router.tick(dt_ms=max_dt)
         except ImportError:
             pass
         return session
