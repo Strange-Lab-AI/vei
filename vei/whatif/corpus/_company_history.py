@@ -15,7 +15,7 @@ from ..models import (
     WhatIfWorld,
     WhatIfWorldSummary,
 )
-from ..public_context import resolve_world_public_context
+from vei.context.api import resolve_world_public_context
 from ..situations import build_situation_graph
 from ._aggregation import build_actor_profiles, build_thread_summaries
 from ._mail_archive import (

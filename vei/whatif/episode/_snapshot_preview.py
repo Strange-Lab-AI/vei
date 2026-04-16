@@ -4,6 +4,8 @@ import json
 import logging
 from pathlib import Path
 
+from vei.whatif_filenames import CONTEXT_SNAPSHOT_FILE
+
 from .._helpers import load_episode_context as _load_episode_context
 from ..models import WhatIfEpisodeManifest, WhatIfEventReference
 
@@ -28,7 +30,7 @@ def _history_preview_from_saved_context(
             extra={
                 "source": "episode",
                 "provider": "context_snapshot",
-                "file_path": str(workspace_root / "context_snapshot.json"),
+                "file_path": str(workspace_root / CONTEXT_SNAPSHOT_FILE),
                 "exception_type": type(exc).__name__,
             },
             exc_info=True,

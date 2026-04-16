@@ -8,7 +8,7 @@ from pydantic import ValidationError
 
 from vei.context.models import ContextSnapshot
 
-from ._constants import (
+from vei.whatif_filenames import (
     BUSINESS_STATE_COMPARISON_FILE,
     BUSINESS_STATE_COMPARISON_OVERVIEW_FILE,
     CONTEXT_SNAPSHOT_FILE as CANONICAL_CONTEXT_FILE,
@@ -37,8 +37,6 @@ def detect_validation_mode(path: str | Path) -> str:
 
 def validate_saved_workspace(
     workspace_root: str | Path,
-    *,
-    allow_relative_workspace_root: bool = False,
 ) -> list[str]:
     resolved_workspace = Path(workspace_root).expanduser().resolve()
     issues: list[str] = []
@@ -98,14 +96,11 @@ def validate_saved_workspace(
     if manifest is None:
         return issues
 
-    expected_workspace_root = (
-        "workspace" if allow_relative_workspace_root else str(resolved_workspace)
-    )
     actual_workspace_root = str(manifest.workspace_root).strip()
-    if actual_workspace_root != expected_workspace_root:
+    if actual_workspace_root != "workspace":
         issues.append(
             f"workspace_root mismatch in {manifest_path}: "
-            f"expected {expected_workspace_root!r}, got {actual_workspace_root!r}"
+            f"expected 'workspace', got {actual_workspace_root!r}"
         )
     if manifest.public_context is not None and loaded_public_context is not None:
         manifest_public_context = manifest.public_context.model_dump(mode="json")
@@ -126,10 +121,7 @@ def validate_saved_workspace(
 
 def validate_packaged_example_bundle(root: str | Path) -> list[str]:
     bundle_root = Path(root).expanduser().resolve()
-    issues = validate_saved_workspace(
-        bundle_root / WORKSPACE_DIRECTORY,
-        allow_relative_workspace_root=True,
-    )
+    issues = validate_saved_workspace(bundle_root / WORKSPACE_DIRECTORY)
     _validate_required_bundle_files(issues, bundle_root)
 
     experiment_path = bundle_root / EXPERIMENT_RESULT_FILE

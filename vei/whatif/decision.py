@@ -5,7 +5,7 @@ from pathlib import Path
 
 from pydantic import ValidationError
 
-from .constants import PUBLIC_CONTEXT_FILE
+from vei.whatif_filenames import PUBLIC_CONTEXT_FILE
 from ._branch_context import build_branch_context
 from .models import (
     WhatIfDecisionOption,

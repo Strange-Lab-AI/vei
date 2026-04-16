@@ -14,7 +14,7 @@ from ..models import (
     WhatIfWorld,
     WhatIfWorldSummary,
 )
-from ..public_context import empty_enron_public_context, resolve_world_public_context
+from vei.context.api import empty_enron_public_context, resolve_world_public_context
 from ..situations import build_situation_graph
 from ._aggregation import (
     build_actor_profiles,

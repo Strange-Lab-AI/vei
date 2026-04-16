@@ -324,7 +324,7 @@ async function runEvalAgent() {
 const STUDIO_MODE = "studio";
 
 function initializeStudioMode() {
-  document.body.dataset.veiSkin = STUDIO_MODE;
+  document.body.dataset.veiTone = STUDIO_MODE;
   applyStudioChrome();
   if (typeof syncStudioTone === "function") {
     syncStudioTone();

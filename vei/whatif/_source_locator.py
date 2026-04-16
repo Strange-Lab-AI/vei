@@ -5,7 +5,7 @@ import os
 from pathlib import Path
 from typing import Any
 
-from ._constants import CONTEXT_SNAPSHOT_FILE, EPISODE_MANIFEST_FILE
+from vei.whatif_filenames import CONTEXT_SNAPSHOT_FILE, EPISODE_MANIFEST_FILE
 from .episode import load_episode_manifest
 
 

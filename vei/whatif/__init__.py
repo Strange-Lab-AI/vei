@@ -98,8 +98,10 @@ __all__ = [
     "WhatIfSituationThread",
     "WhatIfWorld",
     "build_public_context",
+    "build_saved_ranked_result_payload",
     "default_forecast_backend",
     "build_branch_point_benchmark",
+    "empty_public_context",
     "evaluate_branch_point_benchmark_model",
     "score_historical_tail",
     "build_decision_scene",
@@ -122,10 +124,17 @@ __all__ = [
     "load_ranked_experiment_result",
     "load_world",
     "materialize_episode",
+    "providers",
     "recommend_branch_thread",
     "replay_episode_baseline",
+    "resolve_saved_whatif_bundle",
+    "resolve_whatif_company_history_path",
+    "resolve_whatif_mail_archive_path",
+    "resolve_whatif_rosetta_dir",
+    "resolve_whatif_source_path",
     "run_research_pack",
     "search_events",
+    "select_specific_event",
     "train_branch_point_benchmark_model",
     "run_branch_point_benchmark_study",
     "run_counterfactual_experiment",
@@ -138,9 +147,11 @@ __all__ = [
 
 _API_EXPORTS = {
     "build_public_context",
+    "build_saved_ranked_result_payload",
     "score_historical_tail",
     "build_decision_scene",
     "build_saved_decision_scene",
+    "empty_public_context",
     "list_branch_candidates",
     "list_objective_packs",
     "list_supported_scenarios",
@@ -151,7 +162,13 @@ _API_EXPORTS = {
     "materialize_episode",
     "recommend_branch_thread",
     "replay_episode_baseline",
+    "resolve_saved_whatif_bundle",
+    "resolve_whatif_company_history_path",
+    "resolve_whatif_mail_archive_path",
+    "resolve_whatif_rosetta_dir",
+    "resolve_whatif_source_path",
     "search_events",
+    "select_specific_event",
     "run_counterfactual_experiment",
     "run_ranked_counterfactual_experiment",
     "estimate_counterfactual_delta",
@@ -181,6 +198,8 @@ _BENCHMARK_EXPORTS = {
 
 
 def __getattr__(name: str) -> Any:
+    if name == "providers":
+        return import_module("vei.llm.providers")
     if name in _API_EXPORTS:
         module = import_module("vei.whatif.api")
         return getattr(module, name)

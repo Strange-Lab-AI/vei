@@ -19,6 +19,7 @@ from vei.context.api import (
     ContextSnapshot,
     ContextSourceResult,
 )
+from vei.whatif_filenames import CONTEXT_SNAPSHOT_FILE
 from vei.governor import default_governor_workspace_config, governor_metadata_payload
 from vei.orchestrators.api import (
     OrchestratorAgent,
@@ -66,21 +67,6 @@ _LEGACY_PILOT_RUNTIME_FILE = "pilot_runtime.json"
 _LEGACY_PILOT_ORCHESTRATOR_CACHE_FILE = "pilot_orchestrator_snapshot.json"
 _LEGACY_PILOT_ORCHESTRATOR_SYNC_FILE = "pilot_orchestrator_sync.json"
 
-# Compatibility aliases for older internal imports.
-PILOT_MANIFEST_FILE = TWIN_LAUNCH_MANIFEST_FILE
-PILOT_GUIDE_FILE = TWIN_LAUNCH_GUIDE_FILE
-PILOT_RUNTIME_FILE = TWIN_LAUNCH_RUNTIME_FILE
-PILOT_ORCHESTRATOR_CACHE_FILE = TWIN_ORCHESTRATOR_CACHE_FILE
-PILOT_ORCHESTRATOR_SYNC_FILE = TWIN_ORCHESTRATOR_SYNC_FILE
-
-PilotManifest = TwinLaunchManifest
-PilotRuntime = TwinLaunchRuntime
-PilotServiceRecord = TwinServiceRecord
-PilotSnippet = TwinLaunchSnippet
-PilotStatus = TwinLaunchStatus
-PilotOutcomeSummary = TwinOutcomeSummary
-PilotActivityItem = TwinActivityItem
-
 
 def start_pilot(
     root: str | Path,
@@ -99,7 +85,6 @@ def start_pilot(
     host: str = "127.0.0.1",
     gateway_port: int = 3020,
     studio_port: int = 3011,
-    ui_skin: str = "studio",
     rebuild: bool = False,
     orchestrator: str | None = None,
     orchestrator_url: str | None = None,
@@ -146,7 +131,6 @@ def start_pilot(
         governor_demo=governor_demo,
         governor_demo_interval_ms=governor_demo_interval_ms,
         gateway_token=gateway_token,
-        ui_skin=ui_skin,
         rebuild=rebuild,
     )
 
@@ -603,7 +587,6 @@ def _ensure_twin_bundle(
     governor_demo: bool,
     governor_demo_interval_ms: int,
     gateway_token: str | None,
-    ui_skin: str = "studio",
     rebuild: bool,
 ) -> CustomerTwinBundle:
     manifest_path = workspace_root / "twin_manifest.json"
@@ -635,7 +618,6 @@ def _ensure_twin_bundle(
                 governor_demo=governor_demo,
                 governor_demo_interval_ms=governor_demo_interval_ms,
                 gateway_token=gateway_token,
-                ui_skin=ui_skin,
             )
         resolved_domain = resolved_domain or _default_domain(resolved_name)
         resolved_snapshot = _default_twin_snapshot(
@@ -678,7 +660,6 @@ def _build_existing_workspace_twin_bundle(
     governor_demo: bool,
     governor_demo_interval_ms: int,
     gateway_token: str | None,
-    ui_skin: str,
 ) -> CustomerTwinBundle:
     workspace = workspace or load_workspace(workspace_root)
     preview = preview_workspace_scenario(workspace_root)
@@ -701,7 +682,7 @@ def _build_existing_workspace_twin_bundle(
     }
     write_workspace(workspace_root, workspace)
 
-    context_snapshot_path = workspace_root / "context_snapshot.json"
+    context_snapshot_path = workspace_root / CONTEXT_SNAPSHOT_FILE
     bundle = CustomerTwinBundle(
         workspace_root=workspace_root,
         workspace_name=workspace.name,
@@ -792,7 +773,7 @@ def _resolve_workspace_identity(
     resolved_name = metadata_name or workspace_name
     resolved_domain = metadata_domain
 
-    snapshot_path = workspace_root / "context_snapshot.json"
+    snapshot_path = workspace_root / CONTEXT_SNAPSHOT_FILE
     if snapshot_path.exists():
         snapshot = ContextSnapshot.model_validate_json(
             snapshot_path.read_text(encoding="utf-8")

@@ -40,19 +40,11 @@
   --surface-approvals: #9b7bff;
   --surface-heartbeat: #17324a;
 
-  --skin-accent: var(--accent-bright);
-  --skin-accent-glow: rgba(30, 108, 242, 0.16);
-  --skin-nav-active-bg: var(--accent-bright);
-  --skin-hero-gradient-a: rgba(26, 168, 141, 0.18);
-  --skin-hero-gradient-b: rgba(30, 108, 242, 0.16);
-}
-
-[data-vei-skin="studio"] {
-  --skin-accent: var(--accent-bright);
-  --skin-accent-glow: rgba(30, 108, 242, 0.16);
-  --skin-nav-active-bg: var(--accent-bright);
-  --skin-hero-gradient-a: rgba(26, 168, 141, 0.18);
-  --skin-hero-gradient-b: rgba(30, 108, 242, 0.16);
+  --studio-accent: var(--accent-bright);
+  --studio-accent-glow: rgba(30, 108, 242, 0.16);
+  --studio-nav-active-bg: var(--accent-bright);
+  --studio-hero-gradient-a: rgba(26, 168, 141, 0.18);
+  --studio-hero-gradient-b: rgba(30, 108, 242, 0.16);
 }
 
 * {
@@ -501,10 +493,10 @@ button:disabled {
 }
 
 .studio-nav-button.active {
-  border-color: color-mix(in srgb, var(--skin-nav-active-bg) 36%, transparent);
-  background: linear-gradient(135deg, rgba(23, 50, 74, 0.96), color-mix(in srgb, var(--skin-nav-active-bg) 92%, transparent));
+  border-color: color-mix(in srgb, var(--studio-nav-active-bg) 36%, transparent);
+  background: linear-gradient(135deg, rgba(23, 50, 74, 0.96), color-mix(in srgb, var(--studio-nav-active-bg) 92%, transparent));
   color: #fff;
-  box-shadow: 0 16px 34px var(--skin-accent-glow);
+  box-shadow: 0 16px 34px var(--studio-accent-glow);
 }
 
 .studio-view-helper {

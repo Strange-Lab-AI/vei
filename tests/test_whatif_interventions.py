@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from vei.whatif.interventions import intervention_tags
+from vei.whatif._helpers import intervention_tags
 
 
 @pytest.mark.parametrize(

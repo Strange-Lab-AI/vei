@@ -9,7 +9,7 @@ from vei.twin.models import ContextMoldConfig
 from vei.whatif.artifact_validation import validate_saved_workspace
 
 from .._branch_context import build_branch_context
-from .._constants import EPISODE_MANIFEST_FILE, PUBLIC_CONTEXT_FILE
+from vei.whatif_filenames import EPISODE_MANIFEST_FILE, PUBLIC_CONTEXT_FILE
 from ..models import (
     WhatIfCaseContext,
     WhatIfEpisodeManifest,
@@ -18,7 +18,7 @@ from ..models import (
     WhatIfSituationContext,
     WhatIfWorld,
 )
-from ..public_context import empty_public_context
+from vei.context.api import empty_public_context
 from ..corpus import (
     CONTENT_NOTICE,
     event_reference,
@@ -120,7 +120,7 @@ def materialize_episode(
     manifest = WhatIfEpisodeManifest(
         source=world.source,
         source_dir=world.source_dir,
-        workspace_root=workspace_root,
+        workspace_root="workspace",
         organization_name=resolved_organization_name,
         organization_domain=resolved_organization_domain,
         thread_id=branch_context.thread_id,

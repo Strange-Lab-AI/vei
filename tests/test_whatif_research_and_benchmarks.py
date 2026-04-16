@@ -70,11 +70,11 @@ from vei.whatif.benchmark_business import (
     summarize_observed_evidence,
 )
 from vei.whatif.benchmark_bridge import (
-    _BenchmarkPreprocessor,
+    BenchmarkPreprocessor,
     _EVIDENCE_TARGET_NAMES,
     _SEQUENCE_NUMERIC_WIDTH,
     _SEQUENCE_TOKEN_LIMIT,
-    _TorchTrainer,
+    TorchTrainer,
     _action_vector_width,
 )
 from vei.whatif.corpus import has_external_recipients, recipient_scope
@@ -2414,7 +2414,7 @@ def test_branch_point_benchmark_study_writes_seeded_summary(
 def test_jepa_benchmark_model_uses_prebranch_sequence_signal() -> None:
     torch = pytest.importorskip("torch")
     torch.manual_seed(42042)
-    preprocessor = _BenchmarkPreprocessor(
+    preprocessor = BenchmarkPreprocessor(
         summary_feature_names=["history_event_count"],
         summary_mean=[0.0],
         summary_std=[1.0],
@@ -2423,7 +2423,7 @@ def test_jepa_benchmark_model_uses_prebranch_sequence_signal() -> None:
         target_mean=[0.0] * len(_EVIDENCE_TARGET_NAMES),
         target_std=[1.0] * len(_EVIDENCE_TARGET_NAMES),
     )
-    trainer = _TorchTrainer(model_id="jepa_latent", preprocessor=preprocessor)
+    trainer = TorchTrainer(model_id="jepa_latent", preprocessor=preprocessor)
     model = trainer.build_model(device="cpu")
     model.eval()
 
@@ -2474,7 +2474,7 @@ def test_jepa_benchmark_model_uses_prebranch_sequence_signal() -> None:
 def test_full_context_transformer_uses_summary_action_and_sequence_signal() -> None:
     torch = pytest.importorskip("torch")
     torch.manual_seed(42042)
-    preprocessor = _BenchmarkPreprocessor(
+    preprocessor = BenchmarkPreprocessor(
         summary_feature_names=["history_event_count"],
         summary_mean=[0.0],
         summary_std=[1.0],
@@ -2483,7 +2483,7 @@ def test_full_context_transformer_uses_summary_action_and_sequence_signal() -> N
         target_mean=[0.0] * len(_EVIDENCE_TARGET_NAMES),
         target_std=[1.0] * len(_EVIDENCE_TARGET_NAMES),
     )
-    trainer = _TorchTrainer(
+    trainer = TorchTrainer(
         model_id="full_context_transformer",
         preprocessor=preprocessor,
     )
@@ -2545,7 +2545,7 @@ def test_full_context_transformer_uses_summary_action_and_sequence_signal() -> N
 
 
 def test_benchmark_preprocessor_decode_targets_clamps_overflow() -> None:
-    preprocessor = _BenchmarkPreprocessor(
+    preprocessor = BenchmarkPreprocessor(
         summary_feature_names=["history_event_count"],
         summary_mean=[0.0],
         summary_std=[1.0],
@@ -2566,7 +2566,7 @@ def test_benchmark_preprocessor_decode_targets_clamps_overflow() -> None:
 
 
 def test_benchmark_preprocessor_decode_targets_handles_nonfinite_values() -> None:
-    preprocessor = _BenchmarkPreprocessor(
+    preprocessor = BenchmarkPreprocessor(
         summary_feature_names=["history_event_count"],
         summary_mean=[0.0],
         summary_std=[1.0],

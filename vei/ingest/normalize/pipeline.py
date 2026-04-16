@@ -1,7 +1,10 @@
 """Streaming normalizer: raw records -> CanonicalEvent.
 
-Wraps the existing ``vei.context._normalize_extract`` logic so we do not
-duplicate rules.  Makes normalization incremental instead of bundle-at-a-time.
+Lightweight record-at-a-time normalizer that maps raw provider records into
+CanonicalEvent objects using ``vei.events.api.infer_domain``.  This does NOT
+share cleanup or verification rules from ``vei.context._normalize_extract`` /
+``_normalize_cleanup`` / ``_normalize_verify``; those apply only during
+full-snapshot bundle normalization (``vei context normalize``).
 """
 
 from __future__ import annotations

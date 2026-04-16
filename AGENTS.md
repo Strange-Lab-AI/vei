@@ -291,7 +291,7 @@ Key eval commands:
 - `vei eval demo --family security_containment` — side-by-side baseline vs comparison runner
 - `vei eval suite` — run all families with workflow baseline
 - `vei eval showcase` — curated complex multi-system examples
-- `vei eval-frontier run --model gpt-5 --scenario-set reasoning` — hard frontier scenarios with multi-dimensional scoring
+- `vei eval benchmark --runner llm --frontier --scenario-set reasoning --model gpt-5` — hard frontier scenarios with multi-dimensional scoring
 
 Scoring is multi-layered: raw task success → policy compliance → domain-specific dimensions (evidence preservation, blast radius, comms correctness, etc.) → composite score with 0.7 threshold for frontier scenarios. Optional LLM-as-judge for communication quality.
 

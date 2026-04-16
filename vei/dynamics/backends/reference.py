@@ -8,7 +8,6 @@ the backend returns an explicit setup error instead of a silent empty result.
 from __future__ import annotations
 
 import hashlib
-import importlib
 import logging
 import os
 from pathlib import Path
@@ -90,7 +89,7 @@ class ReferenceBackend:
                 summary_feature_names=loaded["preprocessor"].summary_feature_names,
             )
             encoded = loaded["preprocessor"].encode_row(row)
-            predictions = loaded["bridge"]._predict_rows(
+            predictions = loaded["predict_rows"](
                 model=loaded["model"],
                 rows=[encoded],
                 batch_size=1,
@@ -203,12 +202,16 @@ class ReferenceBackend:
             self._loaded = {"error": "torch not available"}
             return self._loaded
 
-        bridge = importlib.import_module("vei.whatif.benchmark_bridge")
-        checkpoint = bridge._load_checkpoint(self._checkpoint_path)
-        preprocessor = bridge._BenchmarkPreprocessor.from_metadata(
-            checkpoint["metadata"]
+        from vei.whatif.benchmark_bridge import (
+            BenchmarkPreprocessor,
+            TorchTrainer,
+            load_checkpoint,
+            predict_rows,
         )
-        trainer = bridge._TorchTrainer(
+
+        checkpoint = load_checkpoint(self._checkpoint_path)
+        preprocessor = BenchmarkPreprocessor.from_metadata(checkpoint["metadata"])
+        trainer = TorchTrainer(
             model_id=checkpoint["model_id"],
             preprocessor=preprocessor,
         )
@@ -216,7 +219,7 @@ class ReferenceBackend:
         model.load_state_dict(checkpoint["state_dict"])
         model.eval()
         self._loaded = {
-            "bridge": bridge,
+            "predict_rows": predict_rows,
             "checkpoint_path": self._checkpoint_path,
             "device": self._device,
             "model": model,

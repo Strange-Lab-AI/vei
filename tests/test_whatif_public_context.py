@@ -27,7 +27,7 @@ from vei.whatif.models import (
     WhatIfResearchCase,
     WhatIfResearchPack,
 )
-from vei.whatif.public_context import (
+from vei.context.api import (
     build_public_context,
     load_public_context,
     load_enron_public_context,

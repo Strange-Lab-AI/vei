@@ -158,10 +158,10 @@ class TestReferenceBackend:
 
     def test_loads_checkpoint_and_predicts(self, tmp_path: Path) -> None:
         torch = pytest.importorskip("torch")
-        from vei.whatif.benchmark_bridge import _BenchmarkPreprocessor, _TorchTrainer
+        from vei.whatif.benchmark_bridge import BenchmarkPreprocessor, TorchTrainer
 
         torch.manual_seed(42042)
-        preprocessor = _BenchmarkPreprocessor(
+        preprocessor = BenchmarkPreprocessor(
             summary_feature_names=["history_event_count", "participant_count"],
             summary_mean=[0.0, 0.0],
             summary_std=[1.0, 1.0],
@@ -170,7 +170,7 @@ class TestReferenceBackend:
             target_mean=[0.0] * 22,
             target_std=[1.0] * 22,
         )
-        trainer = _TorchTrainer(model_id="ft_transformer", preprocessor=preprocessor)
+        trainer = TorchTrainer(model_id="ft_transformer", preprocessor=preprocessor)
         model = trainer.build_model(device="cpu")
         checkpoint_path = tmp_path / "reference-model.pt"
         torch.save(

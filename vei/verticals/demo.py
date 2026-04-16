@@ -6,6 +6,7 @@ from typing import Iterable, Literal
 
 from pydantic import BaseModel, Field
 
+from vei.whatif_filenames import EPISODE_MANIFEST_FILE
 from vei.run.api import (
     launch_workspace_run,
     list_run_manifests,
@@ -699,7 +700,7 @@ def run_vertical_story_showcase(
 
 def load_workspace_story_manifest(root: str | Path) -> VerticalStoryBundle | None:
     workspace_root = Path(root).expanduser().resolve()
-    if (workspace_root / "episode_manifest.json").exists():
+    if (workspace_root / EPISODE_MANIFEST_FILE).exists():
         return None
     path = workspace_root / "story_manifest.json"
     if path.exists():

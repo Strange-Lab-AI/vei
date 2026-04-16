@@ -20,7 +20,7 @@ from .models import (
     WhatIfSituationContext,
     WhatIfWorld,
 )
-from .public_context import slice_public_context_to_branch
+from vei.context.api import slice_public_context_to_branch
 from .situations import build_situation_context
 
 

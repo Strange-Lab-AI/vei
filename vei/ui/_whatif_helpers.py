@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 from typing import Any
 
@@ -7,12 +8,19 @@ from fastapi import HTTPException
 from pydantic import ValidationError
 
 from vei.whatif.api import load_world, resolve_saved_whatif_bundle
+from vei.whatif.artifact_validation import validate_saved_workspace
 from vei.whatif_filenames import CONTEXT_SNAPSHOT_FILE
 
 from ._api_models import load_workspace_historical_summary, resolve_whatif_source_path
 
+logger = logging.getLogger(__name__)
+
 
 def load_historical_summary_or_400(root: Path):
+    issues = validate_saved_workspace(root)
+    if issues:
+        for issue in issues:
+            logger.warning("workspace validation: %s", issue, extra={"root": str(root)})
     try:
         return load_workspace_historical_summary(root)
     except (ValueError, ValidationError) as exc:

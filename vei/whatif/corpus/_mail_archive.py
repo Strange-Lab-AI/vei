@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any, Sequence
 
 from vei.context.api import legacy_threads_payload_to_snapshot
+from vei.whatif_filenames import CONTEXT_SNAPSHOT_FILE
 from vei.context.models import (
     ContextSnapshot,
     GmailSourceData,
@@ -23,7 +24,7 @@ from ..models import (
     WhatIfWorld,
     WhatIfWorldSummary,
 )
-from ..public_context import resolve_world_public_context
+from vei.context.api import resolve_world_public_context
 from ..situations import build_situation_graph
 from ._aggregation import build_actor_profiles, build_thread_summaries
 from ._time import resolve_time_window, safe_int, timestamp_to_ms, timestamp_to_text
@@ -47,7 +48,7 @@ MAIL_ARCHIVE_CONTENT_NOTICE = (
     "Historical email bodies come from the supplied mail archive snapshot. "
     "They reflect the available archive text for each message."
 )
-MAIL_ARCHIVE_FILE_NAMES = ("context_snapshot.json",)
+MAIL_ARCHIVE_FILE_NAMES = (CONTEXT_SNAPSHOT_FILE,)
 MAIL_SOURCE_PROVIDERS = {"mail_archive", "gmail"}
 
 

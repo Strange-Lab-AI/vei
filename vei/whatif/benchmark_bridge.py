@@ -172,7 +172,7 @@ def _train_from_request(path: Path) -> WhatIfBenchmarkTrainResult:
         seed=int(request.get("seed", _RANDOM_SEED)),
         device=_resolve_device(str(request.get("device", "") or "")),
     )
-    trainer = _TorchTrainer(model_id=request["model_id"], preprocessor=preprocessor)
+    trainer = TorchTrainer(model_id=request["model_id"], preprocessor=preprocessor)
     trained = trainer.train(
         train_rows=train_rows,
         validation_rows=validation_rows,
@@ -227,16 +227,16 @@ def _eval_from_request(path: Path) -> WhatIfBenchmarkEvalResult:
 
     build = load_branch_point_benchmark_build_result(request["build_root"])
     dataset = _load_dataset_rows(build.dataset.split_paths)
-    checkpoint = _load_checkpoint(output_root / "model.pt")
-    preprocessor = _BenchmarkPreprocessor.from_metadata(checkpoint["metadata"])
-    trainer = _TorchTrainer(model_id=request["model_id"], preprocessor=preprocessor)
+    checkpoint = load_checkpoint(output_root / "model.pt")
+    preprocessor = BenchmarkPreprocessor.from_metadata(checkpoint["metadata"])
+    trainer = TorchTrainer(model_id=request["model_id"], preprocessor=preprocessor)
     device = _resolve_device(str(request.get("device", "") or ""))
     model = trainer.build_model(device=device)
     model.load_state_dict(checkpoint["state_dict"])
     model.eval()
 
     test_rows = [preprocessor.encode_row(row) for row in dataset["test"]]
-    factual_predictions = _predict_rows(
+    factual_predictions = predict_rows(
         model=model,
         rows=test_rows,
         batch_size=_HOLDOUT_BATCH_SIZE,
@@ -304,7 +304,7 @@ def _load_dataset_rows(
     return result
 
 
-def _load_checkpoint(path: Path) -> dict[str, Any]:
+def load_checkpoint(path: Path) -> dict[str, Any]:
     torch = importlib.import_module("torch")
     checkpoint = torch.load(path, map_location="cpu")
     if not isinstance(checkpoint, dict):
@@ -312,7 +312,7 @@ def _load_checkpoint(path: Path) -> dict[str, Any]:
     return checkpoint
 
 
-class _BenchmarkPreprocessor:
+class BenchmarkPreprocessor:
     def __init__(
         self,
         *,
@@ -342,7 +342,7 @@ class _BenchmarkPreprocessor:
         self.target_std = np.asarray(target_std, dtype=np.float32)
 
     @classmethod
-    def from_metadata(cls, payload: dict[str, Any]) -> "_BenchmarkPreprocessor":
+    def from_metadata(cls, payload: dict[str, Any]) -> "BenchmarkPreprocessor":
         return cls(
             summary_feature_names=payload["summary_feature_names"],
             summary_mean=payload["summary_mean"],
@@ -624,7 +624,7 @@ def _fit_preprocessor(
     test_rows: Sequence[WhatIfBenchmarkDatasetRow],
     heldout_rows: Sequence[WhatIfBenchmarkDatasetRow],
     cases: Sequence[WhatIfBenchmarkCase],
-) -> _BenchmarkPreprocessor:
+) -> BenchmarkPreprocessor:
     summary_names = sorted(
         {
             feature.name
@@ -702,7 +702,7 @@ def _fit_preprocessor(
         else np.ones(len(_EVIDENCE_TARGET_NAMES))
     )
     target_std = np.where(target_std < 1e-6, 1.0, target_std)
-    return _BenchmarkPreprocessor(
+    return BenchmarkPreprocessor(
         summary_feature_names=summary_names,
         summary_mean=summary_mean.tolist(),
         summary_std=summary_std.tolist(),
@@ -713,12 +713,12 @@ def _fit_preprocessor(
     )
 
 
-class _TorchTrainer:
+class TorchTrainer:
     def __init__(
         self,
         *,
         model_id: WhatIfBenchmarkModelId,
-        preprocessor: _BenchmarkPreprocessor,
+        preprocessor: BenchmarkPreprocessor,
     ) -> None:
         self.model_id = model_id
         self.preprocessor = preprocessor
@@ -1275,7 +1275,7 @@ def _training_loss(
     return binary_loss + regression_loss + (0.25 * latent_loss)
 
 
-def _predict_rows(
+def predict_rows(
     *,
     model: Any,
     rows: Sequence[_RowEncoding],
@@ -1318,7 +1318,7 @@ def _compute_observed_metrics(
     *,
     rows: Sequence[_RowEncoding],
     predictions: Sequence[_PredictionBatch],
-    preprocessor: _BenchmarkPreprocessor,
+    preprocessor: BenchmarkPreprocessor,
 ) -> WhatIfObservedForecastMetrics:
     actual_binary: list[float] = []
     predicted_binary: list[float] = []
@@ -1406,7 +1406,7 @@ def _evaluate_heldout_cases(
     model: Any,
     build_cases: Sequence[WhatIfBenchmarkCase],
     base_contract_by_case: dict[str, Any],
-    preprocessor: _BenchmarkPreprocessor,
+    preprocessor: BenchmarkPreprocessor,
     device: str,
     torch_module: Any,
 ) -> list[WhatIfBenchmarkCaseEvaluation]:
@@ -1432,7 +1432,7 @@ def _evaluate_heldout_cases(
                 for candidate in case.candidates
             ]
             predictions = _flatten_prediction_batches(
-                _predict_rows(
+                predict_rows(
                     model=model,
                     rows=encoded_candidates,
                     batch_size=_HOLDOUT_BATCH_SIZE,
@@ -1634,7 +1634,7 @@ def _text_feature_count(text: str) -> int:
     )
 
 
-def _action_vector_width(preprocessor: _BenchmarkPreprocessor) -> int:
+def _action_vector_width(preprocessor: BenchmarkPreprocessor) -> int:
     fixed = (
         len(_RECIPIENT_SCOPE_VALUES)
         + len(_ATTACHMENT_POLICY_VALUES)

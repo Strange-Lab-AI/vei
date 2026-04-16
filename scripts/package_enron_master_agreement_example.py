@@ -13,7 +13,7 @@ from vei.whatif.business_state import (
     assess_historical_business_state,
     describe_forecast_business_change,
 )
-from vei.whatif.public_context import (
+from vei.context.api import (
     empty_public_context,
     load_enron_public_context,
     slice_public_context_to_branch,

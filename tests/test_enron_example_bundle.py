@@ -17,7 +17,7 @@ from vei.whatif.artifact_validation import (
     validate_artifact_tree,
     validate_packaged_example_bundle,
 )
-from vei.whatif._constants import (
+from vei.whatif_filenames import (
     BUSINESS_STATE_COMPARISON_FILE,
     BUSINESS_STATE_COMPARISON_OVERVIEW_FILE,
     CONTEXT_SNAPSHOT_FILE,
@@ -70,7 +70,7 @@ def _write_packaging_source_fixture(root: Path, *, forecast_filename: str) -> Pa
         path.write_text("{}", encoding="utf-8")
     _write_minimal_valid_saved_workspace(
         workspace_root,
-        workspace_root_value=str(workspace_root),
+        workspace_root_value="workspace",
     )
     return source_root
 
@@ -519,7 +519,7 @@ def test_validate_artifact_tree_ignores_non_episode_manifest_files(
     workspace_root.mkdir(parents=True)
     _write_minimal_valid_saved_workspace(
         workspace_root,
-        workspace_root_value=str(workspace_root),
+        workspace_root_value="workspace",
     )
     (workspace_root / "twin_manifest.json").write_text("{}", encoding="utf-8")
     compiled_root = workspace_root / "compiled" / "default"

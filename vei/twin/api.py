@@ -9,6 +9,7 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 
 from vei.blueprint import get_facade_plugin, resolve_gateway_surface_bindings
+from vei.whatif_filenames import CONTEXT_SNAPSHOT_FILE
 from vei.blueprint.models import (
     BlueprintAsset,
     BlueprintCapabilityGraphsAsset,
@@ -143,7 +144,7 @@ def build_customer_twin(
             resolved_mold.contract_variant,
         )
 
-    snapshot_path = workspace_root / "context_snapshot.json"
+    snapshot_path = workspace_root / CONTEXT_SNAPSHOT_FILE
     snapshot_path.write_text(
         normalized_snapshot.model_dump_json(indent=2),
         encoding="utf-8",

@@ -27,20 +27,12 @@ def main() -> int:
         default=None,
         help="Validation mode to run.",
     )
-    parser.add_argument(
-        "--allow-relative-workspace-root",
-        action="store_true",
-        help="Allow packaged examples that store workspace_root as 'workspace'.",
-    )
     args = parser.parse_args()
 
     target = args.path.expanduser().resolve()
     mode = args.mode or detect_validation_mode(target)
     if mode == "workspace":
-        issues = validate_saved_workspace(
-            target,
-            allow_relative_workspace_root=args.allow_relative_workspace_root,
-        )
+        issues = validate_saved_workspace(target)
     elif mode == "bundle":
         issues = validate_packaged_example_bundle(target)
     else:

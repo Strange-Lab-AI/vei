@@ -3,13 +3,13 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Sequence
 
+from ._branch_selection import resolve_thread_branch
 from ._helpers import thread_reason_labels
 from ._source_snapshot import source_snapshot_for_world
 from .cases import build_case_context
 from .corpus import (
     detect_whatif_source,
     display_name,
-    choose_branch_event,
     event_by_id,
     event_reason_labels,
     has_external_recipients,
@@ -17,7 +17,6 @@ from .corpus import (
     load_mail_archive_world,
     load_enron_world,
     search_events as search_world_events,
-    thread_events,
     touches_executive,
 )
 from .models import (
@@ -54,22 +53,17 @@ def list_branch_candidates(
     source_snapshot = source_snapshot_for_world(world)
     ranked: list[WhatIfBranchCandidate] = []
     for thread in world.threads:
-        history = thread_events(world.events, thread.thread_id)
-        if not history:
-            continue
-        branch_event = choose_branch_event(history, requested_event_id=None)
-        branch_index = next(
+        try:
             (
-                index
-                for index, event in enumerate(history)
-                if event.event_id == branch_event.event_id
-            ),
-            None,
-        )
-        if branch_index is None:
+                _tid,
+                _thread_history,
+                branch_event,
+                past_events,
+                future_events,
+                _subject,
+            ) = resolve_thread_branch(world, thread_id=thread.thread_id)
+        except ValueError:
             continue
-        past_events = list(history[:branch_index])
-        future_events = list(history[branch_index:])
         case_context = build_case_context(
             snapshot=source_snapshot,
             events=world.events,
