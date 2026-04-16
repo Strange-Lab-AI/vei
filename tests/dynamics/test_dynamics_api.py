@@ -124,6 +124,7 @@ class TestRegistry:
 
 class TestReferenceBackend:
     def test_returns_explicit_error_without_checkpoint(self) -> None:
+        pytest.importorskip("torch")
         backend = ReferenceBackend()
 
         response = backend.forecast(DynamicsRequest(seed=42042))
