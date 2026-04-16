@@ -66,13 +66,12 @@ class _ImmediateThread:
             self._target()
 
 
-def test_ui_skin_aliases_resolve_to_studio(tmp_path: Path) -> None:
-    client = TestClient(ui_api.create_ui_app(tmp_path, skin="test"))
+def test_ui_does_not_expose_legacy_skin_endpoint(tmp_path: Path) -> None:
+    client = TestClient(ui_api.create_ui_app(tmp_path))
 
     response = client.get("/api/skin")
 
-    assert response.status_code == 200
-    assert response.json() == {"skin": "studio"}
+    assert response.status_code == 404
 
 
 def test_ui_index_contains_company_subnav_and_whatif_steps(tmp_path: Path) -> None:
@@ -1400,6 +1399,7 @@ def test_ui_api_saved_bundle_routes_support_non_enron_saved_branches(
         json.dumps(
             {
                 "label": "saved_mail_ranked",
+                "objective_pack": {"pack_id": "contain_exposure"},
                 "candidates": [
                     {
                         "label": "Hold for internal review",
@@ -1464,7 +1464,7 @@ def test_ui_api_saved_bundle_routes_support_non_enron_saved_branches(
             "event_id": "py-msg-002",
             "thread_id": "py-legal-001",
             "label": "ignored-for-saved-mail-bundle",
-            "objective_pack_id": "contain_exposure",
+            "objective_pack_id": "reduce_delay",
             "candidates": [
                 {
                     "label": "Hold for internal review",
@@ -1476,6 +1476,10 @@ def test_ui_api_saved_bundle_routes_support_non_enron_saved_branches(
     assert rank_response.status_code == 200
     rank_payload = rank_response.json()
     assert rank_payload["recommended_candidate_label"] == "Hold for internal review"
+    assert rank_payload["objective_pack"]["pack_id"] == "contain_exposure"
+    assert rank_payload["candidates"][0]["outcome_score"]["objective_pack_id"] == (
+        "contain_exposure"
+    )
     assert rank_payload["candidates"][0]["saved_result"] is True
 
 
@@ -1589,6 +1593,96 @@ def test_ui_api_saved_enron_workspace_prefers_live_rosetta_for_auto_actions(
     assert rank_response.status_code == 200
     rank_payload = rank_response.json()
     assert rank_payload["recommended_candidate_label"] == "Hold internal"
+
+
+def test_ui_api_saved_bundle_respects_explicit_company_history_source(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    bundle_root = tmp_path / "saved_bundle"
+    workspace_root = bundle_root / "workspace"
+    create_workspace_from_template(
+        root=workspace_root,
+        source_kind="vertical",
+        source_ref="b2b_saas",
+    )
+    _write_saved_context_snapshot(workspace_root)
+    snapshot_path = _write_company_history_fixture(tmp_path / "company_history")
+    episode = WhatIfEpisodeManifest(
+        source="enron",
+        source_dir="not-included-in-repo-example",
+        workspace_root=workspace_root,
+        organization_name="Enron Corporation",
+        organization_domain="enron.com",
+        thread_id="thr-master-agreement",
+        thread_subject="Master Agreement",
+        branch_event_id="enron_bcda1b925800af8c",
+        branch_timestamp="2000-09-27T13:42:00Z",
+        branch_event=WhatIfEventReference(
+            event_id="enron_bcda1b925800af8c",
+            timestamp="2000-09-27T13:42:00Z",
+            actor_id="debra.perlingiere@enron.com",
+            target_id="kathy_gerken@cargill.com",
+            event_type="assignment",
+            thread_id="thr-master-agreement",
+            subject="Master Agreement",
+            snippet="Historical branch point.",
+            to_recipients=["kathy_gerken@cargill.com"],
+        ),
+        history_message_count=1,
+        future_event_count=84,
+        baseline_dataset_path="whatif_baseline_dataset.json",
+        content_notice="Historical email bodies are grounded in archive excerpts and metadata.",
+        forecast=WhatIfHistoricalScore(backend="historical", risk_score=1.0),
+    )
+    (workspace_root / "episode_manifest.json").write_text(
+        episode.model_dump_json(indent=2),
+        encoding="utf-8",
+    )
+    (bundle_root / "whatif_experiment_result.json").write_text(
+        json.dumps(
+            {
+                "label": "saved_enron_bundle_run",
+                "materialization": {
+                    "branch_event_id": "enron_bcda1b925800af8c",
+                    "thread_id": "thr-master-agreement",
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("VEI_WHATIF_SOURCE_DIR", str(snapshot_path))
+
+    def fake_materialize_episode(world, *args, **kwargs):
+        assert world.source == "company_history"
+        return SimpleNamespace(
+            model_dump=lambda mode="json": {
+                "branch_event_id": kwargs.get("event_id") or "evt-1",
+                "thread_id": kwargs.get("thread_id") or "thr-1",
+            }
+        )
+
+    monkeypatch.setattr(
+        workspace_routes,
+        "materialize_episode",
+        fake_materialize_episode,
+    )
+
+    client = TestClient(ui_api.create_ui_app(workspace_root))
+    response = client.post(
+        "/api/workspace/whatif/open",
+        json={
+            "source": "company_history",
+            "event_id": "enron_bcda1b925800af8c",
+            "thread_id": "thr-master-agreement",
+            "label": "explicit-company-history",
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["source"] == "company_history"
+    assert payload["source_dir"] == str(snapshot_path.resolve())
 
 
 def test_ui_api_whatif_run_route_returns_experiment_payload(
@@ -2373,6 +2467,67 @@ def test_ui_api_exposes_historical_workspace_without_vertical_story(
     fidelity_response = client.get("/api/fidelity")
     assert fidelity_response.status_code == 200
     assert fidelity_response.json() == {}
+
+
+def test_ui_api_returns_clean_400_for_malformed_saved_bundle_manifest(
+    tmp_path: Path,
+) -> None:
+    bundle_root = tmp_path / "bundle"
+    workspace_root = bundle_root / "workspace"
+    workspace_root.mkdir(parents=True)
+    (bundle_root / "whatif_experiment_result.json").write_text(
+        json.dumps({}),
+        encoding="utf-8",
+    )
+    (workspace_root / "episode_manifest.json").write_text(
+        json.dumps({"workspace_root": "workspace"}),
+        encoding="utf-8",
+    )
+
+    client = TestClient(ui_api.create_ui_app(workspace_root))
+
+    historical_response = client.get("/api/workspace/historical")
+    assert historical_response.status_code == 400
+    assert "invalid saved workspace manifest" in historical_response.json()["detail"]
+
+    whatif_response = client.get("/api/workspace/whatif")
+    assert whatif_response.status_code == 400
+    assert "invalid saved workspace manifest" in whatif_response.json()["detail"]
+
+    scene_response = client.post(
+        "/api/workspace/whatif/scene",
+        json={"source": "auto"},
+    )
+    assert scene_response.status_code == 400
+    assert "invalid saved workspace manifest" in scene_response.json()["detail"]
+
+
+def test_ui_api_live_source_ignores_malformed_manifest_without_saved_bundle(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    workspace_root = tmp_path / "workspace"
+    create_workspace_from_template(
+        root=workspace_root,
+        source_kind="vertical",
+        source_ref="b2b_saas",
+    )
+    snapshot_path = _write_company_history_fixture(tmp_path / "company_history")
+    (workspace_root / "episode_manifest.json").write_text(
+        json.dumps({"workspace_root": "workspace"}),
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("VEI_WHATIF_SOURCE_DIR", str(snapshot_path))
+
+    client = TestClient(ui_api.create_ui_app(workspace_root))
+    response = client.get("/api/workspace/whatif")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["available"] is True
+    assert payload["source"] == "company_history"
+    assert payload["source_dir"] == str(snapshot_path.resolve())
+    assert payload["saved_bundle_active"] is False
 
 
 def test_ui_api_supports_benchmark_audit_root(tmp_path: Path) -> None:

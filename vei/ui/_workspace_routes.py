@@ -19,9 +19,7 @@ from vei.whatif.api import (
     list_objective_packs,
     load_branch_point_benchmark_build_result,
     load_branch_point_benchmark_judge_result,
-    load_world,
     materialize_episode,
-    resolve_saved_whatif_bundle,
     run_counterfactual_experiment,
     run_ranked_counterfactual_experiment,
     search_events,
@@ -50,70 +48,21 @@ from ._api_models import (
     WhatIfSceneRequest,
     WhatIfSearchRequest,
     gateway_json_request,
-    load_workspace_historical_summary,
     load_workspace_workforce_payload,
-    resolve_whatif_source_path,
+)
+from ._whatif_helpers import (
+    can_use_saved_bundle as _can_use_saved_bundle,
+    load_historical_summary_or_400 as _load_historical_summary_or_400,
+    resolve_whatif_source_or_400 as _resolve_whatif_source,
+    saved_historical_request_matches as _saved_historical_request_matches,
 )
 from ._root_mode import load_ui_workspace_summary
+from vei.whatif.api import resolve_saved_whatif_bundle, resolve_whatif_source_path
 
 
 def register_workspace_routes(app: FastAPI, root: Path, *, deps: Any) -> None:
     def _saved_bundle():
         return resolve_saved_whatif_bundle(root)
-
-    def _saved_historical_request_matches(
-        *,
-        event_id: str | None = None,
-        thread_id: str | None = None,
-    ) -> Any | None:
-        historical = load_workspace_historical_summary(root)
-        if historical is None:
-            return None
-        if event_id and event_id != historical.branch_event_id:
-            return None
-        if thread_id and thread_id != historical.thread_id:
-            return None
-        return historical
-
-    def _can_use_saved_bundle(
-        *,
-        event_id: str | None = None,
-        thread_id: str | None = None,
-    ) -> bool:
-        historical = _saved_historical_request_matches(
-            event_id=event_id,
-            thread_id=thread_id,
-        )
-        if historical is None:
-            return False
-        saved_bundle = _saved_bundle()
-        if saved_bundle is None:
-            return False
-        preferred_source = str(historical.source or "").strip().lower()
-        if not preferred_source:
-            return True
-        resolved = resolve_whatif_source_path(root, requested_source=preferred_source)
-        if resolved is not None and resolved[0] == preferred_source:
-            return False
-        return True
-
-    def _resolve_whatif_source(source: str, *, max_events: int | None = None):
-        resolved = resolve_whatif_source_path(root, requested_source=source)
-        if resolved is None:
-            raise HTTPException(
-                status_code=404,
-                detail="historical source is not configured for this workspace",
-            )
-        resolved_source, source_dir = resolved
-        try:
-            world = load_world(
-                source=resolved_source,
-                source_dir=source_dir,
-                max_events=max_events,
-            )
-        except Exception as exc:  # noqa: BLE001
-            raise HTTPException(status_code=400, detail=str(exc)) from exc
-        return world, source_dir
 
     def _whatif_artifacts_root() -> Path:
         path = root / ".artifacts" / "whatif_ui"
@@ -139,7 +88,7 @@ def register_workspace_routes(app: FastAPI, root: Path, *, deps: Any) -> None:
 
     @app.get("/api/workspace/historical")
     def api_workspace_historical() -> JSONResponse:
-        payload = load_workspace_historical_summary(root)
+        payload = _load_historical_summary_or_400(root)
         return JSONResponse(payload.model_dump(mode="json") if payload else {})
 
     @app.get("/api/workspace/whatif")
@@ -147,17 +96,25 @@ def register_workspace_routes(app: FastAPI, root: Path, *, deps: Any) -> None:
         resolved = resolve_whatif_source_path(root)
         source = resolved[0] if resolved is not None else "auto"
         source_dir = str(resolved[1]) if resolved is not None else None
+        saved_bundle_active = False
         if resolved is None:
             saved_bundle = _saved_bundle()
-            historical = load_workspace_historical_summary(root)
+            historical = _load_historical_summary_or_400(root)
             if saved_bundle is not None and historical is not None:
                 source = str(historical.source or "auto")
                 source_dir = saved_bundle.source_dir_text()
+                saved_bundle_active = True
+        else:
+            saved_bundle_active = _can_use_saved_bundle(
+                root,
+                requested_source="auto",
+            )
         return JSONResponse(
             {
                 "available": source_dir is not None,
                 "source": source,
                 "source_dir": source_dir,
+                "saved_bundle_active": saved_bundle_active,
                 "objective_packs": [
                     pack.model_dump(mode="json") for pack in list_objective_packs()
                 ],
@@ -167,6 +124,7 @@ def register_workspace_routes(app: FastAPI, root: Path, *, deps: Any) -> None:
     @app.post("/api/workspace/whatif/search")
     def api_workspace_whatif_search(request: WhatIfSearchRequest) -> JSONResponse:
         world, source_dir = _resolve_whatif_source(
+            root,
             request.source,
             max_events=request.max_events,
         )
@@ -187,11 +145,14 @@ def register_workspace_routes(app: FastAPI, root: Path, *, deps: Any) -> None:
     @app.post("/api/workspace/whatif/open")
     def api_workspace_whatif_open(request: WhatIfOpenRequest) -> JSONResponse:
         if _can_use_saved_bundle(
+            root,
+            requested_source=request.source,
             event_id=request.event_id,
             thread_id=request.thread_id,
         ):
             saved_bundle = _saved_bundle()
             historical = _saved_historical_request_matches(
+                root,
                 event_id=request.event_id,
                 thread_id=request.thread_id,
             )
@@ -214,6 +175,7 @@ def register_workspace_routes(app: FastAPI, root: Path, *, deps: Any) -> None:
                         }
                     )
         world, source_dir = _resolve_whatif_source(
+            root,
             request.source,
             max_events=request.max_events,
         )
@@ -239,18 +201,28 @@ def register_workspace_routes(app: FastAPI, root: Path, *, deps: Any) -> None:
 
     @app.post("/api/workspace/whatif/scene")
     def api_workspace_whatif_scene(request: WhatIfSceneRequest) -> JSONResponse:
-        historical = load_workspace_historical_summary(root)
+        historical = _load_historical_summary_or_400(root)
         matches_saved_branch = historical is not None and (
             (not request.event_id or request.event_id == historical.branch_event_id)
             and (not request.thread_id or request.thread_id == historical.thread_id)
         )
-        if matches_saved_branch:
+        normalized_source = str(request.source or "").strip().lower()
+        historical_source = (
+            str(historical.source).strip().lower() if historical is not None else ""
+        )
+        source_allows_saved_scene = normalized_source in {
+            "",
+            "auto",
+            historical_source,
+        }
+        if matches_saved_branch and source_allows_saved_scene:
             try:
                 scene = build_saved_decision_scene(root)
             except Exception as exc:  # noqa: BLE001
                 raise HTTPException(status_code=400, detail=str(exc)) from exc
             return JSONResponse(scene.model_dump(mode="json"))
         world, source_dir = _resolve_whatif_source(
+            root,
             request.source,
             max_events=request.max_events,
         )
@@ -269,6 +241,8 @@ def register_workspace_routes(app: FastAPI, root: Path, *, deps: Any) -> None:
     @app.post("/api/workspace/whatif/run")
     def api_workspace_whatif_run(request: WhatIfRunRequest) -> JSONResponse:
         if _can_use_saved_bundle(
+            root,
+            requested_source=request.source,
             event_id=request.event_id,
             thread_id=request.thread_id,
         ):
@@ -283,6 +257,7 @@ def register_workspace_routes(app: FastAPI, root: Path, *, deps: Any) -> None:
                 saved_payload["source_dir"] = saved_bundle.source_dir_text()
                 return JSONResponse(saved_payload)
         world, source_dir = _resolve_whatif_source(
+            root,
             request.source,
             max_events=request.max_events,
         )
@@ -316,6 +291,8 @@ def register_workspace_routes(app: FastAPI, root: Path, *, deps: Any) -> None:
                 detail="at least one candidate is required",
             )
         if _can_use_saved_bundle(
+            root,
+            requested_source=request.source,
             event_id=request.event_id,
             thread_id=request.thread_id,
         ):
@@ -332,6 +309,7 @@ def register_workspace_routes(app: FastAPI, root: Path, *, deps: Any) -> None:
                 payload["source_dir"] = saved_bundle.source_dir_text()
                 return JSONResponse(payload)
         world, source_dir = _resolve_whatif_source(
+            root,
             request.source,
             max_events=request.max_events,
         )
@@ -661,7 +639,7 @@ def register_workspace_routes(app: FastAPI, root: Path, *, deps: Any) -> None:
 
     @app.get("/api/fidelity")
     def api_fidelity() -> JSONResponse:
-        if load_workspace_historical_summary(root) is not None:
+        if _load_historical_summary_or_400(root) is not None:
             return JSONResponse({})
         try:
             payload = deps.get_or_build_workspace_fidelity_report(root)

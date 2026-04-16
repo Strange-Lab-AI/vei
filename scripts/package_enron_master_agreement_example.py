@@ -14,6 +14,7 @@ from vei.whatif.business_state import (
     describe_forecast_business_change,
 )
 from vei.whatif.public_context import (
+    empty_public_context,
     load_enron_public_context,
     slice_public_context_to_branch,
 )
@@ -98,6 +99,25 @@ def _rewrite_context_snapshot(
     metadata["whatif"] = whatif_metadata
     updated["metadata"] = metadata
     return updated
+
+
+def _canonical_public_context_payload(
+    *,
+    source_manifest_payload: dict[str, Any],
+    refreshed_public_context: dict[str, Any] | None,
+) -> dict[str, Any]:
+    if isinstance(refreshed_public_context, dict):
+        return refreshed_public_context
+    source_public_context = source_manifest_payload.get("public_context")
+    if isinstance(source_public_context, dict):
+        return source_public_context
+    return empty_public_context(
+        organization_name=str(source_manifest_payload.get("organization_name") or ""),
+        organization_domain=str(
+            source_manifest_payload.get("organization_domain") or ""
+        ),
+        branch_timestamp=str(source_manifest_payload.get("branch_timestamp") or ""),
+    ).model_dump(mode="json")
 
 
 def _rewrite_forecast_result(payload: dict[str, Any]) -> dict[str, Any]:
@@ -287,6 +307,13 @@ def package_example(source_root: Path, output_root: Path) -> None:
                 {"public_context": public_context} if public_context is not None else {}
             ),
         },
+    )
+    _write_json(
+        target_workspace / "whatif_public_context.json",
+        _canonical_public_context_payload(
+            source_manifest_payload=source_manifest_payload,
+            refreshed_public_context=public_context,
+        ),
     )
     _enrich_packaged_business_state(output_root, forecast_filename=forecast_filename)
     build_business_state_example(output_root)

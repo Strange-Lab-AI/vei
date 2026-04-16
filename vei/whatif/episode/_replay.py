@@ -8,6 +8,7 @@ from vei.blueprint.api import create_world_session_from_blueprint
 from vei.blueprint.models import BlueprintAsset
 from vei.data.models import VEIDataset
 from vei.twin import load_customer_twin
+from vei.whatif_filenames import EPISODE_MANIFEST_FILE
 
 from ..models import (
     WhatIfEpisodeManifest,
@@ -28,7 +29,7 @@ logger = logging.getLogger(__name__)
 
 def load_episode_manifest(root: str | Path) -> WhatIfEpisodeManifest:
     workspace_root = Path(root).expanduser().resolve()
-    manifest_path = workspace_root / "episode_manifest.json"
+    manifest_path = workspace_root / EPISODE_MANIFEST_FILE
     if not manifest_path.exists():
         raise ValueError(f"what-if episode manifest not found: {manifest_path}")
     return WhatIfEpisodeManifest.model_validate_json(

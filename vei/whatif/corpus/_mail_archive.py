@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Sequence
 
+from vei.context.api import legacy_threads_payload_to_snapshot
 from vei.context.models import (
     ContextSnapshot,
     GmailSourceData,
@@ -186,32 +187,11 @@ def _snapshot_from_json_payload(path: Path) -> ContextSnapshot:
 
 
 def _snapshot_from_archive_payload(payload: dict[str, Any]) -> ContextSnapshot:
-    organization_name = str(payload.get("organization_name", "") or "").strip()
     organization_domain = str(payload.get("organization_domain", "") or "").strip()
-    threads = payload.get("threads", [])
-    actors = payload.get("actors", [])
-    captured_at = str(payload.get("captured_at", "") or "")
-    return ContextSnapshot(
-        organization_name=organization_name
-        or _organization_name_from_domain(organization_domain),
-        organization_domain=organization_domain,
-        captured_at=captured_at,
-        sources=[
-            {
-                "provider": "mail_archive",
-                "captured_at": captured_at,
-                "status": "ok",
-                "record_counts": {
-                    "threads": len(threads) if isinstance(threads, list) else 0,
-                    "actors": len(actors) if isinstance(actors, list) else 0,
-                },
-                "data": {
-                    "threads": threads if isinstance(threads, list) else [],
-                    "actors": actors if isinstance(actors, list) else [],
-                },
-            }
-        ],
-        metadata=dict(payload.get("metadata", {}) or {}),
+    return legacy_threads_payload_to_snapshot(
+        payload,
+        fallback_organization_name=_organization_name_from_domain(organization_domain),
+        include_payload_metadata=True,
     )
 
 

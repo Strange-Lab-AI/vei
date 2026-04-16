@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any, Mapping
 
 from pydantic import ValidationError
+from vei.whatif_filenames import PUBLIC_CONTEXT_FILE
 
 from .models import (
     WhatIfPublicContext,
@@ -21,7 +22,7 @@ from ._fetchers import (
     _resolve_sec_company_match,
 )
 
-_DEFAULT_PUBLIC_CONTEXT_FILE_NAMES = ("whatif_public_context.json",)
+_DEFAULT_PUBLIC_CONTEXT_FILE_NAMES = (PUBLIC_CONTEXT_FILE,)
 _PUBLIC_CONTEXT_METADATA_KEYS = ("whatif_public_context_path",)
 
 logger = logging.getLogger(__name__)

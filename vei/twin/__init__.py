@@ -21,6 +21,8 @@ __all__ = [
     "build_twin_matrix",
     "create_twin_gateway_app",
     "load_customer_twin",
+    "load_saved_governor_payload",
+    "load_saved_workforce_payload",
     "load_twin_matrix",
     "serve_customer_twin",
 ]
@@ -37,6 +39,9 @@ def __getattr__(name: str):
         "load_twin_matrix",
     }:
         module = import_module("vei.twin.api")
+        return getattr(module, name)
+    if name in {"load_saved_governor_payload", "load_saved_workforce_payload"}:
+        module = import_module("vei.twin._saved_payloads")
         return getattr(module, name)
     if name == "serve_customer_twin":
         module = import_module("vei.twin.app")

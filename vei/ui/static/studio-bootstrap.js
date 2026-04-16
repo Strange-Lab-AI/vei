@@ -323,17 +323,9 @@ async function runEvalAgent() {
 
 const STUDIO_MODE = "studio";
 
-async function applyVeiSkin() {
-  try {
-    await getJson("/api/skin");
-  } catch {}
+function initializeStudioMode() {
   document.body.dataset.veiSkin = STUDIO_MODE;
   applyStudioChrome();
-  const url = new URL(window.location);
-  if (url.searchParams.has("skin")) {
-    url.searchParams.delete("skin");
-    window.history.replaceState({}, "", url);
-  }
   if (typeof syncStudioTone === "function") {
     syncStudioTone();
   }
@@ -416,7 +408,8 @@ function renderEvalNarrative() {
   `;
 }
 
-applyVeiSkin()
+Promise.resolve()
+  .then(() => initializeStudioMode())
   .then(() => loadWorkspace())
   .then(loadRuns)
   .catch((error) => {

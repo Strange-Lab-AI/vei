@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pyarrow as pa
 import pyarrow.parquet as pq
+import pytest
 
 from vei.llm.providers import PlanResult, PlanUsage
 from vei.project_settings import default_model_for_provider
@@ -1061,3 +1062,71 @@ def test_run_ranked_counterfactual_experiment_can_use_ejepa_shadow_for_generic_a
     assert captured_sources == ["mail_archive", "mail_archive"]
     assert all(candidate.shadow is not None for candidate in result.candidates)
     assert all(candidate.shadow.backend == "e_jepa" for candidate in result.candidates)
+
+
+def test_run_ranked_counterfactual_experiment_validates_artifacts(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    archive_path = _write_mail_archive_fixture(
+        tmp_path / "mail_archive_ranked_validate"
+    )
+    world = load_world(source="mail_archive", source_dir=archive_path)
+
+    def fake_run_llm_counterfactual(
+        *_: object,
+        prompt: str,
+        provider: str = "openai",
+        model: str = "gpt-5",
+        seed: int = 42042,
+    ) -> WhatIfLLMReplayResult:
+        del provider, model
+        return _make_llm_replay_result(
+            prompt=prompt,
+            to="legal@pycorp.example.com",
+            subject="Re: Pricing addendum",
+            body_text="Keep this internal until legal signs off.",
+            delay_ms=1000 + (seed % 3) * 100,
+            summary="The draft stays inside Py Corp.",
+        )
+
+    def fake_estimate_counterfactual_delta(
+        *_: object,
+        prompt: str,
+        **__: object,
+    ) -> WhatIfCounterfactualEstimateResult:
+        return _make_forecast_result(
+            prompt=prompt,
+            risk_score=0.2,
+            future_event_count=2,
+            future_external_event_count=0,
+            summary="Proxy forecast prefers internal hold.",
+        )
+
+    monkeypatch.setattr(
+        "vei.whatif.experiment.run_llm_counterfactual",
+        fake_run_llm_counterfactual,
+    )
+    monkeypatch.setattr(
+        "vei.whatif.experiment.estimate_counterfactual_delta",
+        fake_estimate_counterfactual_delta,
+    )
+    monkeypatch.setattr(
+        "vei.whatif.experiment.validate_artifact_tree",
+        lambda _root: ["invalid artifact fixture"],
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="ranked experiment artifact validation failed",
+    ):
+        run_ranked_counterfactual_experiment(
+            world,
+            artifacts_root=tmp_path / "ranked_artifacts",
+            label="ranked_validate",
+            objective_pack_id="contain_exposure",
+            candidate_interventions=["Keep this internal and pause."],
+            event_id="py-msg-002",
+            rollout_count=1,
+            shadow_forecast_backend="e_jepa_proxy",
+        )

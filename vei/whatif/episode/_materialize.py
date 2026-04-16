@@ -9,7 +9,7 @@ from vei.twin.models import ContextMoldConfig
 from vei.whatif.artifact_validation import validate_saved_workspace
 
 from .._branch_context import build_branch_context
-from .._constants import EPISODE_MANIFEST_FILE
+from .._constants import EPISODE_MANIFEST_FILE, PUBLIC_CONTEXT_FILE
 from ..models import (
     WhatIfCaseContext,
     WhatIfEpisodeManifest,
@@ -18,6 +18,7 @@ from ..models import (
     WhatIfSituationContext,
     WhatIfWorld,
 )
+from ..public_context import empty_public_context
 from ..corpus import (
     CONTENT_NOTICE,
     event_reference,
@@ -25,7 +26,6 @@ from ..corpus import (
 
 from ._snapshot import (
     _episode_context_snapshot,
-    _persist_workspace_historical_source,
 )
 from ._dataset import _baseline_dataset
 
@@ -107,7 +107,16 @@ def materialize_episode(
         baseline_dataset.model_dump_json(indent=2),
         encoding="utf-8",
     )
-    _persist_workspace_historical_source(world, workspace_root)
+    resolved_public_context = branch_context.public_context or empty_public_context(
+        organization_name=resolved_organization_name,
+        organization_domain=resolved_organization_domain,
+        branch_timestamp=branch_context.branch_event.timestamp,
+    )
+    public_context_path = workspace_root / PUBLIC_CONTEXT_FILE
+    public_context_path.write_text(
+        resolved_public_context.model_dump_json(indent=2),
+        encoding="utf-8",
+    )
     manifest = WhatIfEpisodeManifest(
         source=world.source,
         source_dir=world.source_dir,
@@ -138,7 +147,7 @@ def materialize_episode(
             event_reference(event) for event in branch_context.future_events[:5]
         ],
         forecast=branch_context.forecast,
-        public_context=branch_context.public_context,
+        public_context=resolved_public_context,
         case_context=branch_context.case_context,
         situation_context=branch_context.situation_context,
         historical_business_state=branch_context.historical_business_state,
@@ -167,7 +176,7 @@ def materialize_episode(
         history_preview=history_preview,
         baseline_future_preview=list(manifest.baseline_future_preview),
         forecast=branch_context.forecast,
-        public_context=branch_context.public_context,
+        public_context=resolved_public_context,
         case_context=branch_context.case_context,
         situation_context=branch_context.situation_context,
         historical_business_state=branch_context.historical_business_state,

@@ -9,6 +9,7 @@ import zipfile
 from pathlib import Path
 from typing import Any, Iterable
 
+from vei.context._legacy_archive_snapshot import legacy_threads_payload_to_snapshot
 from vei.context.models import ContextSnapshot, ContextSourceResult
 from vei.context.providers.base import iso_now
 from vei.context.providers.crm import capture_from_export as capture_crm_export
@@ -20,6 +21,7 @@ from vei.context.providers.salesforce import (
 )
 from vei.context.providers.slack import capture_from_export as capture_slack_export
 from vei.imports.api import normalize_identity_import_package
+from vei.whatif_filenames import CONTEXT_SNAPSHOT_FILE
 
 
 def extract_archive_if_needed(path: Path) -> Path:
@@ -53,7 +55,7 @@ def extract_archive_if_needed(path: Path) -> Path:
 
 def load_existing_snapshot(root: Path) -> ContextSnapshot | None:
     if root.is_file():
-        if root.name == "context_snapshot.json":
+        if root.name == CONTEXT_SNAPSHOT_FILE:
             return snapshot_from_path(root)
         if root.suffix.lower() == ".json":
             try:
@@ -61,7 +63,7 @@ def load_existing_snapshot(root: Path) -> ContextSnapshot | None:
             except ValueError:
                 return None
         return None
-    candidate = root / "context_snapshot.json"
+    candidate = root / CONTEXT_SNAPSHOT_FILE
     if candidate.exists():
         return snapshot_from_path(candidate)
     return None
@@ -72,25 +74,10 @@ def snapshot_from_path(path: Path) -> ContextSnapshot:
     if isinstance(payload, dict) and isinstance(payload.get("sources"), list):
         return ContextSnapshot.model_validate(payload)
     if isinstance(payload, dict) and isinstance(payload.get("threads"), list):
-        return ContextSnapshot(
-            organization_name=str(payload.get("organization_name") or "").strip(),
-            organization_domain=str(payload.get("organization_domain") or "").strip(),
-            captured_at=str(payload.get("captured_at") or iso_now()).strip(),
-            sources=[
-                ContextSourceResult(
-                    provider="mail_archive",
-                    captured_at=str(payload.get("captured_at") or iso_now()).strip(),
-                    status="ok" if payload.get("threads") else "empty",
-                    record_counts={
-                        "threads": len(payload.get("threads", [])),
-                        "actors": len(payload.get("actors", [])),
-                    },
-                    data={
-                        "threads": payload.get("threads", []),
-                        "actors": payload.get("actors", []),
-                    },
-                )
-            ],
+        return legacy_threads_payload_to_snapshot(
+            payload,
+            default_captured_at=iso_now(),
+            mark_empty_when_no_threads=True,
         )
     raise ValueError(f"unsupported snapshot payload: {path}")
 
@@ -270,8 +257,11 @@ def merge_source_results(
 def cleanup_temp_dir(path: Path, *, original: Path) -> None:
     if path == original:
         return
-    tmp_dir = str(path.parent) if path != path.parent else str(path)
-    shutil.rmtree(tmp_dir, ignore_errors=True)
+    cleanup_root = path
+    if not cleanup_root.name.startswith("vei_normalize_"):
+        cleanup_root = cleanup_root.parent
+    if cleanup_root.name.startswith("vei_normalize_"):
+        shutil.rmtree(cleanup_root, ignore_errors=True)
 
 
 def revenue_provider_name(metadata: dict[str, Any], sources: Iterable[Any]) -> str:

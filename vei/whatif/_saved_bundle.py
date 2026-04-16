@@ -59,9 +59,13 @@ def build_saved_ranked_result_payload(
     if comparison_payload is None:
         return None
 
-    resolved_objective_pack_id = _saved_objective_pack_id(
+    requested_objective_pack_id = str(objective_pack_id).strip()
+    saved_objective_pack_id = _saved_objective_pack_id(
         comparison_payload,
-        default_objective_pack_id=objective_pack_id,
+        default_objective_pack_id="",
+    )
+    resolved_objective_pack_id = (
+        saved_objective_pack_id or requested_objective_pack_id or "contain_exposure"
     )
     try:
         objective_pack = get_objective_pack(resolved_objective_pack_id).model_dump(

@@ -4,6 +4,10 @@ import json
 from pathlib import Path
 from typing import Any
 
+from pydantic import ValidationError
+
+from vei.context.models import ContextSnapshot
+
 from ._constants import (
     BUSINESS_STATE_COMPARISON_FILE,
     BUSINESS_STATE_COMPARISON_OVERVIEW_FILE,
@@ -14,10 +18,12 @@ from ._constants import (
     EXPERIMENT_OVERVIEW_FILE,
     EXPERIMENT_RESULT_FILE,
     LLM_RESULT_FILE,
+    PUBLIC_CONTEXT_FILE as CANONICAL_PUBLIC_CONTEXT_FILE,
     SCRUBBED_PATH_PLACEHOLDER,
     STUDIO_SAVED_FORECAST_FILES,
     WORKSPACE_DIRECTORY,
 )
+from .models import WhatIfEpisodeManifest, WhatIfPublicContext
 
 
 def detect_validation_mode(path: str | Path) -> str:
@@ -39,6 +45,7 @@ def validate_saved_workspace(
 
     manifest_path = resolved_workspace / CANONICAL_MANIFEST_FILE
     snapshot_path = resolved_workspace / CANONICAL_CONTEXT_FILE
+    public_context_path = resolved_workspace / CANONICAL_PUBLIC_CONTEXT_FILE
     unexpected_manifest_paths = _unexpected_manifest_paths(resolved_workspace)
     if not manifest_path.exists():
         if unexpected_manifest_paths:
@@ -52,23 +59,67 @@ def validate_saved_workspace(
         else:
             issues.append(f"missing workspace manifest: {manifest_path}")
         return issues
+    manifest: WhatIfEpisodeManifest | None = None
+    try:
+        manifest = WhatIfEpisodeManifest.model_validate_json(
+            manifest_path.read_text(encoding="utf-8")
+        )
+    except (OSError, json.JSONDecodeError, ValidationError) as exc:
+        issues.append(f"invalid workspace manifest {manifest_path}: {exc}")
+
     if not snapshot_path.exists():
         issues.append(f"missing workspace snapshot: {snapshot_path}")
+    else:
+        try:
+            ContextSnapshot.model_validate_json(
+                snapshot_path.read_text(encoding="utf-8")
+            )
+        except (OSError, json.JSONDecodeError, ValidationError) as exc:
+            issues.append(f"invalid workspace snapshot {snapshot_path}: {exc}")
+    loaded_public_context: WhatIfPublicContext | None = None
+    if not public_context_path.exists():
+        issues.append(f"missing workspace public context: {public_context_path}")
+    else:
+        try:
+            loaded_public_context = WhatIfPublicContext.model_validate_json(
+                public_context_path.read_text(encoding="utf-8")
+            )
+        except (OSError, json.JSONDecodeError, ValidationError) as exc:
+            issues.append(
+                f"invalid workspace public context {public_context_path}: {exc}"
+            )
+
     for unexpected_manifest_path in unexpected_manifest_paths:
         issues.append(
             f"unexpected workspace manifest present alongside canonical manifest: "
             f"{unexpected_manifest_path}"
         )
 
-    manifest = _read_json(manifest_path)
+    if manifest is None:
+        return issues
+
     expected_workspace_root = (
         "workspace" if allow_relative_workspace_root else str(resolved_workspace)
     )
-    actual_workspace_root = str(manifest.get("workspace_root", "") or "").strip()
+    actual_workspace_root = str(manifest.workspace_root).strip()
     if actual_workspace_root != expected_workspace_root:
         issues.append(
             f"workspace_root mismatch in {manifest_path}: "
             f"expected {expected_workspace_root!r}, got {actual_workspace_root!r}"
+        )
+    if manifest.public_context is not None and loaded_public_context is not None:
+        manifest_public_context = manifest.public_context.model_dump(mode="json")
+        sidecar_public_context = loaded_public_context.model_dump(mode="json")
+        if manifest_public_context != sidecar_public_context:
+            issues.append(
+                f"public context mismatch between {manifest_path} and "
+                f"{public_context_path}"
+            )
+    baseline_dataset_path = resolved_workspace / manifest.baseline_dataset_path
+    if not baseline_dataset_path.exists():
+        issues.append(
+            f"missing baseline dataset referenced by {manifest_path}: "
+            f"{baseline_dataset_path}"
         )
     return issues
 
@@ -249,6 +300,7 @@ def _validate_required_bundle_files(issues: list[str], bundle_root: Path) -> Non
         EXPERIMENT_OVERVIEW_FILE,
         f"{WORKSPACE_DIRECTORY}/{CANONICAL_CONTEXT_FILE}",
         f"{WORKSPACE_DIRECTORY}/{CANONICAL_MANIFEST_FILE}",
+        f"{WORKSPACE_DIRECTORY}/{CANONICAL_PUBLIC_CONTEXT_FILE}",
     ):
         candidate = bundle_root / relative_path
         if not candidate.exists():

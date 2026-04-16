@@ -6,6 +6,7 @@ from typing import Any, List, Optional, Union
 
 from vei.blueprint.models import BlueprintAsset
 
+from ._legacy_archive_snapshot import legacy_threads_payload_to_snapshot
 from .models import (
     ContextDiff,
     ContextProviderStatusSummary,
@@ -67,6 +68,7 @@ __all__ = [
     "ingest_slack_export",
     "load_enron_public_context",
     "load_public_context",
+    "legacy_threads_payload_to_snapshot",
     "public_context_has_items",
     "public_context_prompt_lines",
     "resolve_world_public_context",

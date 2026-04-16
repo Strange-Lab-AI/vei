@@ -1,0 +1,155 @@
+{
+  "version": "1",
+  "pack_name": "enron_public_context",
+  "organization_name": "Enron Corporation",
+  "organization_domain": "enron.com",
+  "prepared_at": "2026-04-15T15:54:57Z",
+  "integration_hint": "At integration time, compute the oldest and latest email timestamps from the active Enron slice and keep only financial_snapshots and public_news_events whose dates overlap that email window.",
+  "window_start": "1997-01-01T17:22:03Z",
+  "window_end": "2002-09-23T04:01:33Z",
+  "branch_timestamp": "2000-09-27T13:42:00Z",
+  "financial_snapshots": [
+    {
+      "snapshot_id": "fy1998_selected_financial_data",
+      "as_of": "1998-12-31T00:00:00Z",
+      "kind": "annual",
+      "label": "FY1998 selected financial data",
+      "source_ids": [
+        "enron_2000_financial_highlights"
+      ],
+      "summary": "Operating revenue was $31.26B, net income was $703M, total assets were $29.35B, shareholders' equity was $7.05B, and diluted EPS was $1.01.",
+      "metrics": {
+        "operating_revenue_usd_millions": 31260,
+        "net_income_usd_millions": 703,
+        "total_assets_usd_millions": 29350,
+        "shareholders_equity_usd_millions": 7048,
+        "diluted_eps": 1.01
+      }
+    },
+    {
+      "snapshot_id": "fy1999_selected_financial_data",
+      "as_of": "1999-12-31T00:00:00Z",
+      "kind": "annual",
+      "label": "FY1999 selected financial data",
+      "source_ids": [
+        "enron_2000_financial_highlights"
+      ],
+      "summary": "Operating revenue was $40.11B, net income was $893M, total assets were $33.38B, shareholders' equity was $9.57B, and diluted EPS was $1.10.",
+      "metrics": {
+        "operating_revenue_usd_millions": 40112,
+        "net_income_usd_millions": 893,
+        "total_assets_usd_millions": 33381,
+        "shareholders_equity_usd_millions": 9570,
+        "diluted_eps": 1.1
+      }
+    },
+    {
+      "snapshot_id": "q4_1999_annual_release",
+      "as_of": "2000-01-18T00:00:00Z",
+      "kind": "quarterly_release",
+      "label": "Q4 1999 annual earnings release",
+      "source_ids": [
+        "enron_2000_q4_1999_release"
+      ],
+      "summary": "Enron reported full-year 1999 revenues of $40.0B, net income of $957M before nonrecurring items, annual diluted EPS of $1.18, and fourth-quarter diluted EPS of $0.31.",
+      "metrics": {
+        "annual_revenue_usd_millions": 40000,
+        "annual_net_income_usd_millions": 957,
+        "annual_diluted_eps": 1.18,
+        "fourth_quarter_diluted_eps": 0.31
+      }
+    },
+    {
+      "snapshot_id": "q1_2000_earnings_release",
+      "as_of": "2000-04-12T00:00:00Z",
+      "kind": "quarterly_release",
+      "label": "Q1 2000 earnings release",
+      "source_ids": [
+        "enron_2000_q1_release"
+      ],
+      "summary": "Enron reported first-quarter revenues of $13.1B, net income of $338M, and diluted EPS of $0.40.",
+      "metrics": {
+        "revenue_usd_millions": 13100,
+        "net_income_usd_millions": 338,
+        "diluted_eps": 0.4
+      }
+    },
+    {
+      "snapshot_id": "q2_2000_earnings_release",
+      "as_of": "2000-07-24T00:00:00Z",
+      "kind": "quarterly_release",
+      "label": "Q2 2000 earnings release",
+      "source_ids": [
+        "enron_2000_q2_release"
+      ],
+      "summary": "Enron reported second-quarter revenues of $16.9B, net income of $289M, and diluted EPS of $0.34.",
+      "metrics": {
+        "revenue_usd_millions": 16900,
+        "net_income_usd_millions": 289,
+        "diluted_eps": 0.34
+      }
+    }
+  ],
+  "public_news_events": [
+    {
+      "event_id": "enrononline_emissions_auction_launch",
+      "timestamp": "2000-03-09T00:00:00Z",
+      "category": "market_launch",
+      "headline": "Enron launched its first online emissions allowance auction",
+      "summary": "Enron said EnronOnline would host the first online sulfur dioxide emissions allowance auction and planned to run the auctions monthly.",
+      "source_ids": [
+        "enron_2000_emissions_auction"
+      ]
+    },
+    {
+      "event_id": "ibm_energy_services_agreement",
+      "timestamp": "2000-04-11T00:00:00Z",
+      "category": "commercial_agreement",
+      "headline": "Enron signed a $610M long-term electricity agreement with IBM",
+      "summary": "Enron Energy Services said it would supply or procure electricity for IBM under a ten-year agreement valued at $610M.",
+      "source_ids": [
+        "enron_2000_ibm_agreement"
+      ]
+    },
+    {
+      "event_id": "mg_plc_cash_offer",
+      "timestamp": "2000-05-22T00:00:00Z",
+      "category": "acquisition_offer",
+      "headline": "Enron announced a cash offer for MG plc",
+      "summary": "Enron said its recommended cash offer valued MG plc at $446M and would extend Enron's business model into metals.",
+      "source_ids": [
+        "enron_2000_mg_offer"
+      ]
+    },
+    {
+      "event_id": "enrononline_fifty_billion_milestone",
+      "timestamp": "2000-06-01T00:00:00Z",
+      "category": "platform_growth",
+      "headline": "EnronOnline passed $50B of transaction value in 2000",
+      "summary": "Enron said EnronOnline had exceeded $50B of transaction value in calendar 2000 and had already beaten its yearly projection.",
+      "source_ids": [
+        "enron_2000_enrononline_milestone"
+      ]
+    },
+    {
+      "event_id": "blockbuster_on_demand_launch",
+      "timestamp": "2000-07-19T00:00:00Z",
+      "category": "product_launch",
+      "headline": "Enron and Blockbuster announced a 20-year on-demand service deal",
+      "summary": "Enron Broadband Services and Blockbuster announced a 20-year exclusive agreement to launch an entertainment-on-demand service.",
+      "source_ids": [
+        "enron_2000_blockbuster_launch"
+      ]
+    },
+    {
+      "event_id": "clickpaper_launch",
+      "timestamp": "2000-09-05T00:00:00Z",
+      "category": "product_launch",
+      "headline": "Enron launched Clickpaper.com for the forest products market",
+      "summary": "Enron Industrial Markets launched Clickpaper.com as an Internet transaction system for pulp, paper, and wood commodities.",
+      "source_ids": [
+        "enron_2000_clickpaper_launch"
+      ]
+    }
+  ]
+}

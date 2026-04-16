@@ -85,14 +85,6 @@ def _thread_actor_payload(
     ]
 
 
-def _persist_workspace_historical_source(
-    world: WhatIfWorld,
-    workspace_root: Path,
-) -> None:
-    del world, workspace_root
-    return
-
-
 def _historical_source_file(source_dir: Path) -> Path | None:
     resolved = source_dir.expanduser().resolve()
     if resolved.is_file():
@@ -144,7 +136,6 @@ __all__ = [
     "_historical_body",
     "_historical_chat_text",
     "_historical_source_file",
-    "_persist_workspace_historical_source",
     "source_snapshot_for_world",
     "_thread_actor_payload",
     "_ticket_status_for_event",

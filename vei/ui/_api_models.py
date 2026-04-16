@@ -9,6 +9,7 @@ from fastapi import HTTPException
 from pydantic import BaseModel, Field
 
 from vei.project_settings import default_model_for_provider
+from vei.whatif_filenames import EPISODE_MANIFEST_FILE
 from vei.whatif.api import (
     load_episode_manifest,
     resolve_whatif_company_history_path as _resolve_whatif_company_history_path,
@@ -22,9 +23,12 @@ from vei.whatif.models import (
     WhatIfJudgedPairwiseComparison,
     WhatIfObjectivePackId,
 )
-from vei.twin import load_customer_twin
+from vei.twin import (
+    load_customer_twin,
+    load_saved_governor_payload,
+    load_saved_workforce_payload,
+)
 from vei.workspace.api import show_workspace
-from vei.run.api import list_run_manifests
 
 
 class RunLaunchRequest(BaseModel):
@@ -265,7 +269,7 @@ def resolve_whatif_source_path(
 def load_workspace_historical_summary(
     workspace_root: Path,
 ) -> WorkspaceHistoricalSummary | None:
-    manifest_path = workspace_root / "episode_manifest.json"
+    manifest_path = workspace_root / EPISODE_MANIFEST_FILE
     if not manifest_path.exists():
         return None
     manifest = load_episode_manifest(workspace_root)
@@ -285,49 +289,11 @@ def load_workspace_historical_summary(
 
 
 def load_workspace_governor_payload(root: Path) -> dict[str, Any]:
-    twin_path = root / "twin_manifest.json"
-    fallback: dict[str, Any] = {}
-    if twin_path.exists():
-        try:
-            data = json.loads(twin_path.read_text(encoding="utf-8"))
-        except (json.JSONDecodeError, OSError):
-            data = {}
-        fallback = dict(data.get("metadata", {}).get("governor", {}) or {})
-    if isinstance(fallback, dict) and (
-        "config" in fallback
-        or "agents" in fallback
-        or "pending_approvals" in fallback
-        or "pending_demo_steps" in fallback
-    ):
-        return fallback
-
-    completed_governor: dict[str, Any] | None = None
-    for manifest in list_run_manifests(root):
-        if manifest.runner != "external":
-            continue
-        governor = manifest.metadata.get("governor", {})
-        if not isinstance(governor, dict):
-            continue
-        if manifest.status == "running":
-            return dict(governor)
-        if completed_governor is None and manifest.status == "completed":
-            completed_governor = dict(governor)
-    return completed_governor if completed_governor is not None else fallback
+    return load_saved_governor_payload(root)
 
 
 def load_workspace_workforce_payload(root: Path) -> dict[str, Any]:
-    completed_workforce: dict[str, Any] | None = None
-    for manifest in list_run_manifests(root):
-        if manifest.runner != "external":
-            continue
-        workforce = manifest.metadata.get("workforce", {})
-        if not isinstance(workforce, dict):
-            continue
-        if manifest.status == "running":
-            return dict(workforce)
-        if completed_workforce is None and manifest.status == "completed":
-            completed_workforce = dict(workforce)
-    return completed_workforce or {}
+    return load_saved_workforce_payload(root)
 
 
 def gateway_json_request(

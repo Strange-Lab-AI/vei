@@ -519,6 +519,45 @@ def test_normalize_raw_exports_from_zip_archive(tmp_path: Path) -> None:
     assert snapshot.source_for("google").record_counts["documents"] == 1  # type: ignore[union-attr]
 
 
+def test_normalize_raw_exports_zip_cleanup_only_removes_extract_root(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    export_dir = tmp_path / "exports"
+    _write_slack_export(export_dir)
+    zip_path = tmp_path / "exports-multi.zip"
+    with zipfile.ZipFile(zip_path, "w") as zf:
+        for file in export_dir.rglob("*"):
+            if file.is_file():
+                zf.write(file, file.relative_to(export_dir))
+
+    temp_parent = tmp_path / "temp-parent"
+    temp_parent.mkdir(parents=True, exist_ok=True)
+    sibling = temp_parent / "keep-me"
+    sibling.mkdir(parents=True, exist_ok=True)
+    extract_root = temp_parent / "vei_normalize_test_extract"
+
+    def _fake_mkdtemp(*, prefix: str) -> str:
+        del prefix
+        extract_root.mkdir(parents=True, exist_ok=True)
+        return str(extract_root)
+
+    monkeypatch.setattr(
+        "vei.context._normalize_extract.tempfile.mkdtemp",
+        _fake_mkdtemp,
+    )
+
+    snapshot = normalize_raw_exports(
+        zip_path,
+        organization_name="Acme Cloud",
+        organization_domain="acme.example.com",
+    )
+
+    assert snapshot.organization_name == "Acme Cloud"
+    assert sibling.exists()
+    assert not extract_root.exists()
+
+
 def test_normalize_raw_exports_from_tar_gz_archive(tmp_path: Path) -> None:
     export_dir = tmp_path / "exports"
     _write_slack_export(export_dir)

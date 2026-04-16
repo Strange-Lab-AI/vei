@@ -1,13 +1,18 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
+from pydantic import ValidationError
+
+from .constants import PUBLIC_CONTEXT_FILE
 from ._branch_context import build_branch_context
 from .models import (
     WhatIfDecisionOption,
     WhatIfDecisionScene,
     WhatIfEventReference,
     WhatIfHistoricalScore,
+    WhatIfPublicContext,
     WhatIfWorld,
 )
 from .corpus import (
@@ -97,6 +102,10 @@ def build_saved_decision_scene(
 ) -> WhatIfDecisionScene:
     workspace_root = Path(root).expanduser().resolve()
     manifest = load_episode_manifest(workspace_root)
+    public_context = _load_saved_public_context(
+        workspace_root=workspace_root,
+        manifest_public_context=manifest.public_context,
+    )
     history_preview = _history_preview_from_saved_context(
         workspace_root,
         manifest=manifest,
@@ -140,11 +149,27 @@ def build_saved_decision_scene(
             organization_name=manifest.organization_name,
             organization_domain=manifest.organization_domain,
         ),
-        public_context=manifest.public_context,
+        public_context=public_context,
         case_context=manifest.case_context,
         situation_context=manifest.situation_context,
         historical_business_state=manifest.historical_business_state,
     )
+
+
+def _load_saved_public_context(
+    *,
+    workspace_root: Path,
+    manifest_public_context: WhatIfPublicContext | None,
+) -> WhatIfPublicContext | None:
+    sidecar_path = workspace_root / PUBLIC_CONTEXT_FILE
+    if sidecar_path.exists():
+        try:
+            return WhatIfPublicContext.model_validate_json(
+                sidecar_path.read_text(encoding="utf-8")
+            )
+        except (OSError, json.JSONDecodeError, ValidationError):
+            return manifest_public_context
+    return manifest_public_context
 
 
 def _decision_branch_summary(

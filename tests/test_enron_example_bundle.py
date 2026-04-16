@@ -57,8 +57,6 @@ def _write_packaging_source_fixture(root: Path, *, forecast_filename: str) -> Pa
         encoding="utf-8",
     )
     for relative_path in (
-        "context_snapshot.json",
-        "whatif_baseline_dataset.json",
         "vei_project.json",
         "contracts/default.contract.json",
         "scenarios/default.json",
@@ -66,12 +64,68 @@ def _write_packaging_source_fixture(root: Path, *, forecast_filename: str) -> Pa
         "imports/source_sync_history.json",
         "runs/index.json",
         "sources/blueprint_asset.json",
-        "episode_manifest.json",
     ):
         path = workspace_root / relative_path
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text("{}", encoding="utf-8")
+    _write_minimal_valid_saved_workspace(
+        workspace_root,
+        workspace_root_value=str(workspace_root),
+    )
     return source_root
+
+
+def _write_minimal_valid_saved_workspace(
+    workspace_root: Path,
+    *,
+    workspace_root_value: str,
+) -> None:
+    (workspace_root / "context_snapshot.json").write_text(
+        json.dumps(
+            {
+                "version": "1",
+                "organization_name": "Acme Cloud",
+                "organization_domain": "acme.example.com",
+                "captured_at": "2026-01-01T00:00:00Z",
+                "sources": [],
+            }
+        ),
+        encoding="utf-8",
+    )
+    (workspace_root / "whatif_baseline_dataset.json").write_text(
+        json.dumps({"events": []}),
+        encoding="utf-8",
+    )
+    (workspace_root / "episode_manifest.json").write_text(
+        json.dumps(
+            {
+                "version": "2",
+                "source": "mail_archive",
+                "source_dir": "not-included-in-repo-example",
+                "workspace_root": workspace_root_value,
+                "organization_name": "Acme Cloud",
+                "organization_domain": "acme.example.com",
+                "thread_id": "thr-1",
+                "thread_subject": "Contract",
+                "branch_event_id": "evt-1",
+                "branch_timestamp": "2026-01-01T00:00:00Z",
+                "branch_event": {
+                    "event_id": "evt-1",
+                    "timestamp": "2026-01-01T00:00:00Z",
+                    "actor_id": "maya@acme.example.com",
+                    "event_type": "message",
+                    "thread_id": "thr-1",
+                },
+                "baseline_dataset_path": "whatif_baseline_dataset.json",
+                "content_notice": "fixture",
+            }
+        ),
+        encoding="utf-8",
+    )
+    (workspace_root / "whatif_public_context.json").write_text(
+        json.dumps({}),
+        encoding="utf-8",
+    )
 
 
 def test_repo_owned_enron_example_bundle_is_present_and_clean() -> None:
@@ -89,6 +143,7 @@ def test_repo_owned_enron_example_bundle_is_present_and_clean() -> None:
         EXAMPLE_ROOT / "workspace" / "vei_project.json",
         EXAMPLE_ROOT / "workspace" / "context_snapshot.json",
         EXAMPLE_ROOT / "workspace" / "episode_manifest.json",
+        EXAMPLE_ROOT / "workspace" / "whatif_public_context.json",
     ]
     for path in required_paths:
         assert path.exists(), path
@@ -190,7 +245,7 @@ def test_repo_owned_enron_example_bundle_exposes_generic_saved_bundle_loader() -
     assert ranked_payload["candidates"][0]["saved_result"] is True
 
 
-def test_saved_ranked_result_payload_sorts_candidates_and_uses_requested_objective(
+def test_saved_ranked_result_payload_sorts_candidates_and_uses_requested_objective_for_legacy_saved_comparisons(
     tmp_path: Path,
 ) -> None:
     bundle_root = tmp_path / "bundle"
@@ -241,7 +296,49 @@ def test_saved_ranked_result_payload_sorts_candidates_and_uses_requested_objecti
     )
 
 
-def test_validate_packaged_example_bundle_accepts_plain_experiment_bundle_without_ranked_sidecars(
+def test_saved_ranked_result_payload_keeps_saved_objective_pack(
+    tmp_path: Path,
+) -> None:
+    bundle_root = tmp_path / "bundle"
+    workspace_root = bundle_root / "workspace"
+    workspace_root.mkdir(parents=True)
+    (bundle_root / "whatif_experiment_result.json").write_text(
+        json.dumps({"selection": {}, "baseline": {}, "materialization": {}}),
+        encoding="utf-8",
+    )
+    (bundle_root / "whatif_business_state_comparison.json").write_text(
+        json.dumps(
+            {
+                "objective_pack": {"pack_id": "contain_exposure"},
+                "candidates": [
+                    {
+                        "label": "Hold",
+                        "prompt": "Hold internal.",
+                        "rank": 1,
+                        "business_state_change": {"net_effect_score": 0.3},
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    bundle = resolve_saved_whatif_bundle(workspace_root)
+
+    assert bundle is not None
+    ranked_payload = build_saved_ranked_result_payload(
+        bundle,
+        objective_pack_id="reduce_delay",
+    )
+
+    assert ranked_payload is not None
+    assert ranked_payload["objective_pack"]["pack_id"] == "contain_exposure"
+    assert (
+        ranked_payload["candidates"][0]["outcome_score"]["objective_pack_id"]
+        == "contain_exposure"
+    )
+
+
+def test_validate_packaged_example_bundle_requires_openable_workspace_inputs(
     tmp_path: Path,
 ) -> None:
     bundle_root = tmp_path / "bundle"
@@ -273,10 +370,9 @@ def test_validate_packaged_example_bundle_accepts_plain_experiment_bundle_withou
         json.dumps({"cache_root": "not-included-in-repo-example"}),
         encoding="utf-8",
     )
-    (workspace_root / "context_snapshot.json").write_text("{}", encoding="utf-8")
-    (workspace_root / "episode_manifest.json").write_text(
-        json.dumps({"workspace_root": "workspace"}),
-        encoding="utf-8",
+    _write_minimal_valid_saved_workspace(
+        workspace_root,
+        workspace_root_value="workspace",
     )
 
     issues = validate_packaged_example_bundle(bundle_root)
@@ -320,10 +416,9 @@ def test_validate_packaged_example_bundle_flags_partial_ranked_sidecars(
         json.dumps({"candidates": []}),
         encoding="utf-8",
     )
-    (workspace_root / "context_snapshot.json").write_text("{}", encoding="utf-8")
-    (workspace_root / "episode_manifest.json").write_text(
-        json.dumps({"workspace_root": "workspace"}),
-        encoding="utf-8",
+    _write_minimal_valid_saved_workspace(
+        workspace_root,
+        workspace_root_value="workspace",
     )
 
     issues = validate_packaged_example_bundle(bundle_root)
@@ -382,10 +477,9 @@ def test_package_example_accepts_proxy_forecast_bundle(
 def test_validate_artifact_tree_flags_workspace_root_mismatch(tmp_path: Path) -> None:
     workspace_root = tmp_path / "workspace"
     workspace_root.mkdir(parents=True)
-    (workspace_root / "context_snapshot.json").write_text("{}", encoding="utf-8")
-    (workspace_root / "episode_manifest.json").write_text(
-        json.dumps({"workspace_root": str(tmp_path / "other")}),
-        encoding="utf-8",
+    _write_minimal_valid_saved_workspace(
+        workspace_root,
+        workspace_root_value=str(tmp_path / "other"),
     )
 
     issues = validate_artifact_tree(tmp_path)
@@ -396,7 +490,18 @@ def test_validate_artifact_tree_flags_workspace_root_mismatch(tmp_path: Path) ->
 def test_validate_artifact_tree_flags_unexpected_manifest_name(tmp_path: Path) -> None:
     workspace_root = tmp_path / "workspace"
     workspace_root.mkdir(parents=True)
-    (workspace_root / "context_snapshot.json").write_text("{}", encoding="utf-8")
+    (workspace_root / "context_snapshot.json").write_text(
+        json.dumps(
+            {
+                "version": "1",
+                "organization_name": "Acme Cloud",
+                "organization_domain": "acme.example.com",
+                "captured_at": "2026-01-01T00:00:00Z",
+                "sources": [],
+            }
+        ),
+        encoding="utf-8",
+    )
     (workspace_root / "stale_episode_manifest.json").write_text(
         json.dumps({"workspace_root": str(workspace_root)}),
         encoding="utf-8",
@@ -412,10 +517,9 @@ def test_validate_artifact_tree_ignores_non_episode_manifest_files(
 ) -> None:
     workspace_root = tmp_path / "workspace"
     workspace_root.mkdir(parents=True)
-    (workspace_root / "context_snapshot.json").write_text("{}", encoding="utf-8")
-    (workspace_root / "episode_manifest.json").write_text(
-        json.dumps({"workspace_root": str(workspace_root)}),
-        encoding="utf-8",
+    _write_minimal_valid_saved_workspace(
+        workspace_root,
+        workspace_root_value=str(workspace_root),
     )
     (workspace_root / "twin_manifest.json").write_text("{}", encoding="utf-8")
     compiled_root = workspace_root / "compiled" / "default"
@@ -540,6 +644,9 @@ def test_repo_owned_enron_example_workspace_uses_saved_ranked_result_without_ros
     payload = response.json()
     assert payload["recommended_candidate_label"] == "Hold for internal review"
     assert payload["objective_pack"]["pack_id"] == "reduce_delay"
+    assert payload["candidates"][0]["outcome_score"]["objective_pack_id"] == (
+        "reduce_delay"
+    )
     assert (
         payload["candidates"][0]["intervention"]["label"] == "Hold for internal review"
     )

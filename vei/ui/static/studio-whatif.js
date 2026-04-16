@@ -876,15 +876,11 @@ function renderWhatIfStudio() {
   }
 
   const statusLabel = state.whatIfSceneLoading ? "Loading scene" : "Archive ready";
-  const historical = state.historicalWorkspace;
-  const usingSavedEnronBranch =
-    historical?.source === "enron" &&
-    status.source === "mail_archive" &&
-    String(status.source_dir || "").endsWith("context_snapshot.json");
+  const usingSavedBundle = Boolean(status.saved_bundle_active);
   const statusDetail = state.whatIfSceneLoading
     ? state.whatIfSelectedEvent?.event?.subject || "Historical decision"
-    : usingSavedEnronBranch
-      ? "Saved Enron branch workspace"
+    : usingSavedBundle
+      ? "Saved branch workspace"
       : status.source_dir || whatIfSourceLabel();
   statusNode.innerHTML = `
     <div class="whatif-status-pill">
