@@ -8,13 +8,13 @@ from __future__ import annotations
 
 from typing import Any, Dict, List
 
-from vei.events.models import (
+from vei.events.api import (
     CanonicalEvent,
     EventProvenance,
     ProvenanceRecord,
     StateDelta,
+    infer_domain,
 )
-from vei.events.legacy import _infer_domain
 
 
 class StreamingNormalizer:
@@ -26,7 +26,7 @@ class StreamingNormalizer:
     def normalize(self, raw_record: Dict[str, Any]) -> List[CanonicalEvent]:
         kind = str(raw_record.get("kind", raw_record.get("type", "")))
         payload = dict(raw_record.get("payload", raw_record))
-        domain = _infer_domain(kind, payload)
+        domain = infer_domain(kind, payload)
 
         event = CanonicalEvent(
             tenant_id=self._tenant_id,

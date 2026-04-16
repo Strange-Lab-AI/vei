@@ -9,6 +9,7 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional
 
+from .legacy import _infer_domain as _legacy_infer_domain
 from .models import (
     ActorRef,
     CanonicalEvent,
@@ -21,6 +22,16 @@ from .models import (
     StateDelta,
     TextHandle,
 )
+
+
+def infer_domain(kind: str, payload: dict) -> EventDomain:
+    """Public domain inference used by ingest.
+
+    Delegates to the same lookup the legacy adapter uses, so the mapping
+    stays in one place.
+    """
+    return _legacy_infer_domain(kind, payload)
+
 
 logger = logging.getLogger(__name__)
 
@@ -111,5 +122,6 @@ __all__ = [
     "build_event",
     "drain_spine",
     "emit_event",
+    "infer_domain",
     "spine_snapshot",
 ]
