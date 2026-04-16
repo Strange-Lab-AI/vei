@@ -61,6 +61,8 @@ There are two compare paths today:
 
 The heuristic baseline (formerly `e_jepa_proxy`) is a tag-driven heuristic, not a learned model. It is useful as a demo baseline but should not be described as JEPA-like.
 
+Both forecast paths now go through the shared `vei.dynamics` boundary. The what-if experiment flow calls `vei.dynamics.api.get_backend(...)` and the concrete forecast engines (JEPA subprocess, heuristic, reference checkpoint) are plugged in behind the contract via `vei.whatif.dynamics_bridge`. That means swapping or adding a forecast backend does not touch the whatif flow — it registers a new `DynamicsBackend` and updates `.agents.yml`.
+
 On top of the forecast path, VEI now builds a shared business-state readout. That layer translates the forecast into decision language such as outside spread risk, internal handling load, execution delay, commercial position, and approval or escalation pressure. The saved workspace and the saved forecast bundle both carry that readout.
 
 ## CLI

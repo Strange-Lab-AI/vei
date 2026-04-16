@@ -6,6 +6,12 @@ VEI is a deterministic, MCP-native enterprise simulator built around one stable 
 
 ## Core Primitives
 
+- `CanonicalEvent`
+  - frozen v1 envelope (`vei.events`) that is the single source of truth on the event spine; `StateStore`, run timelines, and connector receipts are derived views
+- `DynamicsBackend`
+  - protocol for forecast / learned-dynamics calls (`vei.dynamics`); backends (`null`, `heuristic_baseline`, `reference`, `external_subprocess`) register through one registry
+- `SessionSlice`
+  - lazy-hydration boundary produced by a `SessionMaterializer` from the ingest stores; what `WorldSession.from_session_materializer` consumes
 - `Blueprint`
   - authored asset compiled into scenario, facades, workflow, contract, and run defaults
 - `BlueprintAsset`

@@ -283,7 +283,7 @@ Same seed = same world. The only variable in an eval is the agent being tested.
 The eval system (`vei eval`) runs agents through scenarios and scores them. Four runner types provide a performance ladder:
 - **scripted** — hardcoded behavior tree (`vei/behavior/policy.py`). Fixed sequence of tool calls. Deterministic baseline floor.
 - **workflow** — declarative step graph with assertions (`vei/benchmark/workflows.py`). Each step names a tool call and post-conditions. The reference solution.
-- **bc** (behavior cloning) — learned policy trained from demonstration data (`vei/rl/policy_bc.py`). Selects tools by frequency statistics. Deterministic but data-driven.
+- **bc** (frequency floor baseline) — tool-frequency heuristic computed from demonstration data (`vei/rl/policy_frequency.py`, `FrequencyPolicy`). Selects the highest-frequency tool from the current action menu. Deterministic and data-driven but **not** a learned dynamics model; see `docs/ARCHITECTURE.md` "What Is and Isn't Learned". The old `vei/rl/policy_bc.py` module is a deprecation shim.
 - **llm** — real LLM agent via MCP stdio (`vei/cli/vei_llm_test.py`). Subprocess connects to the world, fetches tools, and runs an observe→reason→act loop. Non-deterministic, requires API keys.
 
 Key eval commands:
