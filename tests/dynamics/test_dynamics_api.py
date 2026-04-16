@@ -124,13 +124,37 @@ class TestRegistry:
 
 class TestReferenceBackend:
     def test_returns_explicit_error_without_checkpoint(self) -> None:
-        pytest.importorskip("torch")
         backend = ReferenceBackend()
 
         response = backend.forecast(DynamicsRequest(seed=42042))
 
         assert response.backend_id == "reference"
         assert "checkpoint" in response.state_delta_summary["error"]
+
+    def test_returns_checkpoint_error_before_torch_error(self, monkeypatch) -> None:
+        monkeypatch.delenv("VEI_REFERENCE_BACKEND_CHECKPOINT", raising=False)
+        monkeypatch.setattr("vei.dynamics.backends.reference._TORCH_AVAILABLE", False)
+        backend = ReferenceBackend()
+
+        response = backend.forecast(DynamicsRequest(seed=42042))
+
+        assert response.backend_id == "reference"
+        assert "checkpoint" in response.state_delta_summary["error"]
+
+    def test_returns_torch_error_when_checkpoint_is_configured(
+        self,
+        tmp_path: Path,
+        monkeypatch,
+    ) -> None:
+        checkpoint_path = tmp_path / "reference-model.pt"
+        checkpoint_path.write_bytes(b"placeholder")
+        monkeypatch.setattr("vei.dynamics.backends.reference._TORCH_AVAILABLE", False)
+        backend = ReferenceBackend(checkpoint_path=str(checkpoint_path))
+
+        response = backend.forecast(DynamicsRequest(seed=42042))
+
+        assert response.backend_id == "reference"
+        assert response.state_delta_summary["error"] == "torch not available"
 
     def test_loads_checkpoint_and_predicts(self, tmp_path: Path) -> None:
         torch = pytest.importorskip("torch")

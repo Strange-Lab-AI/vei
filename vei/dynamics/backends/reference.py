@@ -183,9 +183,6 @@ class ReferenceBackend:
     def _load_model(self) -> dict[str, Any]:
         if self._loaded is not None:
             return self._loaded
-        if not _TORCH_AVAILABLE:
-            self._loaded = {"error": "torch not available"}
-            return self._loaded
         if self._checkpoint_path is None:
             self._loaded = {
                 "error": (
@@ -201,6 +198,9 @@ class ReferenceBackend:
                     f"{self._checkpoint_path}"
                 )
             }
+            return self._loaded
+        if not _TORCH_AVAILABLE:
+            self._loaded = {"error": "torch not available"}
             return self._loaded
 
         bridge = importlib.import_module("vei.whatif.benchmark_bridge")
