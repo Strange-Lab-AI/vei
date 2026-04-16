@@ -128,9 +128,11 @@ def run_counterfactual_experiment(
         )
     forecast_result: WhatIfCounterfactualEstimateResult | None = None
     resolved_forecast_backend = forecast_backend or (
-        mode if mode in {"e_jepa", "e_jepa_proxy"} else default_forecast_backend()
+        mode
+        if mode in {"e_jepa", "e_jepa_proxy", "heuristic_baseline"}
+        else default_forecast_backend()
     )
-    if mode in {"e_jepa", "e_jepa_proxy", "both"}:
+    if mode in {"e_jepa", "e_jepa_proxy", "heuristic_baseline", "both"}:
         if resolved_forecast_backend == "e_jepa":
             forecast_result = run_ejepa_counterfactual(
                 workspace_root,

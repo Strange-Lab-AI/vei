@@ -5,7 +5,7 @@ from collections import Counter
 from pathlib import Path
 from typing import Sequence
 
-from .policy_bc import BCPPolicy
+from .policy_frequency import FrequencyPolicy
 
 
 class BehaviorCloningTrainer:
@@ -21,7 +21,7 @@ class BehaviorCloningTrainer:
                     records.append(event)
         return records
 
-    def train(self) -> BCPPolicy:
+    def train(self) -> FrequencyPolicy:
         records = self.load()
         counts: Counter[str] = Counter()
         templates: dict[str, dict] = {}
@@ -34,4 +34,4 @@ class BehaviorCloningTrainer:
             args = payload.get("args") if isinstance(payload, dict) else None
             if tool not in templates and isinstance(args, dict):
                 templates[tool] = dict(args)
-        return BCPPolicy(tool_counts=dict(counts), arg_templates=templates)
+        return FrequencyPolicy(tool_counts=dict(counts), arg_templates=templates)

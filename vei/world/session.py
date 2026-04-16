@@ -251,6 +251,47 @@ class WorldSession:
     def attach_router(cls, router: "Router") -> "WorldSession":
         return cls(router)
 
+    @classmethod
+    def from_session_materializer(
+        cls,
+        sm: Any,
+        case_id: str,
+        *,
+        seed: int = 42042,
+        tenant_id: str = "",
+    ) -> "WorldSession":
+        """Create a WorldSession from an ingest SessionMaterializer slice.
+
+        This is the opt-in constructor for the four-layer ingest path.
+        Existing constructors remain the default.
+        """
+        from vei.world.api import create_world_session
+
+        session = create_world_session(seed=seed, artifacts_dir=None)
+        try:
+            from vei.ingest.api import SessionMaterializer
+
+            if isinstance(sm, SessionMaterializer):
+                slice_data = sm.materialize(tenant_id, case_id)
+                for event in getattr(slice_data, "events", []):
+                    payload = {}
+                    if hasattr(event, "delta") and event.delta is not None:
+                        payload = dict(event.delta.data)
+                    session.router.bus.schedule(
+                        dt_ms=max(0, int(event.ts_ms) - session.router.bus.clock_ms),
+                        target=(
+                            event.domain.value
+                            if hasattr(event, "domain")
+                            else "internal"
+                        ),
+                        payload=payload,
+                        source="ingest_materializer",
+                        kind="scheduled",
+                    )
+        except ImportError:
+            pass
+        return session
+
     def attach_actor_registry(self, registry: Any) -> None:
         """Attach an actor-response backend so NPC events can generate replies."""
         self.actor_registry = registry

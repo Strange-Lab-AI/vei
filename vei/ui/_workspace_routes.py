@@ -314,11 +314,18 @@ def register_workspace_routes(app: FastAPI, root: Path, *, deps: Any) -> None:
             max_events=request.max_events,
         )
         normalized_shadow_backend = request.shadow_forecast_backend.strip().lower()
-        if normalized_shadow_backend not in {"auto", "e_jepa", "e_jepa_proxy"}:
+        if normalized_shadow_backend not in {
+            "auto",
+            "e_jepa",
+            "e_jepa_proxy",
+            "heuristic_baseline",
+        }:
             raise HTTPException(
                 status_code=400,
-                detail="shadow_forecast_backend must be auto, e_jepa, or e_jepa_proxy",
+                detail="shadow_forecast_backend must be auto, e_jepa, or heuristic_baseline",
             )
+        if normalized_shadow_backend == "e_jepa_proxy":
+            normalized_shadow_backend = "heuristic_baseline"
         try:
             result = run_ranked_counterfactual_experiment(
                 world,

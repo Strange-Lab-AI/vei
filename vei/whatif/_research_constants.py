@@ -4,7 +4,7 @@ from .models import WhatIfOutcomeBackendId
 
 INTEGRATED_BACKENDS: tuple[WhatIfOutcomeBackendId, ...] = (
     "e_jepa",
-    "e_jepa_proxy",
+    "heuristic_baseline",
     "ft_transformer",
     "ts2vec",
     "g_transformer",

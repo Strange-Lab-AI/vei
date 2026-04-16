@@ -800,7 +800,7 @@ def _score_backend(
             notes=notes,
             error=forecast.error,
         )
-    if backend == "e_jepa_proxy":
+    if backend in {"e_jepa_proxy", "heuristic_baseline"}:
         forecast = estimate_counterfactual_delta(workspace_root, prompt=prompt)
         return _forecast_backend_evaluation(
             backend=backend,

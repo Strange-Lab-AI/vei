@@ -1,0 +1,21 @@
+{
+  "company_graph_slice": {
+    "tenant_id": "test_tenant",
+    "domains": ["comm_graph"],
+    "actors": [],
+    "objects": [],
+    "edges": [],
+    "metadata": {}
+  },
+  "recent_events": [],
+  "candidate_action": {
+    "action_id": "act_001",
+    "label": "hold draft",
+    "description": "Hold the draft for internal review",
+    "tool": "mail.hold",
+    "args": {},
+    "policy_tags": ["hold"]
+  },
+  "horizon": 84,
+  "seed": 42042
+}

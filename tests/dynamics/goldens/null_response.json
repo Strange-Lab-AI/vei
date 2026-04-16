@@ -1,0 +1,15 @@
+{
+  "predicted_events": [],
+  "state_delta_summary": {},
+  "business_heads": {
+    "risk": {"point": 0.0, "lower": null, "upper": null},
+    "spread": {"point": 0.0, "lower": null, "upper": null},
+    "escalation": {"point": 0.0, "lower": null, "upper": null},
+    "approval": {"point": 0.0, "lower": null, "upper": null},
+    "load": {"point": 0.0, "lower": null, "upper": null},
+    "drag": {"point": 0.0, "lower": null, "upper": null}
+  },
+  "backend_id": "null",
+  "backend_version": "1.0.0",
+  "calibration": {"ece": null, "interval_coverage": null, "auroc": null}
+}

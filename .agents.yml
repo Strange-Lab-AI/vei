@@ -17,3 +17,14 @@ deps:
   audit_block: false
 mutation_tests:
   schedule: weekly
+dynamics:
+  enabled: true
+  default_backend: heuristic_baseline
+  evaluation_thresholds:
+    factual_next_event_auroc: 0.80
+    counterfactual_rank_pct: 0.65
+    calibration_ece_max: 0.08
+ingest:
+  profile: offline
+  live_store: postgres
+  offline_store: duckdb

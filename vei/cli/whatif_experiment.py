@@ -66,11 +66,11 @@ def register_experiment_commands(app: typer.Typer) -> None:
         ),
         mode: str = typer.Option(
             "both",
-            help="Experiment mode: llm | e_jepa | e_jepa_proxy | both",
+            help="Experiment mode: llm | e_jepa | heuristic_baseline | both",
         ),
         forecast_backend: str = typer.Option(
             "auto",
-            help="Forecast backend: auto | e_jepa | e_jepa_proxy",
+            help="Forecast backend: auto | e_jepa | heuristic_baseline",
         ),
         provider: str = typer.Option(
             "openai",
@@ -105,15 +105,30 @@ def register_experiment_commands(app: typer.Typer) -> None:
         render = _whatif_render()
         validation = _whatif_validation()
         normalized_mode = mode.strip().lower()
-        if normalized_mode not in {"llm", "e_jepa", "e_jepa_proxy", "both"}:
+        if normalized_mode not in {
+            "llm",
+            "e_jepa",
+            "e_jepa_proxy",
+            "heuristic_baseline",
+            "both",
+        }:
             raise typer.BadParameter(
-                "mode must be one of: llm, e_jepa, e_jepa_proxy, both"
+                "mode must be one of: llm, e_jepa, heuristic_baseline, both"
             )
+        if normalized_mode == "e_jepa_proxy":
+            normalized_mode = "heuristic_baseline"
         normalized_forecast_backend = forecast_backend.strip().lower()
-        if normalized_forecast_backend not in {"auto", "e_jepa", "e_jepa_proxy"}:
+        if normalized_forecast_backend not in {
+            "auto",
+            "e_jepa",
+            "e_jepa_proxy",
+            "heuristic_baseline",
+        }:
             raise typer.BadParameter(
-                "forecast-backend must be one of: auto, e_jepa, e_jepa_proxy"
+                "forecast-backend must be one of: auto, e_jepa, heuristic_baseline"
             )
+        if normalized_forecast_backend == "e_jepa_proxy":
+            normalized_forecast_backend = "heuristic_baseline"
         world = api.load_world(source=source, source_dir=source_dir)
         result = api.run_counterfactual_experiment(
             world,
@@ -206,7 +221,7 @@ def register_experiment_commands(app: typer.Typer) -> None:
         seed: int = typer.Option(42042, help="Deterministic seed"),
         shadow_forecast_backend: str = typer.Option(
             "auto",
-            help="Shadow forecast backend: auto | e_jepa | e_jepa_proxy",
+            help="Shadow forecast backend: auto | e_jepa | heuristic_baseline",
         ),
         ejepa_epochs: int = typer.Option(
             4, help="Training epochs for the JEPA backend"
@@ -233,10 +248,17 @@ def register_experiment_commands(app: typer.Typer) -> None:
         if not candidate:
             raise typer.BadParameter("Provide at least one --candidate option")
         normalized_shadow_backend = shadow_forecast_backend.strip().lower()
-        if normalized_shadow_backend not in {"auto", "e_jepa", "e_jepa_proxy"}:
+        if normalized_shadow_backend not in {
+            "auto",
+            "e_jepa",
+            "e_jepa_proxy",
+            "heuristic_baseline",
+        }:
             raise typer.BadParameter(
-                "shadow-forecast-backend must be one of: auto, e_jepa, e_jepa_proxy"
+                "shadow-forecast-backend must be one of: auto, e_jepa, heuristic_baseline"
             )
+        if normalized_shadow_backend == "e_jepa_proxy":
+            normalized_shadow_backend = "heuristic_baseline"
         world = api.load_world(source=source, source_dir=source_dir)
         result = api.run_ranked_counterfactual_experiment(
             world,

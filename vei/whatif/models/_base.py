@@ -10,11 +10,14 @@ WhatIfScenarioId = Literal[
     "approval_chain_enforcement",
 ]
 WhatIfRenderFormat = Literal["json", "markdown"]
-WhatIfExperimentMode = Literal["llm", "e_jepa", "e_jepa_proxy", "both"]
-WhatIfForecastBackend = Literal["e_jepa", "e_jepa_proxy"]
+WhatIfExperimentMode = Literal[
+    "llm", "e_jepa", "e_jepa_proxy", "heuristic_baseline", "both"
+]
+WhatIfForecastBackend = Literal["e_jepa", "e_jepa_proxy", "heuristic_baseline"]
 WhatIfOutcomeBackendId = Literal[
     "e_jepa",
     "e_jepa_proxy",
+    "heuristic_baseline",
     "ft_transformer",
     "ts2vec",
     "g_transformer",

@@ -4,6 +4,10 @@ VEI evaluation has three layers. Each layer answers a different question and pro
 
 Use `docs/ENRON_BUSINESS_OUTCOME_BENCHMARK.md` for the specific Enron benchmark setup. This document covers the evaluation framework itself.
 
+## What Is and Isn't Learned
+
+VEI today is a deterministic enterprise simulator, governed twin, and replay platform with a reference learned path. It is not a finished learned world model. The reference backend (`vei.dynamics.backends.reference`) is a real PyTorch model trained on canonical event sequences. The heuristic baseline (formerly `e_jepa_proxy`) is a tag-driven heuristic, not a learned model. See `docs/ARCHITECTURE.md` for the full breakdown.
+
 ## Layer 1: Factual forecast metrics
 
 The cheapest layer. No humans, no LLM calls. The model predicts what happened after the branch point, and VEI compares the prediction against the observed historical future.
@@ -204,3 +208,15 @@ vei ui serve \
 ```
 
 The audit routes require a benchmark build with a completed judge step. If `judge_result.json` is not present, the audit view shows an empty state.
+
+## Causal Identification
+
+Current counterfactual benchmark numbers are **ranked by rubric**, not causally estimated. The Enron benchmark scores candidate actions by comparing predicted business proxies against later email evidence. This is a useful ranking signal but not a causal claim.
+
+To support a genuine causal claim, VEI would need:
+
+- Quasi-experimental datasets from real policy changes (reviewer additions, recipient removals, routing changes)
+- Held-out-company tests where the model is trained on companies A and B, then evaluated on company C
+- Matched natural experiments where the same situation played out differently due to an observable policy difference
+
+Until those datasets exist, factual forecasting metrics and counterfactual rankings should be reported in **separate tables** and interpreted accordingly.

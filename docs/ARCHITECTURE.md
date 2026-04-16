@@ -65,6 +65,10 @@ Workspace / CLI / UI / SDK / Agent
 
 The router is a transport and tool-dispatch adapter. The twin gateway is an HTTP adapter that exposes provider-shaped compatibility routes and manages governed agents. Mutable enterprise state belongs to the kernel, not to transport wrappers.
 
+## Event Spine
+
+`CanonicalEvent` is the single source of truth. `StateStore`, run timelines, and connector receipts are derived views. Control-plane events (governance: approvals, holds, denials, connector safety state, receipts) share the same spine. Raw provider payloads in the ingest RawLog are pre-canonical and not authoritative.
+
 ## Product Workflow Layer
 
 VEI now has a product-shaped layer above the kernel:
@@ -313,3 +317,26 @@ VEI keeps the current router twins, but the public ontology now groups them as f
 - Prefer mission play to sit on top of the same graph-native action ladder and run/event spine instead of inventing a game-only runtime.
 - Prefer fidelity checks that validate the real boundary behavior of the important twins before shipping a playable mission bundle.
 - The vertical demos should always reinforce the platform thesis: domain packs change capability graphs and contracts, while the kernel, event spine, replay model, and playback UI stay the same. That is what lets VEI become an RL environment, a continuous-eval stack, and an agent-management platform later without replacing the core runtime.
+
+## What Is and Isn't Learned
+
+VEI today is a deterministic enterprise simulator, governed twin, and replay platform with a reference learned path. It is not a finished learned world model.
+
+**What is learned (in-repo, under `vei.dynamics`):**
+
+- The reference backend (`vei.dynamics.backends.reference`) absorbs the existing `benchmark_bridge` trainer: a real PyTorch model trained on canonical event sequences with AUROC, ECE, and held-out case evaluation.
+- Training reads only `CanonicalEvent` streams — never raw provider payloads.
+
+**What is heuristic (not learned):**
+
+- The heuristic baseline (formerly `e_jepa_proxy`) shifts event counts, escalations, approvals, external sends, and risk up or down from intervention tags. It is a reasonable demo baseline, not a learned model.
+- The `FrequencyPolicy` (formerly `BCPPolicy`) counts tool occurrences in demonstrations and picks the most-frequent tool. Useful plumbing for floor baselines, not learned dynamics.
+
+**What is external (optional adapter):**
+
+- `ARP_Jepa_exp` and other external backends plug in via `ExternalSubprocessBackend`. They are optional; VEI functions without them.
+
+**Frozen contracts:**
+
+- `CanonicalEvent` (v1 envelope) — the source of truth on the event spine.
+- `DynamicsBackend` protocol — the only surface into learned code.

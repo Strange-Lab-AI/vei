@@ -506,14 +506,14 @@ def _make_forecast_result(
         risk_score=0.6,
     )
     predicted = WhatIfHistoricalScore(
-        backend="e_jepa_proxy",
+        backend="heuristic_baseline",
         future_event_count=future_event_count,
         future_external_event_count=future_external_event_count,
         risk_score=risk_score,
     )
     return WhatIfCounterfactualEstimateResult(
         status="ok",
-        backend="e_jepa_proxy",
+        backend="heuristic_baseline",
         prompt=prompt,
         summary=summary,
         baseline=baseline,
@@ -1448,7 +1448,7 @@ def test_run_research_pack_writes_artifacts_and_scores_all_backends(
             backend_ids = {score.backend for score in candidate.backend_scores}
             assert backend_ids == {
                 "e_jepa",
-                "e_jepa_proxy",
+                "heuristic_baseline",
                 "ft_transformer",
                 "ts2vec",
                 "g_transformer",
@@ -1465,7 +1465,7 @@ def test_run_research_pack_writes_artifacts_and_scores_all_backends(
         if score.backend == "e_jepa"
     )
     assert fallback_score.status == "fallback"
-    assert fallback_score.effective_backend == "e_jepa_proxy"
+    assert fallback_score.effective_backend == "heuristic_baseline"
 
     train_rows = []
     for split_name in ("train", "validation", "test"):

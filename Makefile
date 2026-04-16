@@ -11,7 +11,7 @@ SETUP_FULL_EXTRAS := dev,llm,sse,ui,test,rl
 COVERAGE_FAIL_UNDER ?= $(or $(shell awk 'BEGIN { section = 0 } $$1 == "coverage:" { section = 1; next } section && $$1 == "global:" { print int($$2 * 100); exit }' $(AGENTS_FILE) 2>/dev/null),80)
 PIPAPI_PYTHON := $(abspath $(VENV_BIN)/python)
 
-.PHONY: setup bootstrap setup-full check test llm-live deps-audit all clean clean-workspace
+.PHONY: setup bootstrap setup-full check test dynamics-eval llm-live deps-audit all clean clean-workspace
 
 $(VENV)/bin/activate:
 	$(PYTHON) -m venv $(VENV)
@@ -91,7 +91,12 @@ deps-audit: $(SETUP_FULL_STAMP)
 		VIRTUAL_ENV=$(abspath $(VENV)) PIPAPI_PYTHON_LOCATION=$(PIPAPI_PYTHON) $(VENV_BIN)/pip-audit --skip-editable || true; \
 	fi
 
-all: check test llm-live deps-audit
+dynamics-eval: $(SETUP_FULL_STAMP)
+	@echo "--- dynamics evaluation ---"
+	$(VENV_BIN)/python -m pytest tests/dynamics/ -v --tb=short
+	@echo "Dynamics evaluation passed."
+
+all: check test dynamics-eval llm-live deps-audit
 
 clean-workspace:
 	rm -rf .artifacts .coverage .coverage.* .mypy_cache .pytest_cache ".pytest_cache 2" .ruff_cache vei.egg-info pyvei.egg-info

@@ -244,14 +244,14 @@ def _make_forecast_result(
         risk_score=0.6,
     )
     predicted = WhatIfHistoricalScore(
-        backend="e_jepa_proxy",
+        backend="heuristic_baseline",
         future_event_count=future_event_count,
         future_external_event_count=future_external_event_count,
         risk_score=risk_score,
     )
     return WhatIfCounterfactualEstimateResult(
         status="ok",
-        backend="e_jepa_proxy",
+        backend="heuristic_baseline",
         prompt=prompt,
         summary=summary,
         baseline=baseline,
@@ -474,7 +474,7 @@ def test_vei_whatif_cli_rank_and_show_ranked_result(
     payload = json.loads(result.output)
     assert payload["recommended_candidate_label"] == "Keep this internal and pause."
     assert len(payload["candidates"]) == 2
-    assert payload["candidates"][0]["shadow"]["backend"] == "e_jepa_proxy"
+    assert payload["candidates"][0]["shadow"]["backend"] == "heuristic_baseline"
 
     show_result = runner.invoke(
         cli_app,

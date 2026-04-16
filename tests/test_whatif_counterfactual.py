@@ -251,14 +251,14 @@ def _make_forecast_result(
         risk_score=0.6,
     )
     predicted = WhatIfHistoricalScore(
-        backend="e_jepa_proxy",
+        backend="heuristic_baseline",
         future_event_count=future_event_count,
         future_external_event_count=future_external_event_count,
         risk_score=risk_score,
     )
     return WhatIfCounterfactualEstimateResult(
         status="ok",
-        backend="e_jepa_proxy",
+        backend="heuristic_baseline",
         prompt=prompt,
         summary=summary,
         baseline=baseline,
@@ -614,14 +614,14 @@ def _make_forecast_result(
         risk_score=0.6,
     )
     predicted = WhatIfHistoricalScore(
-        backend="e_jepa_proxy",
+        backend="heuristic_baseline",
         future_event_count=future_event_count,
         future_external_event_count=future_external_event_count,
         risk_score=risk_score,
     )
     return WhatIfCounterfactualEstimateResult(
         status="ok",
-        backend="e_jepa_proxy",
+        backend="heuristic_baseline",
         prompt=prompt,
         summary=summary,
         baseline=baseline,
@@ -963,7 +963,7 @@ def test_run_ranked_counterfactual_experiment_writes_artifacts_and_keeps_shadow_
     assert result.candidates[0].intervention.label == "Hold internal"
     assert result.candidates[0].reason.startswith("Best for contain exposure")
     assert result.candidates[0].shadow is not None
-    assert result.candidates[0].shadow.backend == "e_jepa_proxy"
+    assert result.candidates[0].shadow.backend == "heuristic_baseline"
     assert result.candidates[0].business_state_change is not None
     assert (
         result.candidates[0].shadow.outcome_score.overall_score

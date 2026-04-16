@@ -97,7 +97,7 @@ def test_historical_business_state_assessment_and_change_are_readable() -> None:
     )
     result = WhatIfCounterfactualEstimateResult(
         status="ok",
-        backend="e_jepa_proxy",
+        backend="heuristic_baseline",
         prompt="Keep the draft inside Enron, ask legal for review, and hold the outside send.",
         baseline=baseline,
         predicted=predicted,

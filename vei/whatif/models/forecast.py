@@ -10,7 +10,9 @@ from .world import WhatIfBusinessStateChange, WhatIfEventReference
 
 
 class WhatIfHistoricalScore(BaseModel):
-    backend: Literal["historical", "heuristic", "e_jepa", "e_jepa_proxy"] = "historical"
+    backend: Literal[
+        "historical", "heuristic", "e_jepa", "e_jepa_proxy", "heuristic_baseline"
+    ] = "historical"
     future_event_count: int = 0
     future_escalation_count: int = 0
     future_assignment_count: int = 0
@@ -83,7 +85,7 @@ class WhatIfCounterfactualEstimateArtifacts(BaseModel):
 
 class WhatIfCounterfactualEstimateResult(BaseModel):
     status: Literal["ok", "skipped", "error"] = "ok"
-    backend: WhatIfForecastBackend = "e_jepa_proxy"
+    backend: WhatIfForecastBackend = "heuristic_baseline"
     prompt: str
     summary: str = ""
     baseline: WhatIfHistoricalScore = Field(default_factory=WhatIfHistoricalScore)

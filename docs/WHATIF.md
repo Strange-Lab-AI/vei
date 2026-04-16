@@ -53,11 +53,13 @@ There are two compare paths today:
   - limited to the known thread participants and allowed targets
   - defaults to `gpt-5-mini` so the interactive run completes quickly and predictably
   - useful for “what would someone have said or done next?”
-- **E-JEPA forecast**
+- **Learned backend forecast (optional, pluggable)**
   - real checkpoint-backed forecast for risk and volume deltas when the local `ARP_Jepa_exp` runtime is available
   - trained on a deterministic local slice of related threads around the chosen branch point, so the forecast stays tied to the exact decision you are changing
-  - falls back to the proxy forecast only when that runtime is missing or errors
+  - falls back to the heuristic baseline when that runtime is missing or errors
   - useful for “how much would this likely reduce exposure, escalation, or follow-up volume?”
+
+The heuristic baseline (formerly `e_jepa_proxy`) is a tag-driven heuristic, not a learned model. It is useful as a demo baseline but should not be described as JEPA-like.
 
 On top of the forecast path, VEI now builds a shared business-state readout. That layer translates the forecast into decision language such as outside spread risk, internal handling load, execution delay, commercial position, and approval or escalation pressure. The saved workspace and the saved forecast bundle both carry that readout.
 

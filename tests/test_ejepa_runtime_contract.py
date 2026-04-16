@@ -13,7 +13,7 @@ def test_default_forecast_backend_falls_back_without_runtime(
 ) -> None:
     monkeypatch.setattr("vei.whatif.ejepa.resolve_ejepa_runtime", lambda *_args: None)
 
-    assert default_forecast_backend() == "e_jepa_proxy"
+    assert default_forecast_backend() == "heuristic_baseline"
 
 
 def test_resolve_ejepa_runtime_requires_python_and_source(tmp_path: Path) -> None:

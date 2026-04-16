@@ -662,7 +662,7 @@ def estimate_counterfactual_delta(
     manifest = load_episode_manifest(workspace_root)
     baseline = manifest.forecast.model_copy(deep=True)
     predicted = manifest.forecast.model_copy(
-        update={"backend": "e_jepa_proxy"},
+        update={"backend": "heuristic_baseline"},
         deep=True,
     )
     tags = intervention_tags(prompt)
@@ -762,7 +762,7 @@ def estimate_counterfactual_delta(
     )
     result = WhatIfCounterfactualEstimateResult(
         status="ok",
-        backend="e_jepa_proxy",
+        backend="heuristic_baseline",
         prompt=prompt,
         summary=_forecast_delta_summary(delta),
         baseline=baseline,

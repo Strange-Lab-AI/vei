@@ -20,7 +20,7 @@ def default_forecast_backend() -> WhatIfForecastBackend:
     runtime = resolve_ejepa_runtime()
     if runtime is not None:
         return "e_jepa"
-    return "e_jepa_proxy"
+    return "heuristic_baseline"
 
 
 def resolve_ejepa_runtime(

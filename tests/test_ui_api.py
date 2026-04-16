@@ -1782,7 +1782,7 @@ def test_ui_api_whatif_rank_route_returns_ranked_payload(
     def fake_run_ranked_counterfactual_experiment(*args, **kwargs):
         assert kwargs["objective_pack_id"] == "contain_exposure"
         assert kwargs["rollout_count"] == 4
-        assert kwargs["shadow_forecast_backend"] == "e_jepa_proxy"
+        assert kwargs["shadow_forecast_backend"] == "heuristic_baseline"
         assert [item.label for item in kwargs["candidate_interventions"]] == [
             "Hold internal",
             "Send outside",
@@ -1809,7 +1809,7 @@ def test_ui_api_whatif_rank_route_returns_ranked_payload(
                             "overall_score": 0.91,
                         },
                         "shadow": {
-                            "backend": "e_jepa_proxy",
+                            "backend": "heuristic_baseline",
                             "outcome_score": {
                                 "objective_pack_id": "contain_exposure",
                                 "overall_score": 0.62,
@@ -1829,7 +1829,7 @@ def test_ui_api_whatif_rank_route_returns_ranked_payload(
                             "overall_score": 0.34,
                         },
                         "shadow": {
-                            "backend": "e_jepa_proxy",
+                            "backend": "heuristic_baseline",
                             "outcome_score": {
                                 "objective_pack_id": "contain_exposure",
                                 "overall_score": 0.81,
@@ -1876,7 +1876,7 @@ def test_ui_api_whatif_rank_route_returns_ranked_payload(
     payload = response.json()
     assert payload["recommended_candidate_label"] == "Hold internal"
     assert payload["candidates"][0]["rank"] == 1
-    assert payload["candidates"][0]["shadow"]["backend"] == "e_jepa_proxy"
+    assert payload["candidates"][0]["shadow"]["backend"] == "heuristic_baseline"
 
 
 def test_ui_api_quickstart_service_ops_payloads_keep_one_company_identity(
