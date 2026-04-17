@@ -1534,6 +1534,11 @@ def test_ui_api_saved_enron_workspace_prefers_live_rosetta_for_auto_actions(
         encoding="utf-8",
     )
     monkeypatch.setenv("VEI_WHATIF_ROSETTA_DIR", str(rosetta_dir))
+    monkeypatch.setenv("OPENAI_API_KEY", "openai-test-key")
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    monkeypatch.delenv("GOOGLE_API_KEY", raising=False)
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
 
     def fake_run_ranked_counterfactual_experiment(world, *args, **kwargs):
         assert world.source == "enron"
@@ -1986,6 +1991,11 @@ def test_ui_api_whatif_rank_route_returns_ranked_payload(
     rosetta_dir = tmp_path / "rosetta"
     _write_rosetta_fixture(rosetta_dir)
     monkeypatch.setenv("VEI_WHATIF_ROSETTA_DIR", str(rosetta_dir))
+    monkeypatch.setenv("OPENAI_API_KEY", "openai-test-key")
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    monkeypatch.delenv("GOOGLE_API_KEY", raising=False)
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
 
     def fake_run_ranked_counterfactual_experiment(*args, **kwargs):
         assert kwargs["objective_pack_id"] == "contain_exposure"
@@ -2085,6 +2095,49 @@ def test_ui_api_whatif_rank_route_returns_ranked_payload(
     assert payload["recommended_candidate_label"] == "Hold internal"
     assert payload["candidates"][0]["rank"] == 1
     assert payload["candidates"][0]["shadow"]["backend"] == "heuristic_baseline"
+
+
+def test_ui_api_whatif_rank_route_requires_llm_key(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    root = tmp_path / "workspace"
+    create_workspace_from_template(
+        root=root,
+        source_kind="example",
+        source_ref="acquired_user_cutover",
+    )
+    rosetta_dir = tmp_path / "rosetta"
+    _write_rosetta_fixture(rosetta_dir)
+    monkeypatch.setenv("VEI_WHATIF_ROSETTA_DIR", str(rosetta_dir))
+    for env_name in (
+        "OPENAI_API_KEY",
+        "ANTHROPIC_API_KEY",
+        "GOOGLE_API_KEY",
+        "GEMINI_API_KEY",
+        "OPENROUTER_API_KEY",
+    ):
+        monkeypatch.delenv(env_name, raising=False)
+
+    client = TestClient(ui_api.create_ui_app(root))
+    response = client.post(
+        "/api/workspace/whatif/rank",
+        json={
+            "source": "enron",
+            "event_id": "evt-001",
+            "label": "ranked term-sheet options",
+            "objective_pack_id": "contain_exposure",
+            "candidates": [
+                {
+                    "label": "Hold internal",
+                    "prompt": "Keep this internal.",
+                }
+            ],
+        },
+    )
+
+    assert response.status_code == 400
+    assert "needs an LLM provider key" in response.json()["detail"]
 
 
 def test_ui_api_quickstart_service_ops_payloads_keep_one_company_identity(
