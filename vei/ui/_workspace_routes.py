@@ -63,6 +63,13 @@ from vei.whatif.artifact_validation import validate_saved_workspace
 
 
 def register_workspace_routes(app: FastAPI, root: Path, *, deps: Any) -> None:
+    llm_key_envs = {
+        "openai": ("OPENAI_API_KEY",),
+        "anthropic": ("ANTHROPIC_API_KEY",),
+        "google": ("GOOGLE_API_KEY", "GEMINI_API_KEY"),
+        "openrouter": ("OPENROUTER_API_KEY",),
+    }
+
     def _saved_bundle():
         return resolve_saved_whatif_bundle(root)
 
@@ -93,8 +100,14 @@ def register_workspace_routes(app: FastAPI, root: Path, *, deps: Any) -> None:
         payload = _load_historical_summary_or_400(root)
         return JSONResponse(payload.model_dump(mode="json") if payload else {})
 
-    def _llm_available() -> bool:
-        return bool(os.environ.get("OPENAI_API_KEY", "").strip())
+    def _llm_available(provider: str | None = None) -> bool:
+        normalized_provider = str(provider or "").strip().lower()
+        candidate_envs = llm_key_envs.get(normalized_provider)
+        if candidate_envs is None:
+            candidate_envs = tuple(
+                env_name for envs in llm_key_envs.values() for env_name in envs
+            )
+        return any(os.environ.get(env_name, "").strip() for env_name in candidate_envs)
 
     @app.get("/api/workspace/whatif")
     def api_workspace_whatif_status() -> JSONResponse:
@@ -271,7 +284,7 @@ def register_workspace_routes(app: FastAPI, root: Path, *, deps: Any) -> None:
             max_events=request.max_events,
         )
         effective_mode = request.mode
-        if effective_mode in {"llm", "both"} and not _llm_available():
+        if effective_mode in {"llm", "both"} and not _llm_available(request.provider):
             effective_mode = "heuristic_baseline"
         try:
             result = run_counterfactual_experiment(
