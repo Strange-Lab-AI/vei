@@ -14,10 +14,6 @@ def _whatif_api():
     return import_module("vei.whatif.api")
 
 
-def _whatif_ejepa():
-    return import_module("vei.whatif.ejepa")
-
-
 def _whatif_render():
     return import_module("vei.whatif.render")
 
@@ -101,7 +97,6 @@ def register_experiment_commands(app: typer.Typer) -> None:
         """Run a full what-if experiment and write result artifacts."""
 
         api = _whatif_api()
-        ejepa = _whatif_ejepa()
         render = _whatif_render()
         validation = _whatif_validation()
         normalized_mode = mode.strip().lower()
@@ -125,11 +120,17 @@ def register_experiment_commands(app: typer.Typer) -> None:
             "heuristic_baseline",
         }:
             raise typer.BadParameter(
-                "forecast-backend must be one of: auto, e_jepa, heuristic_baseline"
+                "forecast-backend must be one of: auto, e_jepa, "
+                "e_jepa_proxy, heuristic_baseline"
             )
         if normalized_forecast_backend == "e_jepa_proxy":
             normalized_forecast_backend = "heuristic_baseline"
         world = api.load_world(source=source, source_dir=source_dir)
+        resolved_forecast_backend = None
+        if normalized_forecast_backend != "auto":
+            resolved_forecast_backend = normalized_forecast_backend
+        elif normalized_mode in {"e_jepa", "heuristic_baseline"}:
+            resolved_forecast_backend = normalized_mode
         result = api.run_counterfactual_experiment(
             world,
             artifacts_root=artifacts_root,
@@ -140,11 +141,7 @@ def register_experiment_commands(app: typer.Typer) -> None:
             thread_id=thread_id,
             event_id=event_id,
             mode=normalized_mode,
-            forecast_backend=(
-                ejepa.default_forecast_backend()
-                if normalized_forecast_backend == "auto"
-                else normalized_forecast_backend
-            ),
+            forecast_backend=resolved_forecast_backend,
             provider=provider,
             model=model,
             seed=seed,
@@ -243,7 +240,6 @@ def register_experiment_commands(app: typer.Typer) -> None:
         """Rank multiple counterfactual options from one exact branch point."""
 
         api = _whatif_api()
-        ejepa = _whatif_ejepa()
         render = _whatif_render()
         if not candidate:
             raise typer.BadParameter("Provide at least one --candidate option")
@@ -255,7 +251,8 @@ def register_experiment_commands(app: typer.Typer) -> None:
             "heuristic_baseline",
         }:
             raise typer.BadParameter(
-                "shadow-forecast-backend must be one of: auto, e_jepa, heuristic_baseline"
+                "shadow-forecast-backend must be one of: auto, e_jepa, "
+                "e_jepa_proxy, heuristic_baseline"
             )
         if normalized_shadow_backend == "e_jepa_proxy":
             normalized_shadow_backend = "heuristic_baseline"
@@ -275,7 +272,7 @@ def register_experiment_commands(app: typer.Typer) -> None:
             model=model,
             seed=seed,
             shadow_forecast_backend=(
-                ejepa.default_forecast_backend()
+                None
                 if normalized_shadow_backend == "auto"
                 else normalized_shadow_backend
             ),

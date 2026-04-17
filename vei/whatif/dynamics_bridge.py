@@ -186,6 +186,9 @@ def _ensure_backend_registered(backend_name: str) -> None:
         except KeyError:
             register_backend("heuristic_baseline", _WhatIfHeuristicBackend)
             return
+        # Tests and early imports may leave the generic dynamics heuristic
+        # registered here. Re-register the what-if adapter so heuristic paths
+        # always flow back through the saved-workspace forecast contract.
         if current.__class__.__module__ == "vei.dynamics.backends.heuristic":
             register_backend("heuristic_baseline", _WhatIfHeuristicBackend)
         return

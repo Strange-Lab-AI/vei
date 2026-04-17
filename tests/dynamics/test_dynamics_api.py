@@ -133,7 +133,6 @@ class TestReferenceBackend:
 
     def test_returns_checkpoint_error_before_torch_error(self, monkeypatch) -> None:
         monkeypatch.delenv("VEI_REFERENCE_BACKEND_CHECKPOINT", raising=False)
-        monkeypatch.setattr("vei.dynamics.backends.reference._TORCH_AVAILABLE", False)
         backend = ReferenceBackend()
 
         response = backend.forecast(DynamicsRequest(seed=42042))
@@ -141,45 +140,61 @@ class TestReferenceBackend:
         assert response.backend_id == "reference"
         assert "checkpoint" in response.state_delta_summary["error"]
 
-    def test_returns_torch_error_when_checkpoint_is_configured(
+    def test_surfaces_bridge_runtime_error_when_checkpoint_is_configured(
         self,
         tmp_path: Path,
         monkeypatch,
     ) -> None:
         checkpoint_path = tmp_path / "reference-model.pt"
         checkpoint_path.write_bytes(b"placeholder")
-        monkeypatch.setattr("vei.dynamics.backends.reference._TORCH_AVAILABLE", False)
+        monkeypatch.setattr(
+            "vei.dynamics.backends.reference.run_branch_point_benchmark_prediction",
+            lambda **_kwargs: (_ for _ in ()).throw(
+                RuntimeError("runtime unavailable")
+            ),
+        )
         backend = ReferenceBackend(checkpoint_path=str(checkpoint_path))
 
         response = backend.forecast(DynamicsRequest(seed=42042))
 
         assert response.backend_id == "reference"
-        assert response.state_delta_summary["error"] == "torch not available"
+        assert "runtime unavailable" in response.state_delta_summary["error"]
 
-    def test_loads_checkpoint_and_predicts(self, tmp_path: Path) -> None:
-        torch = pytest.importorskip("torch")
-        from vei.whatif.benchmark_bridge import BenchmarkPreprocessor, TorchTrainer
-
-        torch.manual_seed(42042)
-        preprocessor = BenchmarkPreprocessor(
-            summary_feature_names=["history_event_count", "participant_count"],
-            summary_mean=[0.0, 0.0],
-            summary_std=[1.0, 1.0],
-            action_tag_names=["hold", "legal"],
-            event_type_names=["__summary__", "mail.received", "mail.send"],
-            target_mean=[0.0] * 22,
-            target_std=[1.0] * 22,
-        )
-        trainer = TorchTrainer(model_id="ft_transformer", preprocessor=preprocessor)
-        model = trainer.build_model(device="cpu")
+    def test_loads_checkpoint_and_predicts(self, tmp_path: Path, monkeypatch) -> None:
         checkpoint_path = tmp_path / "reference-model.pt"
-        torch.save(
-            {
-                "state_dict": model.state_dict(),
-                "metadata": preprocessor.to_metadata(),
+        checkpoint_path.write_bytes(b"placeholder")
+        monkeypatch.setattr(
+            "vei.dynamics.backends.reference.run_branch_point_benchmark_prediction",
+            lambda **_kwargs: {
                 "model_id": "ft_transformer",
+                "binary_probability": 0.73,
+                "regression_values": [0.0] * 22,
+                "evidence_heads": {
+                    "any_external_spread": True,
+                    "outside_recipient_count": 2,
+                    "outside_forward_count": 1,
+                    "outside_attachment_spread_count": 0,
+                    "legal_follow_up_count": 1,
+                    "review_loop_count": 1,
+                    "markup_loop_count": 0,
+                    "executive_escalation_count": 0,
+                    "executive_mention_count": 0,
+                    "urgency_spike_count": 0,
+                    "participant_fanout": 3,
+                    "cc_expansion_count": 0,
+                    "cross_functional_loop_count": 0,
+                    "time_to_first_follow_up_ms": 2000,
+                    "time_to_thread_end_ms": 4000,
+                    "review_delay_burden_ms": 2000,
+                    "reassurance_count": 0,
+                    "apology_repair_count": 0,
+                    "commitment_clarity_count": 1,
+                    "blame_pressure_count": 0,
+                    "internal_disagreement_count": 0,
+                    "attachment_recirculation_count": 0,
+                    "version_turn_count": 0,
+                },
             },
-            checkpoint_path,
         )
         backend = ReferenceBackend(checkpoint_path=str(checkpoint_path))
         request = DynamicsRequest(

@@ -5,6 +5,8 @@ from pathlib import Path
 
 import typer
 
+from vei.whatif_filenames import CONTEXT_SNAPSHOT_FILE
+
 from .whatif_shared import (
     emit_payload,
     fail_if_artifact_validation_failed,
@@ -291,13 +293,17 @@ def register_episode_commands(app: typer.Typer) -> None:
             None,
             "--output",
             "-o",
-            help="Output context_snapshot.json path (default: <workspace>/context_snapshot.json)",
+            help=(
+                "Output "
+                f"{CONTEXT_SNAPSHOT_FILE} path "
+                f"(default: <workspace>/{CONTEXT_SNAPSHOT_FILE})"
+            ),
         ),
     ) -> None:
-        """Export a quickstart workspace into a what-if compatible context_snapshot.json.
+        """Export a quickstart workspace into a what-if compatible snapshot.
 
-        The output snapshot can then be used as `--source company_history --source-dir <path>`
-        for `vei whatif events`, `open`, and `experiment`.
+        The output snapshot can then be used as `--source company_history
+        --source-dir <path>` for `vei whatif events`, `open`, and `experiment`.
         """
 
         api = _whatif_api()

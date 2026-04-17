@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 
 from vei.whatif.benchmark_runtime import _run_bridge_command
+from vei.whatif.ejepa_bridge import _clamp_count, _delta_as_count
 from vei.whatif.ejepa import default_forecast_backend, resolve_ejepa_runtime
 
 
@@ -50,3 +51,10 @@ def test_benchmark_runtime_bridge_requires_runtime(
             output_root=tmp_path / "out",
             runtime_root=tmp_path / "missing_runtime",
         )
+
+
+def test_ejepa_count_helpers_treat_nan_as_zero() -> None:
+    assert _delta_as_count(float("nan"), 2.0) == 0
+    assert _delta_as_count(5.0, float("nan")) == 0
+    assert _clamp_count(float("nan"), 2.0, ceiling=10) == 0
+    assert _clamp_count(5.0, float("nan"), ceiling=10) == 0

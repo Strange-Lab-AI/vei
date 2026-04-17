@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from functools import lru_cache
 import logging
 from pathlib import Path
 from typing import Any
@@ -16,8 +17,18 @@ from ._api_models import load_workspace_historical_summary, resolve_whatif_sourc
 logger = logging.getLogger(__name__)
 
 
+@lru_cache(maxsize=32)
+def _cached_validation_issues(root_text: str) -> tuple[str, ...]:
+    return tuple(validate_saved_workspace(Path(root_text)))
+
+
+def saved_workspace_validation_issues(root: Path) -> list[str]:
+    resolved_root = str(root.expanduser().resolve())
+    return list(_cached_validation_issues(resolved_root))
+
+
 def load_historical_summary_or_400(root: Path):
-    issues = validate_saved_workspace(root)
+    issues = saved_workspace_validation_issues(root)
     if issues:
         for issue in issues:
             logger.warning("workspace validation: %s", issue, extra={"root": str(root)})
@@ -143,5 +154,6 @@ __all__ = [
     "load_historical_summary_or_400",
     "resolve_whatif_source_or_400",
     "saved_historical_request_matches",
+    "saved_workspace_validation_issues",
     "saved_workspace_source_matches_request",
 ]

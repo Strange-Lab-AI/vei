@@ -630,7 +630,11 @@ async function loadWorkspace() {
     getJson("/api/imports/provenance").catch(() => []),
     getJson("/api/workspace/governor").catch(() => ({})),
     getJson("/api/workspace/historical").catch(() => ({})),
-    getJson("/api/workspace/whatif").catch(() => ({ available: false })),
+    getJson("/api/workspace/whatif").catch((error) => ({
+      available: false,
+      unavailable_reason: "fetch_error",
+      error: error?.message || String(error),
+    })),
   ]);
   state.workspace = workspace;
   applyGovernorWorkspaceStatus(governorWorkspace);
@@ -656,6 +660,13 @@ async function loadWorkspace() {
   state.generatedImportScenarios = generatedImportScenarios;
   state.provenanceIndex = provenanceIndex;
   state.whatIfStatus = whatIfStatus;
+  const evalProviderInput = document.getElementById("eval-provider-input");
+  if (evalProviderInput && state.whatIfStatus?.default_provider) {
+    const currentValue = evalProviderInput.value?.trim() || "";
+    if (!currentValue || currentValue === "openai") {
+      evalProviderInput.value = state.whatIfStatus.default_provider;
+    }
+  }
   renderWorkspaceHero();
   renderImportSummary();
   renderExportsPanel();

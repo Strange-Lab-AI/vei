@@ -610,6 +610,8 @@ def test_repo_owned_enron_example_workspace_uses_saved_experiment_without_rosett
     assert (
         payload["label"] == "master_agreement_internal_review_public_context_20260412"
     )
+    assert payload["saved_result"] is True
+    assert "saved reference result" in payload["saved_bundle_notice"]
     assert payload["materialization"]["branch_event_id"] == "enron_bcda1b925800af8c"
     assert payload["forecast_result"]["business_state_change"]["summary"]
 
@@ -652,6 +654,8 @@ def test_repo_owned_enron_example_workspace_uses_saved_ranked_result_without_ros
     assert (
         payload["candidates"][0]["intervention"]["label"] == "Hold for internal review"
     )
+    assert payload["saved_result"] is True
+    assert "saved reference ranking" in payload["saved_bundle_notice"]
     assert payload["candidates"][0]["saved_result"] is True
 
 
@@ -683,7 +687,61 @@ def test_detect_validation_mode_prefers_workspace_and_bundle(tmp_path: Path) -> 
         "{}",
         encoding="utf-8",
     )
+    (bundle_root / EXPERIMENT_RESULT_FILE).write_text(
+        json.dumps(
+            {
+                "materialization": {
+                    "manifest_path": "workspace/episode_manifest.json",
+                    "context_snapshot_path": "workspace/context_snapshot.json",
+                    "workspace_root": "workspace",
+                },
+                "artifacts": {
+                    "result_json_path": "whatif_experiment_result.json",
+                    "overview_markdown_path": "whatif_experiment_overview.md",
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
 
     assert detect_validation_mode(workspace_root) == "workspace"
     assert detect_validation_mode(bundle_root) == "bundle"
     assert detect_validation_mode(tmp_path / "other") == "tree"
+
+
+def test_detect_validation_mode_treats_live_experiment_bundle_as_tree(
+    tmp_path: Path,
+) -> None:
+    bundle_root = tmp_path / "live_experiment"
+    workspace_root = bundle_root / "workspace"
+    workspace_root.mkdir(parents=True)
+    _write_minimal_valid_saved_workspace(
+        workspace_root,
+        workspace_root_value="workspace",
+    )
+    (bundle_root / "whatif_experiment_result.json").write_text(
+        json.dumps(
+            {
+                "materialization": {
+                    "manifest_path": str(
+                        (workspace_root / "episode_manifest.json").resolve()
+                    ),
+                    "context_snapshot_path": str(
+                        (workspace_root / "context_snapshot.json").resolve()
+                    ),
+                    "workspace_root": str(workspace_root.resolve()),
+                },
+                "artifacts": {
+                    "result_json_path": str(
+                        (bundle_root / "whatif_experiment_result.json").resolve()
+                    ),
+                    "overview_markdown_path": str(
+                        (bundle_root / "whatif_experiment_overview.md").resolve()
+                    ),
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    assert detect_validation_mode(bundle_root) == "tree"

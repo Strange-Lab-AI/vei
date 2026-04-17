@@ -7,9 +7,13 @@ from typing import Sequence
 from vei.twin.api import build_customer_twin
 from vei.twin.models import ContextMoldConfig
 from vei.whatif.artifact_validation import validate_saved_workspace
+from vei.whatif_filenames import (
+    EPISODE_MANIFEST_FILE,
+    PUBLIC_CONTEXT_FILE,
+    WORKSPACE_DIRECTORY,
+)
 
 from .._branch_context import build_branch_context
-from vei.whatif_filenames import EPISODE_MANIFEST_FILE, PUBLIC_CONTEXT_FILE
 from ..models import (
     WhatIfCaseContext,
     WhatIfEpisodeManifest,
@@ -120,7 +124,7 @@ def materialize_episode(
     manifest = WhatIfEpisodeManifest(
         source=world.source,
         source_dir=world.source_dir,
-        workspace_root="workspace",
+        workspace_root=WORKSPACE_DIRECTORY,
         organization_name=resolved_organization_name,
         organization_domain=resolved_organization_domain,
         thread_id=branch_context.thread_id,

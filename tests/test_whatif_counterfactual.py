@@ -11,6 +11,7 @@ import pytest
 from vei.dynamics.models import DynamicsResponse
 from vei.llm.providers import PlanResult, PlanUsage
 from vei.project_settings import default_model_for_provider
+from vei.whatif_filenames import HEURISTIC_FORECAST_FILE
 from vei.whatif import (
     estimate_counterfactual_delta,
     load_experiment_result,
@@ -702,6 +703,43 @@ def test_split_experiment_module_writes_counterfactual_artifacts(
     assert experiment.forecast_result.status == "ok"
     assert experiment.artifacts.result_json_path.exists()
     assert experiment.artifacts.overview_markdown_path.exists()
+
+
+def test_materialized_mail_snapshot_preserves_branch_event_for_fresh_reruns(
+    tmp_path: Path,
+) -> None:
+    archive_path = _write_mail_archive_fixture(tmp_path / "mail_archive_snapshot")
+    world = load_world(source="mail_archive", source_dir=archive_path)
+    workspace_root = tmp_path / "episode_snapshot"
+    materialization = materialize_episode(
+        world,
+        root=workspace_root,
+        thread_id="py-legal-001",
+        event_id="py-msg-002",
+    )
+
+    rerun_world = load_world(
+        source="mail_archive",
+        source_dir=materialization.context_snapshot_path,
+    )
+    rerun_experiment = run_counterfactual_experiment(
+        rerun_world,
+        artifacts_root=tmp_path / "rerun_artifacts",
+        label="snapshot_rerun",
+        counterfactual_prompt="Keep this internal until legal clears it.",
+        event_id=materialization.branch_event_id,
+        mode="heuristic_baseline",
+    )
+
+    assert (
+        rerun_experiment.intervention.branch_event_id == materialization.branch_event_id
+    )
+    assert (
+        rerun_experiment.materialization.branch_event_id
+        == materialization.branch_event_id
+    )
+    assert rerun_experiment.artifacts.forecast_json_path is not None
+    assert rerun_experiment.artifacts.forecast_json_path.name == HEURISTIC_FORECAST_FILE
 
 
 def test_counterfactual_experiment_can_use_ejepa_backend(

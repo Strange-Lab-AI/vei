@@ -7,6 +7,14 @@ from pathlib import Path
 
 import typer
 
+try:
+    from dotenv import load_dotenv
+except Exception:  # pragma: no cover - optional dependency fallback
+
+    def load_dotenv(*args: object, **kwargs: object) -> None:
+        return None
+
+
 from vei.twin.api import build_twin_status, start_twin, stop_twin
 
 app = typer.Typer(
@@ -46,6 +54,11 @@ def quickstart_command(
     no_baseline: bool = typer.Option(
         False, "--no-baseline", help="Skip the scripted baseline run"
     ),
+    serve: bool = typer.Option(
+        True,
+        "--serve/--no-serve",
+        help="Launch Studio and twin gateway after preparing the workspace",
+    ),
 ) -> None:
     """Spin up a full VEI demo in one command.
 
@@ -56,6 +69,7 @@ def quickstart_command(
     from rich.console import Console
     from rich.panel import Panel
 
+    load_dotenv(override=False)
     console = Console()
 
     console.print("\n[bold]VEI Quickstart[/bold]", style="cyan")
@@ -87,7 +101,28 @@ def quickstart_command(
         f"run: {state.run_id}"
     )
 
-    # --- 2. Launch shared twin runtime -------------------------------------------
+    # --- 2. Run scripted baseline (optional) -------------------------------------
+    if not no_baseline:
+        console.print("[dim]Running scripted baseline to populate timeline...[/dim]")
+        _run_scripted_baseline(root, state)
+        console.print("  [green]Baseline complete — events are flowing[/green]")
+
+    if not serve:
+        console.print(
+            Panel(
+                "\n".join(
+                    [
+                        f"[bold]Workspace[/bold] {root.resolve()}",
+                        "[dim]Quickstart prepared without launching Studio or the twin gateway.[/dim]",
+                    ]
+                ),
+                title="VEI workspace ready",
+                border_style="green",
+            )
+        )
+        return
+
+    # --- 3. Launch shared twin runtime -------------------------------------------
     console.print("[dim]Launching Studio + twin gateway...[/dim]")
     try:
         start_twin(
@@ -104,13 +139,7 @@ def quickstart_command(
         raise typer.BadParameter(str(exc)) from exc
     console.print("  [green]Twin runtime is live[/green]")
 
-    # --- 4. Run scripted baseline (optional) -------------------------------------
-    if not no_baseline:
-        console.print("[dim]Running scripted baseline to populate timeline...[/dim]")
-        _run_scripted_baseline(root, state)
-        console.print("  [green]Baseline complete — events are flowing[/green]")
-
-    # --- 5. Print connection panel -----------------------------------------------
+    # --- 4. Print connection panel -----------------------------------------------
     twin_status = build_twin_status(root)
     token = twin_status.manifest.bearer_token
     quickstart_info_path = _write_quickstart_info(root, twin_status)
@@ -133,7 +162,7 @@ def quickstart_command(
         Panel("\n".join(info_lines), title="VEI is running", border_style="green")
     )
 
-    # --- 6. Wait for Ctrl-C ------------------------------------------------------
+    # --- 5. Wait for Ctrl-C ------------------------------------------------------
     def _handle_signal(_sig, _frame):
         console.print("\n[yellow]Shutting down...[/yellow]")
         raise KeyboardInterrupt

@@ -10,7 +10,7 @@
       "status": "ok",
       "record_counts": {
         "threads": 1,
-        "messages": 6,
+        "messages": 7,
         "actors": 47
       },
       "data": {
@@ -21,52 +21,81 @@
             "category": "historical",
             "messages": [
               {
+                "event_id": "enron_history_001",
+                "message_id": "enron_history_001",
                 "from": "debra.perlingiere@enron.com",
                 "to": "marie.heard@enron.com",
                 "subject": "Master Agreement",
                 "body_text": "[Historical email excerpt]\nDp\n\n[Excerpt limited by source data. Original body may be longer.]\n\nEvent type: message",
                 "unread": false,
-                "time_ms": 0
+                "time_ms": 969466320000,
+                "timestamp": "2000-09-20T16:12:00Z"
               },
               {
+                "event_id": "enron_history_002",
+                "message_id": "enron_history_002",
                 "from": "debra.perlingiere@enron.com",
                 "to": "marie.heard@enron.com",
                 "subject": "Master Agreement",
                 "body_text": "[Historical email excerpt]\nDp\n\n[Excerpt limited by source data. Original body may be longer.]\n\nEvent type: message",
                 "unread": false,
-                "time_ms": 1000
+                "time_ms": 969553500000,
+                "timestamp": "2000-09-21T16:25:00Z"
               },
               {
+                "event_id": "enron_history_003",
+                "message_id": "enron_history_003",
                 "from": "debra.perlingiere@enron.com",
                 "to": "pgraff@reliantenergy.com",
                 "subject": "Re: Master Agreement",
                 "body_text": "[Historical email excerpt]\nI did receive your e-mails and apologize for my late response.  Yes, I will \nbe the negotiating person for the agreement with the exception of credit \nterms and issues, but will also be involved in the background with credit.  \n\nI hope to  e-mail you my comments by the end of next week.\n\nRegards,\nDebra Perlingiere\nEnron North America Corp.\n1400 Smith Street, EB 3885\nHouston, Texas 77002\ndperlin@enron.com\nPhone 713-853-7658\nFax  713-646-3490\n\n[Excerpt limited by source data. Original body may be longer.]\n\nEvent type: message_reply",
                 "unread": false,
-                "time_ms": 2000
+                "time_ms": 969648060000,
+                "timestamp": "2000-09-22T18:41:00Z"
               },
               {
+                "event_id": "enron_history_004",
+                "message_id": "enron_history_004",
                 "from": "debra.perlingiere@enron.com",
                 "to": "pgraff@reliantenergy.com",
                 "subject": "Re: Master Agreement",
                 "body_text": "[Historical email excerpt]\nI did receive your e-mails and apologize for my late response.  Yes, I will \nbe the negotiating person for the agreement with the exception of credit \nterms and issues, but will also be involved in the background with credit.  \n\nI hope to  e-mail you my comments by the end of next week.\n\nRegards,\nDebra Perlingiere\nEnron North America Corp.\n1400 Smith Street, EB 3885\nHouston, Texas 77002\ndperlin@enron.com\nPhone 713-853-7658\nFax  713-646-3490\n\n[Excerpt limited by source data. Original body may be longer.]\n\nEvent type: message_reply",
                 "unread": false,
-                "time_ms": 3000
+                "time_ms": 969735300000,
+                "timestamp": "2000-09-23T18:55:00Z"
               },
               {
+                "event_id": "enron_history_005",
+                "message_id": "enron_history_005",
                 "from": "debra.perlingiere@enron.com",
                 "to": "lorvi@aurora-gas.com",
                 "subject": "Master Agreement",
                 "body_text": "[Historical email excerpt]\nMany thanks!\n\nRegards,\nDebra Perlingiere\nEnron North America Corp.\nLegal Department\n1400 Smith Street, EB 3885\nHouston, Texas 77002\ndperlin@enron.com\nPhone 713-853-7658\nFax  713-646-3490\n\n[Excerpt limited by source data. Original body may be longer.]\n\nEvent type: message",
                 "unread": false,
-                "time_ms": 4000
+                "time_ms": 969883860000,
+                "timestamp": "2000-09-25T12:11:00Z"
               },
               {
+                "event_id": "enron_history_006",
+                "message_id": "enron_history_006",
                 "from": "debra.perlingiere@enron.com",
                 "to": "lorvi@aurora-gas.com",
                 "subject": "Master Agreement",
                 "body_text": "[Historical email excerpt]\nMany thanks!\n\nRegards,\nDebra Perlingiere\nEnron North America Corp.\nLegal Department\n1400 Smith Street, EB 3885\nHouston, Texas 77002\ndperlin@enron.com\nPhone 713-853-7658\nFax  713-646-3490\n\n[Excerpt limited by source data. Original body may be longer.]\n\nEvent type: message",
                 "unread": false,
-                "time_ms": 5000
+                "time_ms": 969987780000,
+                "timestamp": "2000-09-26T17:03:00Z"
+              },
+              {
+                "event_id": "enron_bcda1b925800af8c",
+                "message_id": "enron_bcda1b925800af8c",
+                "from": "debra.perlingiere@enron.com",
+                "to": "kathy_gerken@cargill.com",
+                "subject": "Master Agreement",
+                "body_text": "[Historical email excerpt]\nAttached for your review, is a draft of a Master Firm Purchase/Sale Agreement \nbetween Cargill, Incorporated and Enron North America Corp.  Please do not \nhesitate to give me a call with your questions and or comments regarding this \nmatter.\n\n\n\nRegards,\nDebra Perlingiere\nEnron North America Corp.\nLegal Department\n1400 Smith Street, EB 3885\nHouston, Texas 77002\ndperlin@enron.com\nPhone 713-853-7658\nFax  713-646-3490\n\n[Excerpt limited by source data. Original body may be longer.]\n\nEvent type: assignment",
+                "unread": false,
+                "time_ms": 970062120000,
+                "timestamp": "2000-09-27T13:42:00Z"
               }
             ]
           }

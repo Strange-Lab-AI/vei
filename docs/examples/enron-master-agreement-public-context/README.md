@@ -13,6 +13,8 @@ vei ui serve \
 
 Open `http://127.0.0.1:3055`.
 
+Studio shows the saved reference result for this workspace. It keeps the real branch scene, public-company context, saved forecast, and saved ranking visible from a fresh clone. It ignores custom prompt, label, mode, provider, and candidate changes in the what-if panel when the full Enron archive is absent.
+
 ## What This Example Covers
 
 - Historical branch point: Debra Perlingiere sending the `Master Agreement` draft to Cargill on September 27, 2000
@@ -52,6 +54,20 @@ python scripts/build_enron_business_state_example.py
 python scripts/validate_whatif_artifacts.py docs/examples/enron-master-agreement-public-context
 ```
 
+## Fresh CLI rerun from the saved snapshot
+
+```bash
+vei whatif experiment \
+  --source mail_archive \
+  --source-dir docs/examples/enron-master-agreement-public-context/workspace/context_snapshot.json \
+  --artifacts-root _vei_out/enron_saved_snapshot_runs \
+  --label enron_internal_review \
+  --thread-id thr_e565b47423d035c9 \
+  --event-id enron_bcda1b925800af8c \
+  --counterfactual-prompt "Keep the draft inside Enron, ask Gerald Nemec and Sara Shackleton for review, and hold the outside send." \
+  --mode heuristic_baseline
+```
+
 ## Constraint
 
-This saved example is meant for inspection. The original full Enron Rosetta archive is not included in the repo, so whole-history Enron search and full-corpus reruns still require a local Rosetta checkout.
+This saved example is meant for inspection plus branch-local reruns from the saved snapshot. The original full Enron Rosetta archive is not included in the repo, so whole-history Enron search, benchmark rebuilds, and full-corpus reruns still require a local Rosetta checkout.

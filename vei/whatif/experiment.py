@@ -5,6 +5,16 @@ from typing import Sequence
 
 from vei.project_settings import default_model_for_provider
 from vei.whatif.artifact_validation import validate_artifact_tree
+from vei.whatif_filenames import (
+    EJEPA_RESULT_FILE,
+    EXPERIMENT_OVERVIEW_FILE,
+    EXPERIMENT_RESULT_FILE,
+    HEURISTIC_FORECAST_FILE,
+    LLM_RESULT_FILE,
+    RANKED_OVERVIEW_FILE,
+    RANKED_RESULT_FILE,
+    WORKSPACE_DIRECTORY,
+)
 
 from .models import (
     WhatIfCandidateIntervention,
@@ -105,7 +115,7 @@ def run_counterfactual_experiment(
         raise ValueError("no matching thread available for the counterfactual run")
 
     root = Path(artifacts_root).expanduser().resolve() / _slug(label)
-    workspace_root = root / "workspace"
+    workspace_root = root / WORKSPACE_DIRECTORY
     materialization = materialize_episode(
         world,
         root=workspace_root,
@@ -154,17 +164,12 @@ def run_counterfactual_experiment(
             public_context=materialization.public_context,
         )
 
-    result_path = root / "whatif_experiment_result.json"
-    overview_path = root / "whatif_experiment_overview.md"
-    llm_path = root / "whatif_llm_result.json" if llm_result is not None else None
+    result_path = root / EXPERIMENT_RESULT_FILE
+    overview_path = root / EXPERIMENT_OVERVIEW_FILE
+    llm_path = root / LLM_RESULT_FILE if llm_result is not None else None
     forecast_path = None
     if forecast_result is not None:
-        forecast_filename = (
-            "whatif_ejepa_result.json"
-            if forecast_result.backend == "e_jepa"
-            else "whatif_ejepa_proxy_result.json"
-        )
-        forecast_path = root / forecast_filename
+        forecast_path = root / _forecast_result_filename(forecast_result.backend)
     root.mkdir(parents=True, exist_ok=True)
 
     artifacts = WhatIfExperimentArtifacts(
@@ -277,7 +282,7 @@ def run_ranked_counterfactual_experiment(
         raise ValueError("no matching thread available for the counterfactual run")
 
     root = Path(artifacts_root).expanduser().resolve() / _slug(label)
-    workspace_root = root / "workspace"
+    workspace_root = root / WORKSPACE_DIRECTORY
     materialization = materialize_episode(
         world,
         root=workspace_root,
@@ -380,8 +385,8 @@ def run_ranked_counterfactual_experiment(
         )
     candidate_results.sort(key=lambda item: item.rank)
 
-    result_path = root / "whatif_ranked_result.json"
-    overview_path = root / "whatif_ranked_overview.md"
+    result_path = root / RANKED_RESULT_FILE
+    overview_path = root / RANKED_OVERVIEW_FILE
     root.mkdir(parents=True, exist_ok=True)
     artifacts = WhatIfRankedExperimentArtifacts(
         root=root,
@@ -411,7 +416,7 @@ def run_ranked_counterfactual_experiment(
 
 
 def load_experiment_result(root: str | Path) -> WhatIfExperimentResult:
-    result_path = Path(root).expanduser().resolve() / "whatif_experiment_result.json"
+    result_path = Path(root).expanduser().resolve() / EXPERIMENT_RESULT_FILE
     if not result_path.exists():
         raise ValueError(f"what-if experiment result not found: {result_path}")
     return WhatIfExperimentResult.model_validate_json(
@@ -420,7 +425,7 @@ def load_experiment_result(root: str | Path) -> WhatIfExperimentResult:
 
 
 def load_ranked_experiment_result(root: str | Path) -> WhatIfRankedExperimentResult:
-    result_path = Path(root).expanduser().resolve() / "whatif_ranked_result.json"
+    result_path = Path(root).expanduser().resolve() / RANKED_RESULT_FILE
     if not result_path.exists():
         raise ValueError(f"ranked what-if result not found: {result_path}")
     return WhatIfRankedExperimentResult.model_validate_json(
@@ -448,6 +453,12 @@ def _normalize_candidate_interventions(
             )
         )
     return normalized
+
+
+def _forecast_result_filename(backend: str) -> str:
+    if backend == "e_jepa":
+        return EJEPA_RESULT_FILE
+    return HEURISTIC_FORECAST_FILE
 
 
 def _candidate_label(prompt: str, *, index: int) -> str:

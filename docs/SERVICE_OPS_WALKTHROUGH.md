@@ -11,7 +11,7 @@ This walkthrough describes the current Studio experience for the `service_ops` p
 
 ```bash
 make setup
-vei quickstart run --world service_ops --governor-demo
+vei quickstart run --world service_ops --governor-demo --no-serve
 ```
 
 This launches the Clearwater Field Services world with governor mode and opens Studio. No API keys required for the built-in deterministic demo.
@@ -38,10 +38,12 @@ vei whatif open --source company_history \
 # 4. Run the counterfactual experiment (heuristic if no LLM key, both if key present)
 vei whatif experiment --source company_history \
   --source-dir _vei_out/quickstart/context_snapshot.json \
-  --event-id <chosen_event> \
+  --artifacts-root _vei_out/dispatch_whatif \
+  --label dispatch_t1 \
+  --thread-id "jira:JRA-CFS-10" \
+  --event-id "jira:JRA-CFS-10:state" \
   --counterfactual-prompt "What if dispatch had immediately escalated to a regional supervisor and pre-authorized the after-hours premium tech?" \
-  --mode heuristic_baseline \
-  --root _vei_out/dispatch_whatif
+  --mode heuristic_baseline
 ```
 
 No API keys required for `heuristic_baseline` mode. Add `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`, or `OPENROUTER_API_KEY` to `.env` and use `--mode both` for LLM-driven counterfactual continuations alongside the forecast.

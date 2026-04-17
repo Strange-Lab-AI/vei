@@ -5,6 +5,11 @@ from pathlib import Path
 from typing import Any
 
 from vei.whatif import build_saved_decision_scene, estimate_counterfactual_delta
+from vei.whatif_filenames import (
+    BUSINESS_STATE_COMPARISON_FILE,
+    BUSINESS_STATE_COMPARISON_OVERVIEW_FILE,
+    WORKSPACE_DIRECTORY,
+)
 
 DEFAULT_EXAMPLE_ROOT = Path("docs/examples/enron-master-agreement-public-context")
 
@@ -50,7 +55,7 @@ def _render_markdown(payload: dict[str, Any]) -> str:
 
 def build_example(output_root: Path = DEFAULT_EXAMPLE_ROOT) -> None:
     resolved_root = output_root.expanduser().resolve()
-    workspace_root = resolved_root / "workspace"
+    workspace_root = resolved_root / WORKSPACE_DIRECTORY
     scene = build_saved_decision_scene(workspace_root)
     candidates: list[dict[str, Any]] = []
     for option in scene.candidate_options:
@@ -94,8 +99,8 @@ def build_example(output_root: Path = DEFAULT_EXAMPLE_ROOT) -> None:
         ),
         "candidates": candidates,
     }
-    json_path = resolved_root / "whatif_business_state_comparison.json"
-    markdown_path = resolved_root / "whatif_business_state_comparison.md"
+    json_path = resolved_root / BUSINESS_STATE_COMPARISON_FILE
+    markdown_path = resolved_root / BUSINESS_STATE_COMPARISON_OVERVIEW_FILE
     json_path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
     markdown_path.write_text(_render_markdown(payload), encoding="utf-8")
 

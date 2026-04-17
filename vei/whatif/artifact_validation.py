@@ -17,6 +17,7 @@ from vei.whatif_filenames import (
     EPISODE_MANIFEST_FILE as CANONICAL_MANIFEST_FILE,
     EXPERIMENT_OVERVIEW_FILE,
     EXPERIMENT_RESULT_FILE,
+    HEURISTIC_FORECAST_FILE,
     LLM_RESULT_FILE,
     PUBLIC_CONTEXT_FILE as CANONICAL_PUBLIC_CONTEXT_FILE,
     SCRUBBED_PATH_PLACEHOLDER,
@@ -31,7 +32,9 @@ def detect_validation_mode(path: str | Path) -> str:
     if (resolved / CANONICAL_MANIFEST_FILE).exists():
         return "workspace"
     if (resolved / WORKSPACE_DIRECTORY / CANONICAL_MANIFEST_FILE).exists():
-        return "bundle"
+        if _looks_like_packaged_example_bundle(resolved):
+            return "bundle"
+        return "tree"
     return "tree"
 
 
@@ -97,10 +100,10 @@ def validate_saved_workspace(
         return issues
 
     actual_workspace_root = str(manifest.workspace_root).strip()
-    if actual_workspace_root != "workspace":
+    if actual_workspace_root != WORKSPACE_DIRECTORY:
         issues.append(
             f"workspace_root mismatch in {manifest_path}: "
-            f"expected 'workspace', got {actual_workspace_root!r}"
+            f"expected {WORKSPACE_DIRECTORY!r}, got {actual_workspace_root!r}"
         )
     if manifest.public_context is not None and loaded_public_context is not None:
         manifest_public_context = manifest.public_context.model_dump(mode="json")
@@ -205,7 +208,7 @@ def validate_artifact_tree(root: str | Path) -> list[str]:
     }
     workspace_roots.update(
         manifest_path.parent
-        for manifest_path in resolved_root.rglob("*episode_manifest.json")
+        for manifest_path in resolved_root.rglob(f"*{CANONICAL_MANIFEST_FILE}")
         if manifest_path.name != CANONICAL_MANIFEST_FILE
     )
     for workspace_root in sorted(workspace_roots):
@@ -278,10 +281,57 @@ def _check_optional_forecast_path_value(
         issues.append(f"missing bundle artifact: {candidate}")
 
 
+def _looks_like_packaged_example_bundle(bundle_root: Path) -> bool:
+    experiment_path = bundle_root / EXPERIMENT_RESULT_FILE
+    if not experiment_path.exists():
+        return False
+    try:
+        payload = _read_json(experiment_path)
+    except (OSError, json.JSONDecodeError):
+        return False
+    if not isinstance(payload, dict):
+        return False
+
+    materialization = payload.get("materialization")
+    if not isinstance(materialization, dict):
+        return False
+    if (
+        str(materialization.get("manifest_path") or "").strip()
+        != f"{WORKSPACE_DIRECTORY}/{CANONICAL_MANIFEST_FILE}"
+    ):
+        return False
+    if (
+        str(materialization.get("context_snapshot_path") or "").strip()
+        != f"{WORKSPACE_DIRECTORY}/{CANONICAL_CONTEXT_FILE}"
+    ):
+        return False
+    if str(materialization.get("workspace_root") or "").strip() != WORKSPACE_DIRECTORY:
+        return False
+
+    artifacts = payload.get("artifacts")
+    if not isinstance(artifacts, dict):
+        return False
+    if str(artifacts.get("result_json_path") or "").strip() != EXPERIMENT_RESULT_FILE:
+        return False
+    if (
+        str(artifacts.get("overview_markdown_path") or "").strip()
+        != EXPERIMENT_OVERVIEW_FILE
+    ):
+        return False
+
+    llm_path = str(artifacts.get("llm_json_path") or "").strip()
+    if llm_path and llm_path != LLM_RESULT_FILE:
+        return False
+    forecast_path = str(artifacts.get("forecast_json_path") or "").strip()
+    if forecast_path and forecast_path not in STUDIO_SAVED_FORECAST_FILES:
+        return False
+    return True
+
+
 def _unexpected_manifest_paths(workspace_root: Path) -> list[Path]:
     return sorted(
         candidate
-        for candidate in workspace_root.glob("*episode_manifest.json")
+        for candidate in workspace_root.glob(f"*{CANONICAL_MANIFEST_FILE}")
         if candidate.name != CANONICAL_MANIFEST_FILE
     )
 
@@ -324,6 +374,7 @@ def _scrubbed_bundle_paths(bundle_root: Path) -> list[str]:
         LLM_RESULT_FILE,
         EJEPA_RESULT_FILE,
         EJEPA_PROXY_RESULT_FILE,
+        HEURISTIC_FORECAST_FILE,
         BUSINESS_STATE_COMPARISON_FILE,
         BUSINESS_STATE_COMPARISON_OVERVIEW_FILE,
         f"{WORKSPACE_DIRECTORY}/{CANONICAL_MANIFEST_FILE}",

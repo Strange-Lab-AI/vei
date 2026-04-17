@@ -5,9 +5,11 @@ import os
 import subprocess
 import sys
 from pathlib import Path
+from typing import Any
 
 from .ejepa import resolve_ejepa_runtime
 from .models import (
+    WhatIfBenchmarkDatasetRow,
     WhatIfBenchmarkEvalResult,
     WhatIfBenchmarkModelId,
     WhatIfBenchmarkTrainResult,
@@ -82,6 +84,34 @@ def run_branch_point_benchmark_evaluation(
     return WhatIfBenchmarkEvalResult.model_validate_json(
         response_path.read_text(encoding="utf-8")
     )
+
+
+def run_branch_point_benchmark_prediction(
+    *,
+    checkpoint_path: str | Path,
+    row: WhatIfBenchmarkDatasetRow,
+    device: str | None = None,
+    runtime_root: str | Path | None = None,
+    output_root: str | Path | None = None,
+) -> dict[str, Any]:
+    checkpoint = Path(checkpoint_path).expanduser().resolve()
+    request_output_root = (
+        Path(output_root).expanduser().resolve()
+        if output_root is not None
+        else checkpoint.parent
+    )
+    request = {
+        "checkpoint_path": str(checkpoint),
+        "row": row.model_dump(mode="json"),
+        "device": device or "",
+    }
+    response_path = _run_bridge_command(
+        command_name="predict",
+        request=request,
+        output_root=request_output_root,
+        runtime_root=runtime_root,
+    )
+    return json.loads(response_path.read_text(encoding="utf-8"))
 
 
 def _run_bridge_command(
@@ -163,5 +193,6 @@ def _current_site_package_entries() -> list[str]:
 
 __all__ = [
     "run_branch_point_benchmark_evaluation",
+    "run_branch_point_benchmark_prediction",
     "run_branch_point_benchmark_training",
 ]
