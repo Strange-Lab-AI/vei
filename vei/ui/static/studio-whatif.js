@@ -885,7 +885,7 @@ function renderWhatIfStudio() {
       : status.source_dir || whatIfSourceLabel();
   const llmNotice = llmAvailable
     ? ""
-    : `<div class="whatif-notice">No LLM key configured — counterfactual runs use the heuristic baseline. Set <code>OPENAI_API_KEY</code> in <code>.env</code> for LLM-driven continuations.</div>`;
+    : `<div class="whatif-notice">No LLM key configured — counterfactual runs use the heuristic baseline. Set a supported provider key in <code>.env</code>, such as <code>OPENAI_API_KEY</code>, <code>ANTHROPIC_API_KEY</code>, <code>GOOGLE_API_KEY</code>, or <code>OPENROUTER_API_KEY</code>.</div>`;
   const validationIssues = (status.validation_issues || []);
   const validationNotice = validationIssues.length
     ? `<div class="whatif-notice whatif-notice-warn">${validationIssues.map((i) => escapeHtml(i)).join("<br>")}</div>`

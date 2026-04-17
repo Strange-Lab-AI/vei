@@ -1765,6 +1765,61 @@ def test_ui_api_whatif_run_route_returns_experiment_payload(
     assert payload["forecast_result"]["backend"] == "e_jepa"
 
 
+def test_ui_api_whatif_run_route_respects_anthropic_key(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    root = tmp_path / "workspace"
+    create_workspace_from_template(
+        root=root,
+        source_kind="example",
+        source_ref="acquired_user_cutover",
+    )
+    rosetta_dir = tmp_path / "rosetta"
+    _write_rosetta_fixture(rosetta_dir)
+    monkeypatch.setenv("VEI_WHATIF_ROSETTA_DIR", str(rosetta_dir))
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "anthropic-test-key")
+
+    def fake_run_counterfactual_experiment(*args, **kwargs):
+        assert kwargs["mode"] == "llm"
+        assert kwargs["provider"] == "anthropic"
+        return SimpleNamespace(
+            model_dump=lambda mode="json": {
+                "label": kwargs["label"],
+                "llm_result": {"status": "ok"},
+                "forecast_result": {"backend": "heuristic_baseline"},
+            }
+        )
+
+    monkeypatch.setattr(
+        workspace_routes,
+        "run_counterfactual_experiment",
+        fake_run_counterfactual_experiment,
+    )
+
+    client = TestClient(ui_api.create_ui_app(root))
+
+    status_response = client.get("/api/workspace/whatif")
+    assert status_response.status_code == 200
+    assert status_response.json()["llm_available"] is True
+
+    response = client.post(
+        "/api/workspace/whatif/run",
+        json={
+            "source": "enron",
+            "event_id": "evt-001",
+            "label": "anthropic alternate path",
+            "prompt": "What if Jeff had kept the term sheet internal?",
+            "mode": "llm",
+            "provider": "anthropic",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["label"] == "anthropic alternate path"
+
+
 def test_ui_api_whatif_rank_route_returns_ranked_payload(
     tmp_path: Path,
     monkeypatch,
