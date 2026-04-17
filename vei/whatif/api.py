@@ -61,6 +61,7 @@ from .research import (
 )
 from vei.context.api import build_public_context, empty_public_context
 from .scenario_registry import list_supported_scenarios
+from .workspace_export import export_workspace_history_snapshot
 
 __all__ = [
     "build_branch_point_benchmark",
@@ -71,6 +72,7 @@ __all__ = [
     "empty_public_context",
     "estimate_counterfactual_delta",
     "evaluate_branch_point_benchmark_model",
+    "export_workspace_history_snapshot",
     "get_research_pack",
     "judge_branch_point_benchmark",
     "list_branch_candidates",

@@ -223,20 +223,15 @@ def _mail_archive_source_payload(snapshot: ContextSnapshot) -> dict[str, Any]:
 
 
 def _mail_archive_source_payload_or_empty(snapshot: ContextSnapshot) -> dict[str, Any]:
+    """Return mail-archive payload if present, else an empty dict.
+
+    Snapshots that only contain non-mail sources (slack, jira, docs) legitimately
+    have no mail archive. Treat this as the normal multi-source case and return
+    an empty payload silently rather than warning.
+    """
     try:
         return _mail_archive_source_payload(snapshot)
-    except ValueError as exc:
-        logger.warning(
-            "whatif mail archive payload unavailable (%s)",
-            type(exc).__name__,
-            extra={
-                "source": "company_history",
-                "provider": "mail_archive",
-                "file_path": "",
-                "exception_type": type(exc).__name__,
-            },
-            exc_info=True,
-        )
+    except ValueError:
         return {}
 
 

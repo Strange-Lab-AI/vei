@@ -422,11 +422,17 @@ def _normalize_backend_name(name: str) -> str:
 
 
 def _timestamp_ms(value: str) -> int:
+    text = (value or "").strip()
+    if not text:
+        return 0
     try:
-        return int(value)
+        return int(text)
     except ValueError:
-        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
-        return int(parsed.timestamp() * 1000)
+        try:
+            parsed = datetime.fromisoformat(text.replace("Z", "+00:00"))
+            return int(parsed.timestamp() * 1000)
+        except (ValueError, TypeError):
+            return 0
 
 
 def _domain_for_surface(surface: str) -> EventDomain:

@@ -61,15 +61,6 @@ TWIN_LAUNCH_RUNTIME_FILE = "twin_launch_runtime.json"
 TWIN_ORCHESTRATOR_CACHE_FILE = "twin_orchestrator_snapshot.json"
 TWIN_ORCHESTRATOR_SYNC_FILE = "twin_orchestrator_sync.json"
 
-# Legacy on-disk filenames for migration cleanup. These are only used by
-# _remove_legacy_artifact to delete old-named files during twin start/sync.
-# Remove after 2026-09-01 along with all _remove_legacy_artifact calls.
-_LEGACY_PILOT_MANIFEST_FILE = "pilot_manifest.json"
-_LEGACY_PILOT_GUIDE_FILE = "pilot_guide.md"
-_LEGACY_PILOT_RUNTIME_FILE = "pilot_runtime.json"
-_LEGACY_PILOT_ORCHESTRATOR_CACHE_FILE = "pilot_orchestrator_snapshot.json"
-_LEGACY_PILOT_ORCHESTRATOR_SYNC_FILE = "pilot_orchestrator_sync.json"
-
 
 def start_pilot(
     root: str | Path,
@@ -234,7 +225,6 @@ def start_pilot(
         workspace_root / TWIN_LAUNCH_RUNTIME_FILE,
         runtime.model_dump(mode="json"),
     )
-    _remove_legacy_artifact(workspace_root, _LEGACY_PILOT_RUNTIME_FILE)
 
     manifest = _persist_twin_launch_manifest(
         bundle,
@@ -283,29 +273,20 @@ def stop_pilot(root: str | Path) -> TwinLaunchStatus:
         workspace_root / TWIN_LAUNCH_RUNTIME_FILE,
         runtime.model_dump(mode="json"),
     )
-    _remove_legacy_artifact(workspace_root, _LEGACY_PILOT_RUNTIME_FILE)
     return build_pilot_status(workspace_root)
 
 
 def load_pilot_manifest(root: str | Path) -> TwinLaunchManifest:
     workspace_root = Path(root).expanduser().resolve()
     return TwinLaunchManifest.model_validate_json(
-        _artifact_path(
-            workspace_root,
-            TWIN_LAUNCH_MANIFEST_FILE,
-            _LEGACY_PILOT_MANIFEST_FILE,
-        ).read_text(encoding="utf-8")
+        (workspace_root / TWIN_LAUNCH_MANIFEST_FILE).read_text(encoding="utf-8")
     )
 
 
 def load_pilot_runtime(root: str | Path) -> TwinLaunchRuntime:
     workspace_root = Path(root).expanduser().resolve()
     return TwinLaunchRuntime.model_validate_json(
-        _artifact_path(
-            workspace_root,
-            TWIN_LAUNCH_RUNTIME_FILE,
-            _LEGACY_PILOT_RUNTIME_FILE,
-        ).read_text(encoding="utf-8")
+        (workspace_root / TWIN_LAUNCH_RUNTIME_FILE).read_text(encoding="utf-8")
     )
 
 
@@ -431,7 +412,6 @@ def reset_pilot_gateway(root: str | Path) -> TwinLaunchStatus:
         workspace_root / TWIN_LAUNCH_RUNTIME_FILE,
         runtime.model_dump(mode="json"),
     )
-    _remove_legacy_artifact(workspace_root, _LEGACY_PILOT_RUNTIME_FILE)
     _wait_for_ready(f"{manifest.gateway_url}/healthz")
     return build_pilot_status(
         workspace_root,
@@ -859,12 +839,10 @@ def _persist_twin_launch_manifest(
         bundle.workspace_root / TWIN_LAUNCH_MANIFEST_FILE,
         manifest.model_dump(mode="json"),
     )
-    _remove_legacy_artifact(bundle.workspace_root, _LEGACY_PILOT_MANIFEST_FILE)
     (bundle.workspace_root / TWIN_LAUNCH_GUIDE_FILE).write_text(
         _render_twin_launch_guide(manifest),
         encoding="utf-8",
     )
-    _remove_legacy_artifact(bundle.workspace_root, _LEGACY_PILOT_GUIDE_FILE)
     return manifest
 
 
@@ -1433,12 +1411,10 @@ def _build_orchestrator_status(
             workspace_root / TWIN_ORCHESTRATOR_CACHE_FILE,
             snapshot.model_dump(mode="json"),
         )
-        _remove_legacy_artifact(workspace_root, _LEGACY_PILOT_ORCHESTRATOR_CACHE_FILE)
         _write_json(
             workspace_root / TWIN_ORCHESTRATOR_SYNC_FILE,
             health.model_dump(mode="json"),
         )
-        _remove_legacy_artifact(workspace_root, _LEGACY_PILOT_ORCHESTRATOR_SYNC_FILE)
         return snapshot, health
     except Exception as exc:  # noqa: BLE001
         if cached_snapshot is not None:
@@ -1451,10 +1427,6 @@ def _build_orchestrator_status(
                 workspace_root / TWIN_ORCHESTRATOR_SYNC_FILE,
                 health.model_dump(mode="json"),
             )
-            _remove_legacy_artifact(
-                workspace_root,
-                _LEGACY_PILOT_ORCHESTRATOR_SYNC_FILE,
-            )
             return cached_snapshot, health
         health.status = "error"
         health.cache_used = False
@@ -1464,7 +1436,6 @@ def _build_orchestrator_status(
             workspace_root / TWIN_ORCHESTRATOR_SYNC_FILE,
             health.model_dump(mode="json"),
         )
-        _remove_legacy_artifact(workspace_root, _LEGACY_PILOT_ORCHESTRATOR_SYNC_FILE)
         return None, health
 
 
@@ -1784,11 +1755,7 @@ def _mirror_status_for_orchestrator_agent(status: str | None) -> str:
 def _load_orchestrator_snapshot_cache(
     workspace_root: Path,
 ) -> OrchestratorSnapshot | None:
-    path = _artifact_path(
-        workspace_root,
-        TWIN_ORCHESTRATOR_CACHE_FILE,
-        _LEGACY_PILOT_ORCHESTRATOR_CACHE_FILE,
-    )
+    path = workspace_root / TWIN_ORCHESTRATOR_CACHE_FILE
     if not path.exists():
         return None
     return OrchestratorSnapshot.model_validate_json(path.read_text(encoding="utf-8"))
@@ -1797,11 +1764,7 @@ def _load_orchestrator_snapshot_cache(
 def _load_orchestrator_sync_cache(
     workspace_root: Path,
 ) -> OrchestratorSyncHealth | None:
-    path = _artifact_path(
-        workspace_root,
-        TWIN_ORCHESTRATOR_SYNC_FILE,
-        _LEGACY_PILOT_ORCHESTRATOR_SYNC_FILE,
-    )
+    path = workspace_root / TWIN_ORCHESTRATOR_SYNC_FILE
     if not path.exists():
         return None
     return OrchestratorSyncHealth.model_validate_json(path.read_text(encoding="utf-8"))
@@ -2111,22 +2074,14 @@ def _command_for_pid(pid: int) -> str:
 
 
 def _safe_load_runtime(workspace_root: Path) -> TwinLaunchRuntime | None:
-    path = _artifact_path(
-        workspace_root,
-        TWIN_LAUNCH_RUNTIME_FILE,
-        _LEGACY_PILOT_RUNTIME_FILE,
-    )
+    path = workspace_root / TWIN_LAUNCH_RUNTIME_FILE
     if not path.exists():
         return None
     return TwinLaunchRuntime.model_validate_json(path.read_text(encoding="utf-8"))
 
 
 def _safe_load_manifest(workspace_root: Path) -> TwinLaunchManifest | None:
-    path = _artifact_path(
-        workspace_root,
-        TWIN_LAUNCH_MANIFEST_FILE,
-        _LEGACY_PILOT_MANIFEST_FILE,
-    )
+    path = workspace_root / TWIN_LAUNCH_MANIFEST_FILE
     if not path.exists():
         return None
     return TwinLaunchManifest.model_validate_json(path.read_text(encoding="utf-8"))
@@ -2134,22 +2089,6 @@ def _safe_load_manifest(workspace_root: Path) -> TwinLaunchManifest | None:
 
 def _write_json(path: Path, payload: dict[str, Any]) -> None:
     path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
-
-
-def _artifact_path(workspace_root: Path, preferred: str, legacy: str) -> Path:
-    preferred_path = workspace_root / preferred
-    if preferred_path.exists():
-        return preferred_path
-    legacy_path = workspace_root / legacy
-    if legacy_path.exists():
-        return legacy_path
-    return preferred_path
-
-
-def _remove_legacy_artifact(workspace_root: Path, legacy_name: str) -> None:
-    legacy_path = workspace_root / legacy_name
-    if legacy_path.exists():
-        legacy_path.unlink()
 
 
 def _twin_dir(workspace_root: Path) -> Path:

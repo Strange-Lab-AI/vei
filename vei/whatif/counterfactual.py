@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 import threading
 from pathlib import Path
 from typing import Any, Awaitable, Sequence, TypeVar
@@ -58,6 +59,24 @@ _COUNTERFACTUAL_FAILURES = (
     TypeError,
     ValueError,
 )
+
+_DEFAULT_LLM_TIMEOUT_S = 180
+
+
+def _llm_timeout_seconds() -> int:
+    """Resolve the per-call LLM timeout for what-if counterfactuals.
+
+    Override with VEI_WHATIF_LLM_TIMEOUT_S (defaults to 180s, since reasoning
+    models like gpt-5-mini routinely exceed 60s on long contexts).
+    """
+    raw = os.environ.get("VEI_WHATIF_LLM_TIMEOUT_S", "").strip()
+    if not raw:
+        return _DEFAULT_LLM_TIMEOUT_S
+    try:
+        value = int(raw)
+    except ValueError:
+        return _DEFAULT_LLM_TIMEOUT_S
+    return max(15, value)
 
 
 def _run_async(awaitable: Awaitable[_RunResultT]) -> _RunResultT:
@@ -564,6 +583,7 @@ def run_llm_counterfactual(
         allowed_actors=allowed_actors,
         allowed_recipients=recipient_scope,
     )
+    timeout_s = _llm_timeout_seconds()
     try:
         response = _run_async(
             providers.plan_once_with_usage(
@@ -571,7 +591,7 @@ def run_llm_counterfactual(
                 model=model,
                 system=system,
                 user=user,
-                timeout_s=90,
+                timeout_s=timeout_s,
             )
         )
         messages, notes = _normalize_llm_messages(
@@ -595,13 +615,22 @@ def run_llm_counterfactual(
             },
             exc_info=True,
         )
+        if isinstance(exc, asyncio.TimeoutError):
+            summary_text = (
+                f"LLM counterfactual generation timed out after {timeout_s}s. "
+                f"Increase VEI_WHATIF_LLM_TIMEOUT_S or pick a faster model."
+            )
+        else:
+            summary_text = (
+                f"LLM counterfactual generation failed: {type(exc).__name__}."
+            )
         return WhatIfLLMReplayResult(
             status="error",
             provider=provider,
             model=model,
             prompt=prompt,
-            summary="LLM counterfactual generation failed.",
-            error=str(exc),
+            summary=summary_text,
+            error=str(exc) or type(exc).__name__,
             notes=["The forecast path can still be used without live LLM output."],
         )
 
