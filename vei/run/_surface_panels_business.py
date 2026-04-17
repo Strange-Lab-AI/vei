@@ -280,6 +280,55 @@ def build_notes_panel(
     )
 
 
+def build_knowledge_panel(
+    components: Dict[str, Dict[str, Any]],
+    context: Dict[str, Any],
+) -> LivingSurfacePanel | None:
+    del context
+    knowledge = components.get("knowledge", {})
+    payload = dict_records(knowledge, "assets")
+    if not payload:
+        return None
+
+    ordered = sorted(
+        payload.values(),
+        key=lambda item: (
+            str(item.get("status", "active")) == "active",
+            int(item.get("metadata", {}).get("captured_at_ms", 0) or 0),
+        ),
+        reverse=True,
+    )
+    items = [
+        LivingSurfaceItem(
+            item_id=f"knowledge:{item.get('asset_id', index)}",
+            title=str(item.get("title", item.get("asset_id", "knowledge asset"))),
+            subtitle=str(item.get("kind", "knowledge")),
+            body=truncate(str(item.get("summary", item.get("body", ""))), 160),
+            status=str(item.get("status", "active")),
+            badges=compact_badges(
+                [str(item.get("status", "active"))]
+                + [str(tag) for tag in list(item.get("tags") or [])[:2]]
+                + (["composed"] if isinstance(item.get("composition"), dict) else [])
+            ),
+            highlight_ref=f"knowledge:{item.get('asset_id', index)}",
+        )
+        for index, item in enumerate(ordered[:8], start=1)
+        if isinstance(item, dict)
+    ]
+    active_assets = sum(
+        1 for item in payload.values() if str(item.get("status", "active")) == "active"
+    )
+    return build_panel(
+        surface="knowledge",
+        kind="document",
+        title="Knowledge",
+        accent="#5d84ff",
+        headline=f"{active_assets} active assets · {len(payload)} total",
+        items=items,
+        fallback_status=("attention" if active_assets < len(payload) else "ok"),
+    )
+
+
 def build_approval_panel(
     components: Dict[str, Dict[str, Any]],
     context: Dict[str, Any],

@@ -72,7 +72,11 @@ def test_mission_catalog_contains_all_verticals() -> None:
 
 def test_list_and_get_playable_missions() -> None:
     all_missions = list_playable_missions()
-    assert len(all_missions) == 15
+    assert len(all_missions) == 16
+    assert any(
+        mission.mission_name == "northstar_proposal_drafting"
+        for mission in all_missions
+    )
 
     re_missions = list_playable_missions("real_estate_management")
     assert len(re_missions) == 5

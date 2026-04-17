@@ -20,6 +20,7 @@ const GRAPH_TITLES = {
   work_graph: "Workflows",
   identity_graph: "Identity",
   revenue_graph: "Revenue",
+  knowledge_graph: "Knowledge",
   data_graph: "Data",
   obs_graph: "Observability",
   ops_graph: "Operations",
@@ -73,6 +74,7 @@ const state = {
   timeline: [],
   orientation: null,
   graphs: null,
+  knowledgeStore: null,
   surfaceState: null,
   surfaceHighlights: { panels: [], refs: [] },
   surfaceHighlightExpiresAt: 0,
@@ -98,6 +100,8 @@ const state = {
   compareTimelineB: [],
   compareMissionA: null,
   compareMissionB: null,
+  compareKnowledgeA: null,
+  compareKnowledgeB: null,
   visualTone: "control-room",
   cinemaAutoAdvance: false,
   cinemaAutoTimer: null,
@@ -1860,7 +1864,7 @@ function showTimelineDetail(eventIndex) {
 }
 
 async function loadCompareRunData(runA, runB) {
-  const [tlA, tlB, contractA, contractB, missionA, missionB, snapshotsA, snapshotsB] = await Promise.all([
+  const [tlA, tlB, contractA, contractB, missionA, missionB, snapshotsA, snapshotsB, knowledgeA, knowledgeB] = await Promise.all([
     getJson(`/api/runs/${runA.run_id}/timeline`),
     getJson(`/api/runs/${runB.run_id}/timeline`),
     getJson(`/api/runs/${runA.run_id}/contract`).catch(() => null),
@@ -1869,6 +1873,8 @@ async function loadCompareRunData(runA, runB) {
     getJson(`/api/missions/state?run_id=${encodeURIComponent(runB.run_id)}`).catch(() => null),
     ensureRunSnapshots(runA),
     ensureRunSnapshots(runB),
+    getJson(`/api/runs/${runA.run_id}/knowledge`).catch(() => null),
+    getJson(`/api/runs/${runB.run_id}/knowledge`).catch(() => null),
   ]);
   state.compareRunA = runA;
   state.compareRunB = runB;
@@ -1880,6 +1886,8 @@ async function loadCompareRunData(runA, runB) {
   state.compareContractB = contractB;
   state.compareMissionA = nonEmptyPayload(missionA);
   state.compareMissionB = nonEmptyPayload(missionB);
+  state.compareKnowledgeA = nonEmptyPayload(knowledgeA);
+  state.compareKnowledgeB = nonEmptyPayload(knowledgeB);
 }
 
 async function toggleCompareMode() {
@@ -1896,6 +1904,8 @@ async function toggleCompareMode() {
     state.compareTimelineB = [];
     state.compareMissionA = null;
     state.compareMissionB = null;
+    state.compareKnowledgeA = null;
+    state.compareKnowledgeB = null;
     if (state.timelineMode) renderTimelineView();
     return;
   }

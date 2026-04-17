@@ -574,6 +574,37 @@ def bootstrap_default_plugins() -> None:
         ),
         FacadePlugin(
             manifest=_manifest(
+                name="knowledge",
+                title="Knowledge",
+                domain="knowledge_graph",
+                router_module="vei.router.knowledge",
+                description="Knowledge assets, freshness, citations, and composition surface.",
+                surfaces=["mcp", "ui", "cli"],
+                primary_tools=[
+                    "knowledge.list_assets",
+                    "knowledge.compose_artifact",
+                    "knowledge.run_compaction",
+                ],
+                state_roots=["components.knowledge"],
+                tags=["knowledge", "authoring", "citations"],
+            ),
+            tool_families=("knowledge",),
+            tool_prefixes=("knowledge.",),
+            scenario_seed_fields=("knowledge_graph",),
+            component_attr="knowledge",
+            focuses=("knowledge",),
+            event_targets=("knowledge",),
+            summary_builder=_component_summary,
+            action_menu_builder=_component_action_menu,
+            state_dump=_component_dump,
+            state_restore=_component_restore,
+            component_factory=_knowledge_component_factory,
+            provider_factory=_knowledge_provider_factory,
+            included_surface_aliases=("knowledge",),
+            studio_panel_builder=_build_knowledge_panel,
+        ),
+        FacadePlugin(
+            manifest=_manifest(
                 name="spreadsheet",
                 title="Spreadsheet",
                 domain="data_graph",
@@ -930,6 +961,18 @@ def _notes_component_factory(router: Any, scenario: "Scenario") -> Any:
     return NotesSim(router.bus, scenario)
 
 
+def _knowledge_component_factory(router: Any, scenario: "Scenario") -> Any:
+    from vei.router import KnowledgeSim
+
+    return KnowledgeSim(router, scenario)
+
+
+def _knowledge_provider_factory(component: Any) -> Any:
+    from vei.router import KnowledgeToolProvider
+
+    return KnowledgeToolProvider(component)
+
+
 def _notes_provider_factory(component: Any) -> Any:
     from vei.router import NotesToolProvider
 
@@ -1114,6 +1157,15 @@ def _build_notes_panel(
     from vei.run.api import build_notes_surface_panel
 
     return build_notes_surface_panel(components, context)
+
+
+def _build_knowledge_panel(
+    components: Dict[str, Dict[str, Any]],
+    context: Dict[str, Any],
+) -> Any:
+    from vei.run.api import build_knowledge_surface_panel
+
+    return build_knowledge_surface_panel(components, context)
 
 
 def _build_revenue_panel(

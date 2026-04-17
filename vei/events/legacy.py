@@ -32,6 +32,7 @@ _KIND_DOMAIN_MAP: Dict[str, EventDomain] = {
     "identity": EventDomain.IDENTITY_GRAPH,
     "okta": EventDomain.IDENTITY_GRAPH,
     "crm": EventDomain.REVENUE_GRAPH,
+    "knowledge": EventDomain.KNOWLEDGE_GRAPH,
     "siem": EventDomain.OBS_GRAPH,
     "datadog": EventDomain.OBS_GRAPH,
     "pagerduty": EventDomain.OBS_GRAPH,

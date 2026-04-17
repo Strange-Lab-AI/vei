@@ -34,6 +34,7 @@ class EventDomain(str, Enum):
     DOC_GRAPH = "doc_graph"
     IDENTITY_GRAPH = "identity_graph"
     REVENUE_GRAPH = "revenue_graph"
+    KNOWLEDGE_GRAPH = "knowledge_graph"
     OBS_GRAPH = "obs_graph"
     OPS_GRAPH = "ops_graph"
     DATA_GRAPH = "data_graph"

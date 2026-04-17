@@ -2340,6 +2340,14 @@ body.developer-mode .studio-nav-button.developer-only {
   font-size: 1rem;
 }
 
+.knowledge-card {
+  width: 100%;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+}
+
 .graph-stats {
   display: grid;
   gap: 8px;

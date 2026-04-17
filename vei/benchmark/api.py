@@ -36,6 +36,7 @@ from vei.benchmark.models import (
     BenchmarkWorkflowVariantManifest,
 )
 from vei.blueprint.api import (
+    build_blueprint_asset_for_family,
     build_blueprint_asset_for_scenario,
     build_blueprint_for_scenario,
     compile_blueprint,
@@ -1006,6 +1007,11 @@ def _load_transcript(artifacts_dir: Path) -> List[Dict[str, Any]]:
 
 def _load_case_blueprint_asset(spec: BenchmarkCaseSpec) -> BlueprintAsset | None:
     if spec.blueprint_asset_path is None:
+        if (spec.family_name or "").strip().lower() == "knowledge_authoring":
+            return build_blueprint_asset_for_family(
+                "knowledge_authoring",
+                variant_name=spec.workflow_variant,
+            )
         return None
     return BlueprintAsset.model_validate(
         json.loads(spec.blueprint_asset_path.read_text(encoding="utf-8"))

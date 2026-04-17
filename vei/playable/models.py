@@ -41,6 +41,8 @@ class PlayableMissionSpec(BaseModel):
     turn_budget: int = 8
     countdown_ms: int = 180000
     primary_domain: str
+    workflow_name: str | None = None
+    workflow_variant: str | None = None
     manual_moves: list[PlayableMissionMoveSpec] = Field(default_factory=list)
     tags: list[str] = Field(default_factory=list)
 

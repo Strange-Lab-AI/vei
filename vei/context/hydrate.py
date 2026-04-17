@@ -14,6 +14,7 @@ from vei.blueprint.models import (
     BlueprintIdentityApplicationAsset,
     BlueprintIdentityGraphAsset,
     BlueprintIdentityGroupAsset,
+    BlueprintKnowledgeGraphAsset,
     BlueprintIdentityUserAsset,
     BlueprintMailMessageAsset,
     BlueprintMailThreadAsset,
@@ -25,6 +26,7 @@ from vei.blueprint.models import (
 )
 
 from ._hydrate_inputs import build_hydrate_source_inputs
+from ._hydrate_knowledge import build_knowledge_graph
 from .models import ContextSnapshot
 from .models import (
     CrmSourceData,
@@ -68,6 +70,17 @@ def hydrate_snapshot_to_blueprint(
         inputs.google_data,
         inputs.mail_archive_data,
     )
+    knowledge_graph = build_knowledge_graph(
+        snapshot,
+        slack_data=inputs.slack_data,
+        gmail_data=inputs.gmail_data,
+        mail_archive_data=inputs.mail_archive_data,
+        google_data=inputs.google_data,
+        jira_data=inputs.jira_data,
+        notion_data=inputs.notion_data,
+        linear_data=inputs.linear_data,
+        granola_data=inputs.granola_data,
+    )
 
     facades = _infer_facades(
         inputs.slack_data,
@@ -79,6 +92,7 @@ def hydrate_snapshot_to_blueprint(
         inputs.teams_data,
         inputs.crm_data,
         inputs.salesforce_data,
+        knowledge_graph,
     )
 
     return BlueprintAsset(
@@ -99,6 +113,7 @@ def hydrate_snapshot_to_blueprint(
             work_graph=work_graph,
             identity_graph=identity_graph,
             revenue_graph=revenue_graph,
+            knowledge_graph=knowledge_graph,
             metadata={
                 "source": "context_capture",
                 "captured_at": snapshot.captured_at,
@@ -542,6 +557,7 @@ def _infer_facades(
     teams_data: TeamsSourceData | None = None,
     crm_data: CrmSourceData | None = None,
     salesforce_data: CrmSourceData | None = None,
+    knowledge_graph: BlueprintKnowledgeGraphAsset | None = None,
 ) -> list[str]:
     facades: list[str] = []
     if slack_data is not None:
@@ -562,6 +578,8 @@ def _infer_facades(
         facades.append("identity")
     if crm_data is not None or salesforce_data is not None:
         facades.append("crm")
+    if knowledge_graph is not None:
+        facades.append("knowledge")
     return facades
 
 

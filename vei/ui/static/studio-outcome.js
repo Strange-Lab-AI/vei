@@ -451,6 +451,98 @@ function renderGraphs() {
   renderJson("graphs-raw-panel", graphs);
 }
 
+function renderKnowledge() {
+  const knowledge = state.knowledgeStore;
+  const panel = document.getElementById("knowledge-panel");
+  const viewer = document.getElementById("knowledge-citation-viewer");
+  if (!panel || !viewer) {
+    return;
+  }
+  const assets = Object.values(knowledge?.assets || {});
+  if (!assets.length) {
+    panel.innerHTML = "";
+    viewer.innerHTML = "";
+    return;
+  }
+
+  const ordered = assets
+    .filter((item) => item && typeof item === "object")
+    .sort((left, right) => {
+      const leftComposed = left.composition ? 1 : 0;
+      const rightComposed = right.composition ? 1 : 0;
+      if (leftComposed !== rightComposed) {
+        return rightComposed - leftComposed;
+      }
+      const leftTime = Number(left.metadata?.captured_at_ms || 0);
+      const rightTime = Number(right.metadata?.captured_at_ms || 0);
+      return rightTime - leftTime;
+    });
+
+  panel.innerHTML = ordered
+    .slice(0, 8)
+    .map((asset) => `
+      <button class="graph-card knowledge-card" data-asset-id="${escapeHtml(asset.asset_id)}">
+        <h3>${escapeHtml(asset.title || asset.asset_id)}</h3>
+        <p class="metric-detail">${escapeHtml(asset.summary || asset.body || "")}</p>
+        <div class="chip-row">
+          ${chip(asset.kind || "knowledge")}
+          ${chip(asset.status || "active", statusClass(asset.status || "active"))}
+          ${(asset.tags || []).slice(0, 2).map((tag) => chip(tag)).join("")}
+          ${asset.composition ? chip("composed", "ok") : ""}
+        </div>
+      </button>
+    `)
+    .join("");
+
+  const selected = ordered.find((asset) => asset.composition) || ordered[0];
+  viewer.innerHTML = renderKnowledgeDetail(selected);
+  panel.querySelectorAll("[data-asset-id]").forEach((node) => {
+    node.addEventListener("click", () => {
+      const assetId = node.getAttribute("data-asset-id");
+      const asset = ordered.find((item) => item.asset_id === assetId);
+      viewer.innerHTML = renderKnowledgeDetail(asset || selected);
+    });
+  });
+}
+
+function renderKnowledgeDetail(asset) {
+  if (!asset) {
+    return "";
+  }
+  const composition = asset.composition || null;
+  if (!composition) {
+    return `
+      <div class="detail-grid">
+        ${detailTile("Asset", asset.asset_id || "")}
+        ${detailTile("Kind", asset.kind || "")}
+        ${detailTile("Status", asset.status || "")}
+      </div>
+      <p class="metric-detail">${escapeHtml(asset.body || "")}</p>
+    `;
+  }
+  return `
+    <div class="detail-grid">
+      ${detailTile("Asset", asset.asset_id || "")}
+      ${detailTile("Target", composition.target || "")}
+      ${detailTile("Template", composition.template_id || "")}
+      ${detailTile("Validation", (composition.validation?.issues || []).length ? "issues" : "ok")}
+    </div>
+    <p class="metric-detail">${escapeHtml(asset.summary || "")}</p>
+    <div class="chip-row">
+      ${(composition.sections || []).map((section) => chip(section)).join("")}
+    </div>
+    <div class="run-grid">
+      ${(composition.citation_spans || []).map((span) => `
+        <div class="graph-card">
+          <strong>${escapeHtml(span.marker || span.asset_id || "")}</strong>
+          <p class="metric-detail">${escapeHtml(span.section || "citation")}</p>
+          <p class="metric-detail">${escapeHtml(span.quote || "")}</p>
+        </div>
+      `).join("")}
+    </div>
+  `;
+}
+
 async function updateDiff() {
   const runId = state.activeRunId;
   const from = document.getElementById("snapshot-from-select").value;
@@ -1095,11 +1187,12 @@ async function refreshActiveRun(
   { connectStream = false, previousSurfaceState = null, preserveSurfaceHighlights = false } = {}
 ) {
   const generation = ++state.refreshGeneration;
-  const [run, timeline, orientation, graphs, snapshots, contract, surfaces, governorWorkspace] = await Promise.all([
+  const [run, timeline, orientation, graphs, knowledgeStore, snapshots, contract, surfaces, governorWorkspace] = await Promise.all([
     getJson(`/api/runs/${runId}`),
     getJson(`/api/runs/${runId}/timeline`),
     getJson(`/api/runs/${runId}/orientation`),
     getJson(`/api/runs/${runId}/graphs`),
+    getJson(`/api/runs/${runId}/knowledge`).catch(() => null),
     getJson(`/api/runs/${runId}/snapshots`),
     getJson(`/api/runs/${runId}/contract`),
     getJson(`/api/runs/${runId}/surfaces`).catch(() => null),
@@ -1112,6 +1205,7 @@ async function refreshActiveRun(
   state.timeline = timeline;
   state.orientation = orientation;
   state.graphs = graphs;
+  state.knowledgeStore = knowledgeStore;
   state.surfaceState = surfaces;
   setSurfaceHighlights(diffSurfaceState(previousSurfaceState, surfaces), {
     preserveExisting: preserveSurfaceHighlights,
@@ -1132,6 +1226,7 @@ async function refreshActiveRun(
   renderEventDetail();
   renderOrientation();
   renderGraphs();
+  renderKnowledge();
   renderSnapshots();
   renderImportSummary();
 

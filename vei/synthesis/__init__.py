@@ -1,5 +1,6 @@
 from vei.synthesis.api import (
     synthesize_agent_config,
+    synthesize_authoring_finetune_set,
     synthesize_runbook,
     synthesize_training_set,
 )
@@ -18,6 +19,7 @@ __all__ = [
     "TrainingExample",
     "TrainingSet",
     "synthesize_agent_config",
+    "synthesize_authoring_finetune_set",
     "synthesize_runbook",
     "synthesize_training_set",
 ]

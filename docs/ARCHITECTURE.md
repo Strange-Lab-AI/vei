@@ -211,7 +211,10 @@ For the canonical product demo, `vei project identity-demo` wraps that ladder in
 - `vei.capability_graph`
   - runtime shared-domain graph views derived from live world state and builder metadata
   - central graph-native planning and mutation surface for agents
-  - shared identity/doc/work/comm/revenue/data/obs/ops graph surfaces for inspection and action
+  - shared identity/doc/work/comm/revenue/knowledge/data/obs/ops graph surfaces for inspection and action
+- `vei.knowledge`
+  - typed knowledge assets, edges, composition requests, compaction policies, and validation helpers
+  - deterministic baseline authoring plus bounded LLM authoring behind one typed API
 - workflow runner / benchmark baselines
   - flagship workflows can now compile graph-native steps to `vei.graph_action` and resolve to concrete twins only at execution time
 - `vei.orientation`
@@ -237,7 +240,8 @@ For the canonical product demo, `vei project identity-demo` wraps that ladder in
   - `mirror_denied` event kind for surface-access enforcement denials
 - `vei.ui`
   - local playback/debug server for workspace runs
-  - now also exposes the one Studio shell, which presents the same kernel through `Company`, `Crisis`, `Outcome`, and `Audit` tabs plus Company sub-sections for `Live Company`, `Next Move`, `Recent Changes`, and `Historical Decision`
+  - now also exposes the one Studio shell, which presents the same kernel through `Company`, `Crisis`, `Outcome`, and `Audit` tabs plus Company sub-sections for `Live Company`, `Next Move`, `Recent Changes`, `Historical Decision`, and `Knowledge`
+  - Outcome compare also renders the latest authored-artifact compare card when the compared runs contain knowledge compositions
 - `vei.playable`
   - mission-first product layer over vertical workspaces
   - human playthroughs use the same graph-native actions, event spine, snapshots, and contract engine as the automated paths
@@ -246,6 +250,7 @@ For the canonical product demo, `vei project identity-demo` wraps that ladder in
 - `vei.verticals`
   - built-in vertical world packs and showcase helpers for believable company-grade demo environments
   - scenario variants, contract variants, curated matrix runners, and narrative story bundles that keep the base company world stable while changing the situation and objective
+  - `digital_marketing_agency` also carries the `proposal_ready` contract variant and the `knowledge_authoring` benchmark family for `northstar_proposal_drafting`
   - story showcases now emit presenter-facing `presentation_manifest.json` and `presentation_guide.md` artifacts on top of the same run/event spine
 
 ## Supported Entry Points
@@ -261,13 +266,12 @@ For the canonical product demo, `vei project identity-demo` wraps that ladder in
   - launched by `vei quickstart run`, `vei twin serve`, or `vei twin up`
 - `vei`
   - unified CLI — all subcommands are now under `vei <group> <command>`
-  - `project`, `quickstart`, `contract`, `scenario`, `scenarios`, `run`, `inspect`, `showcase`, `studio`, `export`, `ui`, `world`, `blueprint`, `eval`, `llm-test`, `pack`, `twin`, `rollout`, `train`, `score`, `smoke`, `demo`, `det`, `context`, `synthesize`, `release`, `report`, `visualize`, `whatif`
-  - benchmark work now lives under `vei whatif benchmark ...`
+  - `project`, `quickstart`, `contract`, `scenario`, `scenarios`, `run`, `inspect`, `showcase`, `studio`, `export`, `ui`, `world`, `blueprint`, `eval`, `llm-test`, `pack`, `twin`, `rollout`, `train`, `score`, `smoke`, `demo`, `det`, `context`, `knowledge`, `synthesize`, `release`, `report`, `visualize`, `whatif`
 
 ## Software Twins
 
 - Collaboration: Slack, Mail
-- Knowledge: Browser, Docs
+- Knowledge: Browser, Docs, Knowledge assets
 - Operations: Tickets, ServiceDesk
 - Identity and control plane: Okta-style identity, Google Admin, SIEM, Datadog, PagerDuty, feature flags
 - Business systems: ERP, CRM, HRIS, Jira-style issues
@@ -288,6 +292,8 @@ VEI keeps the current router twins, but the public ontology now groups them as f
   - Identity, Google Admin, HRIS
 - `revenue_graph`
   - CRM
+- `knowledge_graph`
+  - knowledge assets, citations, freshness state, supersession edges, and composition actions
 - `obs_graph`
   - SIEM, Datadog, PagerDuty
 - `ops_graph`
@@ -315,6 +321,7 @@ VEI keeps the current router twins, but the public ontology now groups them as f
 - Prefer the run event stream as the runtime source of truth for playback, receipts, contract progress, and snapshot markers.
 - Prefer contract rules to carry provenance that says which rules were imported, derived, or simulated and which tenant objects they apply to.
 - Prefer `WorldSession -> capability_graphs() -> graph_plan() -> graph_action()` as the main agent-facing planning/mutation ladder inside a live world.
+- Prefer knowledge authoring to flow through `knowledge_graph` and `vei.knowledge.api` instead of a sidecar document system.
 - Use `orientation()` to help agents discover the world before they begin mutating it.
 - Prefer graph-native workflow steps for long-horizon playbooks when the intent is domain-level mutation rather than a specific vendor surface.
 - Prefer semantic environment building first. VM-backed or OS-level facades are future plugin substrates, not the core runtime model.

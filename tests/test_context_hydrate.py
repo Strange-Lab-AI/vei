@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from vei.context.api import hydrate_blueprint
 from vei.context.models import ContextSnapshot, ContextSourceResult
+from vei.knowledge.api import parse_iso_to_ms
 
 
 def _sample_snapshot() -> ContextSnapshot:
@@ -348,3 +349,73 @@ def test_hydrate_parses_formatted_crm_amounts() -> None:
     assert asset.capability_graphs is not None
     assert asset.capability_graphs.revenue_graph is not None
     assert asset.capability_graphs.revenue_graph.deals[0].amount == 10000.0
+
+
+def test_hydrate_preserves_source_timestamps_for_knowledge_assets() -> None:
+    snapshot = ContextSnapshot(
+        organization_name="Knowledge Corp",
+        captured_at="2024-03-10T00:00:00+00:00",
+        sources=[
+            ContextSourceResult(
+                provider="notion",
+                captured_at="2024-03-10T00:00:00+00:00",
+                status="ok",
+                data={
+                    "pages": [
+                        {
+                            "page_id": "page-1",
+                            "title": "Proposal notes",
+                            "body": "Fresh source details",
+                            "last_edited_time": "2024-03-09T12:00:00+00:00",
+                        }
+                    ],
+                    "databases": [],
+                    "blocks": [],
+                },
+            ),
+            ContextSourceResult(
+                provider="linear",
+                captured_at="2024-03-10T00:00:00+00:00",
+                status="ok",
+                data={
+                    "cycles": [
+                        {
+                            "id": "cycle-1",
+                            "name": "Sprint 12",
+                            "summary": "Wrapped on time",
+                            "endedAt": "2024-03-08T18:30:00+00:00",
+                            "scope_completed": 9,
+                            "scope_planned": 10,
+                        }
+                    ],
+                    "issues": [],
+                    "projects": [],
+                },
+            ),
+        ],
+    )
+
+    asset = hydrate_blueprint(snapshot)
+
+    assert asset.capability_graphs is not None
+    knowledge_graph = asset.capability_graphs.knowledge_graph
+    assert knowledge_graph is not None
+    assert knowledge_graph.metadata["reference_now_ms"] == parse_iso_to_ms(
+        "2024-03-10T00:00:00+00:00"
+    )
+
+    notion_asset = next(
+        item for item in knowledge_graph.assets if item.provenance.source == "notion"
+    )
+    linear_asset = next(
+        item for item in knowledge_graph.assets if item.provenance.source == "linear"
+    )
+
+    assert notion_asset.provenance.captured_at == "2024-03-09T12:00:00+00:00"
+    assert notion_asset.metadata["captured_at_ms"] == parse_iso_to_ms(
+        "2024-03-09T12:00:00+00:00"
+    )
+    assert linear_asset.provenance.captured_at == "2024-03-08T18:30:00+00:00"
+    assert linear_asset.metadata["captured_at_ms"] == parse_iso_to_ms(
+        "2024-03-08T18:30:00+00:00"
+    )

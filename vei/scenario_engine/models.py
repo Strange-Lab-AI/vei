@@ -40,6 +40,11 @@ class AssertionSpec(BaseModel):
         "state_count_max",
         "state_exists",
         "time_max_ms",
+        "citations_present",
+        "citations_resolve",
+        "sources_within_shelf_life",
+        "numbers_reconcile",
+        "format_matches_template",
     ]
     field: Optional[str] = None
     contains: Optional[str] = None
@@ -47,6 +52,7 @@ class AssertionSpec(BaseModel):
     focus: Optional[str] = None
     max_value: Optional[int] = None
     description: Optional[str] = None
+    params: Dict[str, Any] = Field(default_factory=dict)
 
     @model_validator(mode="after")
     def _validate_shape(self) -> "AssertionSpec":
@@ -76,6 +82,18 @@ class AssertionSpec(BaseModel):
             raise ValueError("state_count_max requires 'max_value'")
         if self.kind == "time_max_ms" and self.max_value is None:
             raise ValueError("time_max_ms requires 'max_value'")
+        if (
+            self.kind
+            in {
+                "citations_present",
+                "citations_resolve",
+                "sources_within_shelf_life",
+                "numbers_reconcile",
+                "format_matches_template",
+            }
+            and self.field is None
+        ):
+            raise ValueError(f"{self.kind} requires 'field'")
         return self
 
 
@@ -90,6 +108,7 @@ class WorkflowStepSpec(BaseModel):
             "work_graph",
             "identity_graph",
             "revenue_graph",
+            "knowledge_graph",
             "obs_graph",
             "data_graph",
             "ops_graph",

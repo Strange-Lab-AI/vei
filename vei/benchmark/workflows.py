@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from typing import Any, Dict, List, Optional
 
 from vei.benchmark.models import (
@@ -19,6 +20,7 @@ from .workflow_specs import (
     _build_digital_marketing_agency_spec,
     _build_enterprise_onboarding_spec,
     _build_identity_access_governance_spec,
+    _build_knowledge_authoring_spec,
     _build_real_estate_management_spec,
     _build_revenue_incident_spec,
     _build_security_containment_spec,
@@ -36,6 +38,7 @@ _WORKFLOW_BUILDERS = {
     "storage_solutions": _build_storage_solutions_spec,
     "b2b_saas": _build_b2b_saas_spec,
     "service_ops": _build_service_ops_spec,
+    "knowledge_authoring": _build_knowledge_authoring_spec,
 }
 
 
@@ -47,6 +50,12 @@ def _parameter_value_type(value: str | int | float | bool) -> str:
     if isinstance(value, float):
         return "float"
     return "str"
+
+
+def _parameter_manifest_value(value: Any) -> tuple[str | int | float | bool, str]:
+    if isinstance(value, (str, int, float, bool)):
+        return value, _parameter_value_type(value)
+    return json.dumps(value, sort_keys=True), "str"
 
 
 def _resolve_variant_metadata(
@@ -71,12 +80,14 @@ def _variant_manifest(
 ) -> BenchmarkWorkflowVariantManifest:
     descriptions = _PARAMETER_DESCRIPTIONS[family_name]
     parameters = [
-        BenchmarkWorkflowParameter(
-            name=name,
-            value=value,
-            value_type=_parameter_value_type(value),
-            description=descriptions.get(name),
-        )
+        (
+            lambda manifest_value, manifest_type: BenchmarkWorkflowParameter(
+                name=name,
+                value=manifest_value,
+                value_type=manifest_type,
+                description=descriptions.get(name),
+            )
+        )(*_parameter_manifest_value(value))
         for name, value in definition.parameters.model_dump(mode="python").items()
     ]
     title, desc = _resolve_variant_metadata(family_name, definition)

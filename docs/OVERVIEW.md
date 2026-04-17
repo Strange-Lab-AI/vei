@@ -1,6 +1,6 @@
 # VEI
 
-VEI is a programmable replica of an entire company's operational software stack. You give it a company description — or connect it to real Slack, Gmail, Jira, and Teams data — and it builds a fully functioning simulated copy of that company with working Slack channels, email threads, ticket queues, CRM pipelines, document stores, identity systems, and more. An agent or a human can then operate inside it: play crisis scenarios, steer live activity through the twin gateway, train on the traces, and synthesize operational artifacts from what happened.
+VEI is a programmable replica of an entire company's operational software stack. You give it a company description — or connect it to real Slack, Gmail, Jira, Teams, Notion, Linear, and meeting-note exports — and it builds a fully functioning simulated copy of that company with working Slack channels, email threads, ticket queues, CRM pipelines, document stores, identity systems, and a typed knowledge layer. An agent or a human can then operate inside it: play crisis scenarios, steer live activity through the twin gateway, train on the traces, draft grounded proposals and briefs, and synthesize operational artifacts from what happened.
 
 It spans hundreds of Python files and tests, a single-page Studio UI, and one unified `vei` CLI for project setup, world simulation, benchmarking, release/export, and evaluation.
 
@@ -16,6 +16,19 @@ VEI is best understood as **one kernel with four operating modes**, not as a pil
 - **Train / Data** — turn the same traces and trajectories into rollouts, demonstrations, and RL-friendly data
 
 Those four modes share the same world session, connector layer, event spine, replay model, and contract scoring. The world simulation is the substrate for all of them. Governor mode is the special case with live edges: VEI still uses the same kernel, but some actions also flow to or from real systems.
+
+## Knowledge Brain Layer
+
+VEI now carries the "knowledge brain" on the same rails as the action brain. Notes, transcripts, pricing guides, metric snapshots, SOPs, and deliverables land in `knowledge_graph` instead of a parallel authoring system. The kernel stores them under `vei.world`, mutations emit typed `CanonicalEvent` records, and authored artifacts stay branchable, replayable, and contract-scored.
+
+That keeps proposal drafting, weekly reviews, and other knowledge work inside the same deterministic spine as everything else:
+
+- connectors and offline exports hydrate typed `KnowledgeAsset` nodes
+- `knowledge.compose_artifact` retrieves grounded sources and drafts an artifact with inline citations
+- structural contracts score citation presence, citation resolution, freshness, numeric reconciliation, and template shape
+- the same run timeline, snapshot model, compare view, and synthesis layer work on authoring runs too
+
+Standalone `vei knowledge compose` uses the same knowledge state and validation rules, writes the updated knowledge snapshot back into the workspace, and stays separate from any existing run timeline. Run-based authoring export still reads recorded runs.
 
 `llm-siem` fits beside VEI, not inside it. It is a useful companion for the thinking layer of agent operations — fleet posture, LLM-call observability, and later cross-agent correlation — while VEI owns the acting layer: enterprise actions, world state, contracts, and consequences.
 
@@ -41,11 +54,11 @@ Two compare paths exist today:
 
 ### 1. Context Capture
 
-Real enterprise data comes in. Six providers today: Slack, Gmail, Microsoft Teams, Jira, Google Workspace, Okta. Each makes real API calls using OAuth tokens, or ingests offline exports (Slack JSON archives, Gmail MBOX Takeout files). The output is a `ContextSnapshot` — a structured record of what the company looks like right now: who's talking to whom, what tickets are open, what docs exist, who has what access.
+Real enterprise data comes in. VEI captures Slack, Gmail, Microsoft Teams, Jira, Google Workspace, Okta, and offline-first knowledge exports such as Notion, Linear, and Granola. Slack, Gmail, Teams, Jira, Google, and Okta can use live APIs. The knowledge connectors read offline exports only: Notion exports, Linear dumps, and transcript files. The output is a `ContextSnapshot` — a structured record of what the company looks like right now: who's talking to whom, what tickets are open, what docs exist, what notes are current, and who has what access.
 
 ### 2. Blueprint Compilation
 
-The snapshot gets hydrated into a `BlueprintAsset` — VEI's portable, declarative description of a company. This includes a communications graph (Slack channels, mail threads), a work graph (Jira-style tickets and workflows), a document graph, an identity graph (users, groups, app assignments, policies), and optionally revenue, ops, inventory, campaign, property graphs. Five built-in vertical archetypes exist as ready-to-go blueprints:
+The snapshot gets hydrated into a `BlueprintAsset` — VEI's portable, declarative description of a company. This includes a communications graph (Slack channels, mail threads), a work graph (Jira-style tickets and workflows), a document graph, an identity graph (users, groups, app assignments, policies), a `knowledge_graph` for grounded authoring assets and edges, and optionally revenue, ops, inventory, campaign, property graphs. Five built-in vertical archetypes exist as ready-to-go blueprints:
 
 - **Pinnacle Analytics** (B2B SaaS) — $480K renewal at risk, support escalation spirals, pricing deadlocks
 - **Harbor Point Management** (Real Estate) — Tenant openings, vendor no-shows, lease revisions, double-booked units
@@ -62,7 +75,7 @@ Blueprints support **progressive disclosure** via per-surface fidelity levels: L
 
 ### 3. World Simulation Engine
 
-The blueprint compiles into a live `WorldSession` — a deterministic, branchable, replayable discrete-event simulation. The router provides 50+ MCP tools spanning every enterprise surface: `slack.send_message`, `mail.compose`, `browser.navigate`, `docs.create`, `tickets.update`, `crm.log_activity`, `okta.suspend_user`, `erp.check_inventory`, `servicedesk.resolve`, and many more. Time advances. Events fire. State changes propagate across surfaces. You can snapshot, branch, restore, replay, and diff any point in the world's history.
+The blueprint compiles into a live `WorldSession` — a deterministic, branchable, replayable discrete-event simulation. The router provides 50+ MCP tools spanning every enterprise surface: `slack.send_message`, `mail.compose`, `browser.navigate`, `docs.create`, `tickets.update`, `crm.log_activity`, `okta.suspend_user`, `erp.check_inventory`, `servicedesk.resolve`, `knowledge.compose_artifact`, and many more. Time advances. Events fire. State changes propagate across surfaces. You can snapshot, branch, restore, replay, and diff any point in the world's history.
 
 The connector layer routes each tool call through one of three adapters — simulated (default), replay (from recorded traces), or live (real API calls) — with policy gates classifying operations as READ, WRITE_SAFE, or WRITE_RISKY.
 
@@ -70,13 +83,13 @@ For archive-backed historical episodes, the simulation stays deliberately narrow
 
 ### 4. Playable Missions and Evaluation
 
-On top of the simulation sits a mission system. Each vertical has multiple crisis scenarios. A mission gives you a starting world state, a set of available moves (each triggering a sequence of tool calls), success/failure contracts, and a scorecard. You can play interactively, run a scripted baseline, or let an LLM agent play — then compare the paths.
+On top of the simulation sits a mission system. Each vertical has multiple crisis scenarios. A mission gives you a starting world state, a set of available moves (each triggering a sequence of tool calls), success/failure contracts, and a scorecard. You can play interactively, run a scripted baseline, or let an LLM agent play — then compare the paths. The first knowledge mission is `northstar_proposal_drafting`, which drafts a grounded client proposal from transcript, pricing, delivery, and SOP evidence on the same Northstar world used for campaign operations. `knowledge_authoring` is the benchmark family name for that mission, not a sixth vertical.
 
 The contract system defines predicates (what must happen), invariants (what must not happen), observation boundaries (what the agent can see vs. hidden oracle state), and reward signals. The benchmark framework runs families of workflows, scores them, and supports difficulty tiers (p0-easy through pX-adversarial) plus frontier rubric scenarios (budget reconciliation, knowledge QA, cascading failures, ethical dilemmas).
 
 A lightweight RL layer provides a Gymnasium-compatible `VEIEnv`, behavior cloning trainer, and BC policy wrapper for learning policies from demonstration traces.
 
-The same idea extends naturally to historical what-if runs. Each branch point becomes a decision sample: one real baseline future, one counterfactual continuation, and a typed comparison result describing what changed.
+The same idea extends naturally to historical what-if runs. Each branch point becomes a decision sample: one real baseline future, one counterfactual continuation, and a typed comparison result describing what changed. For knowledge work, two authored runs can now be compared in Studio with their source coverage and validation deltas shown beside the normal run comparison view.
 
 ### 5. Synthesis, Twin Gateway, and Governor Mode
 
@@ -84,6 +97,7 @@ Finished runs produce structured outputs:
 
 - **Runbooks** — step-by-step operational procedures extracted from what actually happened
 - **Training sets** — conversation, trajectory, and demonstration data formatted for fine-tuning
+- **Authoring fine-tune rows** — proposal or brief drafting examples with retrieved sources, citations, validation, and contract results
 - **Agent configs** — system prompts, tool specs, guardrails, and success criteria for deploying agents
 - **Counterfactual bundles** — JSON and Markdown summaries for what-if experiments, including selected thread, baseline replay, LLM continuation, and forecast deltas
 
@@ -117,9 +131,9 @@ Studio now ships one shell. It picks the visual tone automatically: historical a
 
 A single-page Studio interface exposes four top-level tabs plus the Connections panel:
 
-- **Company tab** — one surface with four in-page sections: `Live Company`, `Next Move`, `Recent Changes`, and `Historical Decision`. The live section shows every surface (Slack, Mail, Docs, Tickets, CRM, and the vertical heartbeat) updating in real time as the simulation runs. When governor mode is active, a **mode indicator banner** appears and the **Control Plane panel** shows registered agents, policy badges, connector status, an approval queue, inline agent controls, and a readable activity log.
+- **Company tab** — one surface with five in-page sections: `Live Company`, `Next Move`, `Recent Changes`, `Historical Decision`, and `Knowledge`. The live section shows every surface (Slack, Mail, Docs, Tickets, CRM, and the vertical heartbeat) updating in real time as the simulation runs. The Knowledge section lists grounded assets, freshness state, and citation details for composed artifacts. When governor mode is active, a **mode indicator banner** appears and the **Control Plane panel** shows registered agents, policy badges, connector status, an approval queue, inline agent controls, and a readable activity log.
 - **Crisis tab** — structured analysis of what went wrong and why it matters, with crisis description, impact assessment, and failure consequences.
-- **Outcome tab** — contract evaluation, decision audit trail, path comparison, snapshot branching, cross-run snapshot comparison, and the `service_ops` policy replay flow.
+- **Outcome tab** — contract evaluation, decision audit trail, path comparison, snapshot branching, cross-run snapshot comparison, the authored-artifact compare card for knowledge runs, and the `service_ops` policy replay flow.
 - **Audit tab** — benchmark review queue and human scoring workflow for held-out what-if cases.
 - **Connections panel** — live source status and one-click capture from the Views menu.
 

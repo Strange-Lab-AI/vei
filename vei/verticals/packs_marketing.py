@@ -16,6 +16,10 @@ from vei.blueprint.models import (
     BlueprintCrmDealAsset,
     BlueprintDocGraphAsset,
     BlueprintDocumentAsset,
+    BlueprintKnowledgeAsset,
+    BlueprintKnowledgeEdgeAsset,
+    BlueprintKnowledgeGraphAsset,
+    BlueprintKnowledgeProvenanceAsset,
     BlueprintRevenueGraphAsset,
     BlueprintServiceRequestAsset,
     BlueprintTicketAsset,
@@ -315,6 +319,140 @@ def build() -> BlueprintAsset:
             approvals=[BlueprintApprovalAsset(stage="creative_ops", status="APPROVED")],
         ),
     ]
+    knowledge_assets = [
+        BlueprintKnowledgeAsset(
+            asset_id="KA-NSG-001",
+            kind="transcript",
+            title="Apex launch kickoff transcript",
+            body=(
+                "Melissa confirmed the client wants a safer launch path if pacing stays above plan. "
+                "The proposal should show a phased launch, weekly reporting, and a clear approval gate."
+            ),
+            summary="Client wants a phased launch with explicit approval gates and weekly reporting.",
+            tags=["proposal", "client", "launch"],
+            provenance=BlueprintKnowledgeProvenanceAsset(
+                source="granola",
+                source_id="granola-apex-kickoff",
+                captured_at="2026-04-10T15:00:00Z",
+                shelf_life_ms=30 * 86_400_000,
+                metadata={"captured_at_ms": 1775833200000},
+            ),
+            linked_object_refs=["crm_deal:CRM-NSG-D1", "campaign:CMP-APEX-01"],
+            metadata={"captured_at_ms": 1775833200000},
+        ),
+        BlueprintKnowledgeAsset(
+            asset_id="KA-NSG-002",
+            kind="deliverable",
+            title="Apex Q2 strategy outline",
+            body=(
+                "Deliverables: phased paid social relaunch, refreshed launch packet, and weekly executive readout. "
+                "The account team should package the safer launch path as a proposal update."
+            ),
+            summary="Defines the phased relaunch deliverables and weekly executive readout for Apex.",
+            tags=["proposal", "deliverable", "strategy"],
+            provenance=BlueprintKnowledgeProvenanceAsset(
+                source="notion",
+                source_id="notion-apex-q2-strategy",
+                captured_at="2026-04-08T16:30:00Z",
+                shelf_life_ms=21 * 86_400_000,
+                metadata={"captured_at_ms": 1775665800000},
+            ),
+            linked_object_refs=["crm_deal:CRM-NSG-D1", "client:CLIENT-APEX"],
+            metadata={"captured_at_ms": 1775665800000},
+        ),
+        BlueprintKnowledgeAsset(
+            asset_id="KA-NSG-003",
+            kind="pricing",
+            title="Apex retainer pricing guide",
+            body=(
+                "Base retainer remains $180000 for the quarter. "
+                "A phased relaunch add-on stays inside the approved envelope when media pacing is reset."
+            ),
+            summary="Quarterly retainer is $180000 with a phased relaunch add-on inside the approved envelope.",
+            tags=["proposal", "pricing", "finance"],
+            provenance=BlueprintKnowledgeProvenanceAsset(
+                source="notion",
+                source_id="notion-apex-pricing",
+                captured_at="2026-04-09T18:00:00Z",
+                shelf_life_ms=30 * 86_400_000,
+                metadata={"captured_at_ms": 1775757600000},
+            ),
+            linked_object_refs=["crm_deal:CRM-NSG-D1", "client:CLIENT-APEX"],
+            metrics={"retainer_amount": 180000},
+            metadata={"captured_at_ms": 1775757600000},
+        ),
+        BlueprintKnowledgeAsset(
+            asset_id="KA-NSG-004",
+            kind="metric_snapshot",
+            title="Apex delivery health snapshot",
+            body=(
+                "Latest Linear cycle shows 11 of 12 launch tasks complete and the reporting repair on track for same-day delivery."
+            ),
+            summary="11 of 12 launch tasks are complete and the reporting repair remains on track.",
+            tags=["proposal", "metrics", "timeline"],
+            provenance=BlueprintKnowledgeProvenanceAsset(
+                source="linear",
+                source_id="linear-apex-launch-cycle",
+                captured_at="2026-04-11T12:00:00Z",
+                shelf_life_ms=14 * 86_400_000,
+                metadata={"captured_at_ms": 1775908800000},
+            ),
+            linked_object_refs=["crm_deal:CRM-NSG-D1", "campaign:CMP-APEX-01"],
+            metrics={"scope_completed": 11, "scope_planned": 12},
+            metadata={"captured_at_ms": 1775908800000},
+        ),
+        BlueprintKnowledgeAsset(
+            asset_id="KA-NSG-005",
+            kind="sop",
+            title="Northstar proposal guardrails",
+            body=(
+                "Every external proposal must cite its pricing source, current delivery snapshot, and the last client conversation before signoff."
+            ),
+            summary="Proposals must cite pricing, delivery status, and the last client conversation.",
+            tags=["proposal", "sop", "review"],
+            provenance=BlueprintKnowledgeProvenanceAsset(
+                source="notion",
+                source_id="notion-proposal-guardrails",
+                captured_at="2026-04-01T14:00:00Z",
+                shelf_life_ms=90 * 86_400_000,
+                metadata={"captured_at_ms": 1775052000000},
+            ),
+            linked_object_refs=["crm_deal:CRM-NSG-D1"],
+            metadata={"captured_at_ms": 1775052000000},
+        ),
+    ]
+    knowledge_edges = [
+        BlueprintKnowledgeEdgeAsset(
+            edge_id="knowledge-edge-0001",
+            kind="applies_to",
+            from_asset_id="KA-NSG-001",
+            to_ref="crm_deal:CRM-NSG-D1",
+        ),
+        BlueprintKnowledgeEdgeAsset(
+            edge_id="knowledge-edge-0002",
+            kind="applies_to",
+            from_asset_id="KA-NSG-002",
+            to_ref="crm_deal:CRM-NSG-D1",
+        ),
+        BlueprintKnowledgeEdgeAsset(
+            edge_id="knowledge-edge-0003",
+            kind="applies_to",
+            from_asset_id="KA-NSG-003",
+            to_ref="crm_deal:CRM-NSG-D1",
+        ),
+        BlueprintKnowledgeEdgeAsset(
+            edge_id="knowledge-edge-0004",
+            kind="applies_to",
+            from_asset_id="KA-NSG-004",
+            to_ref="crm_deal:CRM-NSG-D1",
+        ),
+        BlueprintKnowledgeEdgeAsset(
+            edge_id="knowledge-edge-0005",
+            kind="applies_to",
+            from_asset_id="KA-NSG-005",
+            to_ref="crm_deal:CRM-NSG-D1",
+        ),
+    ]
     return BlueprintAsset(
         name="digital_marketing_agency.blueprint",
         title="Northstar Growth",
@@ -400,6 +538,14 @@ def build() -> BlueprintAsset:
                         contact_id="CRM-NSG-P2",
                     ),
                 ],
+            ),
+            knowledge_graph=BlueprintKnowledgeGraphAsset(
+                assets=knowledge_assets,
+                edges=knowledge_edges,
+                metadata={
+                    "primary_subject": "crm_deal:CRM-NSG-D1",
+                    "reference_now_ms": 1775908800000,
+                },
             ),
             campaign_graph=BlueprintCampaignGraphAsset(
                 clients=[

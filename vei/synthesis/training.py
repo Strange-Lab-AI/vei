@@ -5,11 +5,14 @@ from typing import Any, List
 
 from vei.run.api import (
     get_workspace_run_dir,
-    load_run_manifest,
     get_workspace_run_manifest_path,
+    get_run_knowledge_state,
+    load_run_contract_evaluation,
+    load_run_manifest,
 )
 from vei.run import load_run_events
 from vei.run.models import RunTimelineEvent
+from vei.knowledge.api import latest_composed_asset_payload
 
 from .models import TrainingExample, TrainingFormat, TrainingSet
 
@@ -42,6 +45,18 @@ def build_training_set(
             all_examples.extend(_to_trajectories(run_id, events))
         elif format == "demonstrations":
             all_examples.extend(_to_demonstrations(run_id, events))
+        elif format == "authoring":
+            knowledge_state = get_run_knowledge_state(workspace_root, run_id)
+            contract = load_run_contract_evaluation(workspace_root, run_id) or {}
+            all_examples.extend(
+                _to_authoring_examples(
+                    run_id,
+                    events,
+                    manifest,
+                    knowledge_state=knowledge_state,
+                    contract=contract,
+                )
+            )
 
     return TrainingSet(
         format=format,
@@ -172,6 +187,152 @@ def _to_demonstrations(
         )
         for i, event in enumerate(tool_events)
     ]
+
+
+def _to_authoring_examples(
+    run_id: str,
+    events: list[RunTimelineEvent],
+    manifest: Any,
+    *,
+    knowledge_state: dict[str, Any],
+    contract: dict[str, Any],
+) -> list[TrainingExample]:
+    compose_events = [
+        event
+        for event in events
+        if (
+            (event.graph_action_ref or "") == "knowledge_graph.compose_artifact"
+            or (event.resolved_tool or event.tool or "") == "knowledge.compose_artifact"
+        )
+    ]
+    examples: list[TrainingExample] = []
+    for index, event in enumerate(compose_events):
+        result = (event.payload or {}).get("result", {})
+        artifact = result.get("artifact")
+        retrieved_assets = result.get("retrieved_assets", [])
+        if not isinstance(artifact, dict):
+            continue
+        examples.append(
+            TrainingExample(
+                format="authoring",
+                run_id=run_id,
+                sequence_index=index,
+                data={
+                    "scenario_name": manifest.scenario_name,
+                    "runner": manifest.runner,
+                    "prompt": artifact.get("composition", {}).get("prompt", ""),
+                    "target": artifact.get("composition", {}).get("target", ""),
+                    "template_id": artifact.get("composition", {}).get(
+                        "template_id", ""
+                    ),
+                    "subject_object_ref": artifact.get("composition", {}).get(
+                        "subject_object_ref", ""
+                    ),
+                    "retrieved_asset_ids": [
+                        item.get("asset_id")
+                        for item in retrieved_assets
+                        if isinstance(item, dict) and item.get("asset_id")
+                    ],
+                    "retrieved_assets": [
+                        _compact_knowledge_asset(item)
+                        for item in retrieved_assets
+                        if isinstance(item, dict)
+                    ],
+                    "artifact": _compact_knowledge_asset(artifact),
+                    "validation": artifact.get("composition", {}).get("validation", {}),
+                    "reviewer_feedback": artifact.get("composition", {}).get(
+                        "reviewer_feedback", []
+                    ),
+                    "contract": _compact_contract(contract),
+                },
+            )
+        )
+    if examples:
+        return examples
+
+    assets = knowledge_state.get("assets", {})
+    if not isinstance(assets, dict):
+        return []
+    artifact = latest_composed_asset_payload(assets)
+    if artifact is None:
+        return []
+    composition = artifact.get("composition", {})
+    cited_asset_ids = [
+        span.get("asset_id")
+        for span in composition.get("citation_spans", [])
+        if isinstance(span, dict) and span.get("asset_id")
+    ]
+    retrieved_assets = [
+        assets[asset_id]
+        for asset_id in cited_asset_ids
+        if isinstance(assets.get(asset_id), dict)
+    ]
+    return [
+        TrainingExample(
+            format="authoring",
+            run_id=run_id,
+            sequence_index=0,
+            data={
+                "scenario_name": manifest.scenario_name,
+                "runner": manifest.runner,
+                "prompt": composition.get("prompt", ""),
+                "target": composition.get("target", ""),
+                "template_id": composition.get("template_id", ""),
+                "subject_object_ref": composition.get("subject_object_ref", ""),
+                "retrieved_asset_ids": cited_asset_ids,
+                "retrieved_assets": [
+                    _compact_knowledge_asset(item) for item in retrieved_assets
+                ],
+                "artifact": _compact_knowledge_asset(artifact),
+                "validation": composition.get("validation", {}),
+                "reviewer_feedback": composition.get("reviewer_feedback", []),
+                "contract": _compact_contract(contract),
+            },
+        )
+    ]
+
+
+def _compact_knowledge_asset(payload: dict[str, Any]) -> dict[str, Any]:
+    raw_composition = (
+        payload.get("composition", {}) if isinstance(payload, dict) else {}
+    )
+    composition = raw_composition if isinstance(raw_composition, dict) else {}
+    return {
+        "asset_id": payload.get("asset_id", ""),
+        "kind": payload.get("kind", ""),
+        "title": payload.get("title", ""),
+        "summary": payload.get("summary", ""),
+        "body": payload.get("body", ""),
+        "tags": list(payload.get("tags", []))[:8],
+        "linked_object_refs": list(payload.get("linked_object_refs", []))[:8],
+        "metrics": dict(payload.get("metrics", {})),
+        "citations": [
+            span.get("asset_id")
+            for span in composition.get("citation_spans", [])
+            if isinstance(span, dict) and span.get("asset_id")
+        ],
+        "sections": list(composition.get("sections", [])),
+        "claims": [
+            {
+                "text": item.get("text", ""),
+                "citation_asset_ids": list(item.get("citation_asset_ids", [])),
+                "section": item.get("section"),
+            }
+            for item in composition.get("claims", [])
+            if isinstance(item, dict)
+        ],
+    }
+
+
+def _compact_contract(contract: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "ok": contract.get("ok"),
+        "issue_count": len(contract.get("dynamic_validation", {}).get("issues", []))
+        + len(contract.get("static_validation", {}).get("issues", [])),
+        "success_assertions_passed": contract.get("success_predicates_passed", 0),
+        "success_assertion_count": contract.get("success_predicate_count", 0),
+        "policy_invariants_failed": contract.get("policy_invariants_failed", 0),
+    }
 
 
 def _compact_args(args: dict[str, Any]) -> str:

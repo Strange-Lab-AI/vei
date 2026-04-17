@@ -9,6 +9,7 @@ from .digital_marketing_agency import _build_digital_marketing_agency_spec
 from .storage_solutions import _build_storage_solutions_spec
 from .b2b_saas import _build_b2b_saas_spec
 from .service_ops import _build_service_ops_spec
+from .knowledge_authoring import _build_knowledge_authoring_spec
 
 __all__ = [
     "_build_security_containment_spec",
@@ -20,4 +21,5 @@ __all__ = [
     "_build_storage_solutions_spec",
     "_build_b2b_saas_spec",
     "_build_service_ops_spec",
+    "_build_knowledge_authoring_spec",
 ]

@@ -43,6 +43,8 @@ def build_surface_state(
         if builder is None:
             continue
         panel = builder(state.components, panel_context)
+        if panel is not None and panel.surface == "knowledge":
+            continue
         if panel is None or panel.surface in seen_surfaces:
             continue
         panels.append(panel)

@@ -8,6 +8,7 @@ from vei.benchmark.workflow_models import (
     DigitalMarketingAgencyWorkflowParams,
     EnterpriseOnboardingMigrationWorkflowParams,
     IdentityAccessGovernanceWorkflowParams,
+    KnowledgeAuthoringWorkflowParams,
     RealEstateManagementWorkflowParams,
     RevenueIncidentMitigationWorkflowParams,
     SecurityContainmentWorkflowParams,
@@ -192,6 +193,15 @@ _PARAMETER_DESCRIPTIONS: Dict[str, Dict[str, str]] = {
         "ticket_note": "Tracker note written after the service loop is stabilized.",
         "slack_summary": "Slack summary posted once the same-day operating path is safe again.",
         "deadline_max_ms": "Virtual-time deadline for the service-day recovery workflow.",
+    },
+    "knowledge_authoring": {
+        "subject_object_ref": "Primary CRM deal or client object the artifact applies to.",
+        "template_id": "Template id used for grounded composition.",
+        "target": "Composed artifact kind.",
+        "prompt": "Authoring brief passed into the composition step.",
+        "expected_artifact_id": "Artifact id expected after the first proposal composition.",
+        "required_source_asset_ids": "Knowledge assets that should remain cited in the authored proposal.",
+        "deadline_max_ms": "Virtual-time deadline for the authoring loop.",
     },
 }
 
@@ -493,6 +503,17 @@ _VARIANT_CATALOG: Dict[str, Dict[str, _VariantDefinition]] = {
                 ticket_note="Billing dispute reopened, hold recorded, and dispatch state kept consistent across teams.",
                 slack_summary="Billing safely contained while the field response remains coherent for Clearwater Medical.",
             ),
+        ),
+    },
+    "knowledge_authoring": {
+        "northstar_proposal_drafting": _VariantDefinition(
+            name="northstar_proposal_drafting",
+            title="Northstar Proposal Drafting",
+            description=(
+                "Compose a grounded Apex proposal from transcripts, pricing, and delivery snapshots on the shared Northstar world."
+            ),
+            scenario_name="campaign_launch_guardrail",
+            parameters=KnowledgeAuthoringWorkflowParams(),
         ),
     },
 }

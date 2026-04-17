@@ -14,6 +14,7 @@ from vei.run.api import (
     diff_run_snapshots,
     generate_run_id,
     get_run_capability_graphs,
+    get_run_knowledge_state,
     get_run_orientation,
     get_run_surface_state,
     get_workspace_run_dir,
@@ -127,6 +128,10 @@ def register_run_routes(app: FastAPI, root: Path, *, deps: Any) -> None:
         except ValueError as exc:
             raise HTTPException(status_code=404, detail=str(exc)) from exc
         return JSONResponse(payload.model_dump(mode="json"))
+
+    @app.get("/api/runs/{run_id}/knowledge")
+    def api_run_knowledge(run_id: str) -> JSONResponse:
+        return JSONResponse(get_run_knowledge_state(root, run_id))
 
     @app.get("/api/runs/{run_id}/snapshots")
     def api_run_snapshots(run_id: str) -> JSONResponse:

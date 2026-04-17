@@ -1,8 +1,69 @@
+function knowledgeAssetTimestamp(asset) {
+  const metadata = asset?.metadata;
+  if (!metadata || typeof metadata !== "object") return 0;
+  return Number(metadata.composed_at_ms || metadata.captured_at_ms || 0) || 0;
+}
+
 function onCompareSnapshotPickerChange() {
   const snapASelect = document.getElementById("compare-snapshot-a");
   const snapBSelect = document.getElementById("compare-snapshot-b");
   state.compareSnapshotA = snapASelect?.value ? Number(snapASelect.value) : null;
   state.compareSnapshotB = snapBSelect?.value ? Number(snapBSelect.value) : null;
+}
+
+function latestComposedKnowledgeAsset(store) {
+  const assets = store?.assets;
+  if (!assets || typeof assets !== "object") return null;
+  const composed = Object.values(assets)
+    .filter((item) => item && typeof item === "object" && item.composition)
+    .sort((a, b) => {
+      const timeDelta = knowledgeAssetTimestamp(a) - knowledgeAssetTimestamp(b);
+      if (timeDelta !== 0) return timeDelta;
+      return String(a.asset_id || "").localeCompare(String(b.asset_id || ""));
+    });
+  return composed.length ? composed[composed.length - 1] : null;
+}
+
+function knowledgeValidationSummary(asset) {
+  const validation = asset?.composition?.validation || {};
+  const checks = [
+    ["Citations", validation.citations_present && validation.citations_resolve],
+    ["Freshness", validation.sources_within_shelf_life],
+    ["Numbers", validation.numbers_reconcile],
+    ["Format", validation.format_matches_template],
+  ];
+  return checks.map(([label, ok]) => `
+    <span class="compare-div-item">${escapeHtml(label)}: ${ok ? "ok" : "needs work"}</span>
+  `).join("");
+}
+
+function renderKnowledgeCompareCard(name, asset) {
+  if (!asset) {
+    return `
+      <div class="story-card">
+        <p class="eyebrow">${escapeHtml(name)}</p>
+        <h3>No composed artifact</h3>
+        <p class="metric-detail">This run did not leave a knowledge artifact in the latest snapshot.</p>
+      </div>
+    `;
+  }
+  const citations = asset.composition?.citation_spans || [];
+  const sections = asset.composition?.sections || [];
+  return `
+    <div class="story-card">
+      <p class="eyebrow">${escapeHtml(name)}</p>
+      <h3>${escapeHtml(asset.title || "Authored artifact")}</h3>
+      <p class="metric-detail">${escapeHtml(asset.summary || "")}</p>
+      <div class="detail-grid">
+        ${detailTile("Kind", escapeHtml(asset.kind || "artifact"))}
+        ${detailTile("Sections", String(sections.length))}
+        ${detailTile("Citations", String(citations.length))}
+        ${detailTile("Claims", String((asset.composition?.claims || []).length))}
+      </div>
+      <div class="chip-row">${knowledgeValidationSummary(asset)}</div>
+      <p class="metric-detail">${escapeHtml((asset.body || "").slice(0, 260))}${(asset.body || "").length > 260 ? "..." : ""}</p>
+    </div>
+  `;
 }
 
 async function onCompareDiffClick() {
@@ -138,6 +199,8 @@ function renderCompareTimelines() {
   const cB = state.compareContractB;
   const mA = state.compareMissionA;
   const mB = state.compareMissionB;
+  const knowledgeA = latestComposedKnowledgeAsset(state.compareKnowledgeA);
+  const knowledgeB = latestComposedKnowledgeAsset(state.compareKnowledgeB);
   const branchLabels =
     mA?.mission?.branch_labels
     || mB?.mission?.branch_labels
@@ -229,6 +292,31 @@ function renderCompareTimelines() {
         html += `</div>`;
       }
     }
+  }
+  if (knowledgeA || knowledgeB) {
+    const citationDelta =
+      ((knowledgeA?.composition?.citation_spans || []).length)
+      - ((knowledgeB?.composition?.citation_spans || []).length);
+    html += `<div class="compare-divergence">`;
+    html += `<p class="eyebrow">Authored artifact compare</p>`;
+    html += `<div class="compare-scores">`;
+    html += renderKnowledgeCompareCard(nameA, knowledgeA);
+    html += `<div class="compare-score-delta ${citationDelta > 0 ? "delta-pos" : citationDelta < 0 ? "delta-neg" : ""}">`;
+    html += `${citationDelta > 0 ? "+" : ""}${citationDelta} citations`;
+    html += `</div>`;
+    html += renderKnowledgeCompareCard(nameB, knowledgeB);
+    html += `</div>`;
+    if (knowledgeA && knowledgeB) {
+      const sourcesA = new Set((knowledgeA.composition?.citation_spans || []).map((item) => item.asset_id).filter(Boolean));
+      const sourcesB = new Set((knowledgeB.composition?.citation_spans || []).map((item) => item.asset_id).filter(Boolean));
+      const onlyA = [...sourcesA].filter((item) => !sourcesB.has(item));
+      const onlyB = [...sourcesB].filter((item) => !sourcesA.has(item));
+      if (onlyA.length || onlyB.length) {
+        html += `<div class="compare-div-group"><span class="compare-div-label">${escapeHtml(nameA)} unique sources:</span>${onlyA.map((item) => `<span class="compare-div-item">${escapeHtml(item)}</span>`).join("") || `<span class="compare-div-item">None</span>`}</div>`;
+        html += `<div class="compare-div-group"><span class="compare-div-label">${escapeHtml(nameB)} unique sources:</span>${onlyB.map((item) => `<span class="compare-div-item">${escapeHtml(item)}</span>`).join("") || `<span class="compare-div-item">None</span>`}</div>`;
+      }
+    }
+    html += `</div>`;
   }
   html += `</div>`;
 

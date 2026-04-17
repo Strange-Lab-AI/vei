@@ -188,3 +188,4 @@ class Scenario:
     property_graph: Optional[Dict[str, Any]] = None
     campaign_graph: Optional[Dict[str, Any]] = None
     inventory_graph: Optional[Dict[str, Any]] = None
+    knowledge_graph: Optional[Dict[str, Any]] = None

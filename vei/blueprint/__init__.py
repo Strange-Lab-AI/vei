@@ -31,6 +31,7 @@ __all__ = [
     "BlueprintEnvironmentSummary",
     "BlueprintDocGraphAsset",
     "BlueprintIdentityGraphAsset",
+    "BlueprintKnowledgeGraphAsset",
     "BlueprintIdentityPolicyAsset",
     "BlueprintRevenueGraphAsset",
     "BlueprintRunDefaults",
@@ -82,6 +83,7 @@ def __getattr__(name: str):  # pragma: no cover - thin import facade
         "CompiledBlueprint",
         "BlueprintEnvironmentAsset",
         "BlueprintEnvironmentSummary",
+        "BlueprintKnowledgeGraphAsset",
         "FacadeManifest",
     }:
         module = import_module("vei.blueprint.models")

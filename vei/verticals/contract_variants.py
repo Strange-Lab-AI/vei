@@ -234,6 +234,67 @@ _VERTICAL_CONTRACT_VARIANTS: dict[str, dict[str, VerticalContractVariantSpec]] =
                 )
             ],
         ),
+        "proposal_ready": VerticalContractVariantSpec(
+            vertical_name="digital_marketing_agency",
+            name="proposal_ready",
+            title="Proposal Ready",
+            description="Bias toward a grounded, citable proposal draft before anything external is sent.",
+            objective_summary="Produce a proposal that cites current pricing, delivery, and client-conversation evidence before review.",
+            rationale="This lets the Northstar world cover knowledge work on the same deterministic spine as the launch world.",
+            success_predicates=[
+                ContractPredicateSpec(
+                    name="proposal_asset_exists",
+                    source="oracle_state",
+                    assertion={
+                        "kind": "state_exists",
+                        "field": "components.knowledge.assets.ART-0001",
+                    },
+                    description="A proposal draft must exist in the knowledge store.",
+                ),
+                ContractPredicateSpec(
+                    name="proposal_citations_present",
+                    source="oracle_state",
+                    assertion={
+                        "kind": "citations_present",
+                        "field": "components.knowledge.assets.ART-0001",
+                    },
+                    description="The proposal must cite its source assets.",
+                ),
+                ContractPredicateSpec(
+                    name="proposal_sources_fresh",
+                    source="oracle_state",
+                    assertion={
+                        "kind": "sources_within_shelf_life",
+                        "field": "components.knowledge.assets.ART-0001",
+                    },
+                    description="The proposal must avoid expired knowledge sources.",
+                ),
+                ContractPredicateSpec(
+                    name="proposal_template_valid",
+                    source="oracle_state",
+                    assertion={
+                        "kind": "format_matches_template",
+                        "field": "components.knowledge.assets.ART-0001",
+                    },
+                    description="The proposal must keep the expected section structure.",
+                ),
+            ],
+            policy_invariants=[
+                PolicyInvariantSpec(
+                    name="proposal_must_be_grounded",
+                    description="Pricing, delivery, and client evidence should all be cited before the proposal leaves draft state.",
+                    metadata={"origin": "simulated", "variant": "proposal_ready"},
+                )
+            ],
+            reward_terms=[
+                RewardTermSpec(
+                    name="grounded_proposal_bias",
+                    weight=2.0,
+                    description="Reward proposal drafts that stay grounded in current knowledge assets.",
+                    metadata={"origin": "simulated", "variant": "proposal_ready"},
+                )
+            ],
+        ),
     },
     "storage_solutions": {
         "no_overcommit": VerticalContractVariantSpec(

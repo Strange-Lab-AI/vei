@@ -31,6 +31,10 @@ from .models import (
     IdentityGroupView,
     IdentityPolicyView,
     IdentityUserView,
+    KnowledgeAssetView,
+    KnowledgeEdgeView,
+    KnowledgeFreshnessView,
+    KnowledgeGraphView,
     InventoryGraphView,
     ObsGraphView,
     ObsIncidentView,
@@ -88,6 +92,7 @@ def build_runtime_capability_graphs(state: WorldState) -> RuntimeCapabilityGraph
     work_graph = _build_work_graph(state.components)
     identity_graph = _build_identity_graph(state.components, graph_seed)
     revenue_graph = _build_revenue_graph(state.components)
+    knowledge_graph = _build_knowledge_graph(state.components)
     data_graph = _build_data_graph(state.components)
     obs_graph = _build_obs_graph(state.components)
     ops_graph = _build_ops_graph(state.components)
@@ -106,6 +111,8 @@ def build_runtime_capability_graphs(state: WorldState) -> RuntimeCapabilityGraph
             identity_graph = None
         if "revenue_graph" not in allowed_domains:
             revenue_graph = None
+        if "knowledge_graph" not in allowed_domains:
+            knowledge_graph = None
         if "data_graph" not in allowed_domains:
             data_graph = None
         if "obs_graph" not in allowed_domains:
@@ -127,6 +134,7 @@ def build_runtime_capability_graphs(state: WorldState) -> RuntimeCapabilityGraph
             ("work_graph", work_graph),
             ("identity_graph", identity_graph),
             ("revenue_graph", revenue_graph),
+            ("knowledge_graph", knowledge_graph),
             ("data_graph", data_graph),
             ("obs_graph", obs_graph),
             ("ops_graph", ops_graph),
@@ -145,6 +153,7 @@ def build_runtime_capability_graphs(state: WorldState) -> RuntimeCapabilityGraph
         work_graph=work_graph,
         identity_graph=identity_graph,
         revenue_graph=revenue_graph,
+        knowledge_graph=knowledge_graph,
         data_graph=data_graph,
         obs_graph=obs_graph,
         ops_graph=ops_graph,
@@ -175,6 +184,8 @@ def get_runtime_capability_graph(state: WorldState, domain: str) -> Optional[Any
         return graphs.identity_graph
     if normalized == "revenue_graph":
         return graphs.revenue_graph
+    if normalized == "knowledge_graph":
+        return graphs.knowledge_graph
     if normalized == "data_graph":
         return graphs.data_graph
     if normalized == "obs_graph":
@@ -346,6 +357,12 @@ def infer_graph_action_object_refs(
         _add("crm_deal", "id")
         _add("crm_company", "company_id")
         _add("crm_contact", "contact_id")
+    elif normalized_domain == "knowledge_graph":
+        _add("knowledge_asset", "asset_id")
+        _add("knowledge_asset", "from_asset_id")
+        _add("knowledge_asset", "replacement_asset_id")
+        _add("knowledge_subject", "subject_object_ref")
+        _add("knowledge_ref", "to_ref")
     elif normalized_domain == "data_graph":
         _add("workbook", "workbook_id")
         _add("worksheet", "sheet_id")
@@ -677,6 +694,67 @@ def _build_revenue_graph(
     if not companies and not contacts and not deals:
         return None
     return RevenueGraphView(companies=companies, contacts=contacts, deals=deals)
+
+
+def _build_knowledge_graph(
+    components: Dict[str, Dict[str, Any]],
+) -> Optional[KnowledgeGraphView]:
+    knowledge = components.get("knowledge", {})
+    raw_assets = knowledge.get("assets") or {}
+    raw_edges = knowledge.get("edges") or []
+
+    assets = [
+        KnowledgeAssetView(
+            asset_id=str(asset_id),
+            kind=str(payload.get("kind", "note")),
+            title=str(payload.get("title", asset_id)),
+            status=str(payload.get("status", "active")),
+            summary=str(payload.get("summary", "")),
+            tags=[str(tag) for tag in (payload.get("tags") or [])],
+            linked_object_refs=[
+                str(item) for item in (payload.get("linked_object_refs") or [])
+            ],
+            source=str((payload.get("provenance") or {}).get("source", "")),
+            captured_at=str((payload.get("provenance") or {}).get("captured_at", "")),
+            has_composition=bool(payload.get("composition")),
+        )
+        for asset_id, payload in sorted(raw_assets.items())
+        if isinstance(payload, dict)
+    ]
+    edges = [
+        KnowledgeEdgeView(
+            edge_id=str(payload.get("edge_id", index)),
+            kind=str(payload.get("kind", "")),
+            from_asset_id=str(payload.get("from_asset_id", "")),
+            to_ref=str(payload.get("to_ref", "")),
+        )
+        for index, payload in enumerate(raw_edges, start=1)
+        if isinstance(payload, dict)
+    ]
+    freshness = [
+        KnowledgeFreshnessView(
+            asset_id=str(asset_id),
+            status=str(payload.get("status", "active")),
+            captured_at=str((payload.get("provenance") or {}).get("captured_at", "")),
+            shelf_life_ms=(
+                int((payload.get("provenance") or {}).get("shelf_life_ms"))
+                if (payload.get("provenance") or {}).get("shelf_life_ms") is not None
+                else None
+            ),
+            expires_at_ms=(
+                int(payload.get("metadata", {}).get("captured_at_ms", 0))
+                + int((payload.get("provenance") or {}).get("shelf_life_ms", 0))
+                if (payload.get("provenance") or {}).get("shelf_life_ms") is not None
+                and payload.get("metadata", {}).get("captured_at_ms") is not None
+                else None
+            ),
+        )
+        for asset_id, payload in sorted(raw_assets.items())
+        if isinstance(payload, dict)
+    ]
+    if not assets and not edges:
+        return None
+    return KnowledgeGraphView(assets=assets, edges=edges, freshness=freshness)
 
 
 def _build_data_graph(components: Dict[str, Dict[str, Any]]) -> Optional[DataGraphView]:
@@ -1109,6 +1187,7 @@ def _suggest_graph_steps(
     steps.extend(_data_steps(state, graphs.data_graph))
     steps.extend(_work_steps(state, graphs.work_graph))
     steps.extend(_revenue_steps(state, graphs.revenue_graph, graphs.identity_graph))
+    steps.extend(_knowledge_steps(graphs.knowledge_graph))
     steps.extend(_comm_steps(graphs.comm_graph))
     steps.extend(_property_steps(graphs.property_graph))
     steps.extend(_campaign_steps(graphs.campaign_graph))
@@ -1312,6 +1391,105 @@ def _obs_steps(
                 )
             )
             break
+    return steps
+
+
+def _knowledge_steps(
+    graph: Optional[KnowledgeGraphView],
+) -> list[CapabilityGraphPlanStep]:
+    if graph is None:
+        return []
+    steps: list[CapabilityGraphPlanStep] = []
+    stale_assets = [
+        asset for asset in graph.assets if asset.status in {"stale", "expired"}
+    ]
+    for asset in stale_assets[:2]:
+        newer_asset = next(
+            (
+                candidate
+                for candidate in graph.assets
+                if candidate.asset_id != asset.asset_id
+                and candidate.kind == asset.kind
+                and set(candidate.linked_object_refs).intersection(
+                    asset.linked_object_refs
+                )
+                and candidate.status == "active"
+            ),
+            None,
+        )
+        if newer_asset is None:
+            continue
+        steps.append(
+            _plan_step(
+                domain="knowledge_graph",
+                action="supersede_asset",
+                title=f"Supersede stale {asset.kind} {asset.title}",
+                rationale="A fresher knowledge asset exists for the same subject.",
+                priority="high",
+                tool="knowledge.supersede_asset",
+                args={
+                    "asset_id": asset.asset_id,
+                    "replacement_asset_id": newer_asset.asset_id,
+                },
+                target_id=asset.asset_id,
+                target_kind="knowledge_asset",
+                tags=["knowledge", "freshness"],
+            )
+        )
+    composable_subjects = _unique(
+        ref
+        for asset in graph.assets
+        for ref in asset.linked_object_refs
+        if ref and asset.status == "active"
+    )
+    if composable_subjects:
+        steps.append(
+            _plan_step(
+                domain="knowledge_graph",
+                action="compose_artifact",
+                title=f"Compose proposal for {composable_subjects[0]}",
+                rationale="There is enough active subject-linked knowledge to draft a grounded artifact.",
+                priority="medium",
+                tool="knowledge.compose_artifact",
+                args={
+                    "target": "proposal",
+                    "template_id": "proposal_v1",
+                    "subject_object_ref": composable_subjects[0],
+                    "mode": "heuristic_baseline",
+                },
+                target_id=composable_subjects[0],
+                target_kind="knowledge_subject",
+                tags=["knowledge", "authoring"],
+            )
+        )
+    uncited_compositions = [
+        asset
+        for asset in graph.assets
+        if asset.has_composition and asset.status == "active"
+    ]
+    for asset in uncited_compositions[:1]:
+        steps.append(
+            _plan_step(
+                domain="knowledge_graph",
+                action="link_asset",
+                title=f"Link {asset.title} to its subject",
+                rationale="Composed knowledge should stay connected to the business object it applies to.",
+                priority="medium",
+                tool="knowledge.link_asset",
+                args={
+                    "from_asset_id": asset.asset_id,
+                    "kind": "applies_to",
+                    "to_ref": (
+                        asset.linked_object_refs[0]
+                        if asset.linked_object_refs
+                        else "subject:unknown"
+                    ),
+                },
+                target_id=asset.asset_id,
+                target_kind="knowledge_asset",
+                tags=["knowledge", "lineage"],
+            )
+        )
     return steps
 
 
@@ -2253,6 +2431,63 @@ _ACTION_SCHEMAS = [
         tags=("revenue", "artifact_follow_through"),
     ),
     _schema(
+        domain="knowledge_graph",
+        action="ingest_asset",
+        title="Ingest knowledge asset",
+        description="Add a grounded knowledge asset into the deterministic knowledge store.",
+        tool="knowledge.ingest_asset",
+        required_args=("kind", "title", "body", "source"),
+        optional_args=(
+            "source_id",
+            "import_id",
+            "captured_at",
+            "summary",
+            "tags",
+            "linked_object_refs",
+            "shelf_life_ms",
+            "metrics",
+        ),
+        tags=("knowledge", "ingest"),
+    ),
+    _schema(
+        domain="knowledge_graph",
+        action="link_asset",
+        title="Link knowledge asset",
+        description="Connect a knowledge asset to another asset or subject reference.",
+        tool="knowledge.link_asset",
+        required_args=("from_asset_id", "kind", "to_ref"),
+        tags=("knowledge", "lineage"),
+    ),
+    _schema(
+        domain="knowledge_graph",
+        action="supersede_asset",
+        title="Supersede knowledge asset",
+        description="Mark an older knowledge asset as replaced by a fresher asset.",
+        tool="knowledge.supersede_asset",
+        required_args=("asset_id", "replacement_asset_id"),
+        tags=("knowledge", "freshness"),
+    ),
+    _schema(
+        domain="knowledge_graph",
+        action="compose_artifact",
+        title="Compose artifact",
+        description="Draft a grounded proposal, brief, or weekly review with citations.",
+        tool="knowledge.compose_artifact",
+        required_args=("target", "template_id", "subject_object_ref"),
+        optional_args=(
+            "scope_refs",
+            "kinds",
+            "tags",
+            "seed_outline",
+            "prompt",
+            "mode",
+            "provider",
+            "model",
+            "limit",
+        ),
+        tags=("knowledge", "authoring", "citations"),
+    ),
+    _schema(
         domain="data_graph",
         action="update_cell",
         title="Update cell",
@@ -2533,6 +2768,7 @@ _DOMAIN_SET = {
     "work_graph",
     "identity_graph",
     "revenue_graph",
+    "knowledge_graph",
     "data_graph",
     "obs_graph",
     "ops_graph",
@@ -2547,6 +2783,7 @@ _DOMAIN_FOCUS = {
     "work_graph": "tickets",
     "identity_graph": "identity",
     "revenue_graph": "crm",
+    "knowledge_graph": "knowledge",
     "data_graph": "spreadsheet",
     "obs_graph": "pagerduty",
     "property_graph": "property",
@@ -2556,6 +2793,7 @@ _DOMAIN_FOCUS = {
 
 _TOOL_FOCUS = {
     "feature_flags": "feature_flags",
+    "knowledge": "knowledge",
     "service_ops": "service_ops",
 }
 

@@ -59,6 +59,10 @@ class VEILazyGroup(LazyTyperGroup):
             module_path="vei.cli.vei_context",
             help="Capture and inspect context bundles.",
         ),
+        "knowledge": LazyCommandSpec(
+            module_path="vei.cli.vei_knowledge",
+            help="Capture knowledge assets and compose grounded business artifacts.",
+        ),
         "contract": LazyCommandSpec(
             module_path="vei.cli.vei_contract",
             help="Inspect and validate workspace contracts.",

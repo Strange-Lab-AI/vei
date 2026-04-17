@@ -39,7 +39,7 @@ def training_data(
         "conversations",
         "--format",
         "-f",
-        help="Output format: conversations, trajectories, demonstrations",
+        help="Output format: conversations, trajectories, demonstrations, authoring",
     ),
     output: str = typer.Option(
         "-", "--output", "-o", help="Output path or '-' for stdout"
@@ -48,7 +48,7 @@ def training_data(
     """Generate training data from completed runs."""
     from vei.synthesis.api import synthesize_training_set
 
-    valid_formats = {"conversations", "trajectories", "demonstrations"}
+    valid_formats = {"conversations", "trajectories", "demonstrations", "authoring"}
     fmt = format.strip().lower()
     if fmt not in valid_formats:
         raise typer.BadParameter(

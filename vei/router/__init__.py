@@ -26,6 +26,8 @@ __all__ = [
     "InventoryOpsSim",
     "InventoryOpsToolProvider",
     "JiraToolProvider",
+    "KnowledgeSim",
+    "KnowledgeToolProvider",
     "LinearCongruentialGenerator",
     "MailSim",
     "NotesSim",
@@ -108,6 +110,9 @@ def __getattr__(name: str) -> Any:  # pragma: no cover - thin import facade
         return getattr(module, name)
     if name in {"NotesSim", "NotesToolProvider"}:
         module = import_module("vei.router.notes")
+        return getattr(module, name)
+    if name in {"KnowledgeSim", "KnowledgeToolProvider"}:
+        module = import_module("vei.router.knowledge")
         return getattr(module, name)
     if name in {"SpreadsheetSim", "SpreadsheetToolProvider"}:
         module = import_module("vei.router.spreadsheet")

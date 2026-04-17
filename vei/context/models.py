@@ -4,7 +4,17 @@ from typing import Any, Dict, List, Literal, Optional, TypeAlias, TypeVar
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-ContextLiveProviderName = Literal["slack", "jira", "google", "okta", "gmail", "teams"]
+ContextLiveProviderName = Literal[
+    "slack",
+    "jira",
+    "google",
+    "okta",
+    "gmail",
+    "teams",
+    "notion",
+    "linear",
+    "granola",
+]
 ContextProviderName = Literal[
     "slack",
     "jira",
@@ -15,6 +25,9 @@ ContextProviderName = Literal[
     "crm",
     "salesforce",
     "mail_archive",
+    "notion",
+    "linear",
+    "granola",
 ]
 ContextSnapshotRole = Literal["company_history_bundle", "workspace_seed"]
 
@@ -94,6 +107,22 @@ class MailArchiveSourceData(ContextSourcePayload):
     profile: Dict[str, Any] = Field(default_factory=dict)
 
 
+class NotionSourceData(ContextSourcePayload):
+    pages: List[Dict[str, Any]] = Field(default_factory=list)
+    databases: List[Dict[str, Any]] = Field(default_factory=list)
+    blocks: List[Dict[str, Any]] = Field(default_factory=list)
+
+
+class LinearSourceData(ContextSourcePayload):
+    cycles: List[Dict[str, Any]] = Field(default_factory=list)
+    issues: List[Dict[str, Any]] = Field(default_factory=list)
+    projects: List[Dict[str, Any]] = Field(default_factory=list)
+
+
+class GranolaSourceData(ContextSourcePayload):
+    transcripts: List[Dict[str, Any]] = Field(default_factory=list)
+
+
 ContextSourceData: TypeAlias = (
     SlackSourceData
     | GmailSourceData
@@ -103,6 +132,9 @@ ContextSourceData: TypeAlias = (
     | TeamsSourceData
     | OktaSourceData
     | MailArchiveSourceData
+    | NotionSourceData
+    | LinearSourceData
+    | GranolaSourceData
     | GenericSourceData
 )
 
@@ -116,13 +148,16 @@ _SOURCE_DATA_MODEL_MAP: Dict[str, type[BaseModel]] = {
     "teams": TeamsSourceData,
     "okta": OktaSourceData,
     "mail_archive": MailArchiveSourceData,
+    "notion": NotionSourceData,
+    "linear": LinearSourceData,
+    "granola": GranolaSourceData,
 }
 
 _PayloadT = TypeVar("_PayloadT", bound=ContextSourcePayload)
 
 
 class ContextProviderConfig(BaseModel):
-    provider: ContextLiveProviderName
+    provider: ContextProviderName
     token_env: str = ""
     base_url: Optional[str] = None
     scopes: List[str] = Field(default_factory=list)

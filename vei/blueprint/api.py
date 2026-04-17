@@ -95,6 +95,16 @@ def build_blueprint_asset_for_family(
         if variant_name:
             asset.workflow_variant = variant_name
         return asset
+    if family_name.strip().lower() == "knowledge_authoring":
+        asset = build_vertical_blueprint_asset("digital_marketing_agency")
+        asset.family_name = "knowledge_authoring"
+        asset.workflow_name = "knowledge_authoring"
+        asset.workflow_variant = variant_name or "northstar_proposal_drafting"
+        asset.title = "Northstar Knowledge Authoring"
+        asset.description = (
+            "Grounded proposal authoring on the shared Northstar Growth company world."
+        )
+        return asset
     family = get_benchmark_family_manifest(family_name)
     workflow_name = family.workflow_name
     if workflow_name is None:
@@ -132,6 +142,18 @@ def build_blueprint_asset_for_scenario(
     requested_facades: Optional[List[str]] = None,
     metadata: Optional[dict] = None,
 ) -> BlueprintAsset:
+    if (family_name or "").strip().lower() == "knowledge_authoring":
+        asset = build_blueprint_asset_for_family(
+            "knowledge_authoring",
+            variant_name=workflow_variant,
+        )
+        if title:
+            asset.title = title
+        if description:
+            asset.description = description
+        if metadata:
+            asset.metadata = {**dict(asset.metadata), **dict(metadata)}
+        return asset
     scenario = get_scenario_manifest(scenario_name)
     resolved_family_name = family_name or scenario.benchmark_family
     return BlueprintAsset(
@@ -446,6 +468,10 @@ def materialize_scenario_from_blueprint(asset: BlueprintAsset) -> Scenario:
         scenario.inventory_graph = asset.capability_graphs.inventory_graph.model_dump(
             mode="json"
         )
+    if asset.capability_graphs is not None and asset.capability_graphs.knowledge_graph:
+        scenario.knowledge_graph = asset.capability_graphs.knowledge_graph.model_dump(
+            mode="json"
+        )
     if asset.capability_graphs is not None and asset.capability_graphs.ops_graph:
         ops_graph = asset.capability_graphs.ops_graph
         scenario.feature_flags = {
@@ -574,6 +600,7 @@ def _graph_domain_tool_family(domain: str) -> str:
         "work_graph": "tickets",
         "identity_graph": "identity",
         "revenue_graph": "crm",
+        "knowledge_graph": "knowledge",
         "data_graph": "spreadsheet",
         "obs_graph": "pagerduty",
         "ops_graph": "feature_flags",
@@ -610,6 +637,11 @@ def _build_environment_summary(
         service_request_count=len(environment.service_requests),
         hris_employee_count=len(environment.hris_employees),
         crm_deal_count=len(environment.crm_deals),
+        knowledge_asset_count=len(
+            (asset.capability_graphs.knowledge_graph.assets)
+            if asset.capability_graphs and asset.capability_graphs.knowledge_graph
+            else []
+        ),
         slack_channel_count=len(environment.slack_channels),
         mail_thread_count=len(environment.mail_threads),
         property_count=len(
@@ -759,6 +791,23 @@ def _build_graph_summaries(asset: BlueprintAsset) -> List[CapabilityGraphSummary
                     "companies": len(graphs.revenue_graph.companies),
                     "contacts": len(graphs.revenue_graph.contacts),
                     "deals": len(graphs.revenue_graph.deals),
+                },
+            )
+        )
+    if graphs.knowledge_graph is not None:
+        summaries.append(
+            CapabilityGraphSummary(
+                domain="knowledge_graph",
+                entity_count=len(graphs.knowledge_graph.assets)
+                + len(graphs.knowledge_graph.edges),
+                facet_counts={
+                    "assets": len(graphs.knowledge_graph.assets),
+                    "edges": len(graphs.knowledge_graph.edges),
+                    "compositions": sum(
+                        1
+                        for asset in graphs.knowledge_graph.assets
+                        if asset.composition is not None
+                    ),
                 },
             )
         )

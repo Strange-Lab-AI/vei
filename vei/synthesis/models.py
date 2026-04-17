@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Literal, Optional
 
 from pydantic import BaseModel, Field
 
-TrainingFormat = Literal["conversations", "trajectories", "demonstrations"]
+TrainingFormat = Literal["conversations", "trajectories", "demonstrations", "authoring"]
 
 
 class RunbookStep(BaseModel):

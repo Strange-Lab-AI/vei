@@ -939,6 +939,15 @@ def build_notes_surface_panel(
     return build_notes_panel(components, context)
 
 
+def build_knowledge_surface_panel(
+    components: Dict[str, Dict[str, Any]],
+    context: Dict[str, Any],
+) -> Any:
+    from ._surface_panels_business import build_knowledge_panel
+
+    return build_knowledge_panel(components, context)
+
+
 def build_revenue_surface_panel(
     components: Dict[str, Dict[str, Any]],
     context: Dict[str, Any],
@@ -1182,6 +1191,13 @@ def get_run_surface_state(root: str | Path, run_id: str) -> LivingSurfaceState:
         run_manifest=run_manifest,
         snapshots=snapshots,
     )
+
+
+def get_run_knowledge_state(root: str | Path, run_id: str) -> Dict[str, Any]:
+    state = _latest_run_state(root, run_id)
+    if state is None:
+        return {}
+    return dict(state.components.get("knowledge") or {})
 
 
 def load_run_contract_evaluation(

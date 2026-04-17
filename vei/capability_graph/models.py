@@ -181,6 +181,40 @@ class RevenueGraphView(BaseModel):
     deals: List[RevenueDealView] = Field(default_factory=list)
 
 
+class KnowledgeAssetView(BaseModel):
+    asset_id: str
+    kind: str
+    title: str
+    status: str = "active"
+    summary: str = ""
+    tags: List[str] = Field(default_factory=list)
+    linked_object_refs: List[str] = Field(default_factory=list)
+    source: str = ""
+    captured_at: str = ""
+    has_composition: bool = False
+
+
+class KnowledgeEdgeView(BaseModel):
+    edge_id: str
+    kind: str
+    from_asset_id: str
+    to_ref: str
+
+
+class KnowledgeFreshnessView(BaseModel):
+    asset_id: str
+    status: str = "active"
+    captured_at: str = ""
+    shelf_life_ms: Optional[int] = None
+    expires_at_ms: Optional[int] = None
+
+
+class KnowledgeGraphView(BaseModel):
+    assets: List[KnowledgeAssetView] = Field(default_factory=list)
+    edges: List[KnowledgeEdgeView] = Field(default_factory=list)
+    freshness: List[KnowledgeFreshnessView] = Field(default_factory=list)
+
+
 class PropertyView(BaseModel):
     property_id: str
     name: str
@@ -529,6 +563,7 @@ class RuntimeCapabilityGraphs(BaseModel):
     work_graph: Optional[WorkGraphView] = None
     identity_graph: Optional[IdentityGraphView] = None
     revenue_graph: Optional[RevenueGraphView] = None
+    knowledge_graph: Optional[KnowledgeGraphView] = None
     data_graph: Optional[DataGraphView] = None
     obs_graph: Optional[ObsGraphView] = None
     ops_graph: Optional[OpsGraphView] = None
@@ -558,6 +593,10 @@ __all__ = [
     "IdentityGroupView",
     "IdentityPolicyView",
     "IdentityUserView",
+    "KnowledgeAssetView",
+    "KnowledgeEdgeView",
+    "KnowledgeFreshnessView",
+    "KnowledgeGraphView",
     "LeaseView",
     "ObsGraphView",
     "ObsIncidentView",

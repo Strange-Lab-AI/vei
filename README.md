@@ -1,7 +1,7 @@
 ## VEI
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/strangeloopcanon/vei)
 
-VEI turns built-in scenarios or real company records into a runnable company world. You can use it to test an agent before it touches a real company, watch an outside agent through a governed twin, or branch from a real historical decision and compare a different move.
+VEI turns built-in scenarios or real company records into a runnable company world. You can use it to test an agent before it touches a real company, watch an outside agent through a governed twin, branch from a real historical decision and compare a different move, or draft grounded knowledge artifacts from the same company state.
 
 The same engine powers every path: one world state, one event history, one replay model, and one CLI.
 
@@ -11,6 +11,7 @@ The same engine powers every path: one world state, one event history, one repla
 - [Pick Your Entry Point](#pick-your-entry-point)
 - [How VEI Works](#how-vei-works)
 - [Walk Through The Enron Case](#walk-through-the-enron-case)
+- [Knowledge Authoring Demo](#knowledge-authoring-demo)
 - [Bring Your Own Company History](#bring-your-own-company-history)
 - [Repo Checks](#repo-checks)
 - [Docs](#docs)
@@ -56,9 +57,11 @@ What you need:
 
 ## How VEI Works
 
-VEI has two top-level paths.
+VEI has three top-level paths.
 
-The runnable company path starts from a built-in world or a captured company snapshot. VEI compiles that into one deterministic world session with connected surfaces such as mail, chat, tickets, docs, CRM, and identity. Agents and humans act through VEI tools and routes. VEI records what happened, scores the run, and lets you replay or branch it.
+The runnable company path starts from a built-in world or a captured company snapshot. VEI compiles that into one deterministic world session with connected surfaces such as mail, chat, tickets, docs, CRM, identity, and knowledge assets. Agents and humans act through VEI tools and routes. VEI records what happened, scores the run, and lets you replay or branch it.
+
+The knowledge authoring path rides on that same world. VEI hydrates notes, transcripts, metric snapshots, SOPs, pricing sheets, and deliverables into one `knowledge_graph`, then composes proposals or briefs with citations, freshness checks, and contract scoring. The deterministic baseline runs without an API key. The bounded LLM mode uses the same recorded event spine and the same workspace/run model.
 
 The historical what-if path starts from one normalized company history bundle. The outer layer is `context_snapshot.json`. It keeps the raw sources parallel as typed records, with provider health, timestamps, actors, cases, and linked records. VEI explores that bundle, ranks branch candidates, and picks one real decision point.
 
@@ -133,6 +136,56 @@ vei whatif experiment --source company_history \
 
 See [docs/SERVICE_OPS_WALKTHROUGH.md](docs/SERVICE_OPS_WALKTHROUGH.md) for the full Studio walkthrough.
 
+## Knowledge Authoring Demo
+
+The built-in `knowledge_authoring` family turns the Northstar Growth world into a grounded proposal-drafting workspace. It is a benchmark family built on the same Northstar pack used for campaign operations, with transcripts, pricing, delivery metrics, SOPs, and planning notes seeded into the normal VEI event spine.
+
+Run-based authoring export uses a recorded VEI run:
+
+```bash
+vei project init \
+  --root _vei_out/knowledge_authoring \
+  --family knowledge_authoring \
+  --overwrite
+
+vei run start \
+  --root _vei_out/knowledge_authoring \
+  --runner workflow
+
+vei synthesize training-data \
+  --root _vei_out/knowledge_authoring \
+  --run-id <run_id> \
+  --format authoring
+```
+
+Standalone workspace compose writes a fresh artifact into the workspace knowledge snapshot. It updates workspace knowledge state for future compose calls and future runs. It does not attach itself to an existing run timeline.
+
+```bash
+vei knowledge compose \
+  --workspace _vei_out/knowledge_authoring \
+  --target proposal \
+  --template proposal_v1 \
+  --subject crm_deal:CRM-NSG-D1 \
+  --mode heuristic_baseline \
+  --write-back
+```
+
+`--mode heuristic_baseline` is fully deterministic and runs without any API key. `--mode llm` uses the same bounded composition path with `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GOOGLE_API_KEY` or `GEMINI_API_KEY`, or `OPENROUTER_API_KEY`. When the selected key is missing, the compose command falls back to `heuristic_baseline` and records that note in the result.
+
+To ingest offline exports from real knowledge systems, use the new offline-first connectors. `notion`, `linear`, and `granola` read local exports only:
+
+```bash
+vei knowledge ingest \
+  --provider notion \
+  --provider linear \
+  --provider granola \
+  --source notion=/path/to/notion_export \
+  --source linear=/path/to/linear_dump.json \
+  --source granola=/path/to/granola_notes \
+  --org "Northstar Growth" \
+  --output _vei_out/knowledge_snapshot.json
+```
+
 ## Bring Your Own Company History
 
 Bring raw exports into VEI as one verified bundle before you run what-if work.
@@ -191,8 +244,9 @@ make llm-live
 
 ## Docs
 
-- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the module map and data flow
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the module map, capability domains, and knowledge layer
 - [docs/WHATIF.md](docs/WHATIF.md) for the historical replay and comparison flow
+- [docs/OVERVIEW.md](docs/OVERVIEW.md) for the product framing, including the knowledge brain layer
 - [docs/examples/enron-master-agreement-public-context/README.md](docs/examples/enron-master-agreement-public-context/README.md) for the repo-owned Enron example
 - [docs/SERVICE_OPS_WALKTHROUGH.md](docs/SERVICE_OPS_WALKTHROUGH.md) for the Studio and control-room path
 

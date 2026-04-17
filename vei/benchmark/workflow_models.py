@@ -248,6 +248,22 @@ class ServiceOpsWorkflowParams(BaseModel):
     deadline_max_ms: int = 180_000
 
 
+class KnowledgeAuthoringWorkflowParams(BaseModel):
+    subject_object_ref: str = "crm_deal:CRM-NSG-D1"
+    template_id: str = "proposal_v1"
+    target: str = "proposal"
+    prompt: str = (
+        "Draft a grounded proposal that explains the phased launch path, delivery health, pricing, and approval guardrails."
+    )
+    expected_artifact_id: str = "ART-0001"
+    required_source_asset_ids: list[str] = [
+        "KA-NSG-001",
+        "KA-NSG-003",
+        "KA-NSG-004",
+    ]
+    deadline_max_ms: int = 180_000
+
+
 WorkflowParams = (
     SecurityContainmentWorkflowParams
     | EnterpriseOnboardingMigrationWorkflowParams
@@ -258,4 +274,5 @@ WorkflowParams = (
     | StorageSolutionsWorkflowParams
     | B2bSaasWorkflowParams
     | ServiceOpsWorkflowParams
+    | KnowledgeAuthoringWorkflowParams
 )

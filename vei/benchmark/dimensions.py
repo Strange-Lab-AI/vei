@@ -6,6 +6,12 @@ from statistics import mean
 from typing import Any, Dict, List
 
 from vei.benchmark.families import get_benchmark_family_manifest
+from vei.knowledge.api import (
+    KnowledgeAsset,
+    latest_composed_asset_payload,
+    resolve_knowledge_now_ms,
+    validate_composed_asset,
+)
 from vei.world import get_scenario
 from vei.world.models import WorldState
 
@@ -53,6 +59,8 @@ def score_enterprise_dimensions(
         dimensions = _score_service_ops(calls, state)
     elif manifest.name == "b2b_saas":
         dimensions = _score_b2b_saas(calls, state)
+    elif manifest.name == "knowledge_authoring":
+        dimensions = _score_knowledge_authoring(calls, state)
     else:
         dimensions = {}
 
@@ -655,6 +663,79 @@ def _score_b2b_saas(
         "revenue_impact": _clamp(revenue_impact),
         "competitive_defense": _clamp(competitive_defense),
         "cross_functional_coordination": _clamp(cross_functional_coordination),
+    }
+
+
+def _score_knowledge_authoring(
+    calls: List[Dict[str, Any]],
+    state: WorldState | None,
+) -> Dict[str, float]:
+    knowledge_store = state.components.get("knowledge", {}) if state else {}
+    knowledge_assets = _component(state, "knowledge", "assets")
+    if not knowledge_assets:
+        return {
+            "citation_grounding": 0.0,
+            "freshness_hygiene": 0.0,
+            "artifact_structure": 0.0,
+            "numbers_reconcile": 0.0,
+        }
+
+    latest_payload = latest_composed_asset_payload(knowledge_assets)
+    if latest_payload is None:
+        return {
+            "citation_grounding": 0.0,
+            "freshness_hygiene": 0.0,
+            "artifact_structure": 0.0,
+            "numbers_reconcile": 0.0,
+        }
+
+    artifact = KnowledgeAsset.model_validate(latest_payload)
+    asset_map = {
+        str(asset_id): KnowledgeAsset.model_validate(payload)
+        for asset_id, payload in knowledge_assets.items()
+        if isinstance(payload, dict)
+    }
+    now_ms = resolve_knowledge_now_ms(
+        knowledge_store,
+        clock_ms=int(state.clock_ms if state is not None else 0),
+    )
+    validation = validate_composed_asset(
+        artifact,
+        assets=asset_map,
+        now_ms=now_ms,
+        tolerance=0.01,
+    )
+    details = artifact.composition
+    section_count = len(details.sections) if details is not None else 0
+    claim_count = len(details.claims) if details is not None else 0
+    compose_calls = _count_prefix(calls, ("knowledge.",))
+
+    citation_grounding = mean(
+        [
+            1.0 if validation.citations_present else 0.0,
+            1.0 if validation.citations_resolve else 0.0,
+            1.0 if claim_count > 0 else 0.0,
+        ]
+    )
+    freshness_hygiene = mean(
+        [
+            1.0 if validation.sources_within_shelf_life else 0.0,
+            1.0 if artifact.status == "active" else 0.0,
+        ]
+    )
+    artifact_structure = mean(
+        [
+            1.0 if validation.format_matches_template else 0.0,
+            1.0 if section_count >= 3 else 0.0,
+            1.0 if compose_calls > 0 else 0.0,
+        ]
+    )
+    numbers_reconcile = 1.0 if validation.numbers_reconcile else 0.0
+    return {
+        "citation_grounding": _clamp(citation_grounding),
+        "freshness_hygiene": _clamp(freshness_hygiene),
+        "artifact_structure": _clamp(artifact_structure),
+        "numbers_reconcile": _clamp(numbers_reconcile),
     }
 
 

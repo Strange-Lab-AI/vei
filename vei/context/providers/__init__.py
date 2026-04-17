@@ -18,8 +18,11 @@ def list_providers() -> list[str]:
 
 def _build_registry() -> Dict[str, ContextProvider]:
     from .gmail import GmailContextProvider
+    from .granola import GranolaContextProvider
     from .google import GoogleContextProvider
     from .jira import JiraContextProvider
+    from .linear import LinearContextProvider
+    from .notion import NotionContextProvider
     from .okta import OktaContextProvider
     from .slack import SlackContextProvider
     from .teams import TeamsContextProvider
@@ -31,4 +34,7 @@ def _build_registry() -> Dict[str, ContextProvider]:
         "okta": OktaContextProvider(),
         "gmail": GmailContextProvider(),
         "teams": TeamsContextProvider(),
+        "notion": NotionContextProvider(),
+        "linear": LinearContextProvider(),
+        "granola": GranolaContextProvider(),
     }

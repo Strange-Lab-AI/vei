@@ -26,6 +26,19 @@ def synthesize_training_set(
     return build_training_set(Path(root).expanduser().resolve(), run_ids, format=format)
 
 
+def synthesize_authoring_finetune_set(
+    root: str | Path,
+    run_ids: List[str],
+) -> TrainingSet:
+    from .training import build_training_set
+
+    return build_training_set(
+        Path(root).expanduser().resolve(),
+        run_ids,
+        format="authoring",
+    )
+
+
 def synthesize_agent_config(
     root: str | Path,
     run_id: str,

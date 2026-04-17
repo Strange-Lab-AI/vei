@@ -10,6 +10,7 @@ CapabilityDomain = Literal[
     "work_graph",
     "identity_graph",
     "revenue_graph",
+    "knowledge_graph",
     "obs_graph",
     "data_graph",
     "ops_graph",
@@ -426,6 +427,102 @@ class BlueprintOpsGraphAsset(BaseModel):
     metadata: Dict[str, Any] = Field(default_factory=dict)
 
 
+class BlueprintKnowledgeProvenanceAsset(BaseModel):
+    source: str
+    source_id: str = ""
+    import_id: str = ""
+    captured_at: str = ""
+    shelf_life_ms: Optional[int] = None
+    authority: float = 1.0
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+
+
+class BlueprintKnowledgeClaimAsset(BaseModel):
+    claim_id: str
+    text: str
+    citation_asset_ids: List[str] = Field(default_factory=list)
+    section: Optional[str] = None
+    metric_key: Optional[str] = None
+    metric_value: Optional[float | int | str] = None
+
+
+class BlueprintKnowledgeCitationSpanAsset(BaseModel):
+    asset_id: str
+    marker: str
+    section: Optional[str] = None
+    quote: str = ""
+
+
+class BlueprintKnowledgeMetricBindingAsset(BaseModel):
+    metric_key: str
+    expected_value: float | int | str
+    cited_asset_id: str
+    source_field: str = ""
+
+
+class BlueprintKnowledgeValidationAsset(BaseModel):
+    citations_present: bool = True
+    citations_resolve: bool = True
+    sources_within_shelf_life: bool = True
+    numbers_reconcile: bool = True
+    format_matches_template: bool = True
+    issues: List[str] = Field(default_factory=list)
+
+
+class BlueprintKnowledgeCompositionAsset(BaseModel):
+    target: str = "proposal"
+    template_id: str = ""
+    subject_object_ref: str = ""
+    mode: str = "heuristic_baseline"
+    provider: Optional[str] = None
+    model: Optional[str] = None
+    prompt: str = ""
+    required_sections: List[str] = Field(default_factory=list)
+    sections: List[str] = Field(default_factory=list)
+    claims: List[BlueprintKnowledgeClaimAsset] = Field(default_factory=list)
+    citation_spans: List[BlueprintKnowledgeCitationSpanAsset] = Field(
+        default_factory=list
+    )
+    metric_bindings: List[BlueprintKnowledgeMetricBindingAsset] = Field(
+        default_factory=list
+    )
+    validation: BlueprintKnowledgeValidationAsset = Field(
+        default_factory=BlueprintKnowledgeValidationAsset
+    )
+    reviewer_feedback: List[str] = Field(default_factory=list)
+
+
+class BlueprintKnowledgeAsset(BaseModel):
+    asset_id: str
+    kind: str
+    title: str
+    body: str
+    summary: str = ""
+    tags: List[str] = Field(default_factory=list)
+    provenance: BlueprintKnowledgeProvenanceAsset
+    linked_object_refs: List[str] = Field(default_factory=list)
+    supersedes: List[str] = Field(default_factory=list)
+    derived_from: List[str] = Field(default_factory=list)
+    status: str = "active"
+    metrics: Dict[str, float | int | str] = Field(default_factory=dict)
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+    composition: Optional[BlueprintKnowledgeCompositionAsset] = None
+
+
+class BlueprintKnowledgeEdgeAsset(BaseModel):
+    edge_id: str
+    kind: str
+    from_asset_id: str
+    to_ref: str
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+
+
+class BlueprintKnowledgeGraphAsset(BaseModel):
+    assets: List[BlueprintKnowledgeAsset] = Field(default_factory=list)
+    edges: List[BlueprintKnowledgeEdgeAsset] = Field(default_factory=list)
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+
+
 class BlueprintEnvironmentAsset(BaseModel):
     organization_name: str
     organization_domain: str
@@ -465,6 +562,7 @@ class BlueprintEnvironmentSummary(BaseModel):
     service_request_count: int = 0
     hris_employee_count: int = 0
     crm_deal_count: int = 0
+    knowledge_asset_count: int = 0
     slack_channel_count: int = 0
     mail_thread_count: int = 0
     property_count: int = 0
@@ -569,6 +667,7 @@ class BlueprintCapabilityGraphsAsset(BaseModel):
     work_graph: Optional[BlueprintWorkGraphAsset] = None
     identity_graph: Optional[BlueprintIdentityGraphAsset] = None
     revenue_graph: Optional[BlueprintRevenueGraphAsset] = None
+    knowledge_graph: Optional[BlueprintKnowledgeGraphAsset] = None
     ops_graph: Optional[BlueprintOpsGraphAsset] = None
     property_graph: Optional[BlueprintPropertyGraphAsset] = None
     campaign_graph: Optional[BlueprintCampaignGraphAsset] = None

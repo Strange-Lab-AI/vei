@@ -225,6 +225,23 @@ _FAMILY_CATALOG: Dict[str, BenchmarkFamilyManifest] = {
         ],
         tags=["vertical", "service", "dispatch", "billing"],
     ),
+    "knowledge_authoring": BenchmarkFamilyManifest(
+        name="knowledge_authoring",
+        title="Knowledge Authoring",
+        description=(
+            "Draft a grounded client proposal from the same company state VEI already uses for actions, replay, and scoring."
+        ),
+        workflow_name="knowledge_authoring",
+        primary_workflow_variant="northstar_proposal_drafting",
+        workflow_variants=["northstar_proposal_drafting"],
+        scenario_names=["campaign_launch_guardrail"],
+        primary_dimensions=[
+            "citation_grounding",
+            "freshness_hygiene",
+            "artifact_structure",
+        ],
+        tags=["knowledge", "authoring", "proposal", "grounded"],
+    ),
 }
 
 

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Iterable, List, Optional
 
+from vei.knowledge.api import resolve_knowledge_now_ms, validate_composed_asset
 from vei.scenario_engine.models import AssertionSpec
 
 from .models import ContractSurface
@@ -170,6 +171,47 @@ def _assertion_failure(
             return f"expected workflow time <= {max_value} ms, got {time_ms} ms"
         return None
 
+    if assertion.kind in {
+        "citations_present",
+        "citations_resolve",
+        "sources_within_shelf_life",
+        "numbers_reconcile",
+        "format_matches_template",
+    }:
+        composed = _resolve_field(oracle_state, assertion.field)
+        if not isinstance(composed, dict):
+            return f"knowledge assertion field '{assertion.field}' does not resolve to a composed artifact"
+        knowledge_assets = _resolve_field(oracle_state, "components.knowledge.assets")
+        if not isinstance(knowledge_assets, dict):
+            return "knowledge assets are missing from oracle state"
+        try:
+            asset = _coerce_knowledge_asset(composed)
+            assets = {
+                str(asset_id): _coerce_knowledge_asset(payload)
+                for asset_id, payload in knowledge_assets.items()
+                if isinstance(payload, dict)
+            }
+            knowledge_store = _resolve_field(oracle_state, "components.knowledge")
+            now_ms = resolve_knowledge_now_ms(
+                knowledge_store if isinstance(knowledge_store, dict) else {},
+                clock_ms=int(_resolve_field(oracle_state, "clock_ms") or time_ms or 0),
+            )
+            validation = validate_composed_asset(
+                asset,
+                assets=assets,
+                now_ms=now_ms,
+                tolerance=float(assertion.params.get("tolerance", 0.0) or 0.0),
+            )
+        except Exception as exc:  # noqa: BLE001
+            return (
+                f"knowledge assertion failed to validate: {type(exc).__name__}: {exc}"
+            )
+        passed = getattr(validation, assertion.kind)
+        if not passed:
+            issue = validation.issues[0] if validation.issues else assertion.kind
+            return f"expected {assertion.kind} for '{assertion.field}': {issue}"
+        return None
+
     return f"unknown assertion kind: {assertion.kind}"
 
 
@@ -200,3 +242,13 @@ def _resolve_count(value: Any) -> int | None:
         return len(value)  # type: ignore[arg-type]
     except Exception:  # noqa: BLE001
         return None
+
+
+def _coerce_knowledge_asset(value: Any) -> Any:
+    from vei.knowledge.api import KnowledgeAsset
+
+    if isinstance(value, KnowledgeAsset):
+        return value
+    if isinstance(value, dict):
+        return KnowledgeAsset.model_validate(value)
+    raise TypeError(f"unsupported knowledge asset payload: {type(value).__name__}")

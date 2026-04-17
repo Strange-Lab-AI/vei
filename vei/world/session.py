@@ -547,6 +547,7 @@ class WorldSession:
             "work_graph": "tickets",
             "identity_graph": "identity",
             "revenue_graph": "crm",
+            "knowledge_graph": "knowledge",
             "data_graph": "spreadsheet",
             "obs_graph": "pagerduty",
             "property_graph": "property",

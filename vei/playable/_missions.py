@@ -1201,6 +1201,7 @@ def _format_domain_title(domain: str | None) -> str:
         "work_graph": "Workflows",
         "identity_graph": "Identity",
         "revenue_graph": "Revenue",
+        "knowledge_graph": "Knowledge",
         "data_graph": "Data",
         "obs_graph": "Observability",
         "ops_graph": "Operations",
@@ -1219,8 +1220,8 @@ def _workflow_move_specs(
 ) -> list[PlayableMissionMoveSpec]:
     scenario = resolve_workspace_scenario(workspace_root)
     workflow = get_benchmark_family_workflow_spec(
-        scenario.workflow_name or mission.vertical_name,
-        variant_name=scenario.workflow_variant,
+        mission.workflow_name or scenario.workflow_name or mission.vertical_name,
+        variant_name=mission.workflow_variant or scenario.workflow_variant,
         parameter_overrides=scenario.workflow_parameters,
     )
     moves: list[PlayableMissionMoveSpec] = []
