@@ -5,6 +5,8 @@ from typing import List
 
 import typer
 
+from vei.whatif_filenames import CONTEXT_SNAPSHOT_FILE, PUBLIC_CONTEXT_FILE
+
 app = typer.Typer(add_completion=False)
 
 
@@ -16,7 +18,7 @@ def normalize(
     org: str = typer.Option("", "--org", help="Organization name"),
     domain: str = typer.Option("", "--domain", help="Organization domain"),
     output: str = typer.Option(
-        "context_snapshot.json", "--output", "-o", help="Output snapshot path"
+        CONTEXT_SNAPSHOT_FILE, "--output", "-o", help="Output snapshot path"
     ),
 ) -> None:
     """Normalize mixed raw exports into one context snapshot."""
@@ -80,7 +82,7 @@ def public(
         help="Write a template without fetching live public data",
     ),
     output: str = typer.Option(
-        "whatif_public_context.json",
+        PUBLIC_CONTEXT_FILE,
         "--output",
         "-o",
         help="Output public context path",
@@ -113,7 +115,7 @@ def capture(
     org: str = typer.Option(..., "--org", help="Organization name"),
     domain: str = typer.Option("", "--domain", help="Organization domain"),
     output: str = typer.Option(
-        "context_snapshot.json", "--output", "-o", help="Output snapshot path"
+        CONTEXT_SNAPSHOT_FILE, "--output", "-o", help="Output snapshot path"
     ),
     base_url: str = typer.Option("", "--base-url", help="Base URL (for jira/okta)"),
     anonymize: bool = typer.Option(
@@ -183,7 +185,7 @@ def ingest_slack(
     org: str = typer.Option(..., "--org", help="Organization name"),
     domain: str = typer.Option("", "--domain", help="Organization domain"),
     output: str = typer.Option(
-        "context_snapshot.json", "--output", "-o", help="Output snapshot path"
+        CONTEXT_SNAPSHOT_FILE, "--output", "-o", help="Output snapshot path"
     ),
     message_limit: int = typer.Option(200, "--limit", help="Max messages per channel"),
 ) -> None:
@@ -220,7 +222,7 @@ def ingest_gmail(
     org: str = typer.Option(..., "--org", help="Organization name"),
     domain: str = typer.Option("", "--domain", help="Organization domain"),
     output: str = typer.Option(
-        "context_snapshot.json", "--output", "-o", help="Output snapshot path"
+        CONTEXT_SNAPSHOT_FILE, "--output", "-o", help="Output snapshot path"
     ),
     message_limit: int = typer.Option(200, "--limit", help="Max messages to parse"),
 ) -> None:

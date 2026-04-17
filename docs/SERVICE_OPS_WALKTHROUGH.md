@@ -18,26 +18,33 @@ This launches the Clearwater Field Services world with governor mode and opens S
 
 ### What-if from a Dispatch workspace
 
-After a run completes, the workspace contains a `context_snapshot.json` with the full company graph. You can run a historical what-if branch from it:
+The quickstart workspace stores its company graph inside the blueprint asset, not as a `context_snapshot.json`. To branch a historical what-if from it, first export a snapshot:
 
 ```bash
+# 1. Export the workspace blueprint as a context_snapshot.json
+vei whatif export --workspace _vei_out/quickstart \
+  --output _vei_out/quickstart/context_snapshot.json
+
+# 2. Search events on the resulting snapshot
 vei whatif events --source company_history \
-  --source-dir <workspace_path>
+  --source-dir _vei_out/quickstart/context_snapshot.json
 
+# 3. Materialize an episode at the chosen branch event
 vei whatif open --source company_history \
-  --source-dir <workspace_path> \
+  --source-dir _vei_out/quickstart/context_snapshot.json \
   --event-id <chosen_event> \
-  --root <output_whatif_workspace>
+  --root _vei_out/dispatch_whatif
 
+# 4. Run the counterfactual experiment (heuristic if no LLM key, both if key present)
 vei whatif experiment --source company_history \
-  --source-dir <workspace_path> \
+  --source-dir _vei_out/quickstart/context_snapshot.json \
   --event-id <chosen_event> \
-  --counterfactual-prompt "What if the tech had been dispatched immediately instead of waiting for SLA review?" \
+  --counterfactual-prompt "What if dispatch had immediately escalated to a regional supervisor and pre-authorized the after-hours premium tech?" \
   --mode heuristic_baseline \
-  --root <output_whatif_workspace>
+  --root _vei_out/dispatch_whatif
 ```
 
-No API keys required for `heuristic_baseline` mode. Add `OPENAI_API_KEY` to `.env` for LLM-driven counterfactual continuations.
+No API keys required for `heuristic_baseline` mode. Add `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`, or `OPENROUTER_API_KEY` to `.env` and use `--mode both` for LLM-driven counterfactual continuations alongside the forecast.
 
 ---
 

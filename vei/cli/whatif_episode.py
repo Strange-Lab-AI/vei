@@ -279,3 +279,30 @@ def register_episode_commands(app: typer.Typer) -> None:
             else summary.model_dump(mode="json")
         )
         emit_payload(payload, format=format)
+
+    @app.command("export")
+    def export_command(
+        workspace: Path = typer.Option(
+            ...,
+            "--workspace",
+            help="Path to a quickstart / playable workspace with sources/blueprint_asset.json",
+        ),
+        output: Path | None = typer.Option(
+            None,
+            "--output",
+            "-o",
+            help="Output context_snapshot.json path (default: <workspace>/context_snapshot.json)",
+        ),
+    ) -> None:
+        """Export a quickstart workspace into a what-if compatible context_snapshot.json.
+
+        The output snapshot can then be used as `--source company_history --source-dir <path>`
+        for `vei whatif events`, `open`, and `experiment`.
+        """
+
+        api = _whatif_api()
+        path = api.export_workspace_history_snapshot(
+            workspace,
+            output_path=output,
+        )
+        typer.echo(str(path))

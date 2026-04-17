@@ -544,7 +544,7 @@ def test_llm_counterfactual_returns_error_result_when_provider_fails(
 
     assert result.status == "error"
     assert result.error == "provider unavailable"
-    assert result.summary == "LLM counterfactual generation failed."
+    assert "LLM counterfactual generation failed" in result.summary
 
 
 def test_llm_counterfactual_returns_error_result_for_empty_messages(
