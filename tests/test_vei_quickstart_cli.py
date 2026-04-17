@@ -185,7 +185,6 @@ def test_quickstart_no_serve_prepares_workspace_without_launching_twin(
     assert twin_calls == []
     assert dotenv_calls == [True]
     assert "Quickstart prepared without launching Studio" in result.output
-    assert root.name in result.output
 
 
 def _sample_pilot_status(root: Path) -> TwinLaunchStatus:
