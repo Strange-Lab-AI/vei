@@ -25,6 +25,7 @@ from .benchmark import (
     run_branch_point_benchmark_study,
     train_branch_point_benchmark_model,
 )
+from .benchmark_runtime import run_branch_point_benchmark_prediction
 from .counterfactual import (
     estimate_counterfactual_delta,
     run_llm_counterfactual,
@@ -101,6 +102,7 @@ __all__ = [
     "resolve_whatif_rosetta_dir",
     "resolve_whatif_source_path",
     "run_branch_point_benchmark_study",
+    "run_branch_point_benchmark_prediction",
     "run_counterfactual_experiment",
     "run_ejepa_counterfactual",
     "run_llm_counterfactual",

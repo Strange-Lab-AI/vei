@@ -284,7 +284,10 @@ bindControls();
 bindCompanySubnav();
 
 async function runEvalAgent() {
-  const provider = document.getElementById("eval-provider-input")?.value?.trim() || "openai";
+  const provider =
+    document.getElementById("eval-provider-input")?.value?.trim() ||
+    state.whatIfStatus?.default_provider ||
+    "openai";
   const model = document.getElementById("eval-model-input")?.value?.trim();
   const task = document.getElementById("eval-task-input")?.value?.trim() || null;
   const status = document.getElementById("eval-agent-status");

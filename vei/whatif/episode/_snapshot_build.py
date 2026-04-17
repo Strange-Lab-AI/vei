@@ -55,10 +55,11 @@ def _episode_context_snapshot(
         historical_business_state=historical_business_state,
     )
     actor_payload = _thread_actor_payload(world, thread_history=thread_history)
+    historical_events = [*past_events, branch_event]
     surface = branch_event.surface or "mail"
     if surface == "mail":
         snapshot = _mail_episode_snapshot(
-            past_events=past_events,
+            historical_events=historical_events,
             thread_id=thread_id,
             thread_subject=thread_subject,
             organization_name=organization_name,
@@ -74,7 +75,7 @@ def _episode_context_snapshot(
         )
     if surface == "slack":
         snapshot = _chat_episode_snapshot(
-            past_events=past_events,
+            historical_events=historical_events,
             branch_event=branch_event,
             thread_id=thread_id,
             thread_subject=thread_subject,
@@ -91,7 +92,7 @@ def _episode_context_snapshot(
         )
     if surface == "tickets":
         snapshot = _ticket_episode_snapshot(
-            past_events=past_events,
+            historical_events=historical_events,
             branch_event=branch_event,
             thread_id=thread_id,
             thread_subject=thread_subject,
@@ -111,7 +112,7 @@ def _episode_context_snapshot(
 
 def _mail_episode_snapshot(
     *,
-    past_events: Sequence[WhatIfEvent],
+    historical_events: Sequence[WhatIfEvent],
     thread_id: str,
     thread_subject: str,
     organization_name: str,
@@ -127,10 +128,10 @@ def _mail_episode_snapshot(
             "messages": [
                 _archive_message_payload(
                     event,
-                    base_time_ms=index * 1000,
+                    fallback_time_ms=index * 1000,
                     organization_domain=organization_domain,
                 )
-                for index, event in enumerate(past_events)
+                for index, event in enumerate(historical_events)
             ],
         }
     ]
@@ -162,7 +163,7 @@ def _mail_episode_snapshot(
 
 def _chat_episode_snapshot(
     *,
-    past_events: Sequence[WhatIfEvent],
+    historical_events: Sequence[WhatIfEvent],
     branch_event: WhatIfEvent,
     thread_id: str,
     thread_subject: str,
@@ -190,7 +191,7 @@ def _chat_episode_snapshot(
                 else None
             ),
         }
-        for index, event in enumerate(past_events)
+        for index, event in enumerate(historical_events)
     ]
     return ContextSnapshot(
         organization_name=organization_name,
@@ -236,7 +237,7 @@ def _chat_episode_snapshot(
 
 def _ticket_episode_snapshot(
     *,
-    past_events: Sequence[WhatIfEvent],
+    historical_events: Sequence[WhatIfEvent],
     branch_event: WhatIfEvent,
     thread_id: str,
     thread_subject: str,
@@ -245,7 +246,7 @@ def _ticket_episode_snapshot(
     actor_payload: Sequence[dict[str, str]],
     metadata: dict[str, Any],
 ) -> ContextSnapshot:
-    latest_state = past_events[-1] if past_events else branch_event
+    latest_state = historical_events[-1] if historical_events else branch_event
     comments = [
         {
             "id": event.event_id,
@@ -253,7 +254,7 @@ def _ticket_episode_snapshot(
             "body": event.snippet,
             "created": event.timestamp,
         }
-        for event in past_events
+        for event in historical_events
         if event.event_type in {"reply", "message"}
     ]
     return ContextSnapshot(

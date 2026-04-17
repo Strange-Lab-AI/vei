@@ -81,6 +81,19 @@ function whatIfHasPendingRequest() {
   );
 }
 
+function whatIfCurrentBusyStatus() {
+  if (state.whatIfBusyStatus) {
+    return state.whatIfBusyStatus;
+  }
+  if (state.whatIfSceneLoading) {
+    return {
+      label: "Loading scene",
+      detail: state.whatIfSelectedEvent?.event?.subject || "Historical decision",
+    };
+  }
+  return null;
+}
+
 function updateWhatIfActionButtons() {
   const hasPendingRequest = whatIfHasPendingRequest();
   const actionConfig = [
@@ -874,10 +887,11 @@ function renderWhatIfStudio() {
   const status = state.whatIfStatus || { available: false };
   updateWhatIfActionButtons();
   if (!status.available) {
+    const fetchError = status.unavailable_reason === "fetch_error";
     statusNode.innerHTML = `
       <div class="whatif-empty">
-        <strong>Historical archive not configured for this workspace.</strong>
-        <span>Set <code>VEI_WHATIF_SOURCE_DIR</code> to a company history bundle, mail archive, or context snapshot, or set <code>VEI_WHATIF_ROSETTA_DIR</code> for the Enron Rosetta source.</span>
+        <strong>${fetchError ? "Historical archive status is unavailable." : "Historical archive not configured for this workspace."}</strong>
+        <span>${fetchError ? escapeHtml(status.error || "Studio could not load the what-if status route.") : "Set <code>VEI_WHATIF_SOURCE_DIR</code> to a company history bundle, mail archive, or context snapshot, or set <code>VEI_WHATIF_ROSETTA_DIR</code> for the Enron Rosetta source."}</span>
       </div>
     `;
     resultsNode.innerHTML = "";
@@ -887,20 +901,26 @@ function renderWhatIfStudio() {
     return;
   }
 
-  const statusLabel = state.whatIfSceneLoading ? "Loading scene" : "Archive ready";
+  const busyStatus = whatIfCurrentBusyStatus();
+  const statusLabel = busyStatus?.label || "Archive ready";
   const usingSavedBundle = Boolean(status.saved_bundle_active);
   const llmAvailable = Boolean(status.llm_available);
-  const statusDetail = state.whatIfSceneLoading
-    ? state.whatIfSelectedEvent?.event?.subject || "Historical decision"
-    : usingSavedBundle
+  const statusDetail = busyStatus?.detail
+    || (usingSavedBundle
       ? "Saved branch workspace"
-      : status.source_dir || whatIfSourceLabel();
+      : status.source_dir || whatIfSourceLabel());
   const defaultProvider = status.default_provider || "";
+  const availableProviders = Array.isArray(status.available_providers)
+    ? status.available_providers.filter(Boolean)
+    : [];
+  const providerSummary = availableProviders.length
+    ? `Keys loaded for <code>${escapeHtml(availableProviders.join(", "))}</code>. `
+    : "";
   const llmNotice = llmAvailable
     ? defaultProvider
-      ? `<div class="whatif-notice whatif-notice-info">LLM counterfactuals will use <code>${escapeHtml(defaultProvider)}</code>.</div>`
+      ? `<div class="whatif-notice whatif-notice-info">${providerSummary}LLM counterfactuals will use <code>${escapeHtml(defaultProvider)}</code>.</div>`
       : ""
-    : `<div class="whatif-notice">No LLM key configured — counterfactual runs use the heuristic baseline. Set a supported provider key in <code>.env</code>, such as <code>OPENAI_API_KEY</code>, <code>ANTHROPIC_API_KEY</code>, <code>GOOGLE_API_KEY</code>, or <code>OPENROUTER_API_KEY</code>.</div>`;
+    : `<div class="whatif-notice">No LLM key configured — counterfactual runs use the heuristic baseline. Set a supported provider key in <code>.env</code>, such as <code>OPENAI_API_KEY</code>, <code>ANTHROPIC_API_KEY</code>, <code>GOOGLE_API_KEY</code>, <code>GEMINI_API_KEY</code>, or <code>OPENROUTER_API_KEY</code>.</div>`;
   const validationIssues = (status.validation_issues || []);
   const validationNotice = validationIssues.length
     ? `<div class="whatif-notice whatif-notice-warn">${validationIssues.map((i) => escapeHtml(i)).join("<br>")}</div>`
@@ -1122,7 +1142,7 @@ function renderWhatIfStudio() {
             : ""
         }
       </div>
-        <div class="whatif-ranked-list">
+      <div class="whatif-ranked-list">
           ${candidates
             .map((candidate) =>
               renderWhatIfCandidateCard(candidate, {
@@ -1133,6 +1153,7 @@ function renderWhatIfStudio() {
             )
             .join("")}
       </div>
+      ${ranked.saved_bundle_notice ? `<div class="whatif-notice whatif-notice-info">${escapeHtml(ranked.saved_bundle_notice)}</div>` : ""}
       <div class="whatif-artifacts">
         <span><strong>Saved result</strong> ${escapeHtml(ranked.artifacts?.result_json_path || "")}</span>
         <span><strong>Saved summary</strong> ${escapeHtml(ranked.artifacts?.overview_markdown_path || "")}</span>
@@ -1185,6 +1206,7 @@ function renderWhatIfStudio() {
       </div>
       </div>
       ${renderWhatIfBusinessChange(forecast?.business_state_change, { title: "Predicted Business Change" })}
+      ${experiment.saved_bundle_notice ? `<div class="whatif-notice whatif-notice-info">${escapeHtml(experiment.saved_bundle_notice)}</div>` : ""}
       <div class="whatif-artifacts">
         <span><strong>Saved result</strong> ${escapeHtml(experiment.artifacts?.result_json_path || "")}</span>
         <span><strong>Saved summary</strong> ${escapeHtml(experiment.artifacts?.overview_markdown_path || "")}</span>
@@ -1207,12 +1229,10 @@ async function searchWhatIfEvents() {
     renderWhatIfStudio();
     return;
   }
-  const statusNode = document.getElementById("whatif-status");
-  if (statusNode) {
-    statusNode.innerHTML = `<div class="whatif-status-pill"><strong>Searching</strong><span>${escapeHtml(query)}</span></div>`;
-  }
+  state.whatIfBusyStatus = { label: "Searching", detail: query };
   state.whatIfSearchPending = true;
   updateWhatIfActionButtons();
+  renderWhatIfStudio();
   try {
     const result = await getJson("/api/workspace/whatif/search", {
       method: "POST",
@@ -1238,6 +1258,7 @@ async function searchWhatIfEvents() {
     };
   } finally {
     state.whatIfSearchPending = false;
+    state.whatIfBusyStatus = null;
   }
   renderWhatIfStudio();
 }
@@ -1283,8 +1304,10 @@ async function materializeWhatIfEpisode() {
   const label =
     document.getElementById("whatif-label-input")?.value?.trim() ||
     whatIfSuggestedLabel(event, whatIfSelectedOption());
+  state.whatIfBusyStatus = { label: "Materializing", detail: label };
   state.whatIfOpenPending = true;
   updateWhatIfActionButtons();
+  renderWhatIfStudio();
   try {
     state.whatIfOpenResult = await getJson("/api/workspace/whatif/open", {
       method: "POST",
@@ -1304,6 +1327,7 @@ async function materializeWhatIfEpisode() {
     };
   } finally {
     state.whatIfOpenPending = false;
+    state.whatIfBusyStatus = null;
   }
   renderWhatIfStudio();
 }
@@ -1326,12 +1350,10 @@ async function runWhatIfExperimentFromUI() {
   if (!prompt) {
     return;
   }
-  const statusNode = document.getElementById("whatif-status");
-  if (statusNode) {
-    statusNode.innerHTML = `<div class="whatif-status-pill"><strong>Running</strong><span>${escapeHtml(label)}</span></div>`;
-  }
+  state.whatIfBusyStatus = { label: "Running", detail: label };
   state.whatIfRunPending = true;
   updateWhatIfActionButtons();
+  renderWhatIfStudio();
   try {
     state.whatIfRankedResult = null;
     state.whatIfExperimentResult = await getJson("/api/workspace/whatif/run", {
@@ -1355,6 +1377,7 @@ async function runWhatIfExperimentFromUI() {
     };
   } finally {
     state.whatIfRunPending = false;
+    state.whatIfBusyStatus = null;
   }
   renderWhatIfStudio();
   document.getElementById("whatif-experiment-result")?.scrollIntoView({
@@ -1384,12 +1407,10 @@ async function runRankedWhatIfFromUI() {
   if (!candidates.length) {
     return;
   }
-  const statusNode = document.getElementById("whatif-status");
-  if (statusNode) {
-    statusNode.innerHTML = `<div class="whatif-status-pill"><strong>Scoring</strong><span>${escapeHtml(label)}</span></div>`;
-  }
+  state.whatIfBusyStatus = { label: "Scoring", detail: label };
   state.whatIfRankPending = true;
   updateWhatIfActionButtons();
+  renderWhatIfStudio();
   try {
     state.whatIfExperimentResult = null;
     state.whatIfRankedResult = await getJson("/api/workspace/whatif/rank", {
@@ -1414,6 +1435,7 @@ async function runRankedWhatIfFromUI() {
     };
   } finally {
     state.whatIfRankPending = false;
+    state.whatIfBusyStatus = null;
   }
   renderWhatIfStudio();
   document.getElementById("whatif-experiment-result")?.scrollIntoView({
@@ -1427,7 +1449,11 @@ async function primeWhatIfSceneFromHistoricalWorkspace() {
   if (!state.whatIfStatus?.available || !historical?.branch_event_id) {
     return;
   }
-  if (state.whatIfSceneLoading || state.whatIfScene || state.whatIfSelectedEvent) {
+  if (
+    state.whatIfSceneLoading ||
+    (state.whatIfScene && !state.whatIfScene.error) ||
+    state.whatIfSelectedEvent
+  ) {
     return;
   }
   state.whatIfSelectedEvent = {

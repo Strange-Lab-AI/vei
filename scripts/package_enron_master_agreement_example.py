@@ -18,6 +18,16 @@ from vei.context.api import (
     load_enron_public_context,
     slice_public_context_to_branch,
 )
+from vei.whatif_filenames import (
+    CONTEXT_SNAPSHOT_FILE,
+    EPISODE_MANIFEST_FILE,
+    EXPERIMENT_OVERVIEW_FILE,
+    EXPERIMENT_RESULT_FILE,
+    LLM_RESULT_FILE,
+    PUBLIC_CONTEXT_FILE,
+    STUDIO_SAVED_FORECAST_FILES,
+    WORKSPACE_DIRECTORY,
+)
 from vei.whatif.models import (
     WhatIfEpisodeManifest,
     WhatIfExperimentResult,
@@ -61,7 +71,7 @@ def _source_readme(source_root: Path) -> str | None:
 def _rewrite_manifest(payload: dict[str, Any]) -> dict[str, Any]:
     updated = dict(payload)
     updated["source_dir"] = EXAMPLE_PLACEHOLDER
-    updated["workspace_root"] = "workspace"
+    updated["workspace_root"] = WORKSPACE_DIRECTORY
     return updated
 
 
@@ -140,7 +150,7 @@ def _resolve_forecast_filename(
             filename = Path(raw_path).name
             if filename and (source_root / filename).exists():
                 return filename
-    for filename in ("whatif_ejepa_result.json", "whatif_ejepa_proxy_result.json"):
+    for filename in STUDIO_SAVED_FORECAST_FILES:
         if (source_root / filename).exists():
             return filename
     raise FileNotFoundError(f"forecast result not found under {source_root}")
@@ -154,19 +164,25 @@ def _rewrite_experiment_result(
     updated = dict(payload)
     materialization = dict(updated.get("materialization") or {})
     if materialization:
-        materialization["manifest_path"] = "workspace/episode_manifest.json"
-        materialization["bundle_path"] = EXAMPLE_PLACEHOLDER
-        materialization["context_snapshot_path"] = "workspace/context_snapshot.json"
-        materialization["baseline_dataset_path"] = (
-            "workspace/whatif_baseline_dataset.json"
+        materialization["manifest_path"] = (
+            f"{WORKSPACE_DIRECTORY}/{EPISODE_MANIFEST_FILE}"
         )
-        materialization["workspace_root"] = "workspace"
+        materialization["bundle_path"] = EXAMPLE_PLACEHOLDER
+        materialization["context_snapshot_path"] = (
+            f"{WORKSPACE_DIRECTORY}/{CONTEXT_SNAPSHOT_FILE}"
+        )
+        materialization["baseline_dataset_path"] = (
+            f"{WORKSPACE_DIRECTORY}/whatif_baseline_dataset.json"
+        )
+        materialization["workspace_root"] = WORKSPACE_DIRECTORY
         updated["materialization"] = materialization
 
     baseline = dict(updated.get("baseline") or {})
     if baseline:
-        baseline["workspace_root"] = "workspace"
-        baseline["baseline_dataset_path"] = "workspace/whatif_baseline_dataset.json"
+        baseline["workspace_root"] = WORKSPACE_DIRECTORY
+        baseline["baseline_dataset_path"] = (
+            f"{WORKSPACE_DIRECTORY}/whatif_baseline_dataset.json"
+        )
         updated["baseline"] = baseline
 
     forecast_result = updated.get("forecast_result")
@@ -176,9 +192,9 @@ def _rewrite_experiment_result(
     artifacts = dict(updated.get("artifacts") or {})
     if artifacts:
         artifacts["root"] = "."
-        artifacts["result_json_path"] = "whatif_experiment_result.json"
-        artifacts["overview_markdown_path"] = "whatif_experiment_overview.md"
-        artifacts["llm_json_path"] = "whatif_llm_result.json"
+        artifacts["result_json_path"] = EXPERIMENT_RESULT_FILE
+        artifacts["overview_markdown_path"] = EXPERIMENT_OVERVIEW_FILE
+        artifacts["llm_json_path"] = LLM_RESULT_FILE
         artifacts["forecast_json_path"] = forecast_filename
         updated["artifacts"] = artifacts
     return updated
@@ -187,10 +203,10 @@ def _rewrite_experiment_result(
 def _enrich_packaged_business_state(
     output_root: Path, *, forecast_filename: str
 ) -> None:
-    manifest_path = output_root / "workspace" / "episode_manifest.json"
+    manifest_path = output_root / WORKSPACE_DIRECTORY / EPISODE_MANIFEST_FILE
     forecast_path = output_root / forecast_filename
-    result_path = output_root / "whatif_experiment_result.json"
-    context_path = output_root / "workspace" / "context_snapshot.json"
+    result_path = output_root / EXPERIMENT_RESULT_FILE
+    context_path = output_root / WORKSPACE_DIRECTORY / CONTEXT_SNAPSHOT_FILE
 
     manifest = WhatIfEpisodeManifest.model_validate_json(
         manifest_path.read_text(encoding="utf-8")
@@ -230,7 +246,7 @@ def _enrich_packaged_business_state(
         experiment_result.model_dump_json(indent=2),
         encoding="utf-8",
     )
-    (output_root / "whatif_experiment_overview.md").write_text(
+    (output_root / EXPERIMENT_OVERVIEW_FILE).write_text(
         render_experiment_overview(experiment_result),
         encoding="utf-8",
     )
@@ -245,10 +261,10 @@ def _enrich_packaged_business_state(
 
 
 def package_example(source_root: Path, output_root: Path) -> None:
-    workspace_root = source_root / "workspace"
-    target_workspace = output_root / "workspace"
-    experiment_payload = _read_json(source_root / "whatif_experiment_result.json")
-    source_manifest_payload = _read_json(workspace_root / "episode_manifest.json")
+    workspace_root = source_root / WORKSPACE_DIRECTORY
+    target_workspace = output_root / WORKSPACE_DIRECTORY
+    experiment_payload = _read_json(source_root / EXPERIMENT_RESULT_FILE)
+    source_manifest_payload = _read_json(workspace_root / EPISODE_MANIFEST_FILE)
     public_context = _refreshed_public_context(source_manifest_payload)
     forecast_filename = _resolve_forecast_filename(
         source_root,
@@ -262,18 +278,16 @@ def package_example(source_root: Path, output_root: Path) -> None:
         (output_root / "README.md").write_text(preserved_readme, encoding="utf-8")
 
     _copy_file(
-        source_root / "whatif_experiment_overview.md",
-        output_root / "whatif_experiment_overview.md",
+        source_root / EXPERIMENT_OVERVIEW_FILE,
+        output_root / EXPERIMENT_OVERVIEW_FILE,
     )
-    _copy_file(
-        source_root / "whatif_llm_result.json", output_root / "whatif_llm_result.json"
-    )
+    _copy_file(source_root / LLM_RESULT_FILE, output_root / LLM_RESULT_FILE)
     _write_json(
         output_root / forecast_filename,
         _rewrite_forecast_result(_read_json(source_root / forecast_filename)),
     )
     _write_json(
-        output_root / "whatif_experiment_result.json",
+        output_root / EXPERIMENT_RESULT_FILE,
         _rewrite_experiment_result(
             experiment_payload,
             forecast_filename=forecast_filename,
@@ -293,14 +307,14 @@ def package_example(source_root: Path, output_root: Path) -> None:
         _copy_file(workspace_root / relative_path, target_workspace / relative_path)
 
     _write_json(
-        target_workspace / "context_snapshot.json",
+        target_workspace / CONTEXT_SNAPSHOT_FILE,
         _rewrite_context_snapshot(
-            _read_json(workspace_root / "context_snapshot.json"),
+            _read_json(workspace_root / CONTEXT_SNAPSHOT_FILE),
             public_context=public_context,
         ),
     )
     _write_json(
-        target_workspace / "episode_manifest.json",
+        target_workspace / EPISODE_MANIFEST_FILE,
         {
             **_rewrite_manifest(source_manifest_payload),
             **(
@@ -309,7 +323,7 @@ def package_example(source_root: Path, output_root: Path) -> None:
         },
     )
     _write_json(
-        target_workspace / "whatif_public_context.json",
+        target_workspace / PUBLIC_CONTEXT_FILE,
         _canonical_public_context_payload(
             source_manifest_payload=source_manifest_payload,
             refreshed_public_context=public_context,

@@ -138,6 +138,7 @@ __all__ = [
     "select_specific_event",
     "train_branch_point_benchmark_model",
     "run_branch_point_benchmark_study",
+    "run_branch_point_benchmark_prediction",
     "run_counterfactual_experiment",
     "run_ranked_counterfactual_experiment",
     "run_ejepa_counterfactual",
@@ -173,6 +174,7 @@ _API_EXPORTS = {
     "select_specific_event",
     "run_counterfactual_experiment",
     "run_ranked_counterfactual_experiment",
+    "run_branch_point_benchmark_prediction",
     "estimate_counterfactual_delta",
     "run_llm_counterfactual",
     "run_whatif",
@@ -195,6 +197,7 @@ _BENCHMARK_EXPORTS = {
     "load_branch_point_benchmark_study_result",
     "load_branch_point_benchmark_train_result",
     "run_branch_point_benchmark_study",
+    "run_branch_point_benchmark_prediction",
     "train_branch_point_benchmark_model",
 }
 

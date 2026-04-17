@@ -261,7 +261,8 @@ For the canonical product demo, `vei project identity-demo` wraps that ladder in
   - launched by `vei quickstart run`, `vei twin serve`, or `vei twin up`
 - `vei`
   - unified CLI — all subcommands are now under `vei <group> <command>`
-  - `project`, `quickstart`, `contract`, `scenario`, `scenarios`, `run`, `inspect`, `showcase`, `studio`, `export`, `ui`, `world`, `blueprint`, `bench`, `eval`, `llm-test`, `pack`, `twin`, `rollout`, `train`, `score`, `smoke`, `demo`, `det`, `context`, `synthesize`, `release`, `report`, `visualize`, `whatif`
+  - `project`, `quickstart`, `contract`, `scenario`, `scenarios`, `run`, `inspect`, `showcase`, `studio`, `export`, `ui`, `world`, `blueprint`, `eval`, `llm-test`, `pack`, `twin`, `rollout`, `train`, `score`, `smoke`, `demo`, `det`, `context`, `synthesize`, `release`, `report`, `visualize`, `whatif`
+  - benchmark work now lives under `vei whatif benchmark ...`
 
 ## Software Twins
 

@@ -139,12 +139,23 @@ def main() -> int:
     eval_parser.add_argument("--request", required=True)
     eval_parser.add_argument("--output", required=True)
 
+    predict_parser = subparsers.add_parser("predict")
+    predict_parser.add_argument("--request", required=True)
+    predict_parser.add_argument("--output", required=True)
+
     args = parser.parse_args()
     if args.command == "train":
         result = _train_from_request(Path(args.request))
-    else:
+    elif args.command == "eval":
         result = _eval_from_request(Path(args.request))
-    Path(args.output).write_text(result.model_dump_json(indent=2), encoding="utf-8")
+    else:
+        result = _predict_from_request(Path(args.request))
+
+    output_path = Path(args.output)
+    if hasattr(result, "model_dump_json"):
+        output_path.write_text(result.model_dump_json(indent=2), encoding="utf-8")
+    else:
+        output_path.write_text(json.dumps(result, indent=2), encoding="utf-8")
     return 0
 
 
@@ -287,6 +298,42 @@ def _eval_from_request(path: Path) -> WhatIfBenchmarkEvalResult:
     )
     eval_result_path.write_text(result.model_dump_json(indent=2), encoding="utf-8")
     return result
+
+
+def _predict_from_request(path: Path) -> dict[str, Any]:
+    request = json.loads(path.read_text(encoding="utf-8"))
+    checkpoint_path = Path(request["checkpoint_path"]).expanduser().resolve()
+    checkpoint = load_checkpoint(checkpoint_path)
+    preprocessor = BenchmarkPreprocessor.from_metadata(checkpoint["metadata"])
+    trainer = TorchTrainer(model_id=checkpoint["model_id"], preprocessor=preprocessor)
+    device = _resolve_device(str(request.get("device", "") or ""))
+    model = trainer.build_model(device=device)
+    model.load_state_dict(checkpoint["state_dict"])
+    model.eval()
+
+    row = WhatIfBenchmarkDatasetRow.model_validate(request["row"])
+    encoded = preprocessor.encode_row(row)
+    predictions = predict_rows(
+        model=model,
+        rows=[encoded],
+        batch_size=1,
+        device=device,
+        torch_module=trainer.torch,
+    )
+    flat_predictions = _flatten_prediction_batches(predictions)
+    if not flat_predictions:
+        raise RuntimeError("benchmark bridge predict produced no rows")
+    prediction = flat_predictions[0]
+    evidence_heads = preprocessor.decode_targets(
+        binary_probability=prediction.binary_probability,
+        regression_values=prediction.regression_values,
+    )
+    return {
+        "model_id": checkpoint["model_id"],
+        "binary_probability": prediction.binary_probability,
+        "regression_values": prediction.regression_values.tolist(),
+        "evidence_heads": evidence_heads.model_dump(mode="json"),
+    }
 
 
 def _load_dataset_rows(

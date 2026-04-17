@@ -138,6 +138,56 @@ def test_quickstart_uses_shared_twin_launcher(
     assert "/salesforce/services/data/v60.0/" not in result.output
 
 
+def test_quickstart_no_serve_prepares_workspace_without_launching_twin(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    runner = CliRunner()
+    root = tmp_path / "quickstart_workspace"
+    fake_state = SimpleNamespace(
+        mission=SimpleNamespace(mission_name="service_day_collision"),
+        run_id="human_play_123",
+        world_name="Clearwater Field Services",
+    )
+    twin_calls: list[object] = []
+    dotenv_calls: list[bool] = []
+
+    monkeypatch.setattr(
+        "vei.playable.prepare_playable_workspace",
+        lambda *args, **kwargs: fake_state,
+    )
+    monkeypatch.setattr(
+        vei_quickstart,
+        "load_dotenv",
+        lambda *args, **kwargs: dotenv_calls.append(True),
+    )
+    monkeypatch.setattr(
+        vei_quickstart,
+        "start_twin",
+        lambda *args, **kwargs: twin_calls.append((args, kwargs)),
+    )
+
+    result = runner.invoke(
+        app,
+        [
+            "quickstart",
+            "run",
+            "--world",
+            "service_ops",
+            "--root",
+            str(root),
+            "--no-baseline",
+            "--no-serve",
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    assert twin_calls == []
+    assert dotenv_calls == [True]
+    assert "Quickstart prepared without launching Studio" in result.output
+    assert root.name in result.output
+
+
 def _sample_pilot_status(root: Path) -> TwinLaunchStatus:
     return TwinLaunchStatus(
         manifest=TwinLaunchManifest(

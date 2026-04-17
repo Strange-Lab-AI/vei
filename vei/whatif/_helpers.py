@@ -112,10 +112,16 @@ def thread_reason_labels(
 
 
 def load_episode_snapshot(root: Path) -> dict[str, Any]:
-    snapshot_path = root / CONTEXT_SNAPSHOT_FILE
+    snapshot_path = resolve_context_snapshot_path(root)
     if not snapshot_path.exists():
         raise ValueError(f"context snapshot not found: {snapshot_path}")
     return json.loads(snapshot_path.read_text(encoding="utf-8"))
+
+
+def resolve_context_snapshot_path(root: Path) -> Path:
+    if root.is_file():
+        return root
+    return root / CONTEXT_SNAPSHOT_FILE
 
 
 def load_episode_context(root: Path) -> dict[str, Any]:

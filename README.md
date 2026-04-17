@@ -81,6 +81,8 @@ vei ui serve \
 
 Open `http://127.0.0.1:3055`.
 
+This Studio view is a saved reference demo. When the full Enron source archive is not present, Studio shows the committed saved result for this workspace and ignores custom prompt, label, mode, and provider changes in the what-if panel. Use the CLI against the saved `workspace/context_snapshot.json` when you want to run a fresh counterfactual from a clean clone.
+
 ![Decision scene for the Enron Master Agreement branch point, showing the branch moment, what actually happened, public company context, and recorded business state](docs/assets/enron-whatif/enron-decision-scene-top.png)
 
 Here is the exact story this example shows:
@@ -113,17 +115,18 @@ Useful files in that example:
 Spin up the built-in `service_ops` workspace with governor mode and run the same what-if loop without any external data:
 
 ```bash
-vei quickstart run --world service_ops --governor-demo
-# in a second shell, after the workspace is created:
+vei quickstart run --world service_ops --governor-demo --no-serve
 vei whatif export --workspace _vei_out/quickstart
 vei whatif events --source company_history \
   --source-dir _vei_out/quickstart/context_snapshot.json
 vei whatif experiment --source company_history \
   --source-dir _vei_out/quickstart/context_snapshot.json \
-  --event-id <chosen_event> \
+  --artifacts-root _vei_out/dispatch_whatif \
+  --label dispatch_t1 \
+  --thread-id "jira:JRA-CFS-10" \
+  --event-id "jira:JRA-CFS-10:state" \
   --counterfactual-prompt "What if dispatch had escalated to a regional supervisor and pre-authorized after-hours premium?" \
-  --mode heuristic_baseline \
-  --root _vei_out/dispatch_whatif
+  --mode heuristic_baseline
 ```
 
 `--mode heuristic_baseline` runs without any LLM key. Add `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`, or `OPENROUTER_API_KEY` to `.env` and use `--mode both` for LLM-driven counterfactual continuations alongside the forecast.
@@ -174,7 +177,7 @@ The canonical files are:
 
 - `context_snapshot.json` for the normalized company history bundle
 - `episode_manifest.json` for the saved what-if workspace manifest
-- `whatif_public_context.json` for optional public-company context
+- `whatif_public_context.json` for the saved public-context sidecar written into every saved what-if workspace
 
 ## Repo Checks
 

@@ -1,8 +1,9 @@
 """Reference learned dynamics backend.
 
-Loads a trained in-repo benchmark_bridge checkpoint and runs a real PyTorch
-forward pass over a canonicalized case slice. When a checkpoint is missing,
-the backend returns an explicit setup error instead of a silent empty result.
+Loads a trained in-repo benchmark checkpoint through the subprocess bridge and
+runs a real forward pass over a canonicalized case slice. When a checkpoint is
+missing, the backend returns an explicit setup error instead of a silent empty
+result.
 """
 
 from __future__ import annotations
@@ -39,16 +40,9 @@ from vei.whatif.models import (
     WhatIfPreBranchContract,
     WhatIfSequenceStep,
 )
+from vei.whatif.api import run_branch_point_benchmark_prediction
 
 logger = logging.getLogger(__name__)
-
-_TORCH_AVAILABLE = False
-try:
-    import torch  # noqa: F401
-
-    _TORCH_AVAILABLE = True
-except ImportError:
-    pass
 
 
 class ReferenceBackend:
@@ -84,17 +78,11 @@ class ReferenceBackend:
             )
 
         try:
-            row = self._build_row(
-                request=request,
-                summary_feature_names=loaded["preprocessor"].summary_feature_names,
-            )
-            encoded = loaded["preprocessor"].encode_row(row)
-            predictions = loaded["predict_rows"](
-                model=loaded["model"],
-                rows=[encoded],
-                batch_size=1,
+            row = self._build_row(request=request)
+            prediction = run_branch_point_benchmark_prediction(
+                checkpoint_path=loaded["checkpoint_path"],
+                row=row,
                 device=loaded["device"],
-                torch_module=loaded["trainer"].torch,
             )
         except Exception as exc:  # noqa: BLE001 - keep backend failures explicit
             logger.warning(
@@ -106,21 +94,10 @@ class ReferenceBackend:
                 backend_version="1.0.0",
                 state_delta_summary={"error": f"reference forecast failed: {exc}"},
             )
-
-        if not predictions:
-            return DynamicsResponse(
-                backend_id="reference",
-                backend_version="1.0.0",
-                state_delta_summary={"error": "reference forecast produced no rows"},
-            )
-
-        prediction = predictions[0]
-        binary_probability = float(prediction.binary_probability[0])
-        regression_values = prediction.regression_values[0].tolist()
-        evidence_heads = loaded["preprocessor"].decode_targets(
-            binary_probability=binary_probability,
-            regression_values=regression_values,
+        evidence_heads = WhatIfObservedEvidenceHeads.model_validate(
+            prediction["evidence_heads"]
         )
+        binary_probability = float(prediction["binary_probability"])
         business_heads = self._business_heads_from_evidence(evidence_heads)
         predicted_events = self._predicted_events(
             request.recent_events,
@@ -135,7 +112,7 @@ class ReferenceBackend:
             business_heads=business_heads,
             calibration=CalibrationMetrics(),
             state_delta_summary={
-                "model_id": loaded["model_id"],
+                "model_id": str(prediction.get("model_id", "reference")),
                 "checkpoint_path": str(loaded["checkpoint_path"]),
                 "evidence_heads": evidence_heads.model_dump(mode="json"),
                 "binary_probability": round(binary_probability, 6),
@@ -149,13 +126,12 @@ class ReferenceBackend:
             backend_type="learned",
             deterministic=False,
             metadata={
-                "torch_available": _TORCH_AVAILABLE,
                 "checkpoint_path": (
                     str(self._checkpoint_path) if self._checkpoint_path else ""
                 ),
                 "note": (
-                    "Loads a benchmark_bridge checkpoint and runs the in-repo "
-                    "PyTorch predictor."
+                    "Loads a benchmark checkpoint through the benchmark bridge "
+                    "subprocess runtime."
                 ),
             },
         )
@@ -170,7 +146,7 @@ class ReferenceBackend:
             checkpoint_hash=checkpoint_hash,
             notes=[
                 "Wraps vei.whatif.benchmark_bridge.",
-                f"torch available: {_TORCH_AVAILABLE}",
+                "predictor runtime: subprocess bridge",
                 (
                     f"checkpoint: {self._checkpoint_path}"
                     if self._checkpoint_path is not None
@@ -198,34 +174,9 @@ class ReferenceBackend:
                 )
             }
             return self._loaded
-        if not _TORCH_AVAILABLE:
-            self._loaded = {"error": "torch not available"}
-            return self._loaded
-
-        from vei.whatif.benchmark_bridge import (
-            BenchmarkPreprocessor,
-            TorchTrainer,
-            load_checkpoint,
-            predict_rows,
-        )
-
-        checkpoint = load_checkpoint(self._checkpoint_path)
-        preprocessor = BenchmarkPreprocessor.from_metadata(checkpoint["metadata"])
-        trainer = TorchTrainer(
-            model_id=checkpoint["model_id"],
-            preprocessor=preprocessor,
-        )
-        model = trainer.build_model(device=self._device)
-        model.load_state_dict(checkpoint["state_dict"])
-        model.eval()
         self._loaded = {
-            "predict_rows": predict_rows,
             "checkpoint_path": self._checkpoint_path,
             "device": self._device,
-            "model": model,
-            "model_id": checkpoint["model_id"],
-            "preprocessor": preprocessor,
-            "trainer": trainer,
         }
         return self._loaded
 
@@ -233,7 +184,6 @@ class ReferenceBackend:
         self,
         *,
         request: DynamicsRequest,
-        summary_feature_names: Sequence[str],
     ) -> WhatIfBenchmarkDatasetRow:
         recent_events = list(request.recent_events)
         branch_event = (
@@ -252,7 +202,6 @@ class ReferenceBackend:
         summary_features = self._summary_features(
             request=request,
             events=recent_events,
-            summary_feature_names=summary_feature_names,
         )
         sequence_steps = self._sequence_steps(recent_events)
         contract = WhatIfPreBranchContract(
@@ -279,7 +228,6 @@ class ReferenceBackend:
         *,
         request: DynamicsRequest,
         events: Sequence[CanonicalEvent],
-        summary_feature_names: Sequence[str],
     ) -> list[WhatIfBranchSummaryFeature]:
         action_text = self._action_text(request)
         participants = {
@@ -355,9 +303,9 @@ class ReferenceBackend:
         return [
             WhatIfBranchSummaryFeature(
                 name=name,
-                value=round(float(feature_values.get(name, 0.0)), 6),
+                value=round(float(value), 6),
             )
-            for name in summary_feature_names
+            for name, value in sorted(feature_values.items())
         ]
 
     def _sequence_steps(

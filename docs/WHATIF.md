@@ -6,7 +6,7 @@ The flow has five steps:
 
 1. **Normalize** — turn raw company records into a verified `context_snapshot.json` (`vei context normalize`).
 2. **Branch** — explore the whole history, pick one exact historical event as the branch point.
-3. **Materialize** — build a strict historical workspace with `episode_manifest.json` and optional `whatif_public_context.json`.
+3. **Materialize** — build a strict historical workspace with `episode_manifest.json` and the canonical `whatif_public_context.json` sidecar.
 4. **Compare** — run the baseline future against one or more counterfactual paths.
 5. **Validate** — verify the saved bundle (`python scripts/validate_whatif_artifacts.py`).
 
@@ -120,7 +120,7 @@ vei whatif experiment \
 - business-state comparison Markdown
 - the strict replay workspace used for the run
 
-The forecast bundle is written as `whatif_ejepa_result.json` when the real JEPA path runs, or `whatif_ejepa_proxy_result.json` when the fallback path is used.
+The forecast bundle is written as `whatif_ejepa_result.json` when the real JEPA path runs, `whatif_heuristic_baseline_result.json` for direct heuristic runs, and `whatif_ejepa_proxy_result.json` only for older saved bundles.
 
 This makes it easy to inspect the result in Studio later, compare runs, or hand the output to another tool.
 
@@ -136,7 +136,7 @@ The saved bundle that Studio reads has one stable core shape:
 Optional sidecars are validated when present:
 
 - `whatif_llm_result.json`: saved bounded continuation result
-- `whatif_ejepa_result.json` or `whatif_ejepa_proxy_result.json`: saved forecast result
+- `whatif_ejepa_result.json`, `whatif_heuristic_baseline_result.json`, or `whatif_ejepa_proxy_result.json`: saved forecast result
 - `whatif_business_state_comparison.json` + `whatif_business_state_comparison.md`: ranked comparison payload and summary when the ranked path is saved
 
 For Enron, VEI also ships a packaged public-company context fixture under `vei/whatif/fixtures/enron_public_context`. Refresh it with `python scripts/prepare_enron_public_context.py`. The current fixture carries 11 dated financial checkpoints and 13 dated public news events from 17 archived public source files, spanning December 31, 1998 through December 2, 2001. VEI slices that fixture to the active Enron email window and then to the chosen branch date before it is shown in Studio, written into the saved episode manifest, added to the LLM counterfactual prompt, or attached to benchmark dossiers.
@@ -164,7 +164,9 @@ The output is a multi-source `context_snapshot.json` that can be passed to `vei 
 
 The normalized company history is the event layer. Put real time-ordered activity there for mail, chat, tickets, and any other surface that can branch or replay. Put state-only sources such as documents or CRM records there too when you want them to show up as linked case context around the branch.
 
-The public-context sidecar is optional. If it is missing, VEI still opens the branch scene, runs the replay, and scores the counterfactual. If the sidecar is present but broken, VEI keeps loading the world and shows an empty public-context slice instead of failing the run.
+The source-bundle public-context sidecar is optional. If it is missing, VEI still opens the branch scene, runs the replay, and scores the counterfactual. If the sidecar is present but broken, VEI keeps loading the world and shows an empty public-context slice instead of failing the run.
+
+The saved workspace sidecar is always written as `workspace/whatif_public_context.json`, even when the public slice is empty, so saved-workspace validation stays stable.
 
 The history bundle still needs at least one healthy event surface. VEI ignores raw providers that captured with `status: "error"` when it decides whether a bundle is usable for branching and replay.
 
@@ -231,6 +233,24 @@ vei ui serve \
 
 Open `http://127.0.0.1:3055` and stay inside that workspace. This keeps the display tied to the actual Enron branch point and the actual saved result.
 
+This repo-owned Studio path is a saved reference display. When the full Enron Rosetta archive is missing, Studio returns the committed saved result for this workspace and ignores custom prompt, label, provider, and mode changes in the what-if panel.
+
+Use the saved snapshot directly when you want a fresh-clone rerun of the same branch slice:
+
+```bash
+vei whatif experiment \
+  --source mail_archive \
+  --source-dir docs/examples/enron-master-agreement-public-context/workspace/context_snapshot.json \
+  --artifacts-root _vei_out/enron_saved_snapshot_runs \
+  --label enron_internal_review_rerun \
+  --thread-id thr_e565b47423d035c9 \
+  --event-id enron_bcda1b925800af8c \
+  --counterfactual-prompt "Keep the draft inside Enron, ask Gerald Nemec and Sara Shackleton for review, and hold the outside send." \
+  --mode heuristic_baseline
+```
+
+That rerun uses the saved branch workspace slice that ships in the repo. Whole-history Enron search still requires a local Rosetta checkout.
+
 The committed example bundle also carries:
 
 - `whatif_experiment_overview.md`
@@ -286,6 +306,8 @@ All trained model families use the same boundary for this benchmark:
 - structured candidate action only
 
 The held-out Enron dossiers now include dated public financial checkpoints and public news items that were already known by the branch date. That public context helps the judge and the audit workflow. It does not change the model-training contract in this pass.
+
+Rebuilding this benchmark requires a local Enron Rosetta dataset. The repo ships the public-context fixture, but it does not ship the Rosetta email archive needed for `vei whatif benchmark build`.
 
 The matched-input benchmark study now gives `jepa_latent` and `full_context_transformer` the same pre-branch event sequence, summary features, and action schema. That makes the main rerun a clean model comparison instead of a mixed input comparison.
 

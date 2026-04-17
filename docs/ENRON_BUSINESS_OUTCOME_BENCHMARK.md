@@ -17,10 +17,12 @@ The held-out Enron dossiers can include a separate public-company context sectio
 
 ## Combined source data
 
-The current Enron benchmark build joins two repo-owned inputs:
+The current Enron benchmark build joins one required local input and one repo-owned input:
 
-- the Rosetta email archive for branch history and observed futures
+- the Enron Rosetta email archive for branch history and observed futures
 - the packaged public-company context fixture under `vei/whatif/fixtures/enron_public_context`
+
+You need a local Rosetta checkout before `vei whatif benchmark build` can run. A fresh clone has the public-context fixture, but it does not include the Rosetta email archive.
 
 That public-context fixture currently contains:
 
@@ -225,7 +227,7 @@ Study runs write:
 
 ## Current comparison result
 
-The current headline result is the matched-input multi-seed rerun over the saved Enron public-context build. That rerun compares the three aligned models that all read the same pre-branch contract: `jepa_latent`, `full_context_transformer`, and `treatment_transformer`.
+The current headline result is the matched-input multi-seed rerun over one saved Enron public-context build that was produced from a local Rosetta checkout. A fresh clone can read these numbers. A fresh clone cannot rebuild them until the Enron Rosetta archive is available locally again. That rerun compares the three aligned models that all read the same pre-branch contract: `jepa_latent`, `full_context_transformer`, and `treatment_transformer`.
 
 The current saved 5-seed, 2-epoch matched-input study produced these held-out decision scores:
 
@@ -239,4 +241,4 @@ On the simpler factual task of predicting whether anything goes outside after th
 
 The main point is that the fair rerun keeps the JEPA-style path in front on the business decision checks even after the held-out dossiers picked up the dated Enron public-company context. The full-context transformer stays close. The treatment transformer varies much more from seed to seed.
 
-An earlier single-run reference comparison is still useful as a historical checkpoint, but it should not be treated as the headline result because it mixed narrower and richer model inputs. Use `vei whatif benchmark study` for the clean comparison path and look under `studies/` for the aggregate report.
+An earlier single-run reference comparison is still useful as a historical checkpoint, but it should not be treated as the headline result because it mixed narrower and richer model inputs. Use `vei whatif benchmark study` for the clean comparison path after placing the Rosetta archive locally, then look under `studies/` for the aggregate report.

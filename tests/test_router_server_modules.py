@@ -412,6 +412,7 @@ def test_ui_and_twin_app_wrappers_invoke_uvicorn(
     tmp_path: Path,
 ) -> None:
     runs: list[tuple[Any, str, int, str]] = []
+    dotenv_calls: list[bool] = []
     monkeypatch.setitem(
         sys.modules,
         "uvicorn",
@@ -420,6 +421,11 @@ def test_ui_and_twin_app_wrappers_invoke_uvicorn(
                 (app, host, port, log_level)
             )
         ),
+    )
+    monkeypatch.setattr(
+        ui_app,
+        "load_dotenv",
+        lambda *args, **kwargs: dotenv_calls.append(True),
     )
     monkeypatch.setattr(
         ui_app, "create_ui_app", lambda root, **_kw: {"kind": "ui", "root": str(root)}
@@ -437,3 +443,4 @@ def test_ui_and_twin_app_wrappers_invoke_uvicorn(
         ({"kind": "ui", "root": str(tmp_path)}, "0.0.0.0", 3010, "warning"),
         ({"kind": "twin", "root": str(tmp_path)}, "0.0.0.0", 3020, "warning"),
     ]
+    assert dotenv_calls == [True]

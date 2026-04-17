@@ -2138,6 +2138,7 @@ def test_ui_api_whatif_rank_route_requires_llm_key(
 
     assert response.status_code == 400
     assert "needs an LLM provider key" in response.json()["detail"]
+    assert "GOOGLE_API_KEY" in response.json()["detail"]
 
 
 def test_ui_api_quickstart_service_ops_payloads_keep_one_company_identity(

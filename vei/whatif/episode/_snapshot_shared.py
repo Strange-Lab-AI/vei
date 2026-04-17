@@ -98,18 +98,22 @@ def _historical_source_file(source_dir: Path) -> Path | None:
 def _archive_message_payload(
     event: WhatIfEvent,
     *,
-    base_time_ms: int,
+    fallback_time_ms: int,
     organization_domain: str,
 ) -> dict[str, Any]:
     recipient = _primary_recipient(event)
+    time_ms = event.timestamp_ms if event.timestamp_ms > 0 else fallback_time_ms
     return {
+        "event_id": event.event_id,
+        "message_id": event.event_id,
         "from": event.actor_id
         or _historical_archive_address(organization_domain, "unknown"),
         "to": recipient,
         "subject": event.subject or event.thread_id,
         "body_text": _historical_body(event),
         "unread": False,
-        "time_ms": base_time_ms,
+        "time_ms": time_ms,
+        "timestamp": event.timestamp,
     }
 
 

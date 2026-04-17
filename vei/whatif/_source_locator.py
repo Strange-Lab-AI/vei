@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from vei.whatif_filenames import CONTEXT_SNAPSHOT_FILE, EPISODE_MANIFEST_FILE
+from ._helpers import load_episode_snapshot
 from .episode import load_episode_manifest
 
 
@@ -219,8 +220,8 @@ def _read_history_payload(path: Path) -> dict[str, Any] | None:
     if snapshot_path is None or snapshot_path.suffix.lower() != ".json":
         return None
     try:
-        payload = json.loads(snapshot_path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
+        payload = load_episode_snapshot(snapshot_path)
+    except (OSError, json.JSONDecodeError, ValueError):
         return None
     if not isinstance(payload, dict):
         return None

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
@@ -1132,11 +1133,22 @@ def _load_world(*, source: str, source_dir: Path):
 
 
 def _delta_as_count(predicted: float, current: float) -> int:
+    if not _is_finite_count_value(predicted) or not _is_finite_count_value(current):
+        return 0
     return max(0, int(round(predicted - current)))
 
 
 def _clamp_count(predicted: float, current: float, *, ceiling: int) -> int:
+    if not _is_finite_count_value(predicted) or not _is_finite_count_value(current):
+        return 0
     return min(max(0, int(round(predicted - current))), max(0, ceiling))
+
+
+def _is_finite_count_value(value: float) -> bool:
+    try:
+        return math.isfinite(float(value))
+    except (TypeError, ValueError):
+        return False
 
 
 def _default_device() -> str:

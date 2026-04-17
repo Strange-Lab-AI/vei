@@ -21,10 +21,13 @@ from vei.whatif.api import (
     load_branch_point_benchmark_build_result,
     load_branch_point_benchmark_judge_result,
     materialize_episode,
+    resolve_saved_whatif_bundle,
+    resolve_whatif_source_path,
     run_counterfactual_experiment,
     run_ranked_counterfactual_experiment,
     search_events,
 )
+from vei.whatif_filenames import EXPERIMENT_RESULT_FILE
 from vei.whatif.models import (
     WhatIfAuditRecord,
     WhatIfCandidateIntervention,
@@ -56,11 +59,10 @@ from ._whatif_helpers import (
     load_historical_summary_or_400 as _load_historical_summary_or_400,
     resolve_whatif_source_or_400 as _resolve_whatif_source,
     saved_historical_request_matches as _saved_historical_request_matches,
+    saved_workspace_validation_issues as _saved_workspace_validation_issues,
     saved_workspace_source_matches_request as _saved_workspace_source_matches_request,
 )
 from ._root_mode import load_ui_workspace_summary
-from vei.whatif.api import resolve_saved_whatif_bundle, resolve_whatif_source_path
-from vei.whatif.artifact_validation import validate_saved_workspace
 
 
 def register_workspace_routes(app: FastAPI, root: Path, *, deps: Any) -> None:
@@ -116,12 +118,6 @@ def register_workspace_routes(app: FastAPI, root: Path, *, deps: Any) -> None:
         return JSONResponse(payload.model_dump(mode="json") if payload else {})
 
     def _llm_available(provider: str | None = None) -> bool:
-        """Return True when a usable LLM key is present.
-
-        With ``provider=None`` returns True if any supported provider has a
-        key. With an explicit provider returns True only when that provider
-        has its own key configured.
-        """
         if provider:
             return _provider_has_key(provider)
         return bool(_available_providers())
@@ -129,13 +125,6 @@ def register_workspace_routes(app: FastAPI, root: Path, *, deps: Any) -> None:
     def _resolve_llm_provider(
         requested_provider: str, requested_model: str
     ) -> tuple[str | None, str]:
-        """Pick a provider/model that actually has a configured key.
-
-        Honors ``requested_provider`` when its key is set. Otherwise falls
-        back to the first available provider (with its default model). Returns
-        ``(None, requested_model)`` when no provider has a key — caller is
-        responsible for downgrading to the heuristic backend in that case.
-        """
         if requested_provider and _provider_has_key(requested_provider):
             return requested_provider, requested_model
         fallback = _default_provider()
@@ -163,7 +152,7 @@ def register_workspace_routes(app: FastAPI, root: Path, *, deps: Any) -> None:
             )
         validation_issues: list[str] = []
         if saved_bundle_active:
-            validation_issues = validate_saved_workspace(root)
+            validation_issues = _saved_workspace_validation_issues(root)
         available_providers = _available_providers()
         default_provider = available_providers[0] if available_providers else None
         return JSONResponse(
@@ -223,7 +212,7 @@ def register_workspace_routes(app: FastAPI, root: Path, *, deps: Any) -> None:
                 thread_id=request.thread_id,
             )
             experiment_payload = (
-                saved_bundle.load_json("whatif_experiment_result.json")
+                saved_bundle.load_json(EXPERIMENT_RESULT_FILE)
                 if saved_bundle is not None
                 else None
             )
@@ -313,13 +302,18 @@ def register_workspace_routes(app: FastAPI, root: Path, *, deps: Any) -> None:
         ):
             saved_bundle = _saved_bundle()
             experiment_payload = (
-                saved_bundle.load_json("whatif_experiment_result.json")
+                saved_bundle.load_json(EXPERIMENT_RESULT_FILE)
                 if saved_bundle is not None
                 else None
             )
             if isinstance(experiment_payload, dict):
                 saved_payload = dict(experiment_payload)
                 saved_payload["source_dir"] = saved_bundle.source_dir_text()
+                saved_payload["saved_result"] = True
+                saved_payload["saved_bundle_notice"] = (
+                    "Showing the saved reference result for this workspace. "
+                    "Studio ignores custom prompt, label, mode, provider, and forecast settings here."
+                )
                 return JSONResponse(saved_payload)
         world, source_dir = _resolve_whatif_source(
             root,
@@ -384,6 +378,11 @@ def register_workspace_routes(app: FastAPI, root: Path, *, deps: Any) -> None:
             )
             if payload is not None:
                 payload["source_dir"] = saved_bundle.source_dir_text()
+                payload["saved_result"] = True
+                payload["saved_bundle_notice"] = (
+                    "Showing the saved reference ranking for this workspace. "
+                    "Studio ignores custom label, candidates, provider, and forecast settings here."
+                )
                 return JSONResponse(payload)
         world, source_dir = _resolve_whatif_source(
             root,
@@ -399,7 +398,10 @@ def register_workspace_routes(app: FastAPI, root: Path, *, deps: Any) -> None:
         }:
             raise HTTPException(
                 status_code=400,
-                detail="shadow_forecast_backend must be auto, e_jepa, or heuristic_baseline",
+                detail=(
+                    "shadow_forecast_backend must be auto, e_jepa, "
+                    "e_jepa_proxy, or heuristic_baseline"
+                ),
             )
         if normalized_shadow_backend == "e_jepa_proxy":
             normalized_shadow_backend = "heuristic_baseline"
@@ -414,8 +416,8 @@ def register_workspace_routes(app: FastAPI, root: Path, *, deps: Any) -> None:
                 status_code=400,
                 detail=(
                     "ranked counterfactual scoring needs an LLM provider key. "
-                    "Set OPENAI_API_KEY, ANTHROPIC_API_KEY, GEMINI_API_KEY, or "
-                    "OPENROUTER_API_KEY in .env."
+                    "Set OPENAI_API_KEY, ANTHROPIC_API_KEY, GOOGLE_API_KEY, "
+                    "GEMINI_API_KEY, or OPENROUTER_API_KEY in .env."
                 ),
             )
         try:

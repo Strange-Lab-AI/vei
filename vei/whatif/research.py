@@ -23,7 +23,7 @@ from .corpus import (
     recipient_scope,
 )
 from .counterfactual import estimate_counterfactual_delta, run_llm_counterfactual
-from .ejepa import run_ejepa_counterfactual
+from .dynamics_bridge import run_dynamics_counterfactual
 from .episode import (
     score_historical_tail,
     materialize_episode,
@@ -66,6 +66,7 @@ from .ranking import (
     summarize_llm_branch,
 )
 from .render import render_research_pack_run
+from vei.whatif_filenames import WORKSPACE_DIRECTORY
 
 _RESEARCH_PACKS = build_research_packs(_DEFAULT_ROLLOUT_SEEDS)
 
@@ -92,6 +93,13 @@ class _CandidateExecution:
     contract: WhatIfBackendBranchContract
     contract_path: Path
     backend_evaluations: list[_BackendEvaluation]
+
+
+run_ejepa_counterfactual = lambda **kwargs: run_dynamics_counterfactual(  # noqa: E731
+    forecast_backend="e_jepa",
+    allow_proxy_fallback=False,
+    **kwargs,
+)
 
 
 def list_research_packs() -> list[WhatIfResearchPack]:
@@ -175,7 +183,7 @@ def run_research_pack(
             continue
         materialization = materialize_episode(
             world,
-            root=case_root / "workspace",
+            root=case_root / WORKSPACE_DIRECTORY,
             thread_id=case.thread_id,
             event_id=case.event_id,
         )
@@ -512,9 +520,7 @@ def _execute_candidate(
         _score_backend(
             backend=backend,
             world=world,
-            workspace_root=materialization.workspace_root,
-            thread_id=materialization.thread_id,
-            branch_event_id=materialization.branch_event_id,
+            materialization=materialization,
             prompt=candidate.prompt,
             llm_messages=list(first_rollout.messages if first_rollout else []),
             average_signals=average_signals,
@@ -749,9 +755,7 @@ def _score_backend(
     *,
     backend: WhatIfOutcomeBackendId,
     world: WhatIfWorld,
-    workspace_root: Path,
-    thread_id: str,
-    branch_event_id: str,
+    materialization,
     prompt: str,
     llm_messages,
     average_signals: WhatIfOutcomeSignals,
@@ -766,25 +770,26 @@ def _score_backend(
 ) -> _BackendEvaluation:
     if backend == "e_jepa":
         forecast = run_ejepa_counterfactual(
-            workspace_root,
+            world=world,
+            materialization=materialization,
             prompt=prompt,
-            source=world.source,
-            source_dir=world.rosetta_dir,
-            thread_id=thread_id,
-            branch_event_id=branch_event_id,
             llm_messages=llm_messages,
-            epochs=ejepa_epochs,
-            batch_size=ejepa_batch_size,
-            force_retrain=ejepa_force_retrain,
-            device=ejepa_device,
+            seed=42042,
+            ejepa_epochs=ejepa_epochs,
+            ejepa_batch_size=ejepa_batch_size,
+            ejepa_force_retrain=ejepa_force_retrain,
+            ejepa_device=ejepa_device,
         )
-        if forecast.status == "ok":
+        if forecast.status == "ok" and forecast.backend == "e_jepa":
             return _forecast_backend_evaluation(
                 backend=backend,
                 forecast=forecast,
                 contract_path=contract_path,
             )
-        fallback = estimate_counterfactual_delta(workspace_root, prompt=prompt)
+        fallback = estimate_counterfactual_delta(
+            materialization.workspace_root,
+            prompt=prompt,
+        )
         notes = [
             "Real E-JEPA backend failed and the pack used the proxy fallback.",
             *(forecast.notes or []),
@@ -801,7 +806,10 @@ def _score_backend(
             error=forecast.error,
         )
     if backend in {"e_jepa_proxy", "heuristic_baseline"}:
-        forecast = estimate_counterfactual_delta(workspace_root, prompt=prompt)
+        forecast = estimate_counterfactual_delta(
+            materialization.workspace_root,
+            prompt=prompt,
+        )
         return _forecast_backend_evaluation(
             backend=backend,
             forecast=forecast,
