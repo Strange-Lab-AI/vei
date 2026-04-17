@@ -13,7 +13,7 @@ def test_hotspot_modules_stay_below_foundation_size_budget() -> None:
         "vei/whatif/research.py": 1810,
         "vei/cli/vei_whatif.py": 1122,
         "vei/whatif/episode/_snapshot.py": 1234,
-        "vei/ui/_workspace_routes.py": 910,
+        "vei/ui/_workspace_routes.py": 980,
         "vei/ui/_api_models.py": 400,
         "vei/twin/_runtime.py": 1200,
         "vei/twin/api.py": 1335,

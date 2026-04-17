@@ -1820,6 +1820,159 @@ def test_ui_api_whatif_run_route_respects_anthropic_key(
     assert response.json()["label"] == "anthropic alternate path"
 
 
+def test_ui_api_whatif_status_lists_available_providers(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    root = tmp_path / "workspace"
+    create_workspace_from_template(
+        root=root,
+        source_kind="example",
+        source_ref="acquired_user_cutover",
+    )
+    rosetta_dir = tmp_path / "rosetta"
+    _write_rosetta_fixture(rosetta_dir)
+    monkeypatch.setenv("VEI_WHATIF_ROSETTA_DIR", str(rosetta_dir))
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.delenv("GOOGLE_API_KEY", raising=False)
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "anthropic-test-key")
+
+    client = TestClient(ui_api.create_ui_app(root))
+    payload = client.get("/api/workspace/whatif").json()
+
+    assert payload["llm_available"] is True
+    assert payload["available_providers"] == ["anthropic"]
+    assert payload["default_provider"] == "anthropic"
+    assert payload["default_model"]
+
+
+def test_ui_api_whatif_run_route_falls_back_to_available_provider(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    """Default provider is openai, but only anthropic key is set.
+
+    The server must transparently swap to anthropic instead of silently
+    downgrading to heuristic_baseline.
+    """
+
+    root = tmp_path / "workspace"
+    create_workspace_from_template(
+        root=root,
+        source_kind="example",
+        source_ref="acquired_user_cutover",
+    )
+    rosetta_dir = tmp_path / "rosetta"
+    _write_rosetta_fixture(rosetta_dir)
+    monkeypatch.setenv("VEI_WHATIF_ROSETTA_DIR", str(rosetta_dir))
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.delenv("GOOGLE_API_KEY", raising=False)
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "anthropic-test-key")
+
+    captured: dict[str, object] = {}
+
+    def fake_run_counterfactual_experiment(*args, **kwargs):
+        captured.update(kwargs)
+        return SimpleNamespace(
+            model_dump=lambda mode="json": {
+                "label": kwargs["label"],
+                "llm_result": {"status": "ok"},
+                "forecast_result": {"backend": "heuristic_baseline"},
+            }
+        )
+
+    monkeypatch.setattr(
+        workspace_routes,
+        "run_counterfactual_experiment",
+        fake_run_counterfactual_experiment,
+    )
+
+    client = TestClient(ui_api.create_ui_app(root))
+
+    response = client.post(
+        "/api/workspace/whatif/run",
+        json={
+            "source": "enron",
+            "event_id": "evt-001",
+            "label": "fallback path",
+            "prompt": "What if Jeff had kept the term sheet internal?",
+            "mode": "both",
+            # Note: no provider override, so default is "openai"
+        },
+    )
+
+    assert response.status_code == 200
+    assert captured["mode"] == "both"
+    assert captured["provider"] == "anthropic"
+    # Model must be the anthropic default, not the openai default
+    assert "claude" in str(captured["model"]).lower()
+
+
+def test_ui_api_whatif_run_route_downgrades_to_heuristic_when_no_key(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    root = tmp_path / "workspace"
+    create_workspace_from_template(
+        root=root,
+        source_kind="example",
+        source_ref="acquired_user_cutover",
+    )
+    rosetta_dir = tmp_path / "rosetta"
+    _write_rosetta_fixture(rosetta_dir)
+    monkeypatch.setenv("VEI_WHATIF_ROSETTA_DIR", str(rosetta_dir))
+    for env_name in (
+        "OPENAI_API_KEY",
+        "ANTHROPIC_API_KEY",
+        "GOOGLE_API_KEY",
+        "GEMINI_API_KEY",
+        "OPENROUTER_API_KEY",
+    ):
+        monkeypatch.delenv(env_name, raising=False)
+
+    captured: dict[str, object] = {}
+
+    def fake_run_counterfactual_experiment(*args, **kwargs):
+        captured.update(kwargs)
+        return SimpleNamespace(
+            model_dump=lambda mode="json": {
+                "label": kwargs["label"],
+                "llm_result": None,
+                "forecast_result": {"backend": "heuristic_baseline"},
+            }
+        )
+
+    monkeypatch.setattr(
+        workspace_routes,
+        "run_counterfactual_experiment",
+        fake_run_counterfactual_experiment,
+    )
+
+    client = TestClient(ui_api.create_ui_app(root))
+    status = client.get("/api/workspace/whatif").json()
+    assert status["llm_available"] is False
+    assert status["available_providers"] == []
+    assert status["default_provider"] is None
+
+    response = client.post(
+        "/api/workspace/whatif/run",
+        json={
+            "source": "enron",
+            "event_id": "evt-001",
+            "label": "no key path",
+            "prompt": "What if Jeff had kept the term sheet internal?",
+            "mode": "both",
+        },
+    )
+
+    assert response.status_code == 200
+    assert captured["mode"] == "heuristic_baseline"
+
+
 def test_ui_api_whatif_rank_route_returns_ranked_payload(
     tmp_path: Path,
     monkeypatch,
