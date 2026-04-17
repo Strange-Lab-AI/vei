@@ -108,6 +108,28 @@ Useful files in that example:
 - [whatif_experiment_result.json](docs/examples/enron-master-agreement-public-context/whatif_experiment_result.json)
 - [whatif_business_state_comparison.md](docs/examples/enron-master-agreement-public-context/whatif_business_state_comparison.md)
 
+## Live Dispatch demo (Clearwater Field Services)
+
+Spin up the built-in `service_ops` workspace with governor mode and run the same what-if loop without any external data:
+
+```bash
+vei quickstart run --world service_ops --governor-demo
+# in a second shell, after the workspace is created:
+vei whatif export --workspace _vei_out/quickstart
+vei whatif events --source company_history \
+  --source-dir _vei_out/quickstart/context_snapshot.json
+vei whatif experiment --source company_history \
+  --source-dir _vei_out/quickstart/context_snapshot.json \
+  --event-id <chosen_event> \
+  --counterfactual-prompt "What if dispatch had escalated to a regional supervisor and pre-authorized after-hours premium?" \
+  --mode heuristic_baseline \
+  --root _vei_out/dispatch_whatif
+```
+
+`--mode heuristic_baseline` runs without any LLM key. Add `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`, or `OPENROUTER_API_KEY` to `.env` and use `--mode both` for LLM-driven counterfactual continuations alongside the forecast.
+
+See [docs/SERVICE_OPS_WALKTHROUGH.md](docs/SERVICE_OPS_WALKTHROUGH.md) for the full Studio walkthrough.
+
 ## Bring Your Own Company History
 
 Bring raw exports into VEI as one verified bundle before you run what-if work.

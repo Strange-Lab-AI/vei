@@ -151,6 +151,17 @@ Bring a new company into the what-if system with three files:
 - `whatif_public_context.json` beside that archive when you want dated public-company context
 - `research_pack.json` when you want reusable pack runs or held-out benchmark cases
 
+### From a quickstart / playable workspace
+
+If you already have a quickstart or vertical workspace (e.g. `vei quickstart run --world service_ops --governor-demo`), the company graph is in the blueprint asset, not in a `context_snapshot.json`. Project it into the canonical shape with one command:
+
+```bash
+vei whatif export --workspace _vei_out/quickstart \
+  --output _vei_out/quickstart/context_snapshot.json
+```
+
+The output is a multi-source `context_snapshot.json` that can be passed to `vei whatif events`, `vei whatif open`, and `vei whatif experiment` via `--source company_history --source-dir <path>`.
+
 The normalized company history is the event layer. Put real time-ordered activity there for mail, chat, tickets, and any other surface that can branch or replay. Put state-only sources such as documents or CRM records there too when you want them to show up as linked case context around the branch.
 
 The public-context sidecar is optional. If it is missing, VEI still opens the branch scene, runs the replay, and scores the counterfactual. If the sidecar is present but broken, VEI keeps loading the world and shows an empty public-context slice instead of failing the run.
