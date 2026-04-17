@@ -2488,6 +2488,11 @@ body.developer-mode .studio-nav-button.developer-only {
   border-left-color: rgba(210, 80, 50, 0.6);
 }
 
+.whatif-notice-info {
+  background: rgba(30, 108, 242, 0.08);
+  border-left-color: rgba(30, 108, 242, 0.55);
+}
+
 .whatif-controls,
 .whatif-playbar,
 .whatif-runner {

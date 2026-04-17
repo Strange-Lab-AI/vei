@@ -11,6 +11,7 @@ from uuid import uuid4
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
 
+from vei.project_settings import default_model_for_provider
 from vei.whatif.api import (
     build_decision_scene,
     build_saved_decision_scene,
@@ -63,12 +64,26 @@ from vei.whatif.artifact_validation import validate_saved_workspace
 
 
 def register_workspace_routes(app: FastAPI, root: Path, *, deps: Any) -> None:
+    # Provider preference order matters: when a user-requested provider has no
+    # key, we fall back to the first provider in this dict that does. OpenAI
+    # is preferred because most goldens and prompts target it.
     llm_key_envs = {
         "openai": ("OPENAI_API_KEY",),
         "anthropic": ("ANTHROPIC_API_KEY",),
         "google": ("GOOGLE_API_KEY", "GEMINI_API_KEY"),
         "openrouter": ("OPENROUTER_API_KEY",),
     }
+
+    def _provider_has_key(provider: str) -> bool:
+        envs = llm_key_envs.get(provider.strip().lower(), ())
+        return any(os.environ.get(env_name, "").strip() for env_name in envs)
+
+    def _available_providers() -> list[str]:
+        return [name for name in llm_key_envs if _provider_has_key(name)]
+
+    def _default_provider() -> str | None:
+        available = _available_providers()
+        return available[0] if available else None
 
     def _saved_bundle():
         return resolve_saved_whatif_bundle(root)
@@ -101,13 +116,32 @@ def register_workspace_routes(app: FastAPI, root: Path, *, deps: Any) -> None:
         return JSONResponse(payload.model_dump(mode="json") if payload else {})
 
     def _llm_available(provider: str | None = None) -> bool:
-        normalized_provider = str(provider or "").strip().lower()
-        candidate_envs = llm_key_envs.get(normalized_provider)
-        if candidate_envs is None:
-            candidate_envs = tuple(
-                env_name for envs in llm_key_envs.values() for env_name in envs
-            )
-        return any(os.environ.get(env_name, "").strip() for env_name in candidate_envs)
+        """Return True when a usable LLM key is present.
+
+        With ``provider=None`` returns True if any supported provider has a
+        key. With an explicit provider returns True only when that provider
+        has its own key configured.
+        """
+        if provider:
+            return _provider_has_key(provider)
+        return bool(_available_providers())
+
+    def _resolve_llm_provider(
+        requested_provider: str, requested_model: str
+    ) -> tuple[str | None, str]:
+        """Pick a provider/model that actually has a configured key.
+
+        Honors ``requested_provider`` when its key is set. Otherwise falls
+        back to the first available provider (with its default model). Returns
+        ``(None, requested_model)`` when no provider has a key — caller is
+        responsible for downgrading to the heuristic backend in that case.
+        """
+        if requested_provider and _provider_has_key(requested_provider):
+            return requested_provider, requested_model
+        fallback = _default_provider()
+        if fallback is None:
+            return None, requested_model
+        return fallback, default_model_for_provider(fallback)
 
     @app.get("/api/workspace/whatif")
     def api_workspace_whatif_status() -> JSONResponse:
@@ -130,13 +164,22 @@ def register_workspace_routes(app: FastAPI, root: Path, *, deps: Any) -> None:
         validation_issues: list[str] = []
         if saved_bundle_active:
             validation_issues = validate_saved_workspace(root)
+        available_providers = _available_providers()
+        default_provider = available_providers[0] if available_providers else None
         return JSONResponse(
             {
                 "available": source_dir is not None,
                 "source": source,
                 "source_dir": source_dir,
                 "saved_bundle_active": saved_bundle_active,
-                "llm_available": _llm_available(),
+                "llm_available": bool(available_providers),
+                "available_providers": available_providers,
+                "default_provider": default_provider,
+                "default_model": (
+                    default_model_for_provider(default_provider)
+                    if default_provider
+                    else None
+                ),
                 "validation_issues": validation_issues,
                 "objective_packs": [
                     pack.model_dump(mode="json") for pack in list_objective_packs()
@@ -284,8 +327,17 @@ def register_workspace_routes(app: FastAPI, root: Path, *, deps: Any) -> None:
             max_events=request.max_events,
         )
         effective_mode = request.mode
-        if effective_mode in {"llm", "both"} and not _llm_available(request.provider):
-            effective_mode = "heuristic_baseline"
+        effective_provider = request.provider
+        effective_model = request.model
+        if effective_mode in {"llm", "both"}:
+            resolved_provider, resolved_model = _resolve_llm_provider(
+                request.provider, request.model
+            )
+            if resolved_provider is None:
+                effective_mode = "heuristic_baseline"
+            else:
+                effective_provider = resolved_provider
+                effective_model = resolved_model
         try:
             result = run_counterfactual_experiment(
                 world,
@@ -295,8 +347,8 @@ def register_workspace_routes(app: FastAPI, root: Path, *, deps: Any) -> None:
                 event_id=request.event_id,
                 thread_id=request.thread_id,
                 mode=effective_mode,
-                provider=request.provider,
-                model=request.model,
+                provider=effective_provider,
+                model=effective_model,
                 ejepa_epochs=request.ejepa_epochs,
                 ejepa_batch_size=request.ejepa_batch_size,
                 ejepa_force_retrain=request.ejepa_force_retrain,
@@ -351,6 +403,21 @@ def register_workspace_routes(app: FastAPI, root: Path, *, deps: Any) -> None:
             )
         if normalized_shadow_backend == "e_jepa_proxy":
             normalized_shadow_backend = "heuristic_baseline"
+        # The ranked experiment always runs LLM rollouts; only fall through to
+        # whatever provider has a key. If none does, surface a clear error
+        # rather than silently producing a meaningless ranking.
+        ranked_provider, ranked_model = _resolve_llm_provider(
+            request.provider, request.model
+        )
+        if ranked_provider is None:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "ranked counterfactual scoring needs an LLM provider key. "
+                    "Set OPENAI_API_KEY, ANTHROPIC_API_KEY, GEMINI_API_KEY, or "
+                    "OPENROUTER_API_KEY in .env."
+                ),
+            )
         try:
             result = run_ranked_counterfactual_experiment(
                 world,
@@ -367,8 +434,8 @@ def register_workspace_routes(app: FastAPI, root: Path, *, deps: Any) -> None:
                 event_id=request.event_id,
                 thread_id=request.thread_id,
                 rollout_count=request.rollout_count,
-                provider=request.provider,
-                model=request.model,
+                provider=ranked_provider,
+                model=ranked_model,
                 shadow_forecast_backend=(
                     default_forecast_backend()
                     if normalized_shadow_backend == "auto"

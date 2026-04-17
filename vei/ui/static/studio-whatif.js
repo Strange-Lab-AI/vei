@@ -45,6 +45,18 @@ function whatIfSourceId() {
   return state.whatIfStatus?.source || "auto";
 }
 
+function whatIfProviderOverrides() {
+  const status = state.whatIfStatus || {};
+  const overrides = {};
+  if (status.default_provider) {
+    overrides.provider = status.default_provider;
+  }
+  if (status.default_model) {
+    overrides.model = status.default_model;
+  }
+  return overrides;
+}
+
 function whatIfSourceLabel() {
   const source = whatIfSourceId();
   if (source === "company_history") {
@@ -883,8 +895,11 @@ function renderWhatIfStudio() {
     : usingSavedBundle
       ? "Saved branch workspace"
       : status.source_dir || whatIfSourceLabel();
+  const defaultProvider = status.default_provider || "";
   const llmNotice = llmAvailable
-    ? ""
+    ? defaultProvider
+      ? `<div class="whatif-notice whatif-notice-info">LLM counterfactuals will use <code>${escapeHtml(defaultProvider)}</code>.</div>`
+      : ""
     : `<div class="whatif-notice">No LLM key configured — counterfactual runs use the heuristic baseline. Set a supported provider key in <code>.env</code>, such as <code>OPENAI_API_KEY</code>, <code>ANTHROPIC_API_KEY</code>, <code>GOOGLE_API_KEY</code>, or <code>OPENROUTER_API_KEY</code>.</div>`;
   const validationIssues = (status.validation_issues || []);
   const validationNotice = validationIssues.length
@@ -1329,6 +1344,7 @@ async function runWhatIfExperimentFromUI() {
         label,
         prompt,
         mode: "both",
+        ...whatIfProviderOverrides(),
       }),
     });
   } catch (error) {
@@ -1387,6 +1403,7 @@ async function runRankedWhatIfFromUI() {
         objective_pack_id: objectivePackId,
         rollout_count: rolloutCount,
         candidates,
+        ...whatIfProviderOverrides(),
       }),
     });
   } catch (error) {
