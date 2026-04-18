@@ -249,8 +249,11 @@ def _write_bundle_readme(spec, bundle_root: Path) -> None:
             "",
             "## Bankruptcy Arc Timeline",
             "",
-            "See [timeline_arc.md](timeline_arc.md) for the public timeline that places this branch beside the PG&E, California, and Watkins examples.",
+            "See [timeline_arc.md](timeline_arc.md) for the dated public timeline and [the rendered timeline image](../../assets/enron-whatif/enron-bankruptcy-arc-timeline.png) for the visual version that places this branch beside the PG&E, California, and Watkins follow-up examples.",
         ]
+    story_lines: list[str] = []
+    for paragraph in spec.story_lines:
+        story_lines.extend([paragraph, ""])
     readme = "\n".join(
         [
             f"# {spec.title}",
@@ -278,6 +281,9 @@ def _write_bundle_readme(spec, bundle_root: Path) -> None:
                 f"{spec.screenshot_stem}-ranking.png)"
             ),
             "",
+            "## Why This Branch Matters",
+            "",
+            *story_lines,
             "## What This Example Covers",
             "",
             f"- Historical branch point: {spec.branch_point}",
@@ -332,6 +338,13 @@ def _write_bundle_readme(spec, bundle_root: Path) -> None:
                 "and the raw Enron mail tar under `data/enron/`, so a fresh clone can "
                 "open these saved examples and rebuild them without reaching into a "
                 "sibling checkout."
+            ),
+            "",
+            (
+                "The macro heads in these saved bundles stay advisory context beside "
+                "the email-path evidence. See "
+                "[the current calibration report](../../../studies/macro_calibration_enron_v1/calibration_report.md) "
+                "before making any stronger claim."
             ),
         ]
     )

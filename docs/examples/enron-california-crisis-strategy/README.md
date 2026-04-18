@@ -17,6 +17,12 @@ Open `http://127.0.0.1:3055`.
 
 ![Saved ranking panel](../../assets/enron-whatif/california-crisis-strategy-ranking.png)
 
+## Why This Branch Matters
+
+This branch matters because the desk still has room to choose between legal containment and continued conduct after the preservation order lands. The saved comparison turns that into a plain choice about halting, documenting, or pushing through.
+
+The FERC and refund timeline gives the branch a wider public frame, but the macro panel remains advisory context beside the preserved email evidence and the ranked decision path.
+
 ## What This Example Covers
 
 - Historical branch point: Tim Belden's desk receives a preservation order tied to the California crisis while the trading strategy is still active.
@@ -40,7 +46,7 @@ Open `http://127.0.0.1:3055`.
 ## Other Enron Examples
 
 - [Enron Master Agreement Example](../enron-master-agreement-public-context/README.md)
-- [Enron Watkins Memo Example](../enron-watkins-memo/README.md)
+- [Enron Watkins Follow-up Example](../enron-watkins-follow-up/README.md)
 - [Enron PG&E Power Deal Example](../enron-pge-power-deal/README.md)
 
 ## Refresh
@@ -54,3 +60,5 @@ python scripts/capture_enron_bundle_screenshots.py --bundle enron-california-cri
 ## Constraint
 
 This repo now carries the Rosetta parquet archive, the source cache, and the raw Enron mail tar under `data/enron/`, so a fresh clone can open these saved examples and rebuild them without reaching into a sibling checkout.
+
+The macro heads in these saved bundles stay advisory context beside the email-path evidence. See [the current calibration report](../../../studies/macro_calibration_enron_v1/calibration_report.md) before making any stronger claim.

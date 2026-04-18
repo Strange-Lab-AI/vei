@@ -185,10 +185,10 @@ BENCHMARK_CASE_PACKS: dict[str, list[BenchmarkCaseSeed]] = {
             family="org_heat",
         ),
         BenchmarkCaseSeed(
-            case_id="watkins_memo_release_path",
-            title="Watkins Memo Release Path",
+            case_id="watkins_followup_questions",
+            title="Watkins Follow-up Questions",
             event_id="enron_d8d296de473f63be",
-            summary="The Watkins memo path captures an internal warning about accounting exposure after Skilling's resignation.",
+            summary="A Watkins follow-up note preserves the questions she says she raised to Ken Lay and turns them into a concrete escalation branch.",
             family="whistleblower",
         ),
         BenchmarkCaseSeed(

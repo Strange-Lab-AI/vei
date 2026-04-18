@@ -19,6 +19,7 @@ class EnronExampleSpec:
     primary_prompt: str
     lead: str
     branch_point: str
+    story_lines: tuple[str, ...]
     objective_pack_id: str
     comparison_label: str
     candidates: tuple[EnronExampleCandidate, ...]
@@ -74,6 +75,14 @@ def bundle_specs() -> tuple[EnronExampleSpec, ...]:
                 "Debra Perlingiere is about to send the Master Agreement draft to "
                 "Cargill on September 27, 2000."
             ),
+            story_lines=(
+                "This branch is the clearest procedural example in the Enron set. "
+                "One contract draft is ready to go out, and the decision is whether "
+                "to keep the document inside legal review or widen the outside loop.",
+                "The wider public-company panel puts that narrow legal choice inside "
+                "the larger Enron arc. The macro heads stay in the scene as dated "
+                "context only, because the current calibration report is still weak.",
+            ),
             objective_pack_id="contain_exposure",
             comparison_label="enron_master_agreement_business_state_comparison_20260417",
             candidates=(
@@ -102,55 +111,67 @@ def bundle_specs() -> tuple[EnronExampleSpec, ...]:
             ),
         ),
         EnronExampleSpec(
-            case_id="watkins_memo_release_path",
-            bundle_slug="enron-watkins-memo",
-            title="Enron Watkins Memo Example",
+            case_id="watkins_followup_questions",
+            bundle_slug="enron-watkins-follow-up",
+            title="Enron Watkins Follow-up Example",
             primary_prompt=(
-                "Escalate the memo to Ken Lay, the audit committee, and internal "
-                "legal, preserve the written record, and pause any broad reassurance "
-                "until the accounting questions are reviewed."
+                "Escalate the follow-up note to Ken Lay, the audit committee, and "
+                "internal legal, preserve the written record, and pause any broad "
+                "reassurance until the accounting questions are reviewed."
             ),
             lead=(
-                "This example anchors the bankruptcy arc on the Watkins memo path and "
-                "shows how the what-if flow reads an internal accounting warning "
-                "against the public trust collapse already underway."
+                "This example uses the October 30 follow-up note that is actually in "
+                "the archive. The original August 22 Watkins memo is not present in "
+                "this Rosetta cut, so the saved branch starts from the later note "
+                "that restates the questions she says she raised to Ken Lay."
             ),
             branch_point=(
-                "Sherron Watkins is preserving the August warning path after "
-                "Skilling's resignation and before the public collapse fully lands."
+                "Sherron Watkins is writing a follow-up note that preserves her "
+                "account of the questions she says she raised to Ken Lay on August "
+                "22, while the company is already in the public disclosure spiral."
+            ),
+            story_lines=(
+                "The branch matters because it turns a private internal warning into "
+                "a preserved written record at the point where trust inside Enron is "
+                "already breaking down. The decision is who sees the note, how fast "
+                "legal is involved, and whether the record becomes harder to bury.",
+                "This example should be read as an email-path and escalation case "
+                "first. The macro panel stays advisory context beside that path, and "
+                "the weak calibration report keeps the bankruptcy-mechanism claim "
+                "narrow.",
             ),
             objective_pack_id="contain_exposure",
-            comparison_label="enron_watkins_memo_business_state_comparison_20260417",
+            comparison_label="enron_watkins_followup_business_state_comparison_20260417",
             candidates=(
                 EnronExampleCandidate(
                     label="Escalate to audit committee",
                     prompt=(
-                        "Escalate the memo to Ken Lay, the audit committee, and "
-                        "internal legal, preserve the written record, and copy "
-                        "Arthur Andersen on the factual accounting questions."
+                        "Escalate the follow-up note to Ken Lay, the audit "
+                        "committee, and internal legal, preserve the written record, "
+                        "and copy Arthur Andersen on the factual accounting questions."
                     ),
                 ),
                 EnronExampleCandidate(
                     label="Route through Vinson & Elkins",
                     prompt=(
-                        "Keep the memo inside Enron, route it through internal legal "
-                        "and Vinson & Elkins for review, and hold broader escalation "
-                        "until that review is complete."
+                        "Keep the follow-up note inside Enron, route it through "
+                        "internal legal and Vinson & Elkins for review, and hold "
+                        "broader escalation until that review is complete."
                     ),
                 ),
                 EnronExampleCandidate(
                     label="Send the warning anonymously",
                     prompt=(
                         "Strip the sender identity, send the warning as an anonymous "
-                        "memo to Ken Lay and the audit committee, and keep the "
+                        "follow-up note to Ken Lay and the audit committee, and keep the "
                         "distribution narrow."
                     ),
                 ),
                 EnronExampleCandidate(
                     label="Suppress and monitor",
                     prompt=(
-                        "Keep the memo inside a very small internal loop, do not "
-                        "escalate it further, and monitor the accounting story "
+                        "Keep the follow-up note inside a very small internal loop, "
+                        "do not escalate it further, and monitor the accounting story "
                         "quietly for a few days."
                     ),
                 ),
@@ -172,6 +193,15 @@ def bundle_specs() -> tuple[EnronExampleSpec, ...]:
             branch_point=(
                 "Tim Belden's desk receives a preservation order tied to the "
                 "California crisis while the trading strategy is still active."
+            ),
+            story_lines=(
+                "This branch matters because the desk still has room to choose "
+                "between legal containment and continued conduct after the "
+                "preservation order lands. The saved comparison turns that into a "
+                "plain choice about halting, documenting, or pushing through.",
+                "The FERC and refund timeline gives the branch a wider public frame, "
+                "but the macro panel remains advisory context beside the preserved "
+                "email evidence and the ranked decision path.",
             ),
             objective_pack_id="contain_exposure",
             comparison_label="enron_california_crisis_business_state_comparison_20260417",
@@ -226,6 +256,15 @@ def bundle_specs() -> tuple[EnronExampleSpec, ...]:
             branch_point=(
                 "Sara Shackleton is moving a PG&E financial power deal while the "
                 "counterparty's macro-credit picture is deteriorating."
+            ),
+            story_lines=(
+                "This branch is interesting because it keeps the legal drafting work "
+                "small and concrete while the counterparty story around PG&E is "
+                "getting materially worse in public. The saved choices are about "
+                "whether Enron slows down, restructures, or keeps pressing ahead.",
+                "The stock, credit, and bankruptcy fixtures add context around the "
+                "deal date. The macro panel still stays advisory because the current "
+                "calibration report is weak.",
             ),
             objective_pack_id="contain_exposure",
             comparison_label="enron_pge_power_deal_business_state_comparison_20260417",

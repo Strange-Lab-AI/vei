@@ -1,0 +1,49 @@
+{
+  "status": "ok",
+  "provider": "openai",
+  "model": "gpt-5-mini",
+  "prompt": "Escalate the follow-up note to Ken Lay, the audit committee, and internal legal, preserve the written record, and pause any broad reassurance until the accounting questions are reviewed.",
+  "summary": "Sherron Watkins escalates the Aug 22 questions to Ken Lay, the audit committee, and internal legal, instructing preservation of the written record and pausing any broad reassurance until accounting and legal have reviewed.",
+  "messages": [
+    {
+      "actor_id": "sherron.watkins@enron.com",
+      "surface": "mail",
+      "to": ".schuler@enron.com",
+      "subject": "The key questions I asked Lay on Aug 22 — escalation",
+      "body_text": "Steve — Following up on the questions I raised with Ken on Aug 22. Please escalate this matter immediately to Ken Lay, the Audit Committee, and internal legal. Preserve this email and any attachments as part of the written record. Do not issue any broad reassurances or external statements until accounting and legal have completed their review and advised on the communications posture. When you forward, include me and Ed Haedicke and mark the message 'Confidential — Accounting/Legal Review.' Confirm when the escalation has been sent.",
+      "delay_ms": 60000,
+      "conversation_anchor": "",
+      "rationale": "Prompt executive and governance oversight, preserve documentary evidence, and pause public reassurance until expert review."
+    },
+    {
+      "actor_id": "sherron.watkins@enron.com",
+      "surface": "mail",
+      "to": "e..haedicke@enron.com",
+      "subject": "The key questions I asked Lay on Aug 22 — legal preservation and communications",
+      "body_text": "Ed — I'm escalating the attached questions I raised with Ken on Aug 22 and have asked Steve to forward to Ken and the Audit Committee. Please confirm that legal will preserve the written record and advise immediately whether we should pause any general reassurances or statements pending your and accounting's review. If privilege should be asserted, advise the steps to do so. Reply to me and confirm you are on any distribution to Ken and the Audit Committee.",
+      "delay_ms": 120000,
+      "conversation_anchor": "",
+      "rationale": "Secure legal oversight, confirm preservation and guidance on communications, and ensure privilege is asserted if appropriate."
+    }
+  ],
+  "usage": {
+    "provider": "openai",
+    "model": "gpt-5-mini",
+    "prompt_tokens": 1085,
+    "completion_tokens": 4254,
+    "total_tokens": 5339,
+    "estimated_cost_usd": 0.00877925
+  },
+  "scheduled_event_count": 2,
+  "delivered_event_count": 2,
+  "inbox_count": 3,
+  "top_subjects": [
+    "The key questions I asked Lay on Aug 22 — legal preservation and communications",
+    "The key questions I asked Lay on Aug 22 — escalation",
+    "The key questions I asked Lay on Aug 22"
+  ],
+  "notes": [
+    "Recipient scope was clamped to internal Enron participants."
+  ],
+  "error": null
+}

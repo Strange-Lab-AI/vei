@@ -17,6 +17,12 @@ Open `http://127.0.0.1:3055`.
 
 ![Saved ranking panel](../../assets/enron-whatif/pge-power-deal-ranking.png)
 
+## Why This Branch Matters
+
+This branch is interesting because it keeps the legal drafting work small and concrete while the counterparty story around PG&E is getting materially worse in public. The saved choices are about whether Enron slows down, restructures, or keeps pressing ahead.
+
+The stock, credit, and bankruptcy fixtures add context around the deal date. The macro panel still stays advisory because the current calibration report is weak.
+
 ## What This Example Covers
 
 - Historical branch point: Sara Shackleton is moving a PG&E financial power deal while the counterparty's macro-credit picture is deteriorating.
@@ -40,7 +46,7 @@ Open `http://127.0.0.1:3055`.
 ## Other Enron Examples
 
 - [Enron Master Agreement Example](../enron-master-agreement-public-context/README.md)
-- [Enron Watkins Memo Example](../enron-watkins-memo/README.md)
+- [Enron Watkins Follow-up Example](../enron-watkins-follow-up/README.md)
 - [Enron California Crisis Strategy Example](../enron-california-crisis-strategy/README.md)
 
 ## Refresh
@@ -54,3 +60,5 @@ python scripts/capture_enron_bundle_screenshots.py --bundle enron-pge-power-deal
 ## Constraint
 
 This repo now carries the Rosetta parquet archive, the source cache, and the raw Enron mail tar under `data/enron/`, so a fresh clone can open these saved examples and rebuild them without reaching into a sibling checkout.
+
+The macro heads in these saved bundles stay advisory context beside the email-path evidence. See [the current calibration report](../../../studies/macro_calibration_enron_v1/calibration_report.md) before making any stronger claim.

@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Changed
+
+- Strengthened the repo-owned Enron dataset path with four saved bundles, richer public-company fixtures, repo-local Rosetta data, and macro outcome side data.
+- Cleaned up the Watkins saved example so it now points at the follow-up note that is actually present in the archive, and refreshed the Enron bundle docs and screenshots around that corpus-backed branch.
+
 ## 0.3.0 - 2026-04-17
 
 ### Added

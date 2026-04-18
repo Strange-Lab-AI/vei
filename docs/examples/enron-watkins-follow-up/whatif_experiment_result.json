@@ -1,10 +1,10 @@
 {
   "version": "2",
   "mode": "both",
-  "label": "watkins_memo_release_path_saved_bundle_20260417",
+  "label": "watkins_followup_questions_saved_bundle_20260417",
   "intervention": {
-    "label": "watkins_memo_release_path_saved_bundle_20260417",
-    "prompt": "Escalate the memo to Ken Lay, the audit committee, and internal legal, preserve the written record, and pause any broad reassurance until the accounting questions are reviewed.",
+    "label": "watkins_followup_questions_saved_bundle_20260417",
+    "prompt": "Escalate the follow-up note to Ken Lay, the audit committee, and internal legal, preserve the written record, and pause any broad reassurance until the accounting questions are reviewed.",
     "objective": "Direct escalations to senior executives require a department-head gate.",
     "scenario_id": "escalation_firewall",
     "thread_id": "thr_6ca597ba4bf815ac",
@@ -20,7 +20,7 @@
         "Allow direct escalation but flag the thread for governance review."
       ]
     },
-    "prompt": "Escalate the memo to Ken Lay, the audit committee, and internal legal, preserve the written record, and pause any broad reassurance until the accounting questions are reviewed.",
+    "prompt": "Escalate the follow-up note to Ken Lay, the audit committee, and internal legal, preserve the written record, and pause any broad reassurance until the accounting questions are reviewed.",
     "world_summary": {
       "source": "enron",
       "organization_name": "Enron Corporation",
@@ -12994,55 +12994,44 @@
     "status": "ok",
     "provider": "openai",
     "model": "gpt-5-mini",
-    "prompt": "Escalate the memo to Ken Lay, the audit committee, and internal legal, preserve the written record, and pause any broad reassurance until the accounting questions are reviewed.",
-    "summary": "Sherron Watkins immediately escalates her Aug 22 memo: she asks Susan Schuler to escalate the memo to Ken Lay and the audit committee and to preserve the corporate record; she asks E. Haedicke for immediate legal review and a hold on broad reassurances; and she archives a dated copy in her own mailbox.",
+    "prompt": "Escalate the follow-up note to Ken Lay, the audit committee, and internal legal, preserve the written record, and pause any broad reassurance until the accounting questions are reviewed.",
+    "summary": "Sherron Watkins escalates the Aug 22 questions to Ken Lay, the audit committee, and internal legal, instructing preservation of the written record and pausing any broad reassurance until accounting and legal have reviewed.",
     "messages": [
       {
         "actor_id": "sherron.watkins@enron.com",
         "surface": "mail",
         "to": ".schuler@enron.com",
-        "subject": "Escalation: The key questions I asked Lay on Aug 22",
-        "body_text": "Susan — Attached is the memo I raised with Ken Lay on Aug 22 outlining specific accounting and related-party concerns. Please escalate this immediately to Ken Lay and to the audit committee and ensure internal legal is engaged. Preserve this email and the attached memo in the corporate records (do not delete). Pause any broad reassuring communications, internal or external, until counsel and the audit committee have reviewed the accounting questions. Please confirm receipt and escalation. — Sherron",
-        "delay_ms": 1000,
+        "subject": "The key questions I asked Lay on Aug 22 — escalation",
+        "body_text": "Steve — Following up on the questions I raised with Ken on Aug 22. Please escalate this matter immediately to Ken Lay, the Audit Committee, and internal legal. Preserve this email and any attachments as part of the written record. Do not issue any broad reassurances or external statements until accounting and legal have completed their review and advised on the communications posture. When you forward, include me and Ed Haedicke and mark the message 'Confidential — Accounting/Legal Review.' Confirm when the escalation has been sent.",
+        "delay_ms": 60000,
         "conversation_anchor": "",
-        "rationale": "Directs immediate escalation to the CEO and audit committee and orders preservation of the written record and a suspension of broad reassurance until review is complete."
+        "rationale": "Prompt executive and governance oversight, preserve documentary evidence, and pause public reassurance until expert review."
       },
       {
         "actor_id": "sherron.watkins@enron.com",
         "surface": "mail",
         "to": "e..haedicke@enron.com",
-        "subject": "Immediate legal review requested: Accounting questions raised to Lay on Aug 22",
-        "body_text": "E. — I am forwarding the memo I discussed with Ken Lay on Aug 22 that raises potential accounting and related-party issues. Please review immediately for legal exposure and advise on disclosure, communications, and next steps. Preserve this email and attachments in the legal file. Recommend a hold on any broad public reassurance until you and the audit committee complete your review. Acknowledge receipt and provide earliest availability to meet. — Sherron",
-        "delay_ms": 60000,
-        "conversation_anchor": "",
-        "rationale": "Engages internal legal to assess liabilities and communications strategy, requests preservation of documents, and asks legal to support a pause on reassurances pending review."
-      },
-      {
-        "actor_id": "sherron.watkins@enron.com",
-        "surface": "mail",
-        "to": "sherron.watkins@enron.com",
-        "subject": "Record copy: The key questions I asked Lay on Aug 22 — Escalation log",
-        "body_text": "Archive copy of the memo and the escalation emails sent to .schuler and e..haedicke. Date-stamped record to preserve written evidence of my concerns and the instruction to escalate and pause public reassurance until legal/audit review is complete.",
+        "subject": "The key questions I asked Lay on Aug 22 — legal preservation and communications",
+        "body_text": "Ed — I'm escalating the attached questions I raised with Ken on Aug 22 and have asked Steve to forward to Ken and the Audit Committee. Please confirm that legal will preserve the written record and advise immediately whether we should pause any general reassurances or statements pending your and accounting's review. If privilege should be asserted, advise the steps to do so. Reply to me and confirm you are on any distribution to Ken and the Audit Committee.",
         "delay_ms": 120000,
         "conversation_anchor": "",
-        "rationale": "Creates a dated internal record in Sherron's mailbox to preserve evidence of the concerns, the escalation instructions, and the pause on broad reassurance."
+        "rationale": "Secure legal oversight, confirm preservation and guidance on communications, and ensure privilege is asserted if appropriate."
       }
     ],
     "usage": {
       "provider": "openai",
       "model": "gpt-5-mini",
-      "prompt_tokens": 1083,
-      "completion_tokens": 6110,
-      "total_tokens": 7193,
-      "estimated_cost_usd": 0.01249075
+      "prompt_tokens": 1085,
+      "completion_tokens": 4254,
+      "total_tokens": 5339,
+      "estimated_cost_usd": 0.00877925
     },
-    "scheduled_event_count": 3,
-    "delivered_event_count": 3,
-    "inbox_count": 4,
+    "scheduled_event_count": 2,
+    "delivered_event_count": 2,
+    "inbox_count": 3,
     "top_subjects": [
-      "Record copy: The key questions I asked Lay on Aug 22 — Escalation log",
-      "Immediate legal review requested: Accounting questions raised to Lay on Aug 22",
-      "Escalation: The key questions I asked Lay on Aug 22",
+      "The key questions I asked Lay on Aug 22 — legal preservation and communications",
+      "The key questions I asked Lay on Aug 22 — escalation",
       "The key questions I asked Lay on Aug 22"
     ],
     "notes": [
@@ -13053,7 +13042,7 @@
   "forecast_result": {
     "status": "ok",
     "backend": "heuristic_baseline",
-    "prompt": "Escalate the memo to Ken Lay, the audit committee, and internal legal, preserve the written record, and pause any broad reassurance until the accounting questions are reviewed.",
+    "prompt": "Escalate the follow-up note to Ken Lay, the audit committee, and internal legal, preserve the written record, and pause any broad reassurance until the accounting questions are reviewed.",
     "summary": "Predicted risk moves down by 0.020, with escalation delta 0 and external-send delta 0.",
     "baseline": {
       "backend": "historical",

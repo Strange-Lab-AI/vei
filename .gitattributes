@@ -1,0 +1,4 @@
+# Keep the canonical Enron dataset in Git LFS so branch pushes stay publishable.
+data/enron/raw/*.tar.gz filter=lfs diff=lfs merge=lfs -text
+data/enron/source/*.parquet filter=lfs diff=lfs merge=lfs -text
+data/enron/rosetta/*.parquet filter=lfs diff=lfs merge=lfs -text

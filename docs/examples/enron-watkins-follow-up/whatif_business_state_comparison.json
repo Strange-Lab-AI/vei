@@ -1,5 +1,5 @@
 {
-  "label": "enron_watkins_memo_business_state_comparison_20260417",
+  "label": "enron_watkins_followup_business_state_comparison_20260417",
   "objective_pack_id": "contain_exposure",
   "thread_id": "thr_6ca597ba4bf815ac",
   "branch_event_id": "enron_d8d296de473f63be",
@@ -69,7 +69,7 @@
   "candidates": [
     {
       "label": "Send the warning anonymously",
-      "prompt": "Strip the sender identity, send the warning as an anonymous memo to Ken Lay and the audit committee, and keep the distribution narrow.",
+      "prompt": "Strip the sender identity, send the warning as an anonymous follow-up note to Ken Lay and the audit committee, and keep the distribution narrow.",
       "forecast": {
         "backend": "heuristic_baseline",
         "summary": "Predicted risk moves flat by 0.000, with escalation delta 0 and external-send delta 0.",
@@ -203,7 +203,7 @@
     },
     {
       "label": "Suppress and monitor",
-      "prompt": "Keep the memo inside a very small internal loop, do not escalate it further, and monitor the accounting story quietly for a few days.",
+      "prompt": "Keep the follow-up note inside a very small internal loop, do not escalate it further, and monitor the accounting story quietly for a few days.",
       "forecast": {
         "backend": "heuristic_baseline",
         "summary": "Predicted risk moves flat by 0.000, with escalation delta 0 and external-send delta 0.",
@@ -337,7 +337,7 @@
     },
     {
       "label": "Escalate to audit committee",
-      "prompt": "Escalate the memo to Ken Lay, the audit committee, and internal legal, preserve the written record, and copy Arthur Andersen on the factual accounting questions.",
+      "prompt": "Escalate the follow-up note to Ken Lay, the audit committee, and internal legal, preserve the written record, and copy Arthur Andersen on the factual accounting questions.",
       "forecast": {
         "backend": "heuristic_baseline",
         "summary": "Predicted risk moves down by 0.020, with escalation delta 0 and external-send delta 0.",
@@ -474,7 +474,7 @@
     },
     {
       "label": "Route through Vinson & Elkins",
-      "prompt": "Keep the memo inside Enron, route it through internal legal and Vinson & Elkins for review, and hold broader escalation until that review is complete.",
+      "prompt": "Keep the follow-up note inside Enron, route it through internal legal and Vinson & Elkins for review, and hold broader escalation until that review is complete.",
       "forecast": {
         "backend": "heuristic_baseline",
         "summary": "Predicted risk moves down by 0.020, with escalation delta 0 and external-send delta 0.",

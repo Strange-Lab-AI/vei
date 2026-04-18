@@ -17,6 +17,12 @@ Open `http://127.0.0.1:3055`.
 
 ![Saved ranking panel](../../assets/enron-whatif/master-agreement-public-context-ranking.png)
 
+## Why This Branch Matters
+
+This branch is the clearest procedural example in the Enron set. One contract draft is ready to go out, and the decision is whether to keep the document inside legal review or widen the outside loop.
+
+The wider public-company panel puts that narrow legal choice inside the larger Enron arc. The macro heads stay in the scene as dated context only, because the current calibration report is still weak.
+
 ## What This Example Covers
 
 - Historical branch point: Debra Perlingiere is about to send the Master Agreement draft to Cargill on September 27, 2000.
@@ -39,13 +45,13 @@ Open `http://127.0.0.1:3055`.
 
 ## Other Enron Examples
 
-- [Enron Watkins Memo Example](../enron-watkins-memo/README.md)
+- [Enron Watkins Follow-up Example](../enron-watkins-follow-up/README.md)
 - [Enron California Crisis Strategy Example](../enron-california-crisis-strategy/README.md)
 - [Enron PG&E Power Deal Example](../enron-pge-power-deal/README.md)
 
 ## Bankruptcy Arc Timeline
 
-See [timeline_arc.md](timeline_arc.md) for the public timeline that places this branch beside the PG&E, California, and Watkins examples.
+See [timeline_arc.md](timeline_arc.md) for the dated public timeline and [the rendered timeline image](../../assets/enron-whatif/enron-bankruptcy-arc-timeline.png) for the visual version that places this branch beside the PG&E, California, and Watkins follow-up examples.
 
 ## Refresh
 
@@ -58,3 +64,5 @@ python scripts/capture_enron_bundle_screenshots.py --bundle enron-master-agreeme
 ## Constraint
 
 This repo now carries the Rosetta parquet archive, the source cache, and the raw Enron mail tar under `data/enron/`, so a fresh clone can open these saved examples and rebuild them without reaching into a sibling checkout.
+
+The macro heads in these saved bundles stay advisory context beside the email-path evidence. See [the current calibration report](../../../studies/macro_calibration_enron_v1/calibration_report.md) before making any stronger claim.

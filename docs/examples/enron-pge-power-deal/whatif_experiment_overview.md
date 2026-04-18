@@ -27,12 +27,11 @@ Prompt: Hold the deal until PG&E credit is rechecked, ask for collateral, and ke
 
 ## LLM Actor
 - Status: ok
-- Summary: Trading is instructed to hold the PG&E Financial Power trade (EW9838) pending an immediate credit recheck and provision of acceptable collateral; Credit and Legal are placed on a joint internal review loop and will sign off before any confirmation or settlement.
-- Delivered actions: 3
-- Inbox count: 4
-- `mail` `sara.shackleton@enron.com` -> `mark.taylor@enron.com` after 60000 ms: PG&E Financial Power Deal (EW9838) — Hold and collateral request
-- `mail` `sara.shackleton@enron.com` -> `rod.nelson@enron.com` after 120000 ms: URGENT: Credit recheck needed — PG&E (EW9838)
-- `mail` `sara.shackleton@enron.com` -> `tana.jones@enron.com` after 180000 ms: Legal review requested — PG&E Financial Power trade (EW9838)
+- Summary: Sara Shackleton instructs that the 5/11 Financial Power trade with PG&E (EW9838) be placed on hold pending an immediate credit re-evaluation; requests acceptable collateral from PG&E; directs Credit and Legal to coordinate and issue a single internal approval before any settlement proceeds. The Credit group acknowledges and commits to the recheck and collateral request.
+- Delivered actions: 2
+- Inbox count: 3
+- `mail` `sara.shackleton@enron.com` -> `mark.taylor@enron.com` after 60000 ms: PG&E Financial Power Deal — Hold Pending Credit/Legal Review
+- `mail` `group:f5252189e3adb059` -> `sara.shackleton@enron.com` after 300000 ms: RE: PG&E Financial Power Deal — Credit/Legal joint review
 
 ## Forecast
 - Status: ok

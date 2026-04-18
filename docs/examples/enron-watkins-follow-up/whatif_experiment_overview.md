@@ -1,4 +1,4 @@
-# watkins_memo_release_path_saved_bundle_20260417
+# watkins_followup_questions_saved_bundle_20260417
 
 Thread: `thr_6ca597ba4bf815ac`
 Case: `thread:thr_6ca597ba4bf815ac`
@@ -7,7 +7,7 @@ Branch event: `enron_d8d296de473f63be`
 Changed actor: `sherron.watkins@enron.com`
 Historical event type: message
 Historical subject: The key questions I asked Lay on Aug 22
-Prompt: Escalate the memo to Ken Lay, the audit committee, and internal legal, preserve the written record, and pause any broad reassurance until the accounting questions are reviewed.
+Prompt: Escalate the follow-up note to Ken Lay, the audit committee, and internal legal, preserve the written record, and pause any broad reassurance until the accounting questions are reviewed.
 
 ## Historical Event
 - Timestamp: 2001-10-30T14:58:45Z
@@ -25,12 +25,11 @@ Prompt: Escalate the memo to Ken Lay, the audit committee, and internal legal, p
 
 ## LLM Actor
 - Status: ok
-- Summary: Sherron Watkins immediately escalates her Aug 22 memo: she asks Susan Schuler to escalate the memo to Ken Lay and the audit committee and to preserve the corporate record; she asks E. Haedicke for immediate legal review and a hold on broad reassurances; and she archives a dated copy in her own mailbox.
-- Delivered actions: 3
-- Inbox count: 4
-- `mail` `sherron.watkins@enron.com` -> `.schuler@enron.com` after 1000 ms: Escalation: The key questions I asked Lay on Aug 22
-- `mail` `sherron.watkins@enron.com` -> `e..haedicke@enron.com` after 60000 ms: Immediate legal review requested: Accounting questions raised to Lay on Aug 22
-- `mail` `sherron.watkins@enron.com` -> `sherron.watkins@enron.com` after 120000 ms: Record copy: The key questions I asked Lay on Aug 22 — Escalation log
+- Summary: Sherron Watkins escalates the Aug 22 questions to Ken Lay, the audit committee, and internal legal, instructing preservation of the written record and pausing any broad reassurance until accounting and legal have reviewed.
+- Delivered actions: 2
+- Inbox count: 3
+- `mail` `sherron.watkins@enron.com` -> `.schuler@enron.com` after 60000 ms: The key questions I asked Lay on Aug 22 — escalation
+- `mail` `sherron.watkins@enron.com` -> `e..haedicke@enron.com` after 120000 ms: The key questions I asked Lay on Aug 22 — legal preservation and communications
 
 ## Forecast
 - Status: ok

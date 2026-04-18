@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-04-18T06:48:56.883482Z",
+  "generated_at": "2026-04-18T07:13:27.609621Z",
   "bundles": [
     {
       "bundle_slug": "enron-master-agreement-public-context",
@@ -12,13 +12,13 @@
       }
     },
     {
-      "bundle_slug": "enron-watkins-memo",
-      "workspace_root": "docs/examples/enron-watkins-memo/workspace",
+      "bundle_slug": "enron-watkins-follow-up",
+      "workspace_root": "docs/examples/enron-watkins-follow-up/workspace",
       "screenshots": {
-        "scene": "docs/assets/enron-whatif/watkins-memo-scene.png",
-        "forecast": "docs/assets/enron-whatif/watkins-memo-forecast.png",
-        "macro": "docs/assets/enron-whatif/watkins-memo-macro.png",
-        "ranking": "docs/assets/enron-whatif/watkins-memo-ranking.png"
+        "scene": "docs/assets/enron-whatif/watkins-follow-up-scene.png",
+        "forecast": "docs/assets/enron-whatif/watkins-follow-up-forecast.png",
+        "macro": "docs/assets/enron-whatif/watkins-follow-up-macro.png",
+        "ranking": "docs/assets/enron-whatif/watkins-follow-up-ranking.png"
       }
     },
     {

@@ -5,16 +5,16 @@
   "organization_domain": "enron.com",
   "events": [
     {
-      "case_id": "watkins_memo_release_path",
+      "case_id": "watkins_followup_questions",
       "family": "whistleblower",
       "event_id": "enron_d8d296de473f63be",
       "thread_id": "thr_6ca597ba4bf815ac",
       "timestamp": "2001-10-30T14:58:45Z",
       "actor_id": "sherron.watkins@enron.com",
       "subject": "The key questions I asked Lay on Aug 22",
-      "summary": "Watkins preserves the August warning path inside the archive after the accounting concerns became public inside Enron's leadership circle.",
-      "excerpt": "Sherron Watkins preserves the August warning path and frames the accounting questions she put to Ken Lay.",
-      "bundle_slug": "enron-watkins-memo"
+      "summary": "Watkins writes a follow-up note that preserves the questions she says she raised to Ken Lay on August 22 after Enron's disclosure crisis is already visible.",
+      "excerpt": "Sherron Watkins restates the questions she says she raised to Ken Lay and turns them into a preserved follow-up record.",
+      "bundle_slug": "enron-watkins-follow-up"
     },
     {
       "case_id": "california_crisis_order",

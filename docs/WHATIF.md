@@ -200,7 +200,7 @@ vei whatif benchmark build \
 The current repo-owned Enron set has four saved bundles:
 
 - `docs/examples/enron-master-agreement-public-context/`
-- `docs/examples/enron-watkins-memo/`
+- `docs/examples/enron-watkins-follow-up/`
 - `docs/examples/enron-california-crisis-strategy/`
 - `docs/examples/enron-pge-power-deal/`
 

@@ -43,7 +43,7 @@ def test_enron_benchmark_pack_includes_macro_families() -> None:
         "accounting_disclosure",
     }.issubset(family_names)
     assert {
-        "watkins_memo_release_path",
+        "watkins_followup_questions",
         "california_crisis_order",
         "baxter_press_release",
         "q3_disclosure_review",

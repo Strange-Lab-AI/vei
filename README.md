@@ -115,9 +115,11 @@ The ranked comparison turns the same branch into a business choice. `Hold for in
 The repo now ships four saved Enron examples:
 
 - `enron-master-agreement-public-context`: procedural legal review inside the wider company arc
-- `enron-watkins-memo`: the accounting-warning path after Skilling's exit
+- `enron-watkins-follow-up`: the October 30 Watkins follow-up note that restates the questions she says she raised to Lay
 - `enron-california-crisis-strategy`: California trading conduct inside the refund and FERC timeline
 - `enron-pge-power-deal`: commercial legal handling against counterparty deterioration
+
+The repo-owned Enron data chain is documented in [docs/ROSETTA_SOURCE.md](docs/ROSETTA_SOURCE.md).
 
 Useful files in the Master Agreement example:
 

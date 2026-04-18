@@ -1,4 +1,4 @@
-# enron_watkins_memo_business_state_comparison_20260417
+# enron_watkins_followup_business_state_comparison_20260417
 
 Objective pack: `contain_exposure`
 Thread: `thr_6ca597ba4bf815ac`
@@ -13,7 +13,7 @@ Historical subject: The key questions I asked Lay on Aug 22
 
 ## Candidate Moves
 ### Rank 1: Send the warning anonymously
-- Prompt: Strip the sender identity, send the warning as an anonymous memo to Ken Lay and the audit committee, and keep the distribution narrow.
+- Prompt: Strip the sender identity, send the warning as an anonymous follow-up note to Ken Lay and the audit committee, and keep the distribution narrow.
 - Business state: This move stays close to the historical business path.
 - Net effect score: 0.0
 - Forecast summary: Predicted risk moves flat by 0.000, with escalation delta 0 and external-send delta 0.
@@ -27,7 +27,7 @@ Historical subject: The key questions I asked Lay on Aug 22
 - Commercial footing stays close to the historical path.
 
 ### Rank 2: Suppress and monitor
-- Prompt: Keep the memo inside a very small internal loop, do not escalate it further, and monitor the accounting story quietly for a few days.
+- Prompt: Keep the follow-up note inside a very small internal loop, do not escalate it further, and monitor the accounting story quietly for a few days.
 - Business state: This move stays close to the historical business path.
 - Net effect score: 0.0
 - Forecast summary: Predicted risk moves flat by 0.000, with escalation delta 0 and external-send delta 0.
@@ -41,7 +41,7 @@ Historical subject: The key questions I asked Lay on Aug 22
 - Commercial footing stays close to the historical path.
 
 ### Rank 3: Escalate to audit committee
-- Prompt: Escalate the memo to Ken Lay, the audit committee, and internal legal, preserve the written record, and copy Arthur Andersen on the factual accounting questions.
+- Prompt: Escalate the follow-up note to Ken Lay, the audit committee, and internal legal, preserve the written record, and copy Arthur Andersen on the factual accounting questions.
 - Business state: Much higher approval and escalation pressure.
 - Net effect score: -0.102
 - Forecast summary: Predicted risk moves down by 0.020, with escalation delta 0 and external-send delta 0.
@@ -55,7 +55,7 @@ Historical subject: The key questions I asked Lay on Aug 22
 - Commercial footing looks weaker.
 
 ### Rank 4: Route through Vinson & Elkins
-- Prompt: Keep the memo inside Enron, route it through internal legal and Vinson & Elkins for review, and hold broader escalation until that review is complete.
+- Prompt: Keep the follow-up note inside Enron, route it through internal legal and Vinson & Elkins for review, and hold broader escalation until that review is complete.
 - Business state: Much higher approval and escalation pressure.
 - Net effect score: -0.102
 - Forecast summary: Predicted risk moves down by 0.020, with escalation delta 0 and external-send delta 0.
