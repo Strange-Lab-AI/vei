@@ -9786,19 +9786,6 @@
             "source_ids": [
               "enron_historical_stock_price_pdf"
             ]
-          },
-          {
-            "as_of": "2000-12-15T00:00:00Z",
-            "close": 77.56,
-            "open": 76.63,
-            "high": 79.25,
-            "low": 75.75,
-            "volume": 5248300,
-            "label": "Daily trading close",
-            "summary": "Daily Enron trading data extracted from the archived historical stock-price table.",
-            "source_ids": [
-              "enron_historical_stock_price_pdf"
-            ]
           }
         ],
         "credit_history": [],

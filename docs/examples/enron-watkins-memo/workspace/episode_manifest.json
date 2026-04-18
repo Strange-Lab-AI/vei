@@ -74,7 +74,7 @@
     "future_approval_count": 0,
     "future_external_event_count": 0,
     "risk_score": 0.02,
-    "stock_return_5d": -0.1335,
+    "stock_return_5d": -0.1912,
     "credit_action_30d": 1.0,
     "ferc_action_180d": null,
     "summary": "1 future events remain, including 0 escalations and 0 externally addressed messages."
@@ -12672,19 +12672,6 @@
         "high": 15.55,
         "low": 13.55,
         "volume": 36430800,
-        "label": "Daily trading close",
-        "summary": "Daily Enron trading data extracted from the archived historical stock-price table.",
-        "source_ids": [
-          "enron_historical_stock_price_pdf"
-        ]
-      },
-      {
-        "as_of": "2001-10-30T00:00:00Z",
-        "close": 11.16,
-        "open": 13.8,
-        "high": 13.8,
-        "low": 10.9,
-        "volume": 56564300,
         "label": "Daily trading close",
         "summary": "Daily Enron trading data extracted from the archived historical stock-price table.",
         "source_ids": [

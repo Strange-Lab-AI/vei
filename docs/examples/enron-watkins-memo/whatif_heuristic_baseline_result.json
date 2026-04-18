@@ -11,7 +11,7 @@
     "future_approval_count": 0,
     "future_external_event_count": 0,
     "risk_score": 0.02,
-    "stock_return_5d": -0.1335,
+    "stock_return_5d": -0.1912,
     "credit_action_30d": 1.0,
     "ferc_action_180d": null,
     "summary": "1 future events remain, including 0 escalations and 0 externally addressed messages."
@@ -24,7 +24,7 @@
     "future_approval_count": 1,
     "future_external_event_count": 0,
     "risk_score": 0.0,
-    "stock_return_5d": -0.1435,
+    "stock_return_5d": -0.2012,
     "credit_action_30d": 1.0,
     "ferc_action_180d": null,
     "summary": "1 follow-up events remain, with 0 escalations and 0 external sends."

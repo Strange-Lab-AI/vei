@@ -21,7 +21,7 @@ Open `http://127.0.0.1:3055`.
 
 - Historical branch point: Sherron Watkins is preserving the August warning path after Skilling's resignation and before the public collapse fully lands.
 - Saved branch scene: 0 prior messages and 1 recorded future events
-- Public-company slice at 2001-10-30: 11 financial checkpoints, 13 public news items, 945 market checkpoints, 4 credit checkpoints, and 1 regulatory checkpoints
+- Public-company slice at 2001-10-30: 11 financial checkpoints, 13 public news items, 944 market checkpoints, 4 credit checkpoints, and 1 regulatory checkpoints
 - Saved LLM path: Escalate the memo to Ken Lay, the audit committee, and internal legal, preserve the written record, and pause any broad reassurance until the accounting questions are reviewed.
 - Saved forecast file: `whatif_heuristic_baseline_result.json`
 - Business-state readout: Much higher approval and escalation pressure.

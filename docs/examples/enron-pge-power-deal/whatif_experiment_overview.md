@@ -27,12 +27,12 @@ Prompt: Hold the deal until PG&E credit is rechecked, ask for collateral, and ke
 
 ## LLM Actor
 - Status: ok
-- Summary: Hold the PG&E Financial Power trade (EW9838) pending an immediate credit recheck, require collateral, and keep Legal and Credit on a single coordinated internal review loop.
+- Summary: Trading is instructed to hold the PG&E Financial Power trade (EW9838) pending an immediate credit recheck and provision of acceptable collateral; Credit and Legal are placed on a joint internal review loop and will sign off before any confirmation or settlement.
 - Delivered actions: 3
 - Inbox count: 4
-- `mail` `sara.shackleton@enron.com` -> `mark.taylor@enron.com` after 1000 ms: PG&E Financial Power Deal — HOLD pending credit/legal review
-- `mail` `sara.shackleton@enron.com` -> `tana.jones@enron.com` after 60000 ms: PG&E (EW9838) — Immediate credit recheck & collateral request
-- `mail` `tana.jones@enron.com` -> `sara.shackleton@enron.com` after 300000 ms: Re: PG&E (EW9838) — Credit recheck started
+- `mail` `sara.shackleton@enron.com` -> `mark.taylor@enron.com` after 60000 ms: PG&E Financial Power Deal (EW9838) — Hold and collateral request
+- `mail` `sara.shackleton@enron.com` -> `rod.nelson@enron.com` after 120000 ms: URGENT: Credit recheck needed — PG&E (EW9838)
+- `mail` `sara.shackleton@enron.com` -> `tana.jones@enron.com` after 180000 ms: Legal review requested — PG&E Financial Power trade (EW9838)
 
 ## Forecast
 - Status: ok
@@ -56,6 +56,6 @@ Prompt: Hold the deal until PG&E credit is rechecked, ask for collateral, and ke
 - Near-term execution looks slower.
 
 ## Macro Outcomes
-- Stock return (5d): -0.0201 -> 0.0399 (delta 0.06)
+- Stock return (5d): -0.0343 -> 0.0257 (delta 0.06)
 - Credit action (30d): 0.0 -> 0.0 (delta 0.0)
 - FERC action (180d): 0.0 -> 0.0 (delta 0.0)

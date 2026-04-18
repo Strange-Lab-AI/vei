@@ -264,7 +264,7 @@
       "future_approval_count": 0,
       "future_external_event_count": 0,
       "risk_score": 0.08,
-      "stock_return_5d": 0.0468,
+      "stock_return_5d": 0.0646,
       "credit_action_30d": 1.0,
       "ferc_action_180d": 0.0,
       "summary": "4 future events remain, including 0 escalations and 0 externally addressed messages."
@@ -9973,19 +9973,6 @@
           "source_ids": [
             "enron_historical_stock_price_pdf"
           ]
-        },
-        {
-          "as_of": "2000-12-15T00:00:00Z",
-          "close": 77.56,
-          "open": 76.63,
-          "high": 79.25,
-          "low": 75.75,
-          "volume": 5248300,
-          "label": "Daily trading close",
-          "summary": "Daily Enron trading data extracted from the archived historical stock-price table.",
-          "source_ids": [
-            "enron_historical_stock_price_pdf"
-          ]
         }
       ],
       "credit_history": [],
@@ -10202,7 +10189,7 @@
       "future_approval_count": 0,
       "future_external_event_count": 0,
       "risk_score": 0.08,
-      "stock_return_5d": 0.0468,
+      "stock_return_5d": 0.0646,
       "credit_action_30d": 1.0,
       "ferc_action_180d": 0.0,
       "summary": "4 future events remain, including 0 escalations and 0 externally addressed messages."
@@ -10213,43 +10200,43 @@
     "provider": "openai",
     "model": "gpt-5-mini",
     "prompt": "Pause the strategy, preserve the record, alert legal and compliance, and prepare a self-report path instead of continuing the trading play.",
-    "summary": "Portland desk immediately halts the trading play, instructs preservation of all electronic records, alerts Legal and Compliance, and opens a self-report pathway. Tim Belden acknowledges, suspends trading, documents steps taken, and confirms contact with Legal/Compliance.",
+    "summary": "Divergence: instead of continuing the trading play, Tim Belden instructs the Portland desk to pause all trading related to the California matter, preserve all electronic records, notify Legal and Compliance, and prepare a self-report. The Portland desk acknowledges, implements holds and forensic snapshots, and commits to a self-report draft for review.",
     "messages": [
-      {
-        "actor_id": "portland.desk@enron.com",
-        "surface": "mail",
-        "to": "tim.belden@enron.com",
-        "subject": "Re: IMPORTANT - READ IMMEDIATELY — Pause Trading, Preserve Records",
-        "body_text": "Tim,\n\nOn receipt of the California AG order we are pausing the current trading play effective immediately. Please take the following now:\n\n1) Suspend all trading related to this play; do not execute or cancel trades without Legal approval.\n2) Preserve all electronic records: do not delete emails, database entries, word-processing files, spreadsheets, calendars, or file fragments.\n3) Preserve system snapshots and trading logs; document steps taken and chain-of-custody.\n4) I will alert Legal and Compliance and initiate a request for a self-report pathway.\n\nConfirm receipt and report any trades currently in flight.\n\n-Portland Desk",
-        "delay_ms": 1000,
-        "conversation_anchor": "",
-        "rationale": "Immediate pause and record preservation to comply with the AG order and trigger Legal/Compliance engagement."
-      },
       {
         "actor_id": "tim.belden@enron.com",
         "surface": "mail",
         "to": "portland.desk@enron.com",
-        "subject": "Re: IMPORTANT - READ IMMEDIATELY — Acknowledgement and Actions Taken",
-        "body_text": "Portland,\n\nReceived and acknowledged. Actions taken:\n\n- Suspended the play and instructed traders to stand down; held orders in flight.\n- Begun preserving emails, databases, spreadsheets, calendars, and file fragments as instructed.\n- Captured snapshots of trading systems and saved logs; documenting chain-of-custody.\n- Contacted Legal and Compliance and requested guidance on a self-report path; awaiting their response.\n\nI will compile an incident log and draft self-report for Legal when they respond.\n\n— Tim",
+        "subject": "URGENT - Pause trading, preserve records, notify Legal/Compliance",
+        "body_text": "Do not continue or execute any trading plays related to California power. Immediately pause all trading activity, preserve all electronic records (do not delete emails, database entries, files, spreadsheets, calendars, or other electronic data), and begin forensic snapshots where possible. Alert Legal and Compliance now and request immediate guidance. Prepare a self-report path: draft a concise summary of actions taken, list of affected trades/accounts and timestamps, and chain-of-custody steps. Send the draft to me and Legal for review within 2 hours. Confirm receipt.",
         "delay_ms": 60000,
         "conversation_anchor": "",
-        "rationale": "Acknowledges pause, records preservation steps, and confirms contacting Legal/Compliance to prepare a self-report."
+        "rationale": "Direct intervention to halt trading in response to the California AG order, ensure evidence preservation, and escalate to Legal/Compliance while initiating a self-report."
+      },
+      {
+        "actor_id": "portland.desk@enron.com",
+        "surface": "mail",
+        "to": "tim.belden@enron.com",
+        "subject": "RE: URGENT - Acknowledged: Pausing activity and preserving records",
+        "body_text": "Acknowledged. We have halted related trading activity and applied retention holds on relevant mailboxes and databases. Initiating forensic snapshots of mailboxes, servers, trading logs, and calendars now. Notifying Legal and Compliance and requesting immediate support. We will prepare a self-report draft (timeline, affected trades, authorizations, custody steps) and deliver to you and Legal within 90 minutes. Will confirm when snapshots are complete.",
+        "delay_ms": 120000,
+        "conversation_anchor": "",
+        "rationale": "Confirm immediate preservation and escalation steps and commit to producing a self-report within a short, actionable timeline."
       }
     ],
     "usage": {
       "provider": "openai",
       "model": "gpt-5-mini",
       "prompt_tokens": 1349,
-      "completion_tokens": 3557,
-      "total_tokens": 4906,
-      "estimated_cost_usd": 0.00745125
+      "completion_tokens": 3852,
+      "total_tokens": 5201,
+      "estimated_cost_usd": 0.00804125
     },
     "scheduled_event_count": 2,
     "delivered_event_count": 2,
     "inbox_count": 5,
     "top_subjects": [
-      "Re: IMPORTANT - READ IMMEDIATELY — Acknowledgement and Actions Taken",
-      "Re: IMPORTANT - READ IMMEDIATELY — Pause Trading, Preserve Records",
+      "RE: URGENT - Acknowledged: Pausing activity and preserving records",
+      "URGENT - Pause trading, preserve records, notify Legal/Compliance",
       "IMPORTANT - READ IMMEDIATELY",
       "IMPORTANT - READ IMMEDIATELY",
       "IMPORTANT - READ IMMEDIATELY"
@@ -10272,7 +10259,7 @@
       "future_approval_count": 0,
       "future_external_event_count": 0,
       "risk_score": 0.08,
-      "stock_return_5d": 0.0468,
+      "stock_return_5d": 0.0646,
       "credit_action_30d": 1.0,
       "ferc_action_180d": 0.0,
       "summary": "4 future events remain, including 0 escalations and 0 externally addressed messages."
@@ -10285,7 +10272,7 @@
       "future_approval_count": 1,
       "future_external_event_count": 0,
       "risk_score": 0.0,
-      "stock_return_5d": 0.0868,
+      "stock_return_5d": 0.1046,
       "credit_action_30d": 0.88,
       "ferc_action_180d": 0.0,
       "summary": "3 follow-up events remain, with 0 escalations and 0 external sends."

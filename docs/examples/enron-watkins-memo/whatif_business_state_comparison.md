@@ -19,7 +19,7 @@ Historical subject: The key questions I asked Lay on Aug 22
 - Forecast summary: Predicted risk moves flat by 0.000, with escalation delta 0 and external-send delta 0.
 - Risk change: 0.02 -> 0.02
 - External-send delta: 0
-- Stock return (5d): -0.1335 -> -0.0835
+- Stock return (5d): -0.1912 -> -0.1412
 - Credit action (30d): 1.0 -> 0.88
 - Containment stays close to the historical path.
 - Handling burden stays close to the historical path.
@@ -33,7 +33,7 @@ Historical subject: The key questions I asked Lay on Aug 22
 - Forecast summary: Predicted risk moves flat by 0.000, with escalation delta 0 and external-send delta 0.
 - Risk change: 0.02 -> 0.02
 - External-send delta: 0
-- Stock return (5d): -0.1335 -> -0.1835
+- Stock return (5d): -0.1912 -> -0.2412
 - Credit action (30d): 1.0 -> 1.0
 - Containment stays close to the historical path.
 - Handling burden stays close to the historical path.
@@ -47,7 +47,7 @@ Historical subject: The key questions I asked Lay on Aug 22
 - Forecast summary: Predicted risk moves down by 0.020, with escalation delta 0 and external-send delta 0.
 - Risk change: 0.02 -> 0.0
 - External-send delta: 0
-- Stock return (5d): -0.1335 -> -0.0935
+- Stock return (5d): -0.1912 -> -0.1512
 - Credit action (30d): 1.0 -> 0.88
 - Containment stays close to the historical path.
 - Internal handling looks much heavier.
@@ -61,7 +61,7 @@ Historical subject: The key questions I asked Lay on Aug 22
 - Forecast summary: Predicted risk moves down by 0.020, with escalation delta 0 and external-send delta 0.
 - Risk change: 0.02 -> 0.0
 - External-send delta: 0
-- Stock return (5d): -0.1335 -> -0.1435
+- Stock return (5d): -0.1912 -> -0.2012
 - Credit action (30d): 1.0 -> 1.0
 - Containment stays close to the historical path.
 - Internal handling looks much heavier.

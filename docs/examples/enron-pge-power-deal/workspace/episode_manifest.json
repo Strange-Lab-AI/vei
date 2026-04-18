@@ -164,7 +164,7 @@
     "future_approval_count": 0,
     "future_external_event_count": 0,
     "risk_score": 1.0,
-    "stock_return_5d": -0.0201,
+    "stock_return_5d": -0.0343,
     "credit_action_30d": 0.0,
     "ferc_action_180d": 0.0,
     "summary": "6 future events remain, including 4 escalations and 0 externally addressed messages."
@@ -4549,19 +4549,6 @@
         "high": 37.82,
         "low": 36.82,
         "volume": 1419700,
-        "label": "Daily trading close",
-        "summary": "Daily Enron trading data extracted from the archived historical stock-price table.",
-        "source_ids": [
-          "enron_historical_stock_price_pdf"
-        ]
-      },
-      {
-        "as_of": "1999-05-12T00:00:00Z",
-        "close": 37.25,
-        "open": 36.82,
-        "high": 37.57,
-        "low": 36.5,
-        "volume": 1101600,
         "label": "Daily trading close",
         "summary": "Daily Enron trading data extracted from the archived historical stock-price table.",
         "source_ids": [

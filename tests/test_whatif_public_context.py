@@ -439,6 +439,13 @@ def test_public_context_branch_slice_sorts_items_before_prompt_truncation() -> N
         ],
         stock_history=[
             WhatIfPublicStockHistoryRow(
+                as_of="2001-05-03T00:00:00Z",
+                label="Same-day market checkpoint",
+                close=49.12,
+                volume=100.0,
+                summary="Same-day market summary.",
+            ),
+            WhatIfPublicStockHistoryRow(
                 as_of="2001-05-02T00:00:00Z",
                 label="Later market checkpoint",
                 close=52.91,
@@ -528,12 +535,48 @@ def test_public_context_branch_slice_sorts_items_before_prompt_truncation() -> N
     assert any("Market checkpoints:" == line for line in prompt_lines)
     assert any("2001-05-02 close 52.91" in line for line in prompt_lines)
     assert not any("2001-04-30 close 62.72" in line for line in prompt_lines)
+    assert not any("2001-05-03 close 49.12" in line for line in prompt_lines)
     assert any("Credit checkpoints:" == line for line in prompt_lines)
     assert any("Later credit checkpoint" in line for line in prompt_lines)
     assert not any("Earlier credit checkpoint" in line for line in prompt_lines)
     assert any("Regulatory checkpoints:" == line for line in prompt_lines)
     assert any("Later regulatory checkpoint" in line for line in prompt_lines)
     assert not any("Earlier regulatory checkpoint" in line for line in prompt_lines)
+
+
+def test_public_context_branch_slice_includes_same_day_stock_after_market_close() -> (
+    None
+):
+    context = WhatIfPublicContext(
+        pack_name="enron_public_context",
+        stock_history=[
+            WhatIfPublicStockHistoryRow(
+                as_of="2001-05-03T00:00:00Z",
+                label="Same-day market checkpoint",
+                close=49.12,
+                volume=100.0,
+                summary="Same-day market summary.",
+            ),
+            WhatIfPublicStockHistoryRow(
+                as_of="2001-05-02T00:00:00Z",
+                label="Earlier market checkpoint",
+                close=52.91,
+                volume=100.0,
+                summary="Earlier market summary.",
+            ),
+        ],
+    )
+
+    sliced = slice_public_context_to_branch(
+        context,
+        branch_timestamp="2001-05-03T21:30:00Z",
+    )
+
+    assert sliced is not None
+    assert [row.as_of for row in sliced.stock_history] == [
+        "2001-05-02T00:00:00Z",
+        "2001-05-03T00:00:00Z",
+    ]
 
 
 def test_load_world_materialize_episode_and_saved_scene_round_trip_public_context(
@@ -571,16 +614,16 @@ def test_load_world_materialize_episode_and_saved_scene_round_trip_public_contex
     assert [event.event_id for event in manifest.public_context.public_news_events] == [
         "cliff_baxter_resignation"
     ]
-    assert len(manifest.public_context.stock_history) == 13
+    assert len(manifest.public_context.stock_history) == 12
     assert manifest.public_context.stock_history[0].as_of == "2001-04-17T00:00:00Z"
-    assert manifest.public_context.stock_history[-1].as_of == "2001-05-03T00:00:00Z"
+    assert manifest.public_context.stock_history[-1].as_of == "2001-05-02T00:00:00Z"
     assert scene.public_context is not None
     assert [event.event_id for event in scene.public_context.public_news_events] == [
         "cliff_baxter_resignation"
     ]
-    assert len(scene.public_context.stock_history) == 13
+    assert len(scene.public_context.stock_history) == 12
     assert scene.public_context.stock_history[0].as_of == "2001-04-17T00:00:00Z"
-    assert scene.public_context.stock_history[-1].as_of == "2001-05-03T00:00:00Z"
+    assert scene.public_context.stock_history[-1].as_of == "2001-05-02T00:00:00Z"
     assert manifest.historical_business_state is not None
     assert scene.historical_business_state is not None
     assert scene.historical_business_state.summary

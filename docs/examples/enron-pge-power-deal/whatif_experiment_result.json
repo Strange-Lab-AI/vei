@@ -279,7 +279,7 @@
       "future_approval_count": 0,
       "future_external_event_count": 0,
       "risk_score": 1.0,
-      "stock_return_5d": -0.0201,
+      "stock_return_5d": -0.0343,
       "credit_action_30d": 0.0,
       "ferc_action_180d": 0.0,
       "summary": "6 future events remain, including 4 escalations and 0 externally addressed messages."
@@ -4669,19 +4669,6 @@
           "source_ids": [
             "enron_historical_stock_price_pdf"
           ]
-        },
-        {
-          "as_of": "1999-05-12T00:00:00Z",
-          "close": 37.25,
-          "open": 36.82,
-          "high": 37.57,
-          "low": 36.5,
-          "volume": 1101600,
-          "label": "Daily trading close",
-          "summary": "Daily Enron trading data extracted from the archived historical stock-price table.",
-          "source_ids": [
-            "enron_historical_stock_price_pdf"
-          ]
         }
       ],
       "credit_history": [],
@@ -4923,7 +4910,7 @@
       "future_approval_count": 0,
       "future_external_event_count": 0,
       "risk_score": 1.0,
-      "stock_return_5d": -0.0201,
+      "stock_return_5d": -0.0343,
       "credit_action_30d": 0.0,
       "ferc_action_180d": 0.0,
       "summary": "6 future events remain, including 4 escalations and 0 externally addressed messages."
@@ -4934,54 +4921,54 @@
     "provider": "openai",
     "model": "gpt-5-mini",
     "prompt": "Hold the deal until PG&E credit is rechecked, ask for collateral, and keep legal and credit on one internal review loop.",
-    "summary": "Hold the PG&E Financial Power trade (EW9838) pending an immediate credit recheck, require collateral, and keep Legal and Credit on a single coordinated internal review loop.",
+    "summary": "Trading is instructed to hold the PG&E Financial Power trade (EW9838) pending an immediate credit recheck and provision of acceptable collateral; Credit and Legal are placed on a joint internal review loop and will sign off before any confirmation or settlement.",
     "messages": [
       {
         "actor_id": "sara.shackleton@enron.com",
         "surface": "mail",
         "to": "mark.taylor@enron.com",
-        "subject": "PG&E Financial Power Deal — HOLD pending credit/legal review",
-        "body_text": "Mark,\n\nWe executed a Financial Power trade with PG&E (EW9838) on 5/11. Credit/Legal previously advised against Financial Power deals with this counterparty. Do not confirm or settle the trade — HOLD all activity until Credit completes a recheck of PG&E exposure and acceptable collateral is obtained. Please request PG&E provide collateral (LOC or cash) acceptable to Credit. I will keep Credit and Legal on a single internal review loop; Tana will lead the credit recheck. I will update once we have joint clearance.\n\nSara",
-        "delay_ms": 1000,
+        "subject": "PG&E Financial Power Deal (EW9838) — Hold and collateral request",
+        "body_text": "Mark — We executed a Financial Power trade with PG&E (EW9838) on 5/11. Credit/Legal previously flagged PG&E as restricted. Please do not confirm or settle this trade. Hold the position pending an immediate credit recheck and request acceptable collateral (LOC or cash margin) from PG&E as a condition to proceed. I am putting Credit (Rod Nelson) and Legal (Tana Jones) on an internal review loop; they will advise next steps. Please acknowledge.",
+        "delay_ms": 60000,
         "conversation_anchor": "",
-        "rationale": "Immediately stop settlement/confirmation to prevent exposure until Credit and Legal jointly clear the trade."
+        "rationale": "Stop settlement immediately and ensure Credit/Legal re-evaluate before proceeding."
+      },
+      {
+        "actor_id": "sara.shackleton@enron.com",
+        "surface": "mail",
+        "to": "rod.nelson@enron.com",
+        "subject": "URGENT: Credit recheck needed — PG&E (EW9838)",
+        "body_text": "Rod — We have a Financial Power trade with PG&E (EW9838) executed 5/11 that had previously been flagged by Credit/Legal. Trading has been instructed to hold. Please run an immediate credit re-evaluation and recommend whether we can proceed and what collateral (LOC, cash margin, guaranty) is required. Coordinate directly with Tana Jones in Legal and provide your recommendation and timing back to me.",
+        "delay_ms": 120000,
+        "conversation_anchor": "",
+        "rationale": "Obtain an updated credit assessment and clear collateral requirements before any confirmation or settlement."
       },
       {
         "actor_id": "sara.shackleton@enron.com",
         "surface": "mail",
         "to": "tana.jones@enron.com",
-        "subject": "PG&E (EW9838) — Immediate credit recheck & collateral request",
-        "body_text": "Tana,\n\nPlease perform an immediate credit re-evaluation for PG&E regarding the EW9838 Financial Power trade booked 5/11. Request acceptable collateral (LOC preferred) and identify any limit breaches. Coordinate directly with Legal so we run a single, joint internal review; produce written clearance or recommended refusal. Do not allow confirmation until both groups sign off. Keep Mark and me updated.\n\nThanks,\nSara",
-        "delay_ms": 60000,
+        "subject": "Legal review requested — PG&E Financial Power trade (EW9838)",
+        "body_text": "Tana — Please review any legal constraints on proceeding with PG&E for EW9838 and prepare any documentation needed to implement requested collateral. Trading has been instructed to hold until Credit and Legal clear the counterparty. Advise whether there are contractual or regulatory issues and estimated turnaround time.",
+        "delay_ms": 180000,
         "conversation_anchor": "",
-        "rationale": "Directs Credit to re-evaluate counterparty risk, secure collateral, and ensure Legal and Credit operate on one coordinated review loop."
-      },
-      {
-        "actor_id": "tana.jones@enron.com",
-        "surface": "mail",
-        "to": "sara.shackleton@enron.com",
-        "subject": "Re: PG&E (EW9838) — Credit recheck started",
-        "body_text": "Sara,\n\nAcknowledged. I'll start an immediate credit recheck, request LOC/cash collateral from PG&E, and set up a single Credit/Legal review. I will report back with the results and recommended next steps within 24 hours. If collateral is not acceptable, we'll recommend not proceeding.\n\n-Tana",
-        "delay_ms": 300000,
-        "conversation_anchor": "",
-        "rationale": "Confirms Credit will act immediately, request collateral, and coordinate with Legal on a joint review loop to clear or refuse the trade."
+        "rationale": "Ensure Legal reviews enforceability of collateral and any contract issues and stays coordinated with Credit."
       }
     ],
     "usage": {
       "provider": "openai",
       "model": "gpt-5-mini",
       "prompt_tokens": 719,
-      "completion_tokens": 5153,
-      "total_tokens": 5872,
-      "estimated_cost_usd": 0.01048575
+      "completion_tokens": 4807,
+      "total_tokens": 5526,
+      "estimated_cost_usd": 0.00979375
     },
     "scheduled_event_count": 3,
     "delivered_event_count": 3,
     "inbox_count": 4,
     "top_subjects": [
-      "Re: PG&E (EW9838) — Credit recheck started",
-      "PG&E (EW9838) — Immediate credit recheck & collateral request",
-      "PG&E Financial Power Deal — HOLD pending credit/legal review",
+      "Legal review requested — PG&E Financial Power trade (EW9838)",
+      "URGENT: Credit recheck needed — PG&E (EW9838)",
+      "PG&E Financial Power Deal (EW9838) — Hold and collateral request",
       "PG&E Financial Power Deal"
     ],
     "notes": [
@@ -5002,7 +4989,7 @@
       "future_approval_count": 0,
       "future_external_event_count": 0,
       "risk_score": 1.0,
-      "stock_return_5d": -0.0201,
+      "stock_return_5d": -0.0343,
       "credit_action_30d": 0.0,
       "ferc_action_180d": 0.0,
       "summary": "6 future events remain, including 4 escalations and 0 externally addressed messages."
@@ -5015,7 +5002,7 @@
       "future_approval_count": 1,
       "future_external_event_count": 0,
       "risk_score": 0.62,
-      "stock_return_5d": 0.0399,
+      "stock_return_5d": 0.0257,
       "credit_action_30d": 0.0,
       "ferc_action_180d": 0.0,
       "summary": "4 follow-up events remain, with 2 escalations and 0 external sends."

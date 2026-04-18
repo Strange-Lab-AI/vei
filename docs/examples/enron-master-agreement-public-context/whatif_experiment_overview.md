@@ -27,11 +27,11 @@ Prompt: Keep the draft inside Enron, ask Gerald Nemec and Sara Shackleton for re
 
 ## LLM Actor
 - Status: ok
-- Summary: Debra Perlingiere keeps the draft Master Firm Purchase/Sale Agreement inside Enron and circulates it for internal review. She asks Gerald Nemec and Sara Shackleton to review and explicitly instructs that the draft not be sent externally to Cargill until internal comments are resolved.
+- Summary: Instead of sending the draft Master Agreement to Cargill, Debra retains the draft inside Enron and requests internal review from Gerald Nemec and Sara Shackleton. External transmission is held pending internal sign-off.
 - Delivered actions: 2
 - Inbox count: 4
-- `mail` `debra.perlingiere@enron.com` -> `gerald.nemec@enron.com` after 600000 ms: Master Agreement
-- `mail` `debra.perlingiere@enron.com` -> `sara.shackleton@enron.com` after 1200000 ms: Master Agreement
+- `mail` `debra.perlingiere@enron.com` -> `gerald.nemec@enron.com` after 120000 ms: Master Agreement — Internal Draft for Review
+- `mail` `debra.perlingiere@enron.com` -> `sara.shackleton@enron.com` after 300000 ms: Master Agreement — Legal/Credit Review (Internal)
 
 ## Forecast
 - Status: ok
@@ -55,6 +55,6 @@ Prompt: Keep the draft inside Enron, ask Gerald Nemec and Sara Shackleton for re
 - Near-term execution looks faster.
 
 ## Macro Outcomes
-- Stock return (5d): -0.0503 -> -0.0103 (delta 0.04)
+- Stock return (5d): 0.0007 -> 0.0407 (delta 0.04)
 - Credit action (30d): 0.0 -> 0.0 (delta 0.0)
 - FERC action (180d): 0.0 -> 0.0 (delta 0.0)

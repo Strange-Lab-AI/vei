@@ -19,7 +19,7 @@ Historical subject: PG&E Financial Power Deal
 - Forecast summary: Predicted risk moves down by 0.380, with escalation delta -2 and external-send delta 0.
 - Risk change: 1.0 -> 0.62
 - External-send delta: 0
-- Stock return (5d): -0.0201 -> 0.0199
+- Stock return (5d): -0.0343 -> 0.0057
 - Credit action (30d): 0.0 -> 0.0
 - FERC action (180d): 0.0 -> 0.0
 - The thread looks much safer to contain.
@@ -34,7 +34,7 @@ Historical subject: PG&E Financial Power Deal
 - Forecast summary: Predicted risk moves down by 0.180, with escalation delta -2 and external-send delta 0.
 - Risk change: 1.0 -> 0.82
 - External-send delta: 0
-- Stock return (5d): -0.0201 -> 0.0399
+- Stock return (5d): -0.0343 -> 0.0257
 - Credit action (30d): 0.0 -> 0.0
 - FERC action (180d): 0.0 -> 0.0
 - The thread looks safer to contain.
@@ -49,7 +49,7 @@ Historical subject: PG&E Financial Power Deal
 - Forecast summary: Predicted risk moves flat by 0.000, with escalation delta 0 and external-send delta 0.
 - Risk change: 1.0 -> 1.0
 - External-send delta: 0
-- Stock return (5d): -0.0201 -> -0.0201
+- Stock return (5d): -0.0343 -> -0.0343
 - Credit action (30d): 0.0 -> 0.0
 - FERC action (180d): 0.0 -> 0.0
 - Containment stays close to the historical path.
@@ -64,7 +64,7 @@ Historical subject: PG&E Financial Power Deal
 - Forecast summary: Predicted risk moves flat by 0.000, with escalation delta 0 and external-send delta 1.
 - Risk change: 1.0 -> 1.0
 - External-send delta: 1
-- Stock return (5d): -0.0201 -> -0.0201
+- Stock return (5d): -0.0343 -> -0.0343
 - Credit action (30d): 0.0 -> 0.0
 - FERC action (180d): 0.0 -> 0.0
 - The thread carries slightly more exposure.

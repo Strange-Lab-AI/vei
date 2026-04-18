@@ -19,7 +19,7 @@ Historical subject: Master Agreement
 - Forecast summary: Predicted risk moves down by 0.440, with escalation delta 0 and external-send delta -64.
 - Risk change: 1.0 -> 0.56
 - External-send delta: -64
-- Stock return (5d): -0.0503 -> -0.0103
+- Stock return (5d): 0.0007 -> 0.0407
 - Credit action (30d): 0.0 -> 0.0
 - FERC action (180d): 0.0 -> 0.0
 - The thread looks much safer to contain.
@@ -34,7 +34,7 @@ Historical subject: Master Agreement
 - Forecast summary: Predicted risk moves down by 0.540, with escalation delta -8 and external-send delta -16.
 - Risk change: 1.0 -> 0.46
 - External-send delta: -16
-- Stock return (5d): -0.0503 -> -0.0103
+- Stock return (5d): 0.0007 -> 0.0407
 - Credit action (30d): 0.0 -> 0.0
 - FERC action (180d): 0.0 -> 0.0
 - The thread looks much safer to contain.
@@ -49,7 +49,7 @@ Historical subject: Master Agreement
 - Forecast summary: Predicted risk moves flat by 0.000, with escalation delta 0 and external-send delta 10.
 - Risk change: 1.0 -> 1.0
 - External-send delta: 10
-- Stock return (5d): -0.0503 -> -0.1003
+- Stock return (5d): 0.0007 -> -0.0493
 - Credit action (30d): 0.0 -> 0.15
 - FERC action (180d): 0.0 -> 0.0
 - Containment stays close to the historical path.

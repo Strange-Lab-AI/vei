@@ -21,7 +21,7 @@ Open `http://127.0.0.1:3055`.
 
 - Historical branch point: Debra Perlingiere is about to send the Master Agreement draft to Cargill on September 27, 2000.
 - Saved branch scene: 6 prior messages and 84 recorded future events
-- Public-company slice at 2000-09-27: 5 financial checkpoints, 6 public news items, 680 market checkpoints, 0 credit checkpoints, and 0 regulatory checkpoints
+- Public-company slice at 2000-09-27: 5 financial checkpoints, 6 public news items, 679 market checkpoints, 0 credit checkpoints, and 0 regulatory checkpoints
 - Saved LLM path: Keep the draft inside Enron, ask Gerald Nemec and Sara Shackleton for review, and hold the outside send.
 - Saved forecast file: `whatif_heuristic_baseline_result.json`
 - Business-state readout: Much lower outside spread risk. Trade-off: Slightly higher internal handling load.

@@ -21,7 +21,7 @@ Open `http://127.0.0.1:3055`.
 
 - Historical branch point: Sara Shackleton is moving a PG&E financial power deal while the counterparty's macro-credit picture is deteriorating.
 - Saved branch scene: 0 prior messages and 6 recorded future events
-- Public-company slice at 1999-05-12: 1 financial checkpoints, 0 public news items, 336 market checkpoints, 0 credit checkpoints, and 0 regulatory checkpoints
+- Public-company slice at 1999-05-12: 1 financial checkpoints, 0 public news items, 335 market checkpoints, 0 credit checkpoints, and 0 regulatory checkpoints
 - Saved LLM path: Hold the deal until PG&E credit is rechecked, ask for collateral, and keep legal and credit on one internal review loop.
 - Saved forecast file: `whatif_heuristic_baseline_result.json`
 - Business-state readout: Much lower exposure risk. Trade-off: Moderately higher internal handling load.

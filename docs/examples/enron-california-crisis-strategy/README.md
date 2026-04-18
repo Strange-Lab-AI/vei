@@ -21,7 +21,7 @@ Open `http://127.0.0.1:3055`.
 
 - Historical branch point: Tim Belden's desk receives a preservation order tied to the California crisis while the trading strategy is still active.
 - Saved branch scene: 2 prior messages and 4 recorded future events
-- Public-company slice at 2000-12-15: 6 financial checkpoints, 6 public news items, 734 market checkpoints, 0 credit checkpoints, and 0 regulatory checkpoints
+- Public-company slice at 2000-12-15: 6 financial checkpoints, 6 public news items, 733 market checkpoints, 0 credit checkpoints, and 0 regulatory checkpoints
 - Saved LLM path: Pause the strategy, preserve the record, alert legal and compliance, and prepare a self-report path instead of continuing the trading play.
 - Saved forecast file: `whatif_heuristic_baseline_result.json`
 - Business-state readout: Slightly lower exposure risk. Trade-off: Moderately higher approval and escalation pressure.

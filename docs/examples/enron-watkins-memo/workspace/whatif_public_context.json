@@ -12596,19 +12596,6 @@
       "source_ids": [
         "enron_historical_stock_price_pdf"
       ]
-    },
-    {
-      "as_of": "2001-10-30T00:00:00Z",
-      "close": 11.16,
-      "open": 13.8,
-      "high": 13.8,
-      "low": 10.9,
-      "volume": 56564300,
-      "label": "Daily trading close",
-      "summary": "Daily Enron trading data extracted from the archived historical stock-price table.",
-      "source_ids": [
-        "enron_historical_stock_price_pdf"
-      ]
     }
   ],
   "credit_history": [

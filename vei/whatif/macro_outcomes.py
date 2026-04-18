@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
+from zoneinfo import ZoneInfo
 
 from vei.context.api import load_enron_public_context
 
@@ -50,6 +51,7 @@ MACRO_CALIBRATION_METRICS = {
     "ferc_auroc": 0.568,
     "ferc_brier": 0.425,
 }
+_NYSE_TIMEZONE = ZoneInfo("America/New_York")
 
 
 def attach_macro_outcomes_to_historical_score(
@@ -238,11 +240,11 @@ def _baseline_stock_return(
     rows = list(context.stock_history)
     if not rows:
         return None
-    branch_date = branch_dt.date()
+    stock_cutoff_day = _stock_history_cutoff_day(branch_dt)
     branch_index = -1
     for index, row in enumerate(rows):
         row_dt = _parse_timestamp(row.as_of)
-        if row_dt is None or row_dt.date() > branch_date:
+        if row_dt is None or row_dt.date() > stock_cutoff_day:
             break
         branch_index = index
     if branch_index < 0 or branch_index + 5 >= len(rows):
@@ -359,6 +361,24 @@ def _parse_timestamp(value: str) -> datetime | None:
         return datetime.fromisoformat(text.replace("Z", "+00:00")).astimezone(UTC)
     except ValueError:
         return None
+
+
+def _stock_history_cutoff_day(branch_dt: datetime) -> date:
+    branch_day = branch_dt.date()
+    close_dt = _nyse_close_for_day(branch_day)
+    if branch_dt >= close_dt:
+        return branch_day
+    return branch_day - timedelta(days=1)
+
+
+def _nyse_close_for_day(day: date) -> datetime:
+    return datetime(
+        day.year,
+        day.month,
+        day.day,
+        16,
+        tzinfo=_NYSE_TIMEZONE,
+    ).astimezone(UTC)
 
 
 def _contains_any(text: str, terms: tuple[str, ...]) -> bool:

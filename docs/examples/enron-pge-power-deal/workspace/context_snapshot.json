@@ -4460,19 +4460,6 @@
             "source_ids": [
               "enron_historical_stock_price_pdf"
             ]
-          },
-          {
-            "as_of": "1999-05-12T00:00:00Z",
-            "close": 37.25,
-            "open": 36.82,
-            "high": 37.57,
-            "low": 36.5,
-            "volume": 1101600,
-            "label": "Daily trading close",
-            "summary": "Daily Enron trading data extracted from the archived historical stock-price table.",
-            "source_ids": [
-              "enron_historical_stock_price_pdf"
-            ]
           }
         ],
         "credit_history": [],

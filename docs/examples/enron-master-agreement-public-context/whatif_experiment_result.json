@@ -402,7 +402,7 @@
       "future_approval_count": 0,
       "future_external_event_count": 64,
       "risk_score": 1.0,
-      "stock_return_5d": -0.0503,
+      "stock_return_5d": 0.0007,
       "credit_action_30d": 0.0,
       "ferc_action_180d": 0.0,
       "summary": "84 future events remain, including 16 escalations and 64 externally addressed messages."
@@ -9394,19 +9394,6 @@
           "source_ids": [
             "enron_historical_stock_price_pdf"
           ]
-        },
-        {
-          "as_of": "2000-09-27T00:00:00Z",
-          "close": 87.46,
-          "open": 86.19,
-          "high": 87.75,
-          "low": 85.13,
-          "volume": 1899400,
-          "label": "Daily trading close",
-          "summary": "Daily Enron trading data extracted from the archived historical stock-price table.",
-          "source_ids": [
-            "enron_historical_stock_price_pdf"
-          ]
         }
       ],
       "credit_history": [],
@@ -9644,7 +9631,7 @@
       "future_approval_count": 0,
       "future_external_event_count": 64,
       "risk_score": 1.0,
-      "stock_return_5d": -0.0503,
+      "stock_return_5d": 0.0007,
       "credit_action_30d": 0.0,
       "ferc_action_180d": 0.0,
       "summary": "84 future events remain, including 16 escalations and 64 externally addressed messages."
@@ -9655,43 +9642,43 @@
     "provider": "openai",
     "model": "gpt-5-mini",
     "prompt": "Keep the draft inside Enron, ask Gerald Nemec and Sara Shackleton for review, and hold the outside send.",
-    "summary": "Debra Perlingiere keeps the draft Master Firm Purchase/Sale Agreement inside Enron and circulates it for internal review. She asks Gerald Nemec and Sara Shackleton to review and explicitly instructs that the draft not be sent externally to Cargill until internal comments are resolved.",
+    "summary": "Instead of sending the draft Master Agreement to Cargill, Debra retains the draft inside Enron and requests internal review from Gerald Nemec and Sara Shackleton. External transmission is held pending internal sign-off.",
     "messages": [
       {
         "actor_id": "debra.perlingiere@enron.com",
         "surface": "mail",
         "to": "gerald.nemec@enron.com",
-        "subject": "Master Agreement",
-        "body_text": "Gerald — Attached is a draft Master Firm Purchase/Sale Agreement intended for Cargill. Please review the commercial and credit-related provisions and send me any redlines or comments. Do not forward this outside Enron; please hold any external distribution to Cargill until we finalize internal comments. Thanks, Debra",
-        "delay_ms": 600000,
+        "subject": "Master Agreement — Internal Draft for Review",
+        "body_text": "Gerald,\n\nAttached is a draft Master Firm Purchase/Sale Agreement (Enron North America / Cargill). Please review for commercial terms, risk allocation and any negotiation points. Do not forward outside Enron — I am holding sending to Cargill until we have internal sign‑off. Please return redlines/comments by end of week so I can consolidate.\n\nRegards,\nDebra",
+        "delay_ms": 120000,
         "conversation_anchor": "",
-        "rationale": "Route the draft to the internal commercial/credit reviewer and prevent premature external transmission."
+        "rationale": "Obtain commercial and risk review from internal counterparty lead before any external distribution to Cargill."
       },
       {
         "actor_id": "debra.perlingiere@enron.com",
         "surface": "mail",
         "to": "sara.shackleton@enron.com",
-        "subject": "Master Agreement",
-        "body_text": "Sara — Attached is the draft Master Firm Purchase/Sale Agreement we were going to send to Cargill. Please review legal terms, indemnities, and assignment language and advise any required edits. Keep this internal and do not forward outside Enron. I appreciate your comments. Debra",
-        "delay_ms": 1200000,
+        "subject": "Master Agreement — Legal/Credit Review (Internal)",
+        "body_text": "Sara,\n\nI'm keeping the Master Agreement draft inside Enron for now. Please review for legal and credit issues and flag any provisions that need credit approval or redrafting. Do not forward externally; I will compile internal comments and coordinate before any contact with Cargill.\n\nThanks,\nDebra",
+        "delay_ms": 300000,
         "conversation_anchor": "",
-        "rationale": "Obtain internal legal review and explicitly instruct counsel to hold the outside send until legal and credit comments are resolved."
+        "rationale": "Secure legal and credit input to ensure the agreement is ready for external negotiation and to centralize approval."
       }
     ],
     "usage": {
       "provider": "openai",
       "model": "gpt-5-mini",
       "prompt_tokens": 2127,
-      "completion_tokens": 4167,
-      "total_tokens": 6294,
-      "estimated_cost_usd": 0.00886575
+      "completion_tokens": 4077,
+      "total_tokens": 6204,
+      "estimated_cost_usd": 0.00868575
     },
     "scheduled_event_count": 2,
     "delivered_event_count": 2,
     "inbox_count": 4,
     "top_subjects": [
-      "Master Agreement",
-      "Master Agreement",
+      "Master Agreement — Legal/Credit Review (Internal)",
+      "Master Agreement — Internal Draft for Review",
       "Master Agreement",
       "Master Agreement"
     ],
@@ -9713,7 +9700,7 @@
       "future_approval_count": 0,
       "future_external_event_count": 64,
       "risk_score": 1.0,
-      "stock_return_5d": -0.0503,
+      "stock_return_5d": 0.0007,
       "credit_action_30d": 0.0,
       "ferc_action_180d": 0.0,
       "summary": "84 future events remain, including 16 escalations and 64 externally addressed messages."
@@ -9726,7 +9713,7 @@
       "future_approval_count": 0,
       "future_external_event_count": 0,
       "risk_score": 0.56,
-      "stock_return_5d": -0.0103,
+      "stock_return_5d": 0.0407,
       "credit_action_30d": 0.0,
       "ferc_action_180d": 0.0,
       "summary": "56 follow-up events remain, with 16 escalations and 0 external sends."

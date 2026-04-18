@@ -25,12 +25,12 @@ Prompt: Escalate the memo to Ken Lay, the audit committee, and internal legal, p
 
 ## LLM Actor
 - Status: ok
-- Summary: Sherron Watkins immediately escalates the Aug 22 memo and the accounting questions she raised with Ken Lay to internal legal and the audit committee, asks that Ken Lay be notified, instructs preservation of all related records, and halts any broad reassurance until audit and legal complete their review. A copy is saved to her mailbox to preserve the written record.
+- Summary: Sherron Watkins immediately escalates her Aug 22 memo: she asks Susan Schuler to escalate the memo to Ken Lay and the audit committee and to preserve the corporate record; she asks E. Haedicke for immediate legal review and a hold on broad reassurances; and she archives a dated copy in her own mailbox.
 - Delivered actions: 3
 - Inbox count: 4
-- `mail` `sherron.watkins@enron.com` -> `e..haedicke@enron.com` after 1000 ms: Escalation: The key questions I asked Lay on Aug 22
-- `mail` `sherron.watkins@enron.com` -> `.schuler@enron.com` after 30000 ms: Please share with Audit Committee: Accounting questions I raised with Lay (Aug 22)
-- `mail` `sherron.watkins@enron.com` -> `sherron.watkins@enron.com` after 60000 ms: Record copy: Escalation of Aug 22 accounting questions
+- `mail` `sherron.watkins@enron.com` -> `.schuler@enron.com` after 1000 ms: Escalation: The key questions I asked Lay on Aug 22
+- `mail` `sherron.watkins@enron.com` -> `e..haedicke@enron.com` after 60000 ms: Immediate legal review requested: Accounting questions raised to Lay on Aug 22
+- `mail` `sherron.watkins@enron.com` -> `sherron.watkins@enron.com` after 120000 ms: Record copy: The key questions I asked Lay on Aug 22 — Escalation log
 
 ## Forecast
 - Status: ok
@@ -54,6 +54,6 @@ Prompt: Escalate the memo to Ken Lay, the audit committee, and internal legal, p
 - Near-term execution looks slower.
 
 ## Macro Outcomes
-- Stock return (5d): -0.1335 -> -0.1435 (delta -0.01)
+- Stock return (5d): -0.1912 -> -0.2012 (delta -0.01)
 - Credit action (30d): 1.0 -> 1.0 (delta 0.0)
 - FERC action (180d): None -> None (delta None)

@@ -19,7 +19,7 @@ Historical subject: IMPORTANT - READ IMMEDIATELY
 - Forecast summary: Predicted risk moves down by 0.080, with escalation delta 0 and external-send delta 0.
 - Risk change: 0.08 -> 0.0
 - External-send delta: 0
-- Stock return (5d): 0.0468 -> 0.0868
+- Stock return (5d): 0.0646 -> 0.1046
 - Credit action (30d): 1.0 -> 0.88
 - FERC action (180d): 0.0 -> 0.0
 - The thread looks safer to contain.
@@ -34,7 +34,7 @@ Historical subject: IMPORTANT - READ IMMEDIATELY
 - Forecast summary: Predicted risk moves down by 0.080, with escalation delta 0 and external-send delta 0.
 - Risk change: 0.08 -> 0.0
 - External-send delta: 0
-- Stock return (5d): 0.0468 -> 0.0368
+- Stock return (5d): 0.0646 -> 0.0546
 - Credit action (30d): 1.0 -> 1.0
 - FERC action (180d): 0.0 -> 0.0
 - The thread looks safer to contain.
@@ -49,7 +49,7 @@ Historical subject: IMPORTANT - READ IMMEDIATELY
 - Forecast summary: Predicted risk moves down by 0.080, with escalation delta 0 and external-send delta 0.
 - Risk change: 0.08 -> 0.0
 - External-send delta: 0
-- Stock return (5d): 0.0468 -> 0.0868
+- Stock return (5d): 0.0646 -> 0.1046
 - Credit action (30d): 1.0 -> 0.88
 - FERC action (180d): 0.0 -> 0.0
 - The thread looks safer to contain.
@@ -64,7 +64,7 @@ Historical subject: IMPORTANT - READ IMMEDIATELY
 - Forecast summary: Predicted risk moves up by 0.120, with escalation delta 0 and external-send delta 1.
 - Risk change: 0.08 -> 0.2
 - External-send delta: 1
-- Stock return (5d): 0.0468 -> -0.0032
+- Stock return (5d): 0.0646 -> 0.0146
 - Credit action (30d): 1.0 -> 1.0
 - FERC action (180d): 0.0 -> 0.0
 - The thread carries slightly more exposure.

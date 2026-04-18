@@ -3,9 +3,10 @@ from __future__ import annotations
 import json
 import logging
 import os
-from datetime import UTC, datetime, timezone
+from datetime import UTC, date, datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping
+from zoneinfo import ZoneInfo
 
 from pydantic import ValidationError
 from vei.whatif.filenames import PUBLIC_CONTEXT_FILE
@@ -29,6 +30,7 @@ _DEFAULT_PUBLIC_CONTEXT_FILE_NAMES = (PUBLIC_CONTEXT_FILE,)
 _PUBLIC_CONTEXT_METADATA_KEYS = ("whatif_public_context_path",)
 
 logger = logging.getLogger(__name__)
+_NYSE_TIMEZONE = ZoneInfo("America/New_York")
 
 
 def empty_public_context(
@@ -386,6 +388,9 @@ def slice_public_context_to_branch(
                 "public_news_events": _sort_public_news_events(
                     context.public_news_events
                 ),
+                "stock_history": _sort_stock_history(context.stock_history),
+                "credit_history": _sort_credit_history(context.credit_history),
+                "ferc_history": _sort_regulatory_history(context.ferc_history),
             }
         )
 
@@ -403,10 +408,14 @@ def slice_public_context_to_branch(
         and event_day <= branch_day
     ]
     public_news_events = _sort_public_news_events(public_news_events)
+    stock_cutoff_day = _stock_history_cutoff_day(branch_timestamp)
+    if stock_cutoff_day is None:
+        stock_cutoff_day = branch_day
     stock_history = [
         row
         for row in context.stock_history
-        if (row_day := _date_value(row.as_of)) is not None and row_day <= branch_day
+        if (row_day := _date_value(row.as_of)) is not None
+        and row_day <= stock_cutoff_day
     ]
     stock_history = _sort_stock_history(stock_history)
     credit_history = [
@@ -591,6 +600,28 @@ def _date_value(value: str) -> int | None:
     return int(
         datetime.fromtimestamp(timestamp_ms / 1000, tz=timezone.utc).date().toordinal()
     )
+
+
+def _stock_history_cutoff_day(branch_timestamp: str) -> int | None:
+    timestamp_ms = _timestamp_ms(branch_timestamp)
+    if timestamp_ms is None:
+        return None
+    branch_dt = datetime.fromtimestamp(timestamp_ms / 1000, tz=timezone.utc)
+    branch_day = branch_dt.date()
+    close_dt = _nyse_close_for_day(branch_day)
+    if branch_dt >= close_dt:
+        return branch_day.toordinal()
+    return branch_day.toordinal() - 1
+
+
+def _nyse_close_for_day(day: date) -> datetime:
+    return datetime(
+        day.year,
+        day.month,
+        day.day,
+        16,
+        tzinfo=_NYSE_TIMEZONE,
+    ).astimezone(timezone.utc)
 
 
 def _timestamp_ms(value: str) -> int | None:
