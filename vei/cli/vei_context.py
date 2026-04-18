@@ -5,7 +5,7 @@ from typing import List
 
 import typer
 
-from vei.whatif_filenames import CONTEXT_SNAPSHOT_FILE, PUBLIC_CONTEXT_FILE
+from vei.whatif.filenames import CONTEXT_SNAPSHOT_FILE, PUBLIC_CONTEXT_FILE
 
 app = typer.Typer(add_completion=False)
 
@@ -53,7 +53,7 @@ def verify(
     ),
 ) -> None:
     """Run structural checks against a context snapshot."""
-    from vei.context.models import ContextSnapshot
+    from vei.context.api import ContextSnapshot
     from vei.context.normalize import verify_context_snapshot
 
     path = Path(snapshot)
@@ -124,7 +124,7 @@ def capture(
 ) -> None:
     """Capture live context from enterprise systems."""
     from vei.context.api import capture_context
-    from vei.context.models import ContextProviderConfig
+    from vei.context.api import ContextProviderConfig
 
     env_map = {
         "slack": "VEI_SLACK_TOKEN",
@@ -264,7 +264,7 @@ def hydrate(
 ) -> None:
     """Hydrate a context snapshot into a VEI blueprint."""
     from vei.context.api import hydrate_blueprint
-    from vei.context.models import ContextSnapshot
+    from vei.context.api import ContextSnapshot
 
     path = Path(snapshot)
     if not path.exists():
@@ -287,7 +287,7 @@ def diff(
 ) -> None:
     """Compare two context snapshots."""
     from vei.context.api import diff_snapshots
-    from vei.context.models import ContextSnapshot
+    from vei.context.api import ContextSnapshot
 
     before_snap = ContextSnapshot.model_validate_json(
         Path(before).read_text(encoding="utf-8")
@@ -312,7 +312,7 @@ def status(
     format: str = typer.Option("plain", help="Output format: plain | json | markdown"),
 ) -> None:
     """Show summary of a context snapshot."""
-    from vei.context.models import ContextSnapshot
+    from vei.context.api import ContextSnapshot
     from vei.context.normalize import summarize_context_snapshot
 
     path = Path(snapshot)

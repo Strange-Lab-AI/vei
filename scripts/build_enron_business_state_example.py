@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any
 
 from vei.whatif import build_saved_decision_scene, estimate_counterfactual_delta
-from vei.whatif_filenames import (
+from vei.whatif.filenames import (
     BUSINESS_STATE_COMPARISON_FILE,
     BUSINESS_STATE_COMPARISON_OVERVIEW_FILE,
     WORKSPACE_DIRECTORY,

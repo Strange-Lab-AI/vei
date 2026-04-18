@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from vei.benchmark.workflow_models import ServiceOpsWorkflowParams
-from vei.scenario_engine.models import WorkflowScenarioSpec
+from vei.scenario_engine.api import WorkflowScenarioSpec
 
 
 def _build_service_ops_spec(

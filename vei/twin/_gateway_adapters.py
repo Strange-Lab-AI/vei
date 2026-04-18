@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Any
 from fastapi import HTTPException, Request
 from fastapi.responses import JSONResponse
 
-from vei.router.errors import MCPError
+from vei.router.api import MCPError
 
 from ._runtime_support import request_agent_identity
 

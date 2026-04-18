@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pyvei"
-version = "0.2.0a1"
+version = "0.3.0"
 description = "VEI — programmable replica of an enterprise software stack for agent testing, RL training, and operational simulation"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -39,6 +39,7 @@ dev = [
   "bandit==1.7.9",
   "detect-secrets==1.5.0",
   "pip-audit==2.7.3",
+  "semgrep>=1.90.0",
   "Pygments>=2.20.0",
   "pre-commit==4.4.0",
 ]
@@ -59,10 +60,12 @@ rl = [
   "gymnasium>=0.29.0"
 ]
 test = [
+  "anyio>=4.0",
   "hypothesis==6.151.14",
   "pytest==9.0.3",
   "pytest-timeout==2.4.0",
   "pytest-cov==7.0.0",
+  "pytest-xdist>=3.5",
 ]
 
 [project.scripts]
@@ -73,7 +76,22 @@ target-version = ["py311"]
 
 [tool.coverage.run]
 omit = [
+  # benchmark_bridge.py wraps the heavy training runtime and is covered through
+  # tests/dynamics instead of line-level unit coverage.
   "vei/whatif/benchmark_bridge.py",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "-ra --strict-markers --strict-config"
+markers = [
+  "anyio: run async tests with anyio/asyncio event loop",
+  "timeout: per-test timeout (requires pytest-timeout if enforcement needed)",
+  "unit: fast, isolated unit tests (no external deps)",
+  "integration: tests requiring CLI runners, subprocess calls, or complex setup",
+  "slow: tests that take a long time to run",
+  "hypothesis: property-based tests using the Hypothesis library",
 ]
 
 [tool.setuptools.packages.find]

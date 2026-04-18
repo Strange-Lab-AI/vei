@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from vei.benchmark.workflow_models import EnterpriseOnboardingMigrationWorkflowParams
-from vei.scenario_engine.models import WorkflowScenarioSpec
+from vei.scenario_engine.api import WorkflowScenarioSpec
 
 
 def _build_enterprise_onboarding_spec(

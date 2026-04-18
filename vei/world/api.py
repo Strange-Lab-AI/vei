@@ -3,13 +3,13 @@ from __future__ import annotations
 from typing import Any, Dict, Optional, Protocol
 
 from vei.router.api import RouterServerAPI, create_router
-from vei.capability_graph.models import (
+from vei.capability_graph.api import (
     CapabilityGraphActionInput,
     CapabilityGraphActionResult,
     CapabilityGraphPlan,
     RuntimeCapabilityGraphs,
 )
-from vei.orientation.models import WorldOrientation
+from vei.orientation.api import WorldOrientation
 from vei.world.manifest import (
     ScenarioManifest,
     get_scenario_manifest,
@@ -24,6 +24,12 @@ from vei.world.models import (
 )
 from vei.world.scenario import CalendarEvent, Document, Scenario, Ticket
 from vei.world.session import WorldSession
+
+_BOUNDARY_EXPORTS = (
+    ActorState,
+    WorldSnapshot,
+    WorldState,
+)
 
 
 class EventBusAPI(Protocol):

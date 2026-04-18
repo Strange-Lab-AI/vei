@@ -6,7 +6,7 @@ from pathlib import Path
 import typer
 
 from vei.corpus.generator import generate_corpus
-from vei.corpus.models import CorpusBundle, GeneratedWorkflowSpec
+from vei.corpus.api import CorpusBundle, GeneratedWorkflowSpec
 from vei.quality.filter import filter_workflow_corpus
 from vei.scenario_engine.api import compile_workflow
 from vei.scenario_runner.api import run_workflow

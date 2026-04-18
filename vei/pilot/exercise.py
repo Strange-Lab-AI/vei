@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from vei.context.api import ContextProviderConfig, ContextSnapshot
-from vei.contract.models import ContractSpec
+from vei.contract.api import ContractSpec
 from vei.pilot.api import (
     build_pilot_status,
     reset_pilot_gateway,
@@ -11,7 +11,7 @@ from vei.pilot.api import (
     stop_pilot,
 )
 from vei.run.api import launch_workspace_run, list_run_manifests
-from vei.twin.models import TwinArchetype
+from vei.twin.api import TwinArchetype
 from vei.workspace.api import (
     activate_workspace_contract_variant,
     activate_workspace_scenario_variant,

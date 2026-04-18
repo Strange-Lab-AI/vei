@@ -5,7 +5,7 @@ from pathlib import Path
 
 import typer
 
-from vei.whatif_filenames import CONTEXT_SNAPSHOT_FILE
+from vei.whatif.filenames import CONTEXT_SNAPSHOT_FILE
 
 from .whatif_shared import (
     emit_payload,

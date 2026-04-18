@@ -61,7 +61,7 @@ There are two compare paths today:
   - falls back to the heuristic baseline when that runtime is missing or errors
   - useful for “how much would this likely reduce exposure, escalation, or follow-up volume?”
 
-The heuristic baseline (formerly `e_jepa_proxy`) is a tag-driven heuristic, not a learned model. It is useful as a demo baseline but should not be described as JEPA-like.
+The heuristic baseline is a tag-driven heuristic, not a learned model. It is useful as a demo baseline but should not be described as JEPA-like.
 
 Both forecast paths now go through the shared `vei.dynamics` boundary. The what-if experiment flow calls `vei.dynamics.api.get_backend(...)` and the concrete forecast engines (JEPA subprocess, heuristic, reference checkpoint) are plugged in behind the contract via `vei.whatif.dynamics_bridge`. That means swapping or adding a forecast backend does not touch the whatif flow — it registers a new `DynamicsBackend` and updates `.agents.yml`.
 
@@ -120,7 +120,7 @@ vei whatif experiment \
 - business-state comparison Markdown
 - the strict replay workspace used for the run
 
-The forecast bundle is written as `whatif_ejepa_result.json` when the real JEPA path runs, `whatif_heuristic_baseline_result.json` for direct heuristic runs, and `whatif_ejepa_proxy_result.json` only for older saved bundles.
+The forecast bundle is written as `whatif_ejepa_result.json` when the real JEPA path runs and `whatif_heuristic_baseline_result.json` for direct heuristic runs.
 
 This makes it easy to inspect the result in Studio later, compare runs, or hand the output to another tool.
 
@@ -136,7 +136,7 @@ The saved bundle that Studio reads has one stable core shape:
 Optional sidecars are validated when present:
 
 - `whatif_llm_result.json`: saved bounded continuation result
-- `whatif_ejepa_result.json`, `whatif_heuristic_baseline_result.json`, or `whatif_ejepa_proxy_result.json`: saved forecast result
+- `whatif_ejepa_result.json` or `whatif_heuristic_baseline_result.json`: saved forecast result
 - `whatif_business_state_comparison.json` + `whatif_business_state_comparison.md`: ranked comparison payload and summary when the ranked path is saved
 
 For Enron, VEI also ships a packaged public-company context fixture under `vei/whatif/fixtures/enron_public_context`. Refresh it with `python scripts/prepare_enron_public_context.py`. The current fixture carries 11 dated financial checkpoints and 13 dated public news events from 17 archived public source files, spanning December 31, 1998 through December 2, 2001. VEI slices that fixture to the active Enron email window and then to the chosen branch date before it is shown in Studio, written into the saved episode manifest, added to the LLM counterfactual prompt, or attached to benchmark dossiers.

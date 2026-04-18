@@ -4,7 +4,7 @@ import re
 from collections import Counter
 from typing import Any, Iterable, Sequence
 
-from vei.context.models import (
+from vei.context.api import (
     ContextSnapshot,
     CrmSourceData,
     GoogleSourceData,

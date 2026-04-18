@@ -14,7 +14,6 @@ class WhatIfHistoricalScore(BaseModel):
         "historical",
         "heuristic",
         "e_jepa",
-        "e_jepa_proxy",
         "heuristic_baseline",
         "reference",
     ] = "historical"

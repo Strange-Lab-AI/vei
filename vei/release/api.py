@@ -9,13 +9,13 @@ from pathlib import Path
 from typing import Any, Dict, Iterable, Literal, Sequence
 
 from vei.benchmark.api import run_benchmark_batch
-from vei.benchmark.models import BenchmarkCaseSpec
+from vei.benchmark.api import BenchmarkCaseSpec
 from vei.corpus.api import generate_corpus
-from vei.corpus.models import CorpusBundle
+from vei.corpus.api import CorpusBundle
 from vei.data.models import VEIDataset
 from vei.data.rollout import rollout_procurement
 from vei.quality.api import filter_workflow_corpus
-from vei.quality.models import QualityFilterReport
+from vei.quality.api import QualityFilterReport
 from vei.release.models import (
     BenchmarkReleaseResult,
     DatasetReleaseResult,

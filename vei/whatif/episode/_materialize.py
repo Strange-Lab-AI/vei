@@ -5,9 +5,9 @@ from pathlib import Path
 from typing import Sequence
 
 from vei.twin.api import build_customer_twin
-from vei.twin.models import ContextMoldConfig
+from vei.twin.api import ContextMoldConfig
 from vei.whatif.artifact_validation import validate_saved_workspace
-from vei.whatif_filenames import (
+from vei.whatif.filenames import (
     EPISODE_MANIFEST_FILE,
     PUBLIC_CONTEXT_FILE,
     WORKSPACE_DIRECTORY,

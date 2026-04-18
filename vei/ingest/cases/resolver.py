@@ -13,7 +13,7 @@ import uuid
 from collections import defaultdict
 from typing import Dict, List, Optional, Set
 
-from vei.events.models import CanonicalEvent
+from vei.events.api import CanonicalEvent
 from vei.ingest.api import CaseAssignment
 
 

@@ -414,7 +414,7 @@ def test_llm_cli_writes_summary_artifact_on_require_success_failure(
     assert summary_payload["summary"]["total_tokens"] == 5
 
 
-@pytest.mark.anyio("asyncio")
+@pytest.mark.anyio
 async def test_run_episode_defaults_stdio_log_level_to_error(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

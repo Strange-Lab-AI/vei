@@ -5,7 +5,7 @@ import re
 from pathlib import Path
 from typing import Any
 
-from vei.whatif_filenames import CONTEXT_SNAPSHOT_FILE
+from vei.whatif.filenames import CONTEXT_SNAPSHOT_FILE
 from .models import (
     WhatIfEvent,
     WhatIfEventReference,

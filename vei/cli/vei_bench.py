@@ -119,7 +119,7 @@ def run(
         resolve_scenarios,
         run_benchmark_batch,
     )
-    from vei.benchmark.models import BenchmarkCaseSpec
+    from vei.benchmark.api import BenchmarkCaseSpec
     from vei.benchmark.workflows import resolve_benchmark_workflow_name
 
     normalized_runner = runner.strip().lower()
@@ -180,7 +180,7 @@ def scorecard(
     if not summary_path.exists():
         raise typer.BadParameter(f"No benchmark_summary.json found in {artifacts_dir}")
 
-    from vei.benchmark.models import BenchmarkBatchResult
+    from vei.benchmark.api import BenchmarkBatchResult
 
     data = json.loads(summary_path.read_text(encoding="utf-8"))
     batch = BenchmarkBatchResult.model_validate(data)

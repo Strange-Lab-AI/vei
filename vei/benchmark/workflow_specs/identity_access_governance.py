@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from vei.benchmark.workflow_models import IdentityAccessGovernanceWorkflowParams
-from vei.scenario_engine.models import WorkflowScenarioSpec
+from vei.scenario_engine.api import WorkflowScenarioSpec
 
 
 def _build_identity_access_governance_spec(

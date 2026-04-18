@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from vei.context.models import ContextSnapshot, JiraSourceData, source_payload
+from vei.context.api import ContextSnapshot, JiraSourceData, source_payload
 
 from ..corpus import (
     _company_history_event_id,

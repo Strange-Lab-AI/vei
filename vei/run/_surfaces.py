@@ -1,16 +1,18 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Dict
+from typing import TYPE_CHECKING, Any, Dict
 
 from vei.blueprint import get_facade_plugin, list_runtime_facade_plugins
 from vei.orientation.api import build_world_orientation
 from vei.verticals import get_vertical_pack_manifest
-from vei.world.models import WorldState
 from vei.workspace.api import load_workspace
 
 from ._surface_panels_business import build_workforce_panel
 from .models import LivingSurfacePanel, LivingSurfaceState, RunManifest, RunSnapshotRef
+
+if TYPE_CHECKING:
+    from vei.world.api import WorldState
 
 
 def build_surface_state(

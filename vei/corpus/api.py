@@ -2,9 +2,14 @@ from __future__ import annotations
 
 from .generator import generate_corpus
 from .models import (
-    CorpusBundle,
     EnterpriseProfile,
     GeneratedEnvironment,
+    CorpusBundle,
+    GeneratedWorkflowSpec,
+)
+
+_BOUNDARY_EXPORTS = (
+    CorpusBundle,
     GeneratedWorkflowSpec,
 )
 

@@ -6,7 +6,7 @@ from typing import Iterable, Literal
 
 from pydantic import BaseModel, Field
 
-from vei.whatif_filenames import EPISODE_MANIFEST_FILE
+from vei.whatif.filenames import EPISODE_MANIFEST_FILE
 from vei.run.api import (
     launch_workspace_run,
     list_run_manifests,

@@ -4,7 +4,6 @@ This is NOT a learned dynamics model.  It counts which tools occurred in
 demonstration data, stores the first argument template it saw, and the
 resulting policy chooses the highest-frequency tool from the current menu.
 
-Formerly named ``policy_bc`` / ``BCPPolicy``.
 """
 
 from __future__ import annotations

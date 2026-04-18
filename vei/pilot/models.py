@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from vei.twin.models import (
+from vei.twin.api import (
     TwinActivityItem,
     TwinLaunchManifest,
     TwinLaunchRuntime,

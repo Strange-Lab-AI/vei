@@ -159,7 +159,7 @@ For the canonical product demo, `vei project identity-demo` wraps that ladder in
   - `replay_episode_baseline()` — schedule the saved historical future into the world kernel for comparison
   - `run_llm_counterfactual()` — bounded LLM continuation on the selected mail thread, chat thread, or ticket after divergence
   - `run_ejepa_counterfactual()` — real local JEPA-backed forecast over the branch point when the sibling runtime is available, using a deterministic local training slice around that branch point
-  - `run_ejepa_proxy_counterfactual()` — proxy fallback for KPI/risk deltas when the JEPA runtime is unavailable or errors
+  - `estimate_counterfactual_delta()` — deterministic KPI/risk delta estimate used by the what-if flow
   - `run_counterfactual_experiment()` — one-command orchestration for selection, episode materialization, baseline replay, continuation, and artifact writing
 - `vei.ui.api`
   - stable public surface over grouped route registrars for workspace/governor, playable, run, and imports/context endpoints
@@ -343,8 +343,8 @@ VEI today is a deterministic enterprise simulator, governed twin, and replay pla
 
 **What is heuristic (not learned):**
 
-- The heuristic baseline (formerly `e_jepa_proxy`) shifts event counts, escalations, approvals, external sends, and risk up or down from intervention tags. It is a reasonable demo baseline, not a learned model.
-- The `FrequencyPolicy` (formerly `BCPPolicy`) counts tool occurrences in demonstrations and picks the most-frequent tool. Useful plumbing for floor baselines, not learned dynamics.
+- The heuristic baseline shifts event counts, escalations, approvals, external sends, and risk up or down from intervention tags. It is a reasonable demo baseline, not a learned model.
+- The `FrequencyPolicy` counts tool occurrences in demonstrations and picks the most-frequent tool. Useful plumbing for floor baselines, not learned dynamics.
 
 **What is external (optional adapter):**
 

@@ -15,16 +15,16 @@ from vei.capability_graph.api import (
     get_runtime_capability_graph,
     resolve_graph_action,
 )
-from vei.capability_graph.models import (
+from vei.capability_graph.api import (
     CapabilityGraphActionInput,
     CapabilityGraphActionResult,
     CapabilityGraphPlan,
     RuntimeCapabilityGraphs,
 )
-from vei.connectors.models import ConnectorReceipt
-from vei.monitors.models import MonitorFinding
+from vei.connectors.api import ConnectorReceipt
+from vei.monitors.api import MonitorFinding
 from vei.orientation.api import build_world_orientation
-from vei.orientation.models import WorldOrientation
+from vei.orientation.api import WorldOrientation
 from vei.world.scenario import Scenario
 from vei.world.models import (
     ActorState,

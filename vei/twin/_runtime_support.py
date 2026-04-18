@@ -7,10 +7,10 @@ from typing import Any
 
 from fastapi import Request
 
-from vei.contract.models import ContractEvaluationResult
+from vei.contract.api import ContractEvaluationResult
 from vei.governor import GovernorAgentSpec
 from vei.run.api import list_run_snapshots
-from vei.run.models import RunContractSummary
+from vei.run.api import RunContractSummary
 from vei.workforce.api import WorkforceCommandRecord, WorkforceState
 from vei.world.api import WorldSessionAPI
 

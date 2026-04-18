@@ -11,10 +11,12 @@ from vei.orchestrators.api import (
 )
 
 from .models import (
-    WorkforceCommandRecord,
     WorkforceControlSummary,
     WorkforceState,
+    WorkforceCommandRecord,
 )
+
+_BOUNDARY_EXPORTS = (WorkforceCommandRecord,)
 
 
 def build_workforce_state(

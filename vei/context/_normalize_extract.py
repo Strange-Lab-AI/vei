@@ -21,7 +21,7 @@ from vei.context.providers.salesforce import (
 )
 from vei.context.providers.slack import capture_from_export as capture_slack_export
 from vei.imports.api import normalize_identity_import_package
-from vei.whatif_filenames import CONTEXT_SNAPSHOT_FILE
+from vei.whatif.filenames import CONTEXT_SNAPSHOT_FILE
 
 
 def extract_archive_if_needed(path: Path) -> Path:

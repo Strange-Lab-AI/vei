@@ -1,11 +1,16 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 from pydantic import AliasChoices, BaseModel, Field
 
-from vei.twin.models import TwinLaunchStatus
+from vei.twin.api import TwinLaunchStatus as _TwinLaunchStatusRuntime
+
+if TYPE_CHECKING:
+    TwinLaunchStatus = Any
+else:
+    TwinLaunchStatus = _TwinLaunchStatusRuntime
 
 ExerciseRunner = Literal["workflow", "scripted", "external"]
 

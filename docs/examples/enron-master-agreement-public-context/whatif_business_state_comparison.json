@@ -70,7 +70,7 @@
       "label": "Hold for internal review",
       "prompt": "Keep \"Master Agreement\" inside Enron Corporation, ask legal or the internal owner for one more review, and hold the outside send until one owner clears it.",
       "forecast": {
-        "backend": "e_jepa_proxy",
+        "backend": "heuristic_baseline",
         "summary": "Predicted risk moves down by 0.740, with escalation delta -8 and external-send delta -64.",
         "baseline_risk_score": 1.0,
         "predicted_risk_score": 0.26,
@@ -78,7 +78,7 @@
         "escalation_delta": -8
       },
       "business_state_change": {
-        "method": "e_jepa_proxy_business_state_v1",
+        "method": "heuristic_baseline_business_state_v1",
         "confidence": "medium",
         "summary": "Much lower outside spread risk.",
         "baseline": {
@@ -198,7 +198,7 @@
       "label": "Send a narrow status note",
       "prompt": "Send Kathy Gerken a short no-attachment status note, promise a clean update soon, and keep one internal owner on the next step.",
       "forecast": {
-        "backend": "e_jepa_proxy",
+        "backend": "heuristic_baseline",
         "summary": "Predicted risk moves down by 0.360, with escalation delta 0 and external-send delta -16.",
         "baseline_risk_score": 1.0,
         "predicted_risk_score": 0.64,
@@ -206,7 +206,7 @@
         "escalation_delta": 0
       },
       "business_state_change": {
-        "method": "e_jepa_proxy_business_state_v1",
+        "method": "heuristic_baseline_business_state_v1",
         "confidence": "medium",
         "summary": "Much lower outside spread risk.",
         "baseline": {
@@ -326,7 +326,7 @@
       "label": "Push for fast turnaround",
       "prompt": "Send \"Master Agreement\" now, keep the outside recipient loop active, and widen circulation for rapid comments and turnaround.",
       "forecast": {
-        "backend": "e_jepa_proxy",
+        "backend": "heuristic_baseline",
         "summary": "Predicted risk moves flat by 0.000, with escalation delta 0 and external-send delta 10.",
         "baseline_risk_score": 1.0,
         "predicted_risk_score": 1.0,
@@ -334,7 +334,7 @@
         "escalation_delta": 0
       },
       "business_state_change": {
-        "method": "e_jepa_proxy_business_state_v1",
+        "method": "heuristic_baseline_business_state_v1",
         "confidence": "medium",
         "summary": "Slightly higher execution delay.",
         "baseline": {

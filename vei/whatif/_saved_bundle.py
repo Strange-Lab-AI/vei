@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from vei.whatif_filenames import (
+from vei.whatif.filenames import (
     BUSINESS_STATE_COMPARISON_FILE,
     BUSINESS_STATE_COMPARISON_OVERVIEW_FILE,
     CONTEXT_SNAPSHOT_FILE,

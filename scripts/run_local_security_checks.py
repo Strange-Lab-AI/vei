@@ -86,7 +86,14 @@ def run_local_security_checks(root: Path) -> None:
 
     artifacts_dir = root / ".artifacts"
     artifacts_dir.mkdir(exist_ok=True)
-    relative_paths = [str(path.relative_to(root)) for path in changed_files]
+    relative_paths = [
+        str(path.relative_to(root))
+        for path in changed_files
+        if path.relative_to(root) != Path(".secrets.baseline")
+    ]
+    if not relative_paths:
+        print("No changed files for local detect-secrets after baseline filtering.")
+        return
     baseline = root / ".secrets.baseline"
     if baseline.exists():
         print("Running detect-secrets-hook on changed files.")

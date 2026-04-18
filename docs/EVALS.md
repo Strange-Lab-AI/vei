@@ -6,7 +6,7 @@ Use `docs/ENRON_BUSINESS_OUTCOME_BENCHMARK.md` for the specific Enron benchmark 
 
 ## What Is and Isn't Learned
 
-VEI today is a deterministic enterprise simulator, governed twin, and replay platform with a reference learned path. It is not a finished learned world model. The reference backend (`vei.dynamics.backends.reference`) is a real PyTorch model trained on canonical event sequences. The heuristic baseline (formerly `e_jepa_proxy`) is a tag-driven heuristic, not a learned model. See `docs/ARCHITECTURE.md` for the full breakdown.
+VEI today is a deterministic enterprise simulator, governed twin, and replay platform with a reference learned path. It is not a finished learned world model. The reference backend (`vei.dynamics.backends.reference`) is a real PyTorch model trained on canonical event sequences. The heuristic baseline is a tag-driven heuristic, not a learned model. See `docs/ARCHITECTURE.md` for the full breakdown.
 
 ## Layer 1: Factual forecast metrics
 

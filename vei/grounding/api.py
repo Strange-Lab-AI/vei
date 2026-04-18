@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import List
 
-from vei.blueprint.models import (
+from vei.blueprint.api import (
     BlueprintAsset,
     BlueprintCapabilityGraphsAsset,
     BlueprintCommGraphAsset,
@@ -28,6 +28,12 @@ from vei.blueprint.models import (
 )
 
 from .models import (
+    GroundingBundleManifest,
+    IdentityGovernanceBundle,
+    IdentityGovernanceWorkflowSeed,
+)
+
+_BOUNDARY_EXPORTS = (
     GroundingBundleManifest,
     IdentityGovernanceBundle,
     IdentityGovernanceWorkflowSeed,
@@ -395,7 +401,6 @@ def _acquired_user_cutover_bundle() -> IdentityGovernanceBundle:
 _GROUNDING_BUNDLE_EXAMPLES = {
     "acquired_user_cutover": _acquired_user_cutover_bundle(),
 }
-
 
 __all__ = [
     "GroundingBundleManifest",

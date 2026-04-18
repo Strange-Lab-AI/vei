@@ -26,7 +26,10 @@ from .models import (
     OrchestratorSyncCapabilities,
     OrchestratorSyncHealth,
     OrchestratorTask,
+    ActivityItemBase,
 )
+
+_BOUNDARY_EXPORTS = (ActivityItemBase,)
 
 
 class OrchestratorClient(Protocol):

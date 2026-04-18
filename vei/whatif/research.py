@@ -6,7 +6,7 @@ from datetime import datetime
 from hashlib import sha1
 from math import sqrt
 from pathlib import Path
-from typing import Sequence
+from typing import Collection, Sequence
 
 from vei.project_settings import default_model_for_provider
 
@@ -66,7 +66,7 @@ from .ranking import (
     summarize_llm_branch,
 )
 from .render import render_research_pack_run
-from vei.whatif_filenames import WORKSPACE_DIRECTORY
+from vei.whatif.filenames import WORKSPACE_DIRECTORY
 
 _RESEARCH_PACKS = build_research_packs(_DEFAULT_ROLLOUT_SEEDS)
 
@@ -805,7 +805,7 @@ def _score_backend(
             notes=notes,
             error=forecast.error,
         )
-    if backend in {"e_jepa_proxy", "heuristic_baseline"}:
+    if backend == "heuristic_baseline":
         forecast = estimate_counterfactual_delta(
             materialization.workspace_root,
             prompt=prompt,
@@ -1012,7 +1012,7 @@ def _build_branch_contract(
     baseline_forecast: WhatIfHistoricalScore,
     average_rollout_signals: WhatIfOutcomeSignals,
     historical_outcome_signals: WhatIfOutcomeSignals,
-    prompt_tags: Sequence[str],
+    prompt_tags: Collection[str],
     generated_messages,
     notes: Sequence[str],
 ) -> WhatIfBackendBranchContract:
@@ -1058,7 +1058,7 @@ def _summary_features(
     baseline_forecast: WhatIfHistoricalScore,
     average_rollout_signals: WhatIfOutcomeSignals,
     historical_outcome_signals: WhatIfOutcomeSignals,
-    prompt_tags: Sequence[str],
+    prompt_tags: Collection[str],
 ) -> list[WhatIfBranchSummaryFeature]:
     participants = {
         actor_id
@@ -1222,7 +1222,7 @@ def _build_sequence_steps(
 
 def _build_treatment_trace(
     *,
-    prompt_tags: Sequence[str],
+    prompt_tags: Collection[str],
     average_rollout_signals: WhatIfOutcomeSignals,
     historical_outcome_signals: WhatIfOutcomeSignals,
 ) -> list[WhatIfTreatmentTraceStep]:

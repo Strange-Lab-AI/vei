@@ -27,8 +27,8 @@ from vei.whatif.api import (
     run_ranked_counterfactual_experiment,
     search_events,
 )
-from vei.whatif_filenames import EXPERIMENT_RESULT_FILE
-from vei.whatif.models import (
+from vei.whatif.filenames import EXPERIMENT_RESULT_FILE
+from vei.whatif.api import (
     WhatIfAuditRecord,
     WhatIfCandidateIntervention,
     WhatIfJudgedPairwiseComparison,
@@ -393,18 +393,14 @@ def register_workspace_routes(app: FastAPI, root: Path, *, deps: Any) -> None:
         if normalized_shadow_backend not in {
             "auto",
             "e_jepa",
-            "e_jepa_proxy",
             "heuristic_baseline",
         }:
             raise HTTPException(
                 status_code=400,
                 detail=(
-                    "shadow_forecast_backend must be auto, e_jepa, "
-                    "e_jepa_proxy, or heuristic_baseline"
+                    "shadow_forecast_backend must be auto, e_jepa, or heuristic_baseline"
                 ),
             )
-        if normalized_shadow_backend == "e_jepa_proxy":
-            normalized_shadow_backend = "heuristic_baseline"
         # The ranked experiment always runs LLM rollouts; only fall through to
         # whatever provider has a key. If none does, surface a clear error
         # rather than silently producing a meaningless ranking.

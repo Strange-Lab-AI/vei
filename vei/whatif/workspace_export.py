@@ -16,8 +16,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from vei.context.models import ContextSnapshot, ContextSourceResult
-from vei.whatif_filenames import CONTEXT_SNAPSHOT_FILE
+from vei.context.api import ContextSnapshot, ContextSourceResult
+from vei.whatif.filenames import CONTEXT_SNAPSHOT_FILE
 
 
 def _iso_now() -> str:

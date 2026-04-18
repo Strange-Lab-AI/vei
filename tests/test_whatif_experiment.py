@@ -484,7 +484,7 @@ def test_vei_whatif_cli_rank_and_show_ranked_result(
             "--event-id",
             "evt-005",
             "--shadow-forecast-backend",
-            "e_jepa_proxy",
+            "heuristic_baseline",
             "--candidate",
             "Keep this internal and pause.",
             "--candidate",

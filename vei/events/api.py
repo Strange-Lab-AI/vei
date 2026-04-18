@@ -11,16 +11,26 @@ from typing import Any, Dict, List, Optional
 
 from .legacy import _infer_domain as _legacy_infer_domain
 from .models import (
+    CaseRef,
+    ObjectRef,
+    TextHandle,
     ActorRef,
     CanonicalEvent,
-    CaseRef,
     EventDomain,
     EventProvenance,
     InternalExternal,
-    ObjectRef,
     ProvenanceRecord,
     StateDelta,
-    TextHandle,
+)
+
+_BOUNDARY_EXPORTS = (
+    ActorRef,
+    CanonicalEvent,
+    EventDomain,
+    EventProvenance,
+    InternalExternal,
+    ProvenanceRecord,
+    StateDelta,
 )
 
 

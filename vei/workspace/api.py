@@ -12,19 +12,19 @@ from vei.blueprint.api import (
     compile_blueprint,
     materialize_scenario_from_blueprint,
 )
-from vei.blueprint.models import BlueprintAsset, CompiledBlueprint
+from vei.blueprint.api import BlueprintAsset, CompiledBlueprint
 from vei.benchmark import get_benchmark_family_workflow_spec
 from vei.contract.api import build_contract_from_workflow, evaluate_contract
-from vei.contract.models import ContractEvaluationResult, ContractSpec
+from vei.contract.api import ContractEvaluationResult, ContractSpec
 from vei.grounding.api import compile_identity_governance_bundle
-from vei.grounding.models import IdentityGovernanceBundle
+from vei.grounding.api import IdentityGovernanceBundle
 from vei.imports.api import normalize_identity_import_package
 from vei.imports import (
     bootstrap_contract_from_import_bundle,
     load_okta_connector_config,
     sync_okta_import_package,
 )
-from vei.imports.models import (
+from vei.imports.api import (
     GeneratedScenarioCandidate,
     ImportReview,
     ImportPackage,
@@ -48,11 +48,12 @@ from vei.world import build_scenario_manifest
 
 from .models import (
     WorkspaceCompileRecord,
+    WorkspaceIdentityFlowSummary,
     WorkspaceManifest,
-    WorkspaceSourceConfig,
-    WorkspaceSourceSyncRecord,
     WorkspaceRunEntry,
     WorkspaceScenarioSpec,
+    WorkspaceSourceConfig,
+    WorkspaceSourceSyncRecord,
     WorkspaceSummary,
 )
 from ._support import (
@@ -78,6 +79,16 @@ from ._support import (
     _workspace_vertical_name,
     _write_json,
     temporary_env as temporary_env,  # noqa: F401
+)
+
+_BOUNDARY_EXPORTS = (
+    WorkspaceIdentityFlowSummary,
+    WorkspaceManifest,
+    WorkspaceRunEntry,
+    WorkspaceScenarioSpec,
+    WorkspaceSourceConfig,
+    WorkspaceSourceSyncRecord,
+    WorkspaceSummary,
 )
 
 WORKSPACE_MANIFEST = "vei_project.json"

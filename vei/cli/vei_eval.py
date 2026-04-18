@@ -18,7 +18,7 @@ from vei.benchmark.api import (
     resolve_scenarios,
     run_benchmark_batch,
 )
-from vei.benchmark.models import (
+from vei.benchmark.api import (
     BenchmarkCaseSpec,
     BenchmarkDemoResult,
     BenchmarkDemoSpec,

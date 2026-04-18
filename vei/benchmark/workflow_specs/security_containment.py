@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from vei.benchmark.workflow_models import SecurityContainmentWorkflowParams
-from vei.scenario_engine.models import WorkflowScenarioSpec
+from vei.scenario_engine.api import WorkflowScenarioSpec
 
 
 def _build_security_containment_spec(

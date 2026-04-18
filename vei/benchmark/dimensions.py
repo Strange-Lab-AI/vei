@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 from statistics import mean
-from typing import Any, Dict, List
+from typing import TYPE_CHECKING, Any, Dict, List
 
 from vei.benchmark.families import get_benchmark_family_manifest
 from vei.knowledge.api import (
@@ -13,7 +13,9 @@ from vei.knowledge.api import (
     validate_composed_asset,
 )
 from vei.world import get_scenario
-from vei.world.models import WorldState
+
+if TYPE_CHECKING:
+    from vei.world.api import WorldState
 
 
 def score_enterprise_dimensions(
@@ -148,10 +150,12 @@ def _score_security_containment(
 def _score_onboarding_migration(
     calls: List[Dict[str, Any]], state: WorldState | None
 ) -> Dict[str, float]:
+    from vei.world.api import WorldState as RuntimeWorldState
+
     employee_state = _component(state, "hris", "employees")
     okta_users = _component(state, "okta", "users")
     drive_state = _component(state, "google_admin", "drive_shares")
-    scenario = state.scenario if isinstance(state, WorldState) else {}
+    scenario = state.scenario if isinstance(state, RuntimeWorldState) else {}
     metadata = scenario.get("metadata", {}) if isinstance(scenario, dict) else {}
     allowed_apps = set(
         metadata.get("allowed_application_ids", ["APP-slack", "APP-crm"])
@@ -319,12 +323,14 @@ def _score_identity_access_governance(
     artifacts_dir: Path,
     raw_score: Dict[str, Any],
 ) -> Dict[str, float]:
+    from vei.world.api import WorldState as RuntimeWorldState
+
     validation = _load_json(artifacts_dir / "workflow_validation.json")
     drive_state = _component(state, "google_admin", "drive_shares")
     docs = _component(state, "docs", "docs")
     slack_channels = _component(state, "slack", "channels")
     ticket_metadata = _component(state, "tickets", "metadata")
-    scenario = state.scenario if isinstance(state, WorldState) else {}
+    scenario = state.scenario if isinstance(state, RuntimeWorldState) else {}
     metadata = scenario.get("metadata", {}) if isinstance(scenario, dict) else {}
     forbidden_domains = [
         str(domain).lower() for domain in metadata.get("forbidden_share_domains", [])

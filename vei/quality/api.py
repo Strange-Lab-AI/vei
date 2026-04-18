@@ -6,7 +6,12 @@ from .filter import (
     runnability_score,
     workflow_fingerprint,
 )
-from .models import QualityFilterReport, WorkflowQualityScore
+from .models import (
+    WorkflowQualityScore,
+    QualityFilterReport,
+)
+
+_BOUNDARY_EXPORTS = (QualityFilterReport,)
 
 __all__ = [
     "QualityFilterReport",

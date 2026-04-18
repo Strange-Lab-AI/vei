@@ -5,7 +5,7 @@ from collections import Counter
 from datetime import datetime, timezone
 from typing import Any, Sequence
 
-from vei.context.models import ContextSnapshot
+from vei.context.api import ContextSnapshot
 
 from ..models import WhatIfActorProfile
 from ._time import (

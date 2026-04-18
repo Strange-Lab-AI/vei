@@ -3,7 +3,14 @@ from __future__ import annotations
 from pathlib import Path
 from typing import List
 
-from .models import AgentConfig, Runbook, TrainingFormat, TrainingSet
+from .models import (
+    AgentConfig,
+    Runbook,
+    TrainingSet,
+    TrainingFormat,
+)
+
+_BOUNDARY_EXPORTS = (TrainingFormat,)
 
 
 def synthesize_runbook(

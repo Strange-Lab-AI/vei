@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any, Iterable, List, Optional
 
 from vei.knowledge.api import resolve_knowledge_now_ms, validate_composed_asset
-from vei.scenario_engine.models import AssertionSpec
+from vei.scenario_engine.api import AssertionSpec
 
 from .models import ContractSurface
 

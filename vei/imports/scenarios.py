@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Iterable
 
-from vei.grounding.models import IdentityGovernanceBundle
+from vei.grounding.api import IdentityGovernanceBundle
 
 from .models import GeneratedScenarioCandidate, ProvenanceRecord
 

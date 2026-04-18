@@ -6,12 +6,12 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from vei.scenario_engine.models import WorkflowStepSpec
+    from vei.scenario_engine.api import WorkflowStepSpec
 
 from vei.benchmark import get_benchmark_family_workflow_spec
 from vei.blueprint.api import create_world_session_from_blueprint
-from vei.capability_graph.models import CapabilityGraphActionInput
-from vei.contract.models import ContractEvaluationResult
+from vei.capability_graph.api import CapabilityGraphActionInput
+from vei.contract.api import ContractEvaluationResult
 from vei.fidelity import (
     build_workspace_fidelity_report,
     get_or_build_workspace_fidelity_report,
@@ -29,7 +29,7 @@ from vei.run.api import (
     write_run_manifest,
 )
 from vei.run import append_run_event
-from vei.run.models import (
+from vei.run.api import (
     RunArtifactIndex,
     RunContractSummary,
     RunManifest,
@@ -52,7 +52,7 @@ from vei.workspace.api import (
     temporary_env,
     upsert_workspace_run,
 )
-from vei.workspace.models import WorkspaceRunEntry
+from vei.workspace.api import WorkspaceRunEntry
 
 from .models import (
     MissionCatalog,

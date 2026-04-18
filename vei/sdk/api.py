@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Iterable, Optional, Protocol
 
-from vei.capability_graph.models import (
+from vei.capability_graph.api import (
     CapabilityGraphActionInput,
     CapabilityGraphActionResult,
     CapabilityGraphPlan,
@@ -14,7 +14,7 @@ from vei.fidelity import (
     TwinFidelityReport,
     get_or_build_workspace_fidelity_report as _get_or_build_workspace_fidelity_report,
 )
-from vei.orientation.models import WorldOrientation
+from vei.orientation.api import WorldOrientation
 from vei.playable import (
     MissionCatalog,
     MissionSessionState,
@@ -44,7 +44,7 @@ from vei.blueprint.api import (
     list_blueprint_specs as _list_blueprint_specs,
     list_facade_manifest as _list_facade_manifest,
 )
-from vei.blueprint.models import (
+from vei.blueprint.api import (
     BlueprintAsset,
     BlueprintSpec,
     CompiledBlueprint,
@@ -63,7 +63,7 @@ from vei.benchmark.api import (
     get_benchmark_family_manifest,
     list_benchmark_family_manifest,
 )
-from vei.contract.models import ContractSpec
+from vei.contract.api import ContractSpec
 from vei.benchmark import (
     BenchmarkShowcaseExample,
     get_showcase_example as _get_showcase_example,
@@ -86,15 +86,15 @@ from vei.release.api import (
 from vei.router.api import RouterAPI, RouterToolProvider
 from vei.scenario_engine.api import compile_workflow
 from vei.scenario_engine.api import CompiledWorkflow
-from vei.scenario_engine.models import WorkflowScenarioSpec
+from vei.scenario_engine.api import WorkflowScenarioSpec
 from vei.scenario_runner.api import run_workflow, validate_workflow
-from vei.scenario_runner.models import ScenarioRunResult, ValidationReport
+from vei.scenario_runner.api import ScenarioRunResult, ValidationReport
 from vei.grounding.api import (
     build_grounding_bundle_example as _build_grounding_bundle_example,
     compile_identity_governance_bundle as _compile_identity_governance_bundle,
     list_grounding_bundle_examples as _list_grounding_bundle_examples,
 )
-from vei.grounding.models import GroundingBundleManifest, IdentityGovernanceBundle
+from vei.grounding.api import GroundingBundleManifest, IdentityGovernanceBundle
 from vei.imports.api import (
     bootstrap_contract_from_import_bundle as _bootstrap_contract_from_import_bundle,
     generate_identity_scenario_candidates as _generate_identity_scenario_candidates,
@@ -110,7 +110,7 @@ from vei.imports import (
     OktaConnectorConfig,
     load_okta_connector_config as _load_okta_connector_config,
 )
-from vei.imports.models import (
+from vei.imports.api import (
     GeneratedScenarioCandidate,
     ImportPackage,
     ImportPackageArtifacts,
@@ -130,7 +130,7 @@ from vei.run.api import (
     load_run_manifest as _load_run_manifest,
     load_run_timeline as _load_run_timeline,
 )
-from vei.run.models import RunManifest, RunSnapshotRef, RunTimelineEvent
+from vei.run.api import RunManifest, RunSnapshotRef, RunTimelineEvent
 from vei.workspace.api import (
     activate_workspace_contract_variant as _activate_workspace_contract_variant,
     activate_workspace_scenario as _activate_workspace_scenario,
@@ -163,7 +163,7 @@ from vei.workspace import (
     build_identity_flow_summary as _build_identity_flow_summary,
     prepare_identity_workspace_flow as _prepare_identity_workspace_flow,
 )
-from vei.workspace.models import (
+from vei.workspace.api import (
     WorkspaceIdentityFlowSummary,
     WorkspaceManifest,
     WorkspaceRunEntry,

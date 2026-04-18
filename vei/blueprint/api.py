@@ -1,50 +1,76 @@
 from __future__ import annotations
 
 from copy import deepcopy
-from typing import Any, Dict, List, Optional
-
-from vei.benchmark import (
-    get_benchmark_family_manifest,
-    list_benchmark_family_manifest,
-    get_benchmark_family_workflow_spec,
-    get_benchmark_family_workflow_variant,
-    resolve_benchmark_workflow_name,
-)
-from vei.contract.api import build_contract_from_workflow
-from vei.scenario_engine.api import compile_workflow
-from vei.world import (
-    Document,
-    IdentityApplicationSeed,
-    IdentityGroupSeed,
-    IdentityUserSeed,
-    Scenario,
-    ServiceDeskRequest,
-    Ticket,
-    build_scenario_manifest,
-    get_scenario,
-    get_scenario_manifest,
-)
-from vei.verticals import build_vertical_blueprint_asset
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 from .models import (
-    BlueprintAsset,
-    BlueprintCapabilityGraphsAsset,
     BlueprintContractDefaults,
     BlueprintContractSummary,
-    BlueprintDocumentAsset,
-    BlueprintEnvironmentAsset,
     BlueprintEnvironmentSummary,
-    BlueprintIdentityApplicationAsset,
-    BlueprintIdentityGroupAsset,
-    BlueprintIdentityUserAsset,
-    BlueprintMailThreadAsset,
     BlueprintRunDefaults,
     BlueprintScenarioSummary,
-    BlueprintServiceRequestAsset,
-    BlueprintSpec,
-    BlueprintTicketAsset,
     BlueprintWorkflowDefaults,
     CapabilityGraphSummary,
+    BlueprintAllocationAsset,
+    BlueprintApprovalAsset,
+    BlueprintAsset,
+    BlueprintBillingCaseAsset,
+    BlueprintBuildingAsset,
+    BlueprintCampaignApprovalAsset,
+    BlueprintCampaignAsset,
+    BlueprintCampaignGraphAsset,
+    BlueprintCampaignReportAsset,
+    BlueprintCapabilityGraphsAsset,
+    BlueprintCapacityPoolAsset,
+    BlueprintClientAsset,
+    BlueprintCommGraphAsset,
+    BlueprintCreativeAsset,
+    BlueprintCrmCompanyAsset,
+    BlueprintCrmContactAsset,
+    BlueprintCrmDealAsset,
+    BlueprintDispatchAppointmentAsset,
+    BlueprintDocGraphAsset,
+    BlueprintDocumentAsset,
+    BlueprintEnvironmentAsset,
+    BlueprintGoogleDriveShareAsset,
+    BlueprintHrisEmployeeAsset,
+    BlueprintIdentityApplicationAsset,
+    BlueprintIdentityGraphAsset,
+    BlueprintIdentityGroupAsset,
+    BlueprintIdentityPolicyAsset,
+    BlueprintIdentityUserAsset,
+    BlueprintInventoryGraphAsset,
+    BlueprintKnowledgeAsset,
+    BlueprintKnowledgeEdgeAsset,
+    BlueprintKnowledgeGraphAsset,
+    BlueprintKnowledgeProvenanceAsset,
+    BlueprintLeaseAsset,
+    BlueprintMailMessageAsset,
+    BlueprintMailThreadAsset,
+    BlueprintOpsGraphAsset,
+    BlueprintOrderAsset,
+    BlueprintPropertyAsset,
+    BlueprintPropertyGraphAsset,
+    BlueprintQuoteAsset,
+    BlueprintRevenueGraphAsset,
+    BlueprintServiceCustomerAsset,
+    BlueprintServiceExceptionAsset,
+    BlueprintServicePolicyAsset,
+    BlueprintServiceRequestAsset,
+    BlueprintServiceWorkOrderAsset,
+    BlueprintSiteAsset,
+    BlueprintSlackChannelAsset,
+    BlueprintSlackMessageAsset,
+    BlueprintSpec,
+    BlueprintStorageUnitAsset,
+    BlueprintTechnicianAsset,
+    BlueprintTenantAsset,
+    BlueprintTicketAsset,
+    BlueprintUnitAsset,
+    BlueprintVendorAsset,
+    BlueprintWorkGraphAsset,
+    BlueprintWorkOrderAsset,
+    CapabilityDomain,
     CompiledBlueprint,
     FacadeManifest,
 )
@@ -53,6 +79,82 @@ from .plugins import (
     get_facade_plugin,
     list_facade_plugins,
     resolve_facade_plugins_for_tool_families,
+)
+
+if TYPE_CHECKING:
+    from vei.world import (
+        Document,
+        IdentityApplicationSeed,
+        IdentityGroupSeed,
+        IdentityUserSeed,
+        Scenario,
+        ServiceDeskRequest,
+        Ticket,
+    )
+
+_BOUNDARY_EXPORTS = (
+    BlueprintAllocationAsset,
+    BlueprintApprovalAsset,
+    BlueprintAsset,
+    BlueprintBillingCaseAsset,
+    BlueprintBuildingAsset,
+    BlueprintCampaignApprovalAsset,
+    BlueprintCampaignAsset,
+    BlueprintCampaignGraphAsset,
+    BlueprintCampaignReportAsset,
+    BlueprintCapabilityGraphsAsset,
+    BlueprintCapacityPoolAsset,
+    BlueprintClientAsset,
+    BlueprintCommGraphAsset,
+    BlueprintCreativeAsset,
+    BlueprintCrmCompanyAsset,
+    BlueprintCrmContactAsset,
+    BlueprintCrmDealAsset,
+    BlueprintDispatchAppointmentAsset,
+    BlueprintDocGraphAsset,
+    BlueprintDocumentAsset,
+    BlueprintEnvironmentAsset,
+    BlueprintGoogleDriveShareAsset,
+    BlueprintHrisEmployeeAsset,
+    BlueprintIdentityApplicationAsset,
+    BlueprintIdentityGraphAsset,
+    BlueprintIdentityGroupAsset,
+    BlueprintIdentityPolicyAsset,
+    BlueprintIdentityUserAsset,
+    BlueprintInventoryGraphAsset,
+    BlueprintKnowledgeAsset,
+    BlueprintKnowledgeEdgeAsset,
+    BlueprintKnowledgeGraphAsset,
+    BlueprintKnowledgeProvenanceAsset,
+    BlueprintLeaseAsset,
+    BlueprintMailMessageAsset,
+    BlueprintMailThreadAsset,
+    BlueprintOpsGraphAsset,
+    BlueprintOrderAsset,
+    BlueprintPropertyAsset,
+    BlueprintPropertyGraphAsset,
+    BlueprintQuoteAsset,
+    BlueprintRevenueGraphAsset,
+    BlueprintServiceCustomerAsset,
+    BlueprintServiceExceptionAsset,
+    BlueprintServicePolicyAsset,
+    BlueprintServiceRequestAsset,
+    BlueprintServiceWorkOrderAsset,
+    BlueprintSiteAsset,
+    BlueprintSlackChannelAsset,
+    BlueprintSlackMessageAsset,
+    BlueprintSpec,
+    BlueprintStorageUnitAsset,
+    BlueprintTechnicianAsset,
+    BlueprintTenantAsset,
+    BlueprintTicketAsset,
+    BlueprintUnitAsset,
+    BlueprintVendorAsset,
+    BlueprintWorkGraphAsset,
+    BlueprintWorkOrderAsset,
+    CapabilityDomain,
+    CompiledBlueprint,
+    FacadeManifest,
 )
 
 
@@ -85,6 +187,12 @@ def build_blueprint_asset_for_family(
     *,
     variant_name: Optional[str] = None,
 ) -> BlueprintAsset:
+    from vei.benchmark import (
+        get_benchmark_family_manifest,
+        get_benchmark_family_workflow_variant,
+    )
+    from vei.verticals import build_vertical_blueprint_asset
+
     if family_name.strip().lower() in {
         "real_estate_management",
         "digital_marketing_agency",
@@ -154,6 +262,8 @@ def build_blueprint_asset_for_scenario(
         if metadata:
             asset.metadata = {**dict(asset.metadata), **dict(metadata)}
         return asset
+    from vei.world import get_scenario_manifest
+
     scenario = get_scenario_manifest(scenario_name)
     resolved_family_name = family_name or scenario.benchmark_family
     return BlueprintAsset(
@@ -171,6 +281,14 @@ def build_blueprint_asset_for_scenario(
 
 
 def compile_blueprint(asset: BlueprintAsset) -> CompiledBlueprint:
+    from vei.benchmark import (
+        get_benchmark_family_workflow_spec,
+        resolve_benchmark_workflow_name,
+    )
+    from vei.contract.api import build_contract_from_workflow
+    from vei.scenario_engine.api import compile_workflow
+    from vei.world import build_scenario_manifest
+
     scenario_seed = materialize_scenario_from_blueprint(asset)
     runtime_scenario_name = _runtime_scenario_name(asset)
     scenario_manifest = build_scenario_manifest(runtime_scenario_name, scenario_seed)
@@ -370,6 +488,8 @@ def build_blueprint_for_scenario(
 
 
 def list_blueprint_specs() -> List[BlueprintSpec]:
+    from vei.benchmark import list_benchmark_family_manifest
+
     return [
         build_blueprint_for_family(item.name)
         for item in list_benchmark_family_manifest()
@@ -378,6 +498,8 @@ def list_blueprint_specs() -> List[BlueprintSpec]:
 
 
 def materialize_scenario_from_blueprint(asset: BlueprintAsset) -> Scenario:
+    from vei.world import get_scenario
+
     scenario = deepcopy(get_scenario(asset.scenario_name))
     environment = _resolve_environment_asset(asset)
     if environment is None:
@@ -956,6 +1078,8 @@ def _scenario_materialization_mode(asset: BlueprintAsset) -> str:
 
 
 def _build_document_seed(document: BlueprintDocumentAsset) -> Document:
+    from vei.world import Document
+
     return Document(
         doc_id=document.doc_id,
         title=document.title,
@@ -965,6 +1089,8 @@ def _build_document_seed(document: BlueprintDocumentAsset) -> Document:
 
 
 def _build_ticket_seed(ticket: BlueprintTicketAsset) -> Ticket:
+    from vei.world import Ticket
+
     return Ticket(
         ticket_id=ticket.ticket_id,
         title=ticket.title,
@@ -995,6 +1121,8 @@ def _build_mail_thread_seed(thread: BlueprintMailThreadAsset) -> Dict[str, Any]:
 
 
 def _build_identity_user_seed(user: BlueprintIdentityUserAsset) -> IdentityUserSeed:
+    from vei.world import IdentityUserSeed
+
     return IdentityUserSeed(
         user_id=user.user_id,
         email=user.email,
@@ -1016,6 +1144,8 @@ def _build_identity_user_seed(user: BlueprintIdentityUserAsset) -> IdentityUserS
 def _build_identity_group_seed(
     group: BlueprintIdentityGroupAsset,
 ) -> IdentityGroupSeed:
+    from vei.world import IdentityGroupSeed
+
     return IdentityGroupSeed(
         group_id=group.group_id,
         name=group.name,
@@ -1027,6 +1157,8 @@ def _build_identity_group_seed(
 def _build_identity_application_seed(
     application: BlueprintIdentityApplicationAsset,
 ) -> IdentityApplicationSeed:
+    from vei.world import IdentityApplicationSeed
+
     return IdentityApplicationSeed(
         app_id=application.app_id,
         label=application.label,
@@ -1040,6 +1172,8 @@ def _build_identity_application_seed(
 def _build_service_request_seed(
     request: BlueprintServiceRequestAsset,
 ) -> ServiceDeskRequest:
+    from vei.world import ServiceDeskRequest
+
     return ServiceDeskRequest(
         request_id=request.request_id,
         title=request.title,

@@ -9,7 +9,7 @@ import json
 import logging
 from typing import Any, Dict, List, Optional
 
-from vei.events.models import CanonicalEvent
+from vei.events.api import CanonicalEvent
 from vei.ingest.api import SessionSlice
 
 logger = logging.getLogger(__name__)

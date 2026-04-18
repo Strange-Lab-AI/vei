@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Sequence
 
-from vei.context.models import ContextSnapshot, SlackSourceData, source_payload
+from vei.context.api import ContextSnapshot, SlackSourceData, source_payload
 
 from ..corpus import (
     _channel_message_timestamp_ms,

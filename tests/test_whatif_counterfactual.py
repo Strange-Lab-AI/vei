@@ -11,7 +11,7 @@ import pytest
 from vei.dynamics.models import DynamicsResponse
 from vei.llm.providers import PlanResult, PlanUsage
 from vei.project_settings import default_model_for_provider
-from vei.whatif_filenames import HEURISTIC_FORECAST_FILE
+from vei.whatif.filenames import HEURISTIC_FORECAST_FILE
 from vei.whatif import (
     estimate_counterfactual_delta,
     load_experiment_result,
@@ -1009,7 +1009,7 @@ def test_run_ranked_counterfactual_experiment_writes_artifacts_and_keeps_shadow_
         ],
         event_id="evt-005",
         rollout_count=3,
-        shadow_forecast_backend="e_jepa_proxy",
+        shadow_forecast_backend="heuristic_baseline",
     )
     loaded = load_ranked_experiment_result(result.artifacts.root)
 
@@ -1179,5 +1179,5 @@ def test_run_ranked_counterfactual_experiment_validates_artifacts(
             candidate_interventions=["Keep this internal and pause."],
             event_id="py-msg-002",
             rollout_count=1,
-            shadow_forecast_backend="e_jepa_proxy",
+            shadow_forecast_backend="heuristic_baseline",
         )

@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Literal, Optional
 
 from pydantic import BaseModel, Field
 
-from vei.benchmark.models import BenchmarkDiagnostics, BenchmarkMetrics, BenchmarkRunner
+from vei.benchmark.api import BenchmarkDiagnostics, BenchmarkMetrics, BenchmarkRunner
 
 RunStatus = Literal["queued", "running", "ok", "error"]
 SurfacePanelKind = Literal[

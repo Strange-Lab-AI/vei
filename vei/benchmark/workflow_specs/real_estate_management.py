@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from vei.benchmark.workflow_models import RealEstateManagementWorkflowParams
-from vei.scenario_engine.models import WorkflowScenarioSpec
+from vei.scenario_engine.api import WorkflowScenarioSpec
 
 
 def _build_real_estate_management_spec(

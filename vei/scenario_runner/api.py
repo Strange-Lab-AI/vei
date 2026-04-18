@@ -4,9 +4,20 @@ from typing import Iterable, Protocol
 
 from vei.scenario_engine.api import CompiledWorkflow
 
-from .models import ScenarioRunResult, ValidationReport, WorkflowOutcomeValidation
 from .runner import run_compiled_workflow, validate_compiled_workflow_outcome
 from .validator import static_validate_workflow
+
+from .models import (
+    ScenarioRunResult,
+    ValidationReport,
+    WorkflowOutcomeValidation,
+)
+
+_BOUNDARY_EXPORTS = (
+    ScenarioRunResult,
+    ValidationReport,
+    WorkflowOutcomeValidation,
+)
 
 
 class WorkflowRunnerAPI(Protocol):

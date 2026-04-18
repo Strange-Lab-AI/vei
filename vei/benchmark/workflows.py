@@ -13,7 +13,7 @@ from vei.benchmark.workflow_catalog import (
     _VARIANT_CATALOG,
     _VariantDefinition,
 )
-from vei.scenario_engine.models import WorkflowScenarioSpec
+from vei.scenario_engine.api import WorkflowScenarioSpec
 
 from .workflow_specs import (
     _build_b2b_saas_spec,

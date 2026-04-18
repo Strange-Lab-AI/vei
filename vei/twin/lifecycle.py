@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from vei.context.models import ContextProviderConfig, ContextSnapshot
+from vei.context.api import ContextProviderConfig, ContextSnapshot
 from vei.pilot.api import (
     activate_exercise,
     approve_pilot_orchestrator_approval as approve_twin_launch_orchestrator_approval,

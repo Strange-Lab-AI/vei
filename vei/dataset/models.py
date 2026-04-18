@@ -5,8 +5,8 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from vei.synthesis.models import TrainingFormat
-from vei.twin.models import TwinArchetype, TwinCrisisLevel, TwinDensityLevel
+from vei.synthesis.api import TrainingFormat
+from vei.twin.api import TwinArchetype, TwinCrisisLevel, TwinDensityLevel
 
 DatasetSplitName = Literal["train", "validation", "test"]
 

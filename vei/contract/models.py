@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Literal, Optional
 
 from pydantic import BaseModel, Field
 
-from vei.scenario_engine.models import AssertionSpec
+from vei.scenario_engine.api import AssertionSpec
 
 ContractSurface = Literal[
     "oracle_state",

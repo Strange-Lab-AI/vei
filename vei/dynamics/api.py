@@ -11,16 +11,29 @@ import logging
 from typing import Any, Dict, Protocol, runtime_checkable
 
 from .models import (
+    CalibrationMetrics,
     BackendInfo,
     BusinessHeads,
-    CalibrationMetrics,
+    CandidateAction,
+    CompanyGraphSlice,
     DeterminismManifest,
     DynamicsRequest,
     DynamicsResponse,
+    PointInterval,
+)
+
+_BOUNDARY_EXPORTS = (
+    BackendInfo,
+    BusinessHeads,
+    CandidateAction,
+    CompanyGraphSlice,
+    DeterminismManifest,
+    DynamicsRequest,
+    DynamicsResponse,
+    PointInterval,
 )
 
 logger = logging.getLogger(__name__)
-
 
 # ---------------------------------------------------------------------------
 # Protocol
@@ -111,7 +124,6 @@ def _auto_register() -> None:
         from vei.dynamics.backends.heuristic import HeuristicBaseline
 
         register_backend("heuristic_baseline", HeuristicBaseline)
-        register_backend("e_jepa_proxy", HeuristicBaseline)
     except Exception:
         pass
 
@@ -124,7 +136,6 @@ def _auto_register() -> None:
 
 
 _auto_register()
-
 
 __all__ = [
     "BackendInfo",

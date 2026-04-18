@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from vei.benchmark.workflow_models import B2bSaasWorkflowParams
-from vei.scenario_engine.models import WorkflowScenarioSpec
+from vei.scenario_engine.api import WorkflowScenarioSpec
 
 
 def _build_b2b_saas_spec(

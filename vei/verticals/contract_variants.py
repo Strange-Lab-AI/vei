@@ -5,7 +5,7 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
-from vei.contract.models import (
+from vei.contract.api import (
     ContractPredicateSpec,
     ContractSpec,
     PolicyInvariantSpec,

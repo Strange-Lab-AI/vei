@@ -1,0 +1,18 @@
+rules:
+  - id: python.lang.security.audit.subprocess-shell-true
+    languages: [python]
+    severity: ERROR
+    message: Avoid shell=True when a list-form subprocess call will work.
+    pattern: subprocess.$FUNC(..., shell=True, ...)
+    metadata:
+      source: local
+  - id: python.lang.security.audit.unsafe-tempfile
+    languages: [python]
+    severity: WARNING
+    message: Prefer secure tempfile helpers over manual temporary file naming.
+    patterns:
+      - pattern-either:
+          - pattern: open("/tmp/" + ..., ...)
+          - pattern: open(f"/tmp/{...}", ...)
+    metadata:
+      source: local
