@@ -35,6 +35,8 @@ TMP_DIR="$(mktemp -d)"
 CLONE_ROOT="${TMP_DIR}/clone"
 
 echo "[git-smoke] cloning repository into isolated checkout"
+# The smoke test only needs an importable checkout, so keep LFS files as pointers.
+GIT_LFS_SKIP_SMUDGE=1 \
 run_with_timeout 60 git clone --quiet --depth 1 "file://${REPO_ROOT}" "${CLONE_ROOT}" || {
   status=$?
   if [ "${status}" -eq 124 ]; then
