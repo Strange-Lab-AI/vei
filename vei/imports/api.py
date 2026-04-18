@@ -7,7 +7,7 @@ from copy import deepcopy
 from pathlib import Path
 from typing import Any
 
-from vei.blueprint.models import (
+from vei.blueprint.api import (
     BlueprintApprovalAsset,
     BlueprintCapabilityGraphsAsset,
     BlueprintCommGraphAsset,
@@ -31,20 +31,20 @@ from vei.blueprint.models import (
     BlueprintWorkGraphAsset,
 )
 from vei.connectors import redact_payload
-from vei.grounding.models import (
+from vei.grounding.api import (
     IdentityGovernanceBundle,
     IdentityGovernanceWorkflowSeed,
 )
 
 from .contracts import bootstrap_contract_from_import_bundle
 from .models import (
+    ImportSourceManifest,
+    ImportSourceSummary,
+    MappingIssue,
     GeneratedScenarioCandidate,
     ImportPackage,
     ImportPackageArtifacts,
     ImportReview,
-    ImportSourceManifest,
-    ImportSourceSummary,
-    MappingIssue,
     MappingOverrideSpec,
     NormalizationReport,
     ProvenanceRecord,
@@ -55,6 +55,17 @@ from .reconciliation import reconcile_identity_sources
 from .scenarios import (
     build_generated_scenario_provenance,
     generate_identity_scenario_candidates,
+)
+
+_BOUNDARY_EXPORTS = (
+    GeneratedScenarioCandidate,
+    ImportPackage,
+    ImportPackageArtifacts,
+    ImportReview,
+    MappingOverrideSpec,
+    NormalizationReport,
+    ProvenanceRecord,
+    RedactionReport,
 )
 
 _FIXTURE_ROOT = Path(__file__).with_name("fixtures")

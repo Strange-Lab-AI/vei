@@ -5,7 +5,7 @@ from collections import Counter
 from pathlib import Path
 from typing import Any, Sequence
 
-from vei.context.models import ContextSnapshot
+from vei.context.api import ContextSnapshot
 
 from ..cases import assign_case_ids, build_case_summaries
 from ..models import (

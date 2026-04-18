@@ -1,11 +1,19 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List
+from typing import TYPE_CHECKING, Any, Dict, List
 
 from vei.capability_graph.api import build_runtime_capability_graphs
-from vei.world.models import WorldState
 
-from .models import OrientationObject, OrientationPolicyHint, WorldOrientation
+from .models import (
+    OrientationObject,
+    OrientationPolicyHint,
+    WorldOrientation,
+)
+
+if TYPE_CHECKING:
+    from vei.world.api import WorldState
+
+_BOUNDARY_EXPORTS = (WorldOrientation,)
 
 
 def build_world_orientation(state: WorldState) -> WorldOrientation:

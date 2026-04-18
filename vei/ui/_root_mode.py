@@ -6,7 +6,7 @@ from pathlib import Path
 from vei.whatif import load_branch_point_benchmark_build_result
 from vei.workspace import WORKSPACE_MANIFEST
 from vei.workspace.api import show_workspace
-from vei.workspace.models import WorkspaceManifest, WorkspaceSummary
+from vei.workspace.api import WorkspaceManifest, WorkspaceSummary
 
 
 def root_has_workspace(root: Path) -> bool:

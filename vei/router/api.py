@@ -4,6 +4,10 @@ from typing import Any, Dict, Optional, Protocol, Sequence
 
 from vei.world import Scenario
 
+from .errors import MCPError
+
+_BOUNDARY_EXPORTS = (MCPError,)
+
 
 class ObservationLike(Protocol):
     def model_dump(self) -> Dict[str, Any]: ...

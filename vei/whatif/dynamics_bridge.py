@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Sequence
 
 from vei.dynamics.api import get_backend, register_backend
-from vei.dynamics.models import (
+from vei.dynamics.api import (
     BackendInfo,
     BusinessHeads,
     CandidateAction,
@@ -14,7 +14,7 @@ from vei.dynamics.models import (
     DynamicsResponse,
     PointInterval,
 )
-from vei.events.models import (
+from vei.events.api import (
     ActorRef,
     CanonicalEvent,
     EventDomain,
@@ -419,8 +419,6 @@ def _whatif_result_from_response(
 
 
 def _normalize_backend_name(name: str) -> str:
-    if name == "e_jepa_proxy":
-        return "heuristic_baseline"
     return name
 
 

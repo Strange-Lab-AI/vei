@@ -9,7 +9,7 @@ from fastapi import HTTPException
 from pydantic import BaseModel, Field
 
 from vei.project_settings import default_model_for_provider
-from vei.whatif_filenames import EPISODE_MANIFEST_FILE
+from vei.whatif.filenames import EPISODE_MANIFEST_FILE
 from vei.whatif.api import (
     load_episode_manifest,
     resolve_whatif_company_history_path as _resolve_whatif_company_history_path,
@@ -17,7 +17,7 @@ from vei.whatif.api import (
     resolve_whatif_rosetta_dir as _resolve_whatif_rosetta_dir,
     resolve_whatif_source_path as _resolve_whatif_source_path,
 )
-from vei.whatif.models import (
+from vei.whatif.api import (
     WhatIfEventReference,
     WhatIfExperimentMode,
     WhatIfJudgedPairwiseComparison,

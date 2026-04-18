@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Sequence
 
 from vei.context.api import capture_context
-from vei.context.models import ContextProviderConfig, ContextSnapshot
+from vei.context.api import ContextProviderConfig, ContextSnapshot
 from vei.verticals import (
     default_vertical_contract_variant,
     default_vertical_scenario_variant,

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 
-from vei.context.models import ContextSnapshot
+from vei.context.api import ContextSnapshot
 
 from ..corpus import (
     _archive_thread_id,

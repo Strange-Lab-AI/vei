@@ -5,10 +5,10 @@ from pathlib import Path
 from typing import Any, Sequence
 
 from vei.blueprint.api import create_world_session_from_blueprint
-from vei.blueprint.models import BlueprintAsset
+from vei.blueprint.api import BlueprintAsset
 from vei.data.models import VEIDataset
 from vei.twin import load_customer_twin
-from vei.whatif_filenames import EPISODE_MANIFEST_FILE
+from vei.whatif.filenames import EPISODE_MANIFEST_FILE
 
 from ..models import (
     WhatIfEpisodeManifest,

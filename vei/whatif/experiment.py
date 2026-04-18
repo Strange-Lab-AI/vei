@@ -5,7 +5,7 @@ from typing import Sequence
 
 from vei.project_settings import default_model_for_provider
 from vei.whatif.artifact_validation import validate_artifact_tree
-from vei.whatif_filenames import (
+from vei.whatif.filenames import (
     EJEPA_RESULT_FILE,
     EXPERIMENT_OVERVIEW_FILE,
     EXPERIMENT_RESULT_FILE,
@@ -138,11 +138,9 @@ def run_counterfactual_experiment(
         )
     forecast_result: WhatIfCounterfactualEstimateResult | None = None
     resolved_forecast_backend = forecast_backend or (
-        mode
-        if mode in {"e_jepa", "e_jepa_proxy", "heuristic_baseline"}
-        else default_forecast_backend()
+        mode if mode in {"e_jepa", "heuristic_baseline"} else default_forecast_backend()
     )
-    if mode in {"e_jepa", "e_jepa_proxy", "heuristic_baseline", "both"}:
+    if mode in {"e_jepa", "heuristic_baseline", "both"}:
         forecast_result = run_dynamics_counterfactual(
             world=world,
             materialization=materialization,

@@ -4,7 +4,7 @@ import json
 import math
 from typing import Optional
 
-from vei.blueprint.models import (
+from vei.blueprint.api import (
     BlueprintKnowledgeAsset,
     BlueprintKnowledgeGraphAsset,
     BlueprintKnowledgeProvenanceAsset,

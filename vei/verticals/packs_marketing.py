@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from vei.blueprint.models import (
+from vei.blueprint.api import (
     BlueprintApprovalAsset,
     BlueprintAsset,
     BlueprintCampaignApprovalAsset,

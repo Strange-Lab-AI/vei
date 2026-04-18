@@ -8,7 +8,18 @@ from .compiler import (
     compile_workflow_spec,
     load_workflow_spec,
 )
-from .models import WorkflowScenarioSpec
+
+from .models import (
+    AssertionSpec,
+    WorkflowScenarioSpec,
+    WorkflowStepSpec,
+)
+
+_BOUNDARY_EXPORTS = (
+    AssertionSpec,
+    WorkflowScenarioSpec,
+    WorkflowStepSpec,
+)
 
 __all__ = [
     "CompiledStep",

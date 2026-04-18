@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Protocol
 
-from vei.monitors.models import MonitorFinding
+from vei.monitors.api import MonitorFinding
 
 if TYPE_CHECKING:
     from .memory import MemoryStore

@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Iterable
 
 from vei.blueprint.api import create_world_session_from_blueprint
-from vei.capability_graph.models import CapabilityGraphActionInput
+from vei.capability_graph.api import CapabilityGraphActionInput
 from vei.workspace.api import (
     build_workspace_scenario_asset,
     load_workspace,

@@ -1,10 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Dict, Iterable, Optional
-
-from vei.blueprint.models import CapabilityDomain
-from vei.world.models import WorldState
+from typing import TYPE_CHECKING, Any, Dict, Iterable, Optional
 
 from .models import (
     AllocationView,
@@ -14,9 +11,7 @@ from .models import (
     CampaignView,
     CapacityPoolView,
     ClientView,
-    CapabilityGraphActionInput,
     CapabilityGraphActionSchema,
-    CapabilityGraphPlan,
     CapabilityGraphPlanStep,
     CommGraphChannelView,
     CommGraphView,
@@ -58,7 +53,6 @@ from .models import (
     RevenueContactView,
     RevenueDealView,
     RevenueGraphView,
-    RuntimeCapabilityGraphs,
     ServiceRequestView,
     SiteView,
     UnitView,
@@ -71,6 +65,21 @@ from .models import (
     WorkforceApprovalView,
     WorkforceCommandView,
     WorkforceTaskView,
+    CapabilityGraphActionInput,
+    CapabilityGraphActionResult,
+    CapabilityGraphPlan,
+    RuntimeCapabilityGraphs,
+)
+
+if TYPE_CHECKING:
+    from vei.blueprint.api import CapabilityDomain
+    from vei.world.api import WorldState
+
+_BOUNDARY_EXPORTS = (
+    CapabilityGraphActionInput,
+    CapabilityGraphActionResult,
+    CapabilityGraphPlan,
+    RuntimeCapabilityGraphs,
 )
 
 
@@ -2796,7 +2805,6 @@ _TOOL_FOCUS = {
     "knowledge": "knowledge",
     "service_ops": "service_ops",
 }
-
 
 __all__ = [
     "build_graph_action_plan",

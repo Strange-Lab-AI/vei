@@ -29,10 +29,18 @@ from vei.benchmark.models import (
     BenchmarkBatchSummary,
     BenchmarkCaseResult,
     BenchmarkCaseSpec,
+    BenchmarkDemoResult,
+    BenchmarkDemoSpec,
     BenchmarkDiagnostics,
     BenchmarkMetrics,
+    BenchmarkRunner,
     BenchmarkScore,
     BenchmarkScoreDimensions,
+    BenchmarkShowcaseExampleResult,
+    BenchmarkShowcaseResult,
+    BenchmarkShowcaseSpec,
+    BenchmarkSuiteResult,
+    BenchmarkSuiteSpec,
     BenchmarkWorkflowVariantManifest,
 )
 from vei.blueprint.api import (
@@ -42,19 +50,34 @@ from vei.blueprint.api import (
     compile_blueprint,
     materialize_scenario_from_blueprint,
 )
-from vei.blueprint.models import BlueprintAsset
+from vei.blueprint.api import BlueprintAsset
 from vei.contract.api import build_contract_from_workflow
 from vei.data.models import VEIDataset
-from vei.rl.policy_frequency import FrequencyPolicy, run_policy
+from vei.rl.api import FrequencyPolicy, run_policy
 from vei.scenario_engine.api import compile_workflow
 from vei.scenario_runner.api import run_workflow
 from vei.scenario_runner.api import validate_workflow_outcome
-from vei.scenario_runner.models import ScenarioRunResult, WorkflowOutcomeValidation
+from vei.scenario_runner.api import ScenarioRunResult, WorkflowOutcomeValidation
 from vei.score_core import compute_score
 from vei.score_frontier import compute_frontier_score
 from vei.world import Scenario, get_scenario, list_scenarios
 from vei.world.api import create_world_session
-from vei.world.models import ActorState, WorldSnapshot, WorldState
+from vei.world.api import ActorState, WorldSnapshot, WorldState
+
+_BOUNDARY_EXPORTS = (
+    BenchmarkBatchResult,
+    BenchmarkCaseSpec,
+    BenchmarkDemoResult,
+    BenchmarkDemoSpec,
+    BenchmarkDiagnostics,
+    BenchmarkMetrics,
+    BenchmarkRunner,
+    BenchmarkShowcaseExampleResult,
+    BenchmarkShowcaseResult,
+    BenchmarkShowcaseSpec,
+    BenchmarkSuiteResult,
+    BenchmarkSuiteSpec,
+)
 
 FRONTIER_SCENARIO_SETS: Dict[str, List[str]] = {
     "all_frontier": [

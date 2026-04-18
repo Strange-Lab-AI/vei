@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Iterable, List, Sequence
 
-from vei.monitors.models import MonitorFinding
+from vei.monitors.api import MonitorFinding
 
 
 class PolicyEngine:

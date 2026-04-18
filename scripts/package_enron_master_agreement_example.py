@@ -4,6 +4,7 @@ import argparse
 import json
 import shutil
 import sys
+import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -18,7 +19,7 @@ from vei.context.api import (
     load_enron_public_context,
     slice_public_context_to_branch,
 )
-from vei.whatif_filenames import (
+from vei.whatif.filenames import (
     CONTEXT_SNAPSHOT_FILE,
     EPISODE_MANIFEST_FILE,
     EXPERIMENT_OVERVIEW_FILE,
@@ -45,6 +46,14 @@ except ModuleNotFoundError:
     )
 
 EXAMPLE_PLACEHOLDER = "not-included-in-repo-example"
+DEFAULT_SOURCE_ROOTS = (
+    Path(
+        "_vei_out/whatif_repo_examples/"
+        "master_agreement_internal_review_public_context_20260412"
+    ),
+    Path("docs/examples/enron-master-agreement-public-context"),
+    Path("_vei_out/enron_saved_snapshot_runs/enron_internal_review_rerun"),
+)
 
 
 def _read_json(path: Path) -> dict[str, Any]:
@@ -59,6 +68,20 @@ def _write_json(path: Path, payload: dict[str, Any]) -> None:
 def _copy_file(source: Path, target: Path) -> None:
     target.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(source, target)
+
+
+def _copy_optional_json(source: Path, target: Path) -> None:
+    if source.exists():
+        _copy_file(source, target)
+        return
+    _write_json(target, {})
+
+
+def _default_source_root() -> Path:
+    for candidate in DEFAULT_SOURCE_ROOTS:
+        if candidate.exists():
+            return candidate
+    return DEFAULT_SOURCE_ROOTS[0]
 
 
 def _source_readme(source_root: Path) -> str | None:
@@ -261,80 +284,106 @@ def _enrich_packaged_business_state(
 
 
 def package_example(source_root: Path, output_root: Path) -> None:
-    workspace_root = source_root / WORKSPACE_DIRECTORY
-    target_workspace = output_root / WORKSPACE_DIRECTORY
-    experiment_payload = _read_json(source_root / EXPERIMENT_RESULT_FILE)
-    source_manifest_payload = _read_json(workspace_root / EPISODE_MANIFEST_FILE)
-    public_context = _refreshed_public_context(source_manifest_payload)
-    forecast_filename = _resolve_forecast_filename(
-        source_root,
-        experiment_payload=experiment_payload,
-    )
-    preserved_readme = _source_readme(source_root)
-    if output_root.exists():
-        shutil.rmtree(output_root)
-    target_workspace.mkdir(parents=True, exist_ok=True)
-    if preserved_readme:
-        (output_root / "README.md").write_text(preserved_readme, encoding="utf-8")
+    temporary_source: tempfile.TemporaryDirectory[str] | None = None
+    try:
+        resolved_source_root = source_root.expanduser().resolve()
+        resolved_output_root = output_root.expanduser().resolve()
+        if resolved_source_root == resolved_output_root:
+            temporary_source = tempfile.TemporaryDirectory()
+            staged_source_root = Path(temporary_source.name) / "source"
+            shutil.copytree(resolved_source_root, staged_source_root)
+            resolved_source_root = staged_source_root
 
-    _copy_file(
-        source_root / EXPERIMENT_OVERVIEW_FILE,
-        output_root / EXPERIMENT_OVERVIEW_FILE,
-    )
-    _copy_file(source_root / LLM_RESULT_FILE, output_root / LLM_RESULT_FILE)
-    _write_json(
-        output_root / forecast_filename,
-        _rewrite_forecast_result(_read_json(source_root / forecast_filename)),
-    )
-    _write_json(
-        output_root / EXPERIMENT_RESULT_FILE,
-        _rewrite_experiment_result(
-            experiment_payload,
-            forecast_filename=forecast_filename,
-        ),
-    )
+        workspace_root = resolved_source_root / WORKSPACE_DIRECTORY
+        target_workspace = resolved_output_root / WORKSPACE_DIRECTORY
+        experiment_payload = _read_json(resolved_source_root / EXPERIMENT_RESULT_FILE)
+        source_manifest_payload = _read_json(workspace_root / EPISODE_MANIFEST_FILE)
+        public_context = _refreshed_public_context(source_manifest_payload)
+        forecast_filename = _resolve_forecast_filename(
+            resolved_source_root,
+            experiment_payload=experiment_payload,
+        )
+        preserved_readme = _source_readme(resolved_source_root)
+        if resolved_output_root.exists():
+            shutil.rmtree(resolved_output_root)
+        target_workspace.mkdir(parents=True, exist_ok=True)
+        if preserved_readme:
+            (resolved_output_root / "README.md").write_text(
+                preserved_readme,
+                encoding="utf-8",
+            )
 
-    for relative_path in (
-        "whatif_baseline_dataset.json",
-        "vei_project.json",
-        "contracts/default.contract.json",
-        "scenarios/default.json",
-        "imports/source_registry.json",
-        "imports/source_sync_history.json",
-        "runs/index.json",
-        "sources/blueprint_asset.json",
-    ):
-        _copy_file(workspace_root / relative_path, target_workspace / relative_path)
-
-    _write_json(
-        target_workspace / CONTEXT_SNAPSHOT_FILE,
-        _rewrite_context_snapshot(
-            _read_json(workspace_root / CONTEXT_SNAPSHOT_FILE),
-            public_context=public_context,
-        ),
-    )
-    _write_json(
-        target_workspace / EPISODE_MANIFEST_FILE,
-        {
-            **_rewrite_manifest(source_manifest_payload),
-            **(
-                {"public_context": public_context} if public_context is not None else {}
+        _copy_file(
+            resolved_source_root / EXPERIMENT_OVERVIEW_FILE,
+            resolved_output_root / EXPERIMENT_OVERVIEW_FILE,
+        )
+        _copy_optional_json(
+            resolved_source_root / LLM_RESULT_FILE,
+            resolved_output_root / LLM_RESULT_FILE,
+        )
+        _write_json(
+            resolved_output_root / forecast_filename,
+            _rewrite_forecast_result(
+                _read_json(resolved_source_root / forecast_filename)
             ),
-        },
-    )
-    _write_json(
-        target_workspace / PUBLIC_CONTEXT_FILE,
-        _canonical_public_context_payload(
-            source_manifest_payload=source_manifest_payload,
-            refreshed_public_context=public_context,
-        ),
-    )
-    _enrich_packaged_business_state(output_root, forecast_filename=forecast_filename)
-    build_business_state_example(output_root)
-    issues = validate_packaged_example_bundle(output_root)
-    if issues:
-        joined = "\n".join(f"- {issue}" for issue in issues)
-        raise ValueError(f"packaged example validation failed:\n{joined}")
+        )
+        _write_json(
+            resolved_output_root / EXPERIMENT_RESULT_FILE,
+            _rewrite_experiment_result(
+                experiment_payload,
+                forecast_filename=forecast_filename,
+            ),
+        )
+
+        for relative_path in (
+            "whatif_baseline_dataset.json",
+            "vei_project.json",
+            "contracts/default.contract.json",
+            "scenarios/default.json",
+            "imports/source_registry.json",
+            "imports/source_sync_history.json",
+            "runs/index.json",
+            "sources/blueprint_asset.json",
+        ):
+            _copy_file(workspace_root / relative_path, target_workspace / relative_path)
+
+        _write_json(
+            target_workspace / CONTEXT_SNAPSHOT_FILE,
+            _rewrite_context_snapshot(
+                _read_json(workspace_root / CONTEXT_SNAPSHOT_FILE),
+                public_context=public_context,
+            ),
+        )
+        _write_json(
+            target_workspace / EPISODE_MANIFEST_FILE,
+            {
+                **_rewrite_manifest(source_manifest_payload),
+                **(
+                    {"public_context": public_context}
+                    if public_context is not None
+                    else {}
+                ),
+            },
+        )
+        _write_json(
+            target_workspace / PUBLIC_CONTEXT_FILE,
+            _canonical_public_context_payload(
+                source_manifest_payload=source_manifest_payload,
+                refreshed_public_context=public_context,
+            ),
+        )
+        _enrich_packaged_business_state(
+            resolved_output_root,
+            forecast_filename=forecast_filename,
+        )
+        build_business_state_example(resolved_output_root)
+        issues = validate_packaged_example_bundle(resolved_output_root)
+        if issues:
+            joined = "\n".join(f"- {issue}" for issue in issues)
+            raise ValueError(f"packaged example validation failed:\n{joined}")
+    finally:
+        if temporary_source is not None:
+            temporary_source.cleanup()
 
 
 def main() -> None:
@@ -344,9 +393,7 @@ def main() -> None:
     parser.add_argument(
         "--source-root",
         type=Path,
-        default=Path(
-            "_vei_out/whatif_repo_examples/master_agreement_internal_review_public_context_20260412"
-        ),
+        default=_default_source_root(),
         help="Fresh local what-if experiment root to package.",
     )
     parser.add_argument(

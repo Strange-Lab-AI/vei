@@ -9,7 +9,7 @@ from vei.run.api import (
     get_workspace_run_manifest_path,
 )
 from vei.run import load_run_events
-from vei.run.models import RunTimelineEvent
+from vei.run.api import RunTimelineEvent
 
 from .models import Runbook, RunbookStep
 

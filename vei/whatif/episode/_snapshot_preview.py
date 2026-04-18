@@ -5,7 +5,7 @@ import logging
 from datetime import datetime, timezone
 from pathlib import Path
 
-from vei.whatif_filenames import CONTEXT_SNAPSHOT_FILE
+from vei.whatif.filenames import CONTEXT_SNAPSHOT_FILE
 
 from .._helpers import load_episode_context as _load_episode_context
 from ..models import WhatIfEpisodeManifest, WhatIfEventReference

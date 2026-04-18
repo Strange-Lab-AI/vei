@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Literal, Optional
 
 from pydantic import BaseModel, Field
 
-from vei.grounding.models import IdentityGovernanceBundle
+from vei.grounding.api import IdentityGovernanceBundle
 
 ImportWedge = Literal["identity_access_governance"]
 ImportFileType = Literal["csv", "json"]

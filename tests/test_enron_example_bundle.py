@@ -17,11 +17,10 @@ from vei.whatif.artifact_validation import (
     validate_artifact_tree,
     validate_packaged_example_bundle,
 )
-from vei.whatif_filenames import (
+from vei.whatif.filenames import (
     BUSINESS_STATE_COMPARISON_FILE,
     BUSINESS_STATE_COMPARISON_OVERVIEW_FILE,
     CONTEXT_SNAPSHOT_FILE,
-    EJEPA_PROXY_RESULT_FILE,
     EJEPA_RESULT_FILE,
     EPISODE_MANIFEST_FILE,
     EXPERIMENT_OVERVIEW_FILE,
@@ -216,7 +215,7 @@ def test_repo_owned_enron_example_bundle_is_present_and_clean() -> None:
     )
 
 
-def test_canonical_whatif_filenames_remain_stable() -> None:
+def test_canonical_saved_forecast_filenames_are_stable() -> None:
     assert CONTEXT_SNAPSHOT_FILE == "context_snapshot.json"
     assert EPISODE_MANIFEST_FILE == "episode_manifest.json"
     assert PUBLIC_CONTEXT_FILE == "whatif_public_context.json"
@@ -224,7 +223,6 @@ def test_canonical_whatif_filenames_remain_stable() -> None:
     assert EXPERIMENT_OVERVIEW_FILE == "whatif_experiment_overview.md"
     assert LLM_RESULT_FILE == "whatif_llm_result.json"
     assert EJEPA_RESULT_FILE == "whatif_ejepa_result.json"
-    assert EJEPA_PROXY_RESULT_FILE == "whatif_ejepa_proxy_result.json"
     assert BUSINESS_STATE_COMPARISON_FILE == "whatif_business_state_comparison.json"
     assert (
         BUSINESS_STATE_COMPARISON_OVERVIEW_FILE == "whatif_business_state_comparison.md"
@@ -428,13 +426,13 @@ def test_validate_packaged_example_bundle_flags_partial_ranked_sidecars(
     ), issues
 
 
-def test_package_example_accepts_proxy_forecast_bundle(
+def test_package_example_accepts_heuristic_forecast_bundle(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
     source_root = _write_packaging_source_fixture(
         tmp_path,
-        forecast_filename="whatif_ejepa_proxy_result.json",
+        forecast_filename="whatif_heuristic_baseline_result.json",
     )
     output_root = tmp_path / "packaged"
 
@@ -462,14 +460,14 @@ def test_package_example_accepts_proxy_forecast_bundle(
 
     enron_example_packager.package_example(source_root, output_root)
 
-    assert (output_root / "whatif_ejepa_proxy_result.json").exists()
+    assert (output_root / "whatif_heuristic_baseline_result.json").exists()
     assert not (output_root / "whatif_ejepa_result.json").exists()
     experiment_payload = json.loads(
         (output_root / "whatif_experiment_result.json").read_text(encoding="utf-8")
     )
     assert (
         experiment_payload["artifacts"]["forecast_json_path"]
-        == "whatif_ejepa_proxy_result.json"
+        == "whatif_heuristic_baseline_result.json"
     )
     assert validate_packaged_example_bundle(output_root) == []
 

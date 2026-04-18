@@ -1386,7 +1386,7 @@ def test_ui_api_saved_bundle_routes_support_non_enron_saved_branches(
                     "result_json_path": "whatif_experiment_result.json",
                     "overview_markdown_path": "whatif_experiment_overview.md",
                     "llm_json_path": "whatif_llm_result.json",
-                    "forecast_json_path": "whatif_ejepa_proxy_result.json",
+                    "forecast_json_path": "whatif_heuristic_baseline_result.json",
                 },
             }
         ),
@@ -1397,7 +1397,7 @@ def test_ui_api_saved_bundle_routes_support_non_enron_saved_branches(
         encoding="utf-8",
     )
     (bundle_root / "whatif_llm_result.json").write_text("{}", encoding="utf-8")
-    (bundle_root / "whatif_ejepa_proxy_result.json").write_text(
+    (bundle_root / "whatif_heuristic_baseline_result.json").write_text(
         json.dumps({"cache_root": "not-included-in-repo-example"}),
         encoding="utf-8",
     )
@@ -2076,7 +2076,7 @@ def test_ui_api_whatif_rank_route_returns_ranked_payload(
             "event_id": "evt-001",
             "label": "ranked term-sheet options",
             "objective_pack_id": "contain_exposure",
-            "shadow_forecast_backend": "e_jepa_proxy",
+            "shadow_forecast_backend": "heuristic_baseline",
             "candidates": [
                 {
                     "label": "Hold internal",

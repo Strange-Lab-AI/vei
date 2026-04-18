@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Optional
 
-from vei.blueprint.models import (
+from vei.blueprint.api import (
     BlueprintAsset,
     BlueprintCapabilityGraphsAsset,
     BlueprintCommGraphAsset,

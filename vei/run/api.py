@@ -5,13 +5,13 @@ import json
 from contextlib import contextmanager
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Dict, Iterator, Optional
+from typing import TYPE_CHECKING, Any, Dict, Iterator, Optional
 from uuid import uuid4
 
 from vei.benchmark.api import run_benchmark_case
-from vei.benchmark.models import BenchmarkCaseSpec, BenchmarkRunner
+from vei.benchmark.api import BenchmarkCaseSpec, BenchmarkRunner
 from vei.capability_graph.api import build_runtime_capability_graphs
-from vei.contract.models import ContractEvaluationResult
+from vei.contract.api import ContractEvaluationResult
 from vei.orientation.api import build_world_orientation
 from vei.visualization.api import (
     flow_channel_from_focus,
@@ -19,7 +19,6 @@ from vei.visualization.api import (
     load_trace,
 )
 from vei.world import StateStore
-from vei.world.models import WorldState
 from vei.workspace.api import (
     compile_workspace,
     evaluate_workspace_contract_against_state,
@@ -28,8 +27,8 @@ from vei.workspace.api import (
     resolve_workspace_scenario,
     upsert_workspace_run,
 )
-from vei.workspace.models import WorkspaceRunEntry
-from vei.workspace.models import WorkspaceManifest, WorkspaceScenarioSpec
+from vei.workspace.api import WorkspaceRunEntry
+from vei.workspace.api import WorkspaceManifest, WorkspaceScenarioSpec
 
 from .events import (
     append_run_event,
@@ -47,6 +46,17 @@ from .models import (
 from .reproducibility import (
     build_reproducibility_record,
     merge_reproducibility_metadata,
+)
+
+if TYPE_CHECKING:
+    from vei.world.api import WorldState
+
+_BOUNDARY_EXPORTS = (
+    RunArtifactIndex,
+    RunContractSummary,
+    RunManifest,
+    RunSnapshotRef,
+    RunTimelineEvent,
 )
 
 
@@ -1028,7 +1038,7 @@ def verify_run_replay(root: str | Path, run_id: str) -> Dict[str, Any]:
 
     from vei.blueprint import BlueprintAsset, create_world_session_from_blueprint
     from vei.world.api import restore_router_state, serialize_router_state
-    from vei.world.models import WorldState
+    from vei.world.api import WorldState as RuntimeWorldState
 
     latest = snapshots[-1]
     latest_event_snapshot_id = int(snapshot_events[-1].snapshot_id or 0)
@@ -1048,7 +1058,9 @@ def verify_run_replay(root: str | Path, run_id: str) -> Dict[str, Any]:
             run_id,
             latest_event_snapshot.snapshot_id,
         )
-        expected_state = WorldState.model_validate(snapshot_payload.get("data", {}))
+        expected_state = RuntimeWorldState.model_validate(
+            snapshot_payload.get("data", {})
+        )
         asset = BlueprintAsset.model_validate_json(
             blueprint_path.read_text(encoding="utf-8")
         )
@@ -1282,13 +1294,15 @@ def _extract_run_evaluation_inputs(
 
 
 def _latest_run_state(root: str | Path, run_id: str) -> WorldState | None:
+    from vei.world.api import WorldState as RuntimeWorldState
+
     workspace_root = Path(root).expanduser().resolve()
     snapshots = list_run_snapshots(workspace_root, run_id)
     if not snapshots:
         return None
     latest = snapshots[-1]
     payload = json.loads((workspace_root / latest.path).read_text(encoding="utf-8"))
-    return WorldState.model_validate(payload.get("data", {}))
+    return RuntimeWorldState.model_validate(payload.get("data", {}))
 
 
 def _append_artifact_events(root: Path, run_id: str, *, runner: str) -> None:

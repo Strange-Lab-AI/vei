@@ -9,8 +9,8 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 
 from vei.blueprint import get_facade_plugin, resolve_gateway_surface_bindings
-from vei.whatif_filenames import CONTEXT_SNAPSHOT_FILE
-from vei.blueprint.models import (
+from vei.whatif.filenames import CONTEXT_SNAPSHOT_FILE
+from vei.blueprint.api import (
     BlueprintAsset,
     BlueprintCapabilityGraphsAsset,
     BlueprintCommGraphAsset,
@@ -26,7 +26,7 @@ from vei.blueprint.models import (
     BlueprintWorkGraphAsset,
 )
 from vei.context.api import capture_context, hydrate_blueprint
-from vei.context.models import ContextProviderConfig, ContextSnapshot
+from vei.context.api import ContextProviderConfig, ContextSnapshot
 from vei.governor import (
     GovernorWorkspaceConfig,
     default_governor_workspace_config,
@@ -43,6 +43,7 @@ from vei.workspace.api import (
     write_workspace,
 )
 
+from ._api_exports import load_api_export
 from .models import (
     CompatibilitySurfaceSpec,
     ContextMoldConfig,
@@ -56,6 +57,10 @@ from .models import (
 
 TWIN_MANIFEST_FILE = "twin_manifest.json"
 _MODEL_T = TypeVar("_MODEL_T", bound=BaseModel)
+
+
+def __getattr__(name: str) -> Any:
+    return load_api_export(name)
 
 
 def build_customer_twin(
@@ -1217,8 +1222,7 @@ def _rewrite_email(
 
 
 def _looks_placeholder_domain(value: str) -> bool:
-    lowered = value.strip().lower()
-    return lowered.endswith(".example") or lowered.endswith(".example.com")
+    return value.strip().lower().endswith((".example", ".example.com"))
 
 
 def _should_rewrite_domain(value: str, internal_domains: set[str]) -> bool:

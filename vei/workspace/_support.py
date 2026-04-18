@@ -9,10 +9,10 @@ from typing import Any, Dict, Iterator, Optional, TypeVar
 
 from pydantic import BaseModel
 
-from vei.blueprint.models import BlueprintAsset, CompiledBlueprint
-from vei.contract.models import ContractSpec
-from vei.grounding.models import IdentityGovernanceBundle
-from vei.imports.models import ImportPackageArtifacts
+from vei.blueprint.api import BlueprintAsset, CompiledBlueprint
+from vei.contract.api import ContractSpec
+from vei.grounding.api import IdentityGovernanceBundle
+from vei.imports.api import ImportPackageArtifacts
 from vei.verticals import (
     apply_vertical_contract_variant,
     default_vertical_contract_variant,

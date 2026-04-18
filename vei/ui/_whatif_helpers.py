@@ -10,7 +10,7 @@ from pydantic import ValidationError
 
 from vei.whatif.api import load_world, resolve_saved_whatif_bundle
 from vei.whatif.artifact_validation import validate_saved_workspace
-from vei.whatif_filenames import CONTEXT_SNAPSHOT_FILE
+from vei.whatif.filenames import CONTEXT_SNAPSHOT_FILE
 
 from ._api_models import load_workspace_historical_summary, resolve_whatif_source_path
 

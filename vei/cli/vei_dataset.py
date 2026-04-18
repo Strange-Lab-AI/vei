@@ -7,7 +7,7 @@ import typer
 from pydantic import ValidationError
 
 from vei.dataset import build_dataset_bundle, load_dataset_bundle
-from vei.dataset.models import DatasetBuildSpec
+from vei.dataset.api import DatasetBuildSpec
 
 app = typer.Typer(
     add_completion=False,

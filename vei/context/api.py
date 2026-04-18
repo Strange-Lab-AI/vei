@@ -4,27 +4,44 @@ import logging
 from pathlib import Path
 from typing import Any, List, Optional, Union
 
-from vei.blueprint.models import BlueprintAsset
+from vei.blueprint.api import BlueprintAsset
 
 from ._legacy_archive_snapshot import legacy_threads_payload_to_snapshot
 from .models import (
     ContextDiff,
     ContextProviderStatusSummary,
-    ContextProviderConfig,
     ContextSnapshotRole,
     ContextSnapshotStatusSummary,
-    ContextSnapshot,
     ContextStatusFinding,
-    CrmSourceData,
-    ContextSourceResult,
-    GoogleSourceData,
     snapshot_role,
-    source_payload,
     with_snapshot_role,
+    ContextProviderConfig,
+    ContextSnapshot,
+    ContextSourceResult,
+    CrmSourceData,
+    GmailSourceData,
+    GoogleSourceData,
+    JiraSourceData,
+    MailArchiveSourceData,
+    SlackSourceData,
+    source_payload,
 )
 from . import public_context as _public_context
 from .providers import get_provider
 from .providers.base import iso_now
+
+_BOUNDARY_EXPORTS = (
+    ContextProviderConfig,
+    ContextSnapshot,
+    ContextSourceResult,
+    CrmSourceData,
+    GmailSourceData,
+    GoogleSourceData,
+    JiraSourceData,
+    MailArchiveSourceData,
+    SlackSourceData,
+    source_payload,
+)
 
 logger = logging.getLogger(__name__)
 

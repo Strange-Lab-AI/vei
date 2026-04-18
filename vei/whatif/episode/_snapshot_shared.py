@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Sequence
 
-from vei.whatif_filenames import CONTEXT_SNAPSHOT_FILE
+from vei.whatif.filenames import CONTEXT_SNAPSHOT_FILE
 from .._helpers import (
     historical_archive_address as _historical_archive_address,
     primary_recipient as _primary_recipient,

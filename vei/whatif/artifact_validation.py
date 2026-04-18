@@ -6,13 +6,12 @@ from typing import Any
 
 from pydantic import ValidationError
 
-from vei.context.models import ContextSnapshot
+from vei.context.api import ContextSnapshot
 
-from vei.whatif_filenames import (
+from .filenames import (
     BUSINESS_STATE_COMPARISON_FILE,
     BUSINESS_STATE_COMPARISON_OVERVIEW_FILE,
     CONTEXT_SNAPSHOT_FILE as CANONICAL_CONTEXT_FILE,
-    EJEPA_PROXY_RESULT_FILE,
     EJEPA_RESULT_FILE,
     EPISODE_MANIFEST_FILE as CANONICAL_MANIFEST_FILE,
     EXPERIMENT_OVERVIEW_FILE,
@@ -193,7 +192,7 @@ def validate_packaged_example_bundle(root: str | Path) -> list[str]:
         text = candidate.read_text(encoding="utf-8")
         if "/Users/" in text:
             issues.append(f"unscrubbed absolute path in {candidate}")
-        if relative_path in {EJEPA_RESULT_FILE, EJEPA_PROXY_RESULT_FILE}:
+        if relative_path == EJEPA_RESULT_FILE:
             if SCRUBBED_PATH_PLACEHOLDER not in text:
                 issues.append(f"missing scrubbed-path placeholder in {candidate}")
     return issues
@@ -373,7 +372,6 @@ def _scrubbed_bundle_paths(bundle_root: Path) -> list[str]:
         EXPERIMENT_OVERVIEW_FILE,
         LLM_RESULT_FILE,
         EJEPA_RESULT_FILE,
-        EJEPA_PROXY_RESULT_FILE,
         HEURISTIC_FORECAST_FILE,
         BUSINESS_STATE_COMPARISON_FILE,
         BUSINESS_STATE_COMPARISON_OVERVIEW_FILE,

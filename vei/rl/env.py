@@ -10,7 +10,7 @@ except Exception as _e:  # pragma: no cover - optional extra
     gym = None  # type: ignore[assignment]
     spaces = None  # type: ignore[assignment]
 
-from vei.contract.models import ContractSpec
+from vei.contract.api import ContractSpec
 from vei.world.api import create_world_session
 
 

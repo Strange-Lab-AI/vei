@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
-from vei.contract.models import ContractEvaluationResult
+from vei.contract.api import ContractEvaluationResult
 
 
 class ValidationIssue(BaseModel):

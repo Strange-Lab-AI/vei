@@ -10,7 +10,10 @@ from .models import (
     OperationClass,
     PolicyDecision,
     ServiceName,
+    ConnectorReceipt,
 )
+
+_BOUNDARY_EXPORTS = (ConnectorReceipt,)
 
 
 class ConnectorAdapter(Protocol):

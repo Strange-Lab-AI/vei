@@ -5,7 +5,7 @@ from typing import Callable, Dict, List
 
 from pydantic import BaseModel, Field
 
-from vei.blueprint.models import BlueprintAsset
+from vei.blueprint.api import BlueprintAsset
 
 from .packs_marketing import build as _build_marketing_blueprint
 from .packs_real_estate import build as _build_real_estate_blueprint

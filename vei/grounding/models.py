@@ -4,7 +4,7 @@ from typing import Any, Dict, List
 
 from pydantic import BaseModel, Field
 
-from vei.blueprint.models import BlueprintCapabilityGraphsAsset
+from vei.blueprint.api import BlueprintCapabilityGraphsAsset
 
 
 class IdentityGovernanceWorkflowSeed(BaseModel):

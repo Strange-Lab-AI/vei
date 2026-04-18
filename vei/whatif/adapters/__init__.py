@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from vei.context.models import ContextSnapshot
+from vei.context.api import ContextSnapshot
 
 from ..models import WhatIfEvent
 from .chat import build_chat_events

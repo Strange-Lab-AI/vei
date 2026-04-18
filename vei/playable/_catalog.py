@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from vei.capability_graph.models import CapabilityGraphActionInput
+from vei.capability_graph.api import CapabilityGraphActionInput
 
 from .models import PlayableMissionMoveSpec, PlayableMissionSpec
 

@@ -11,7 +11,7 @@ import pytest
 pytestmark = pytest.mark.integration
 
 
-@pytest.mark.anyio("asyncio")
+@pytest.mark.anyio
 @pytest.mark.timeout(120)
 @pytest.mark.skipif(
     not os.getenv("OPENAI_API_KEY") or os.getenv("VEI_RUN_LLM_SMOKE") != "1",

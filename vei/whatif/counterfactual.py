@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any, Awaitable, Sequence, TypeVar
 
 from vei.blueprint.api import create_world_session_from_blueprint
-from vei.blueprint.models import BlueprintAsset
+from vei.blueprint.api import BlueprintAsset
 from vei.data.models import BaseEvent, VEIDataset
 from vei.llm import providers
 from vei.project_settings import default_model_for_provider

@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any, Mapping
 
 from pydantic import ValidationError
-from vei.whatif_filenames import PUBLIC_CONTEXT_FILE
+from vei.whatif.filenames import PUBLIC_CONTEXT_FILE
 
 from .models import (
     WhatIfPublicContext,

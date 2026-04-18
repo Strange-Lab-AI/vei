@@ -1,8 +1,8 @@
 """Heuristic baseline dynamics backend.
 
-This is the honest rename of the former ``e_jepa_proxy``.  It shifts event
-counts, escalations, approvals, external sends, and risk up or down from
-intervention tags.  It is a reasonable demo baseline, not a learned model.
+It shifts event counts, escalations, approvals, external sends, and risk up or
+down from intervention tags. It is a reasonable demo baseline, not a learned
+model.
 """
 
 from __future__ import annotations
@@ -39,7 +39,7 @@ def _extract_tags(text: str) -> set[str]:
 
 
 class HeuristicBaseline:
-    """Tag-driven heuristic forecast — was ``e_jepa_proxy``."""
+    """Tag-driven heuristic forecast backend."""
 
     def forecast(self, request: DynamicsRequest) -> DynamicsResponse:
         action_text = ""
@@ -108,10 +108,7 @@ class HeuristicBaseline:
             backend_type="heuristic",
             deterministic=True,
             metadata={
-                "note": (
-                    "Tag-driven heuristic forecast. Not a learned model. "
-                    "Formerly named e_jepa_proxy."
-                ),
+                "note": "Tag-driven heuristic forecast. Not a learned model.",
             },
         )
 

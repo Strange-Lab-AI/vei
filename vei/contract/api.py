@@ -3,17 +3,25 @@ from __future__ import annotations
 from typing import Any, Iterable, List
 
 from vei.scenario_engine.api import CompiledWorkflow
-from vei.scenario_engine.models import AssertionSpec, WorkflowScenarioSpec
+from vei.scenario_engine.api import AssertionSpec, WorkflowScenarioSpec
 
 from .assertions import evaluate_assertion_specs, infer_assertion_source
 from .models import (
-    ContractEvaluationResult,
-    ContractPredicateSpec,
-    ContractSpec,
     ContractValidationIssue,
     ContractValidationReport,
     InterventionRuleSpec,
     ObservationBoundarySpec,
+    ContractEvaluationResult,
+    ContractPredicateSpec,
+    ContractSpec,
+    PolicyInvariantSpec,
+    RewardTermSpec,
+)
+
+_BOUNDARY_EXPORTS = (
+    ContractEvaluationResult,
+    ContractPredicateSpec,
+    ContractSpec,
     PolicyInvariantSpec,
     RewardTermSpec,
 )

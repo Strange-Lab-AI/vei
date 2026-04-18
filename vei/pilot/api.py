@@ -9,7 +9,7 @@ import sys
 import time
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
 from urllib.error import HTTPError, URLError
 from urllib.parse import quote
 from urllib.request import Request, urlopen
@@ -19,7 +19,7 @@ from vei.context.api import (
     ContextSnapshot,
     ContextSourceResult,
 )
-from vei.whatif_filenames import CONTEXT_SNAPSHOT_FILE
+from vei.whatif.filenames import CONTEXT_SNAPSHOT_FILE
 from vei.governor import default_governor_workspace_config, governor_metadata_payload
 from vei.orchestrators.api import (
     OrchestratorAgent,
@@ -33,27 +33,46 @@ from vei.orchestrators.api import (
     external_task_id_for,
 )
 from vei.twin.api import build_customer_twin, load_customer_twin
-from vei.twin.models import (
+from vei.twin.api import (
     ContextMoldConfig,
     CustomerTwinBundle,
-    ExternalAgentIdentity,
-    TwinActivityItem,
+    ExternalAgentIdentity as _ExternalAgentIdentityRuntime,
+    TwinActivityItem as _TwinActivityItemRuntime,
     TwinArchetype,
-    TwinLaunchManifest,
-    TwinLaunchRuntime,
-    TwinLaunchSnippet,
-    TwinLaunchStatus,
-    TwinOutcomeSummary,
+    TwinLaunchManifest as _TwinLaunchManifestRuntime,
+    TwinLaunchRuntime as _TwinLaunchRuntimeRuntime,
+    TwinLaunchSnippet as _TwinLaunchSnippetRuntime,
+    TwinLaunchStatus as _TwinLaunchStatusRuntime,
+    TwinOutcomeSummary as _TwinOutcomeSummaryRuntime,
     TwinGatewayConfig,
-    TwinServiceRecord,
+    TwinServiceRecord as _TwinServiceRecordRuntime,
 )
 from vei.workforce.api import build_workforce_state, workforce_command_from_result
-from vei.workforce.models import WorkforceCommandRecord
+from vei.workforce.api import WorkforceCommandRecord
 from vei.workspace.api import (
     load_workspace,
     preview_workspace_scenario,
     write_workspace,
 )
+
+if TYPE_CHECKING:
+    ExternalAgentIdentity = Any
+    TwinActivityItem = Any
+    TwinLaunchManifest = Any
+    TwinLaunchRuntime = Any
+    TwinLaunchSnippet = Any
+    TwinLaunchStatus = Any
+    TwinOutcomeSummary = Any
+    TwinServiceRecord = Any
+else:
+    ExternalAgentIdentity = _ExternalAgentIdentityRuntime
+    TwinActivityItem = _TwinActivityItemRuntime
+    TwinLaunchManifest = _TwinLaunchManifestRuntime
+    TwinLaunchRuntime = _TwinLaunchRuntimeRuntime
+    TwinLaunchSnippet = _TwinLaunchSnippetRuntime
+    TwinLaunchStatus = _TwinLaunchStatusRuntime
+    TwinOutcomeSummary = _TwinOutcomeSummaryRuntime
+    TwinServiceRecord = _TwinServiceRecordRuntime
 
 TWIN_LAUNCH_MANIFEST_FILE = "twin_launch_manifest.json"
 TWIN_LAUNCH_GUIDE_FILE = "twin_launch_guide.md"

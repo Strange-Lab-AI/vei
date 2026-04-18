@@ -30,6 +30,37 @@ from .counterfactual import (
     estimate_counterfactual_delta,
     run_llm_counterfactual,
 )
+from .models import (
+    WhatIfActionSchema,
+    WhatIfAuditRecord,
+    WhatIfBenchmarkDatasetRow,
+    WhatIfBranchSummaryFeature,
+    WhatIfCandidateIntervention,
+    WhatIfEventReference,
+    WhatIfExperimentMode,
+    WhatIfJudgedPairwiseComparison,
+    WhatIfObjectivePackId,
+    WhatIfObservedEvidenceHeads,
+    WhatIfPreBranchContract,
+    WhatIfSequenceStep,
+)
+from .filenames import (
+    BUSINESS_STATE_COMPARISON_FILE,
+    BUSINESS_STATE_COMPARISON_OVERVIEW_FILE,
+    CONTEXT_SNAPSHOT_FILE,
+    EJEPA_RESULT_FILE,
+    EPISODE_MANIFEST_FILE,
+    EXPERIMENT_OVERVIEW_FILE,
+    EXPERIMENT_RESULT_FILE,
+    HEURISTIC_FORECAST_FILE,
+    LLM_RESULT_FILE,
+    PUBLIC_CONTEXT_FILE,
+    RANKED_OVERVIEW_FILE,
+    RANKED_RESULT_FILE,
+    SCRUBBED_PATH_PLACEHOLDER,
+    STUDIO_SAVED_FORECAST_FILES,
+    WORKSPACE_DIRECTORY,
+)
 from .decision import build_decision_scene, build_saved_decision_scene
 from .ejepa import default_forecast_backend, run_ejepa_counterfactual
 from ._saved_bundle import (
@@ -64,6 +95,21 @@ from vei.context.api import build_public_context, empty_public_context
 from .scenario_registry import list_supported_scenarios
 from .workspace_export import export_workspace_history_snapshot
 
+_BOUNDARY_EXPORTS = (
+    WhatIfActionSchema,
+    WhatIfAuditRecord,
+    WhatIfBenchmarkDatasetRow,
+    WhatIfBranchSummaryFeature,
+    WhatIfCandidateIntervention,
+    WhatIfEventReference,
+    WhatIfExperimentMode,
+    WhatIfJudgedPairwiseComparison,
+    WhatIfObjectivePackId,
+    WhatIfObservedEvidenceHeads,
+    WhatIfPreBranchContract,
+    WhatIfSequenceStep,
+)
+
 __all__ = [
     "build_branch_point_benchmark",
     "build_decision_scene",
@@ -93,6 +139,21 @@ __all__ = [
     "load_world",
     "materialize_episode",
     "build_saved_ranked_result_payload",
+    "BUSINESS_STATE_COMPARISON_FILE",
+    "BUSINESS_STATE_COMPARISON_OVERVIEW_FILE",
+    "CONTEXT_SNAPSHOT_FILE",
+    "EJEPA_RESULT_FILE",
+    "EPISODE_MANIFEST_FILE",
+    "EXPERIMENT_OVERVIEW_FILE",
+    "EXPERIMENT_RESULT_FILE",
+    "HEURISTIC_FORECAST_FILE",
+    "LLM_RESULT_FILE",
+    "PUBLIC_CONTEXT_FILE",
+    "RANKED_OVERVIEW_FILE",
+    "RANKED_RESULT_FILE",
+    "SCRUBBED_PATH_PLACEHOLDER",
+    "STUDIO_SAVED_FORECAST_FILES",
+    "WORKSPACE_DIRECTORY",
     "providers",  # noqa: F822 — lazy-loaded via __getattr__
     "recommend_branch_thread",
     "replay_episode_baseline",

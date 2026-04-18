@@ -24,7 +24,7 @@ from vei.dynamics.models import (
     PointInterval,
     PredictedEvent,
 )
-from vei.events.models import (
+from vei.events.api import (
     CanonicalEvent,
     EventDomain,
     EventProvenance,
@@ -32,7 +32,7 @@ from vei.events.models import (
     ProvenanceRecord,
     StateDelta,
 )
-from vei.whatif.models import (
+from vei.whatif.api import (
     WhatIfActionSchema,
     WhatIfBenchmarkDatasetRow,
     WhatIfBranchSummaryFeature,
@@ -452,7 +452,7 @@ class ReferenceBackend:
         )
 
     def _event_reference(self, event: CanonicalEvent):
-        from vei.whatif.models import WhatIfEventReference
+        from vei.whatif.api import WhatIfEventReference
 
         payload = _payload_dict(event)
         return WhatIfEventReference(
@@ -533,6 +533,8 @@ class ReferenceBackend:
         if recipients:
             return len(recipients)
         scalar_value = payload.get(f"{prefix}_count")
+        if scalar_value is None:
+            return 0
         try:
             return int(scalar_value)
         except Exception:

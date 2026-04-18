@@ -8,8 +8,8 @@ from pathlib import Path
 from typing import Any, Sequence
 
 from vei.context.api import legacy_threads_payload_to_snapshot
-from vei.whatif_filenames import CONTEXT_SNAPSHOT_FILE
-from vei.context.models import (
+from vei.whatif.filenames import CONTEXT_SNAPSHOT_FILE
+from vei.context.api import (
     ContextSnapshot,
     GmailSourceData,
     MailArchiveSourceData,

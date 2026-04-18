@@ -11,7 +11,7 @@ from vei.run.api import (
     load_run_manifest,
 )
 from vei.run import load_run_events
-from vei.run.models import RunTimelineEvent
+from vei.run.api import RunTimelineEvent
 from vei.knowledge.api import latest_composed_asset_payload
 
 from .models import TrainingExample, TrainingFormat, TrainingSet

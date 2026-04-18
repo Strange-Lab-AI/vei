@@ -16,3 +16,13 @@ repos:
         entry: .venv/bin/python scripts/run_mypy_targets.py
         language: system
         pass_filenames: false
+      - id: import-boundaries
+        name: import boundaries
+        entry: .venv/bin/python scripts/check_import_boundaries.py --strict --max-violations 0
+        language: system
+        pass_filenames: false
+      - id: detect-secrets
+        name: detect-secrets
+        entry: .venv/bin/detect-secrets-hook --baseline .secrets.baseline
+        language: system
+        exclude: ^\.secrets\.baseline$

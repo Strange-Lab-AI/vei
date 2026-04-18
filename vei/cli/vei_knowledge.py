@@ -7,7 +7,7 @@ from typing import Any, Iterable, List
 import typer
 
 from vei.context.api import capture_context, hydrate_blueprint
-from vei.context.models import ContextProviderConfig
+from vei.context.api import ContextProviderConfig
 from vei.knowledge.api import (
     KnowledgeComposeRequest,
     compose_artifact,
@@ -204,10 +204,8 @@ def compose(
         snapshot_path = _workspace_knowledge_snapshot_path(workspace_root)
         snapshot_path.parent.mkdir(parents=True, exist_ok=True)
         snapshot_path.write_text(store.model_dump_json(indent=2), encoding="utf-8")
-        typer.echo(
-            f"Updated workspace knowledge snapshot -> {snapshot_path}",
-            err=(destination is None),
-        )
+        if destination is not None:
+            typer.echo(f"Updated workspace knowledge snapshot -> {snapshot_path}")
 
 
 def _resolve_workspace_root(raw: str) -> Path | None:

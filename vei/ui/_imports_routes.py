@@ -5,7 +5,7 @@ from pathlib import Path
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
 
-from vei.whatif_filenames import CONTEXT_SNAPSHOT_FILE
+from vei.whatif.filenames import CONTEXT_SNAPSHOT_FILE
 from vei.workspace import build_identity_flow_summary
 from vei.workspace.api import (
     activate_workspace_contract_variant,
@@ -207,7 +207,7 @@ def register_imports_routes(app: FastAPI, root: Path) -> None:
         import os
 
         from vei.context.api import capture_context
-        from vei.context.models import ContextProviderConfig
+        from vei.context.api import ContextProviderConfig
 
         configs = []
         for name in req.providers:

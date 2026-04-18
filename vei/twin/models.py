@@ -10,7 +10,7 @@ from vei.orchestrators.api import (
     OrchestratorSnapshot,
     OrchestratorSyncHealth,
 )
-from vei.orchestrators.models import ActivityItemBase
+from vei.orchestrators.api import ActivityItemBase
 
 TwinArchetype = Literal[
     "b2b_saas",

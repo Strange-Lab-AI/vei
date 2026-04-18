@@ -139,7 +139,7 @@ def load_from_env(seed: Optional[int] = None) -> Scenario:
     if blueprint_asset_path:
         try:
             from vei.blueprint.api import materialize_scenario_from_blueprint
-            from vei.blueprint.models import BlueprintAsset
+            from vei.blueprint.api import BlueprintAsset
 
             asset = BlueprintAsset.model_validate(
                 json.loads(Path(blueprint_asset_path).read_text(encoding="utf-8"))

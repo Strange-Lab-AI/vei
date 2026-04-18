@@ -1294,7 +1294,7 @@ def test_run_research_pack_writes_artifacts_and_scores_all_backends(
             summary="The draft leaves Enron with broader outside circulation.",
         )
 
-    def fake_run_ejepa_proxy_counterfactual(
+    def fake_estimate_counterfactual_delta(
         *_: object,
         prompt: str,
     ) -> WhatIfCounterfactualEstimateResult:
@@ -1392,7 +1392,7 @@ def test_run_research_pack_writes_artifacts_and_scores_all_backends(
     )
     monkeypatch.setattr(
         "vei.whatif.research.estimate_counterfactual_delta",
-        fake_run_ejepa_proxy_counterfactual,
+        fake_estimate_counterfactual_delta,
     )
     monkeypatch.setattr(
         "vei.whatif.research.run_ejepa_counterfactual",
@@ -1522,7 +1522,7 @@ def test_run_research_pack_uses_world_domain_for_generic_archive(
             summary="A short outside status note goes out.",
         )
 
-    def fake_run_ejepa_proxy_counterfactual(
+    def fake_estimate_counterfactual_delta(
         *_: object,
         prompt: str,
     ) -> WhatIfCounterfactualEstimateResult:
@@ -1569,7 +1569,7 @@ def test_run_research_pack_uses_world_domain_for_generic_archive(
     )
     monkeypatch.setattr(
         "vei.whatif.research.estimate_counterfactual_delta",
-        fake_run_ejepa_proxy_counterfactual,
+        fake_estimate_counterfactual_delta,
     )
     monkeypatch.setattr(
         "vei.whatif.research.run_ejepa_counterfactual",

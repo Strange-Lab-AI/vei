@@ -10,7 +10,6 @@ import typer
 from vei.capability_graph.api import build_runtime_capability_graphs
 from vei.orientation.api import build_world_orientation
 from vei.world.state import StateStore
-from vei.world.models import WorldState
 
 app = typer.Typer(
     add_completion=False,
@@ -187,9 +186,11 @@ def show_capability_graphs(
 ) -> None:
     """Render runtime capability graphs from a stored snapshot."""
 
+    from vei.world.models import WorldState as RuntimeWorldState
+
     root = _resolve_root(state_dir)
     snap = _resolve_snapshot_payload(root, branch, snapshot)
-    state = WorldState.model_validate(snap.get("data", {}))
+    state = RuntimeWorldState.model_validate(snap.get("data", {}))
     graphs = build_runtime_capability_graphs(state).model_dump(mode="json")
     if domain:
         normalized = domain.strip().lower()
@@ -223,9 +224,11 @@ def show_orientation(
 ) -> None:
     """Render an agent-facing orientation summary from a stored snapshot."""
 
+    from vei.world.models import WorldState as RuntimeWorldState
+
     root = _resolve_root(state_dir)
     snap = _resolve_snapshot_payload(root, branch, snapshot)
-    state = WorldState.model_validate(snap.get("data", {}))
+    state = RuntimeWorldState.model_validate(snap.get("data", {}))
     payload = build_world_orientation(state).model_dump(mode="json")
     typer.echo(json.dumps(payload, indent=indent))
 

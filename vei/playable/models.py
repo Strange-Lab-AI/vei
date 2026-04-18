@@ -5,7 +5,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
-from vei.capability_graph.models import CapabilityGraphActionInput
+from vei.capability_graph.api import CapabilityGraphActionInput
 
 MoveTier = Literal["recommended", "available", "risky"]
 MoveAvailability = Literal["recommended", "available", "risky", "blocked"]

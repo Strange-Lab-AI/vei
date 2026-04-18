@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections import defaultdict
 from typing import Iterable
 
-from vei.blueprint.models import (
+from vei.blueprint.api import (
     BlueprintGoogleDriveShareAsset,
     BlueprintHrisEmployeeAsset,
     BlueprintIdentityUserAsset,

@@ -8,7 +8,7 @@ from typing import Any
 import typer
 from pydantic import ValidationError
 
-from vei.context.models import ContextProviderConfig, ContextSnapshot
+from vei.context.api import ContextProviderConfig, ContextSnapshot
 from vei.governor import default_governor_workspace_config
 from vei.twin import serve_customer_twin
 from vei.twin.api import (
@@ -22,7 +22,7 @@ from vei.twin.api import (
     reset_twin,
     sync_twin,
 )
-from vei.twin.models import ContextMoldConfig
+from vei.twin.api import ContextMoldConfig
 
 app = typer.Typer(
     add_completion=False,

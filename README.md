@@ -247,6 +247,7 @@ make clean-workspace
 
 ## Docs
 
+- [docs/AGENT_ONBOARDING.md](docs/AGENT_ONBOARDING.md) for a fast repo briefing, command checklist, and module-boundary rules
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the module map, capability domains, and knowledge layer
 - [docs/WHATIF.md](docs/WHATIF.md) for the historical replay and comparison flow
 - [docs/OVERVIEW.md](docs/OVERVIEW.md) for the product framing, including the knowledge brain layer

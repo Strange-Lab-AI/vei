@@ -7,10 +7,10 @@ from typing import Any
 
 from fastapi import FastAPI
 
-from vei.benchmark.models import BenchmarkMetrics
+from vei.benchmark.api import BenchmarkMetrics
 from vei.blueprint.api import create_world_session_from_blueprint
 from vei.connectors import TOOL_ROUTES
-from vei.contract.models import ContractEvaluationResult
+from vei.contract.api import ContractEvaluationResult
 from vei.governor import (
     GovernorActionPlan,
     GovernorAgentSpec,
@@ -19,7 +19,7 @@ from vei.governor import (
     GovernorRuntime,
     load_governor_workspace_config,
 )
-from vei.router.errors import MCPError
+from vei.router.api import MCPError
 from vei.run.api import (
     generate_run_id,
     get_workspace_run_dir,
@@ -28,7 +28,7 @@ from vei.run.api import (
     write_run_manifest,
 )
 from vei.run import append_run_event, merge_reproducibility_metadata
-from vei.run.models import (
+from vei.run.api import (
     RunArtifactIndex,
     RunManifest,
     RunTimelineEvent,
@@ -49,7 +49,7 @@ from vei.workspace.api import (
     temporary_env,
     upsert_workspace_run,
 )
-from vei.workspace.models import WorkspaceRunEntry
+from vei.workspace.api import WorkspaceRunEntry
 from vei.world.api import ActorState, WorldSessionAPI
 
 from .api import load_customer_twin

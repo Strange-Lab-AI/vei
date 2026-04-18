@@ -8,7 +8,6 @@ EXPERIMENT_RESULT_FILE = "whatif_experiment_result.json"
 EXPERIMENT_OVERVIEW_FILE = "whatif_experiment_overview.md"
 LLM_RESULT_FILE = "whatif_llm_result.json"
 EJEPA_RESULT_FILE = "whatif_ejepa_result.json"
-EJEPA_PROXY_RESULT_FILE = "whatif_ejepa_proxy_result.json"
 HEURISTIC_FORECAST_FILE = "whatif_heuristic_baseline_result.json"
 RANKED_RESULT_FILE = "whatif_ranked_result.json"
 RANKED_OVERVIEW_FILE = "whatif_ranked_overview.md"
@@ -20,7 +19,6 @@ WORKSPACE_DIRECTORY = "workspace"
 
 STUDIO_SAVED_FORECAST_FILES = (
     EJEPA_RESULT_FILE,
-    EJEPA_PROXY_RESULT_FILE,
     HEURISTIC_FORECAST_FILE,
 )
 
@@ -28,7 +26,6 @@ __all__ = [
     "BUSINESS_STATE_COMPARISON_FILE",
     "BUSINESS_STATE_COMPARISON_OVERVIEW_FILE",
     "CONTEXT_SNAPSHOT_FILE",
-    "EJEPA_PROXY_RESULT_FILE",
     "EJEPA_RESULT_FILE",
     "EPISODE_MANIFEST_FILE",
     "EXPERIMENT_OVERVIEW_FILE",

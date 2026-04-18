@@ -42,24 +42,31 @@ check: $(SETUP_FULL_STAMP)
 	$(VENV_BIN)/python -m ruff check vei tests
 	$(VENV_BIN)/python scripts/run_mypy_targets.py
 	@echo "--- import boundary check ---"
-	$(VENV_BIN)/python scripts/check_import_boundaries.py --max-violations 0
+	$(VENV_BIN)/python scripts/check_import_boundaries.py --strict --max-violations 0
 	$(VENV_BIN)/python scripts/run_local_security_checks.py
 
 check-full: check
 	$(VENV_BIN)/python -m bandit -q -r vei -ll
+	@if [ "$(MODE)" = "production" ]; then \
+		$(VENV_BIN)/semgrep --config p/python --config p/security-audit --config .semgrep.yml --error vei scripts; \
+	else \
+		$(VENV_BIN)/semgrep --config p/python --config p/security-audit --config .semgrep.yml --error vei scripts || true; \
+	fi
 	@mkdir -p .artifacts
-	$(VENV_BIN)/detect-secrets scan $$(git ls-files) > .artifacts/detect-secrets.json
+	@DETECT_SECRETS_FILES="$$(git ls-files | grep -v '^\.secrets\.baseline$$' || true)"; \
+	$(VENV_BIN)/detect-secrets scan $$DETECT_SECRETS_FILES > .artifacts/detect-secrets.json
 	@if [ -f .secrets.baseline ]; then \
-		$(VENV_BIN)/detect-secrets-hook --baseline .secrets.baseline $$(git ls-files); \
+		DETECT_SECRETS_FILES="$$(git ls-files | grep -v '^\.secrets\.baseline$$' || true)"; \
+		$(VENV_BIN)/detect-secrets-hook --baseline .secrets.baseline $$DETECT_SECRETS_FILES; \
 	else \
 		echo "No .secrets.baseline found; detect-secrets check is advisory-only."; \
 	fi
 
 test: $(SETUP_FULL_STAMP)
-	VEI_RUN_LLM_SMOKE=0 $(VENV_BIN)/python -m pytest -q -m "not slow" --maxfail=1
+	VEI_RUN_LLM_SMOKE=0 $(VENV_BIN)/python -m pytest -q -m "not slow" -n auto --maxfail=1
 
 test-full: $(SETUP_FULL_STAMP)
-	VEI_RUN_LLM_SMOKE=0 $(VENV_BIN)/python -m pytest --cov=vei --cov-report=term-missing --cov-fail-under=$(COVERAGE_FAIL_UNDER)
+	VEI_RUN_LLM_SMOKE=0 $(VENV_BIN)/python -m pytest --cov=vei --cov-report=term-missing --cov-fail-under=$(COVERAGE_FAIL_UNDER) -n auto
 
 llm-live: $(SETUP_FULL_STAMP)
 	@if [ -f .env ]; then \
@@ -100,6 +107,7 @@ deps-audit: $(SETUP_FULL_STAMP)
 dynamics-eval: $(SETUP_FULL_STAMP)
 	@echo "--- dynamics evaluation ---"
 	$(VENV_BIN)/python -m pytest tests/dynamics/ -v --tb=short
+	$(VENV_BIN)/python scripts/validate_dynamics_metrics.py --metrics _vei_out/dynamics_eval/metrics.json
 	@echo "Dynamics evaluation passed."
 
 enron-example: $(SETUP_FULL_STAMP)

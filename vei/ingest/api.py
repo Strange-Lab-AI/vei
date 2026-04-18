@@ -12,7 +12,7 @@ from typing import Any, Dict, Iterator, List, Optional, Protocol, runtime_checka
 
 from pydantic import BaseModel, Field
 
-from vei.events.models import CanonicalEvent
+from vei.events.api import CanonicalEvent
 
 logger = logging.getLogger(__name__)
 

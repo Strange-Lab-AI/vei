@@ -30,7 +30,7 @@ replay_episode_baseline_module = replay_episode_baseline
 build_decision_scene_module = build_decision_scene
 build_saved_decision_scene_module = build_saved_decision_scene
 run_llm_counterfactual_module = run_llm_counterfactual
-run_ejepa_proxy_counterfactual_module = estimate_counterfactual_delta
+estimate_counterfactual_delta_module = estimate_counterfactual_delta
 
 
 def _write_rosetta_fixture(root: Path) -> None:
@@ -755,7 +755,7 @@ def test_split_modules_support_episode_scene_and_counterfactual_flow(
         workspace_root,
         prompt="Hold the forward and keep this internal.",
     )
-    forecast_result = run_ejepa_proxy_counterfactual_module(
+    forecast_result = estimate_counterfactual_delta_module(
         workspace_root,
         prompt="Hold the forward and keep this internal.",
     )

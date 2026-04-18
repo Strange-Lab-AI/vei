@@ -6,9 +6,15 @@ target vei.Y.api — not vei.Y.some_internal_module.
 Importing vei.Y.models is allowed (type definitions), but flagged in
 strict mode (--strict).
 
+The one non-api public exception is vei.whatif.filenames, which is the
+stable artifact-name surface for what-if bundles.
+
 Exceptions:
   - cli/ can import from any module (it is the integration surface).
-  - vei.data and vei.llm are utility/infra modules used everywhere.
+  - vei.data is a leaf data-shape utility module with no cross-module callbacks.
+  - vei.llm is a provider/helper utility module with no cross-module callbacks.
+  - vei.policy is a shared rules utility module with no cross-module callbacks.
+  - vei.behavior is a shared baseline-policy utility module with no cross-module callbacks.
   - Intra-module imports (vei.X.foo importing vei.X.bar) are fine.
 
 Exit 0 if clean, 1 if violations found.
@@ -24,9 +30,13 @@ PACKAGE_ROOT = Path(__file__).resolve().parent.parent / "vei"
 
 EXEMPT_IMPORTERS = {"cli"}
 
-INFRA_MODULES = {"data", "llm", "policy", "behavior", "rl"}
+INFRA_MODULES = {"data", "llm", "policy", "behavior"}
 
 TYPE_SUBMODULES = {"models", "errors"}
+
+PUBLIC_MODULE_SURFACES = {
+    ("whatif", "filenames"),
+}
 
 CROSS_BOUNDARY_ALLOWED = {
     ("dynamics", "whatif", "benchmark_bridge"),
@@ -71,6 +81,8 @@ def check_file(path: Path, *, strict: bool = False) -> list[tuple[str, bool]]:
             if target_module in INFRA_MODULES:
                 continue
             if len(parts) == 3 and parts[2] == "api":
+                continue
+            if len(parts) == 3 and (target_module, parts[2]) in PUBLIC_MODULE_SURFACES:
                 continue
             if len(parts) == 2:
                 continue

@@ -14,14 +14,14 @@ from vei.run.api import (
     load_run_manifest,
 )
 from vei.synthesis.api import synthesize_training_set
-from vei.synthesis.models import TrainingFormat
+from vei.synthesis.api import TrainingFormat
 from vei.twin import (
     build_twin_matrix,
     create_twin_gateway_app,
     load_customer_twin,
 )
 from vei.context.api import ContextSnapshot
-from vei.twin.models import (
+from vei.twin.api import (
     ContextMoldConfig,
     TwinArchetype,
     TwinMatrixBundle,
@@ -30,13 +30,15 @@ from vei.twin.models import (
 from vei.workspace.api import load_workspace, preview_workspace_scenario
 
 from .models import (
-    DatasetBuildSpec,
     DatasetBundle,
     DatasetExampleManifest,
     DatasetRunRecord,
     DatasetSplitManifest,
     DatasetSplitName,
+    DatasetBuildSpec,
 )
+
+_BOUNDARY_EXPORTS = (DatasetBuildSpec,)
 
 DATASET_BUNDLE_FILE = "dataset_bundle.json"
 WORKSPACE_DATASET_FILE = "dataset_latest.json"
