@@ -13008,54 +13008,54 @@
     "provider": "openai",
     "model": "gpt-5-mini",
     "prompt": "Escalate the memo to Ken Lay, the audit committee, and internal legal, preserve the written record, and pause any broad reassurance until the accounting questions are reviewed.",
-    "summary": "Sherron Watkins formally escalates her Aug 22 memo and accounting questions to Internal Legal and the Audit Committee, requests Ken Lay be notified, demands preservation of the written record, and instructs a pause on any broad reassurances. The audit committee/legal group acknowledges and commits to review and to hold public/internal reassurance until the accounting issues are cleared.",
+    "summary": "Sherron Watkins immediately escalates the Aug 22 memo and the accounting questions she raised with Ken Lay to internal legal and the audit committee, asks that Ken Lay be notified, instructs preservation of all related records, and halts any broad reassurance until audit and legal complete their review. A copy is saved to her mailbox to preserve the written record.",
     "messages": [
       {
         "actor_id": "sherron.watkins@enron.com",
         "surface": "mail",
         "to": "e..haedicke@enron.com",
-        "subject": "Escalation: Questions I raised with Lay on Aug 22 — legal review requested",
-        "body_text": "E..,\n\nI am formally escalating the memo and the accounting questions I raised with Ken Lay on Aug 22. Please review the attached memo and:\n\n- Advise immediately whether these accounting treatments require disclosure or other remedial action.\n- Preserve all related written records and, where appropriate, mark them privileged.\n- Recommend and clear any public or broad reassurance; specifically, pause any such statements until legal and accounting complete their review.\n\nPlease confirm receipt and outline next steps and timing.\n\nSherron S. Watkins\nVice President, Enron Corp.\n713-345-8799 office\n713-416-0620 cell",
+        "subject": "Escalation: The key questions I asked Lay on Aug 22",
+        "body_text": "Ed — I am escalating the attached memo and the accounting questions I raised with Ken Lay on Aug 22. Please notify Ken immediately, involve internal and outside counsel as appropriate, and ensure the audit committee is made aware. Preserve all related documents and communications. Until audit and legal have reviewed and answered these accounting questions, please pause any broad internal or external reassurance about our accounting or reported results. Confirm receipt and planned next steps.",
         "delay_ms": 1000,
         "conversation_anchor": "",
-        "rationale": "Escalate the memo to Internal Legal for immediate review, preserve the written record, and instruct legal to withhold broad reassurance until accounting questions are resolved."
+        "rationale": "Engage internal legal to notify the CEO and coordinate document preservation and legal review before any public or broad internal reassurance."
       },
       {
         "actor_id": "sherron.watkins@enron.com",
         "surface": "mail",
         "to": ".schuler@enron.com",
-        "subject": "For Audit Committee: Please escalate my Aug 22 questions and hold external reassurance",
-        "body_text": ".\n\nPlease forward the attached memo and the questions I raised with Ken Lay on Aug 22 to Ken and to the Audit Committee immediately. Ask Internal Legal to review and to preserve the written record. Do not issue any broad reassurance externally or internally until legal and accounting have completed their review.\n\nConfirm when you have forwarded and who is being looped in.\n\nSherron",
-        "delay_ms": 300000,
+        "subject": "Please share with Audit Committee: Accounting questions I raised with Lay (Aug 22)",
+        "body_text": "Please ensure the audit committee receives the attached memo and the questions I raised with Ken Lay on Aug 22 as soon as possible. Ask the committee to refrain from issuing any broad reassurances to the board or external parties until audit and legal have completed their review. Preserve this email and any related files as part of the record and let me know when the committee has been notified.",
+        "delay_ms": 30000,
         "conversation_anchor": "",
-        "rationale": "Request that the Audit Committee and Ken Lay be formally informed and that any broad reassurance be paused until the committee and legal have reviewed the accounting issues."
+        "rationale": "Bring the audit committee into the review promptly to provide independent oversight and to prevent premature communications."
       },
       {
-        "actor_id": "group:6e7dcb485343bd1d",
+        "actor_id": "sherron.watkins@enron.com",
         "surface": "mail",
         "to": "sherron.watkins@enron.com",
-        "subject": "Re: Escalation — Audit Committee and Legal notified; communications hold",
-        "body_text": "Sherron,\n\nAcknowledged. We will notify Ken Lay and convene the Audit Committee and Internal Legal to review the accounting questions you raised. Written records will be preserved and flagged. Communications will be asked to pause any broad reassurance until the review is complete. Please send any supporting documents you have to this thread.\n\n— Audit Committee/Group",
-        "delay_ms": 900000,
+        "subject": "Record copy: Escalation of Aug 22 accounting questions",
+        "body_text": "For the file: I have asked legal and the audit committee to review the accounting questions and to notify Ken Lay. I instructed that all related documents be preserved and that no broad reassurance be issued until the accounting issues are validated. Save this email and the attached memo to the company records.",
+        "delay_ms": 60000,
         "conversation_anchor": "",
-        "rationale": "Audit Committee/group acknowledges escalation, commits to notify Ken Lay, engage Internal Legal, preserve the written trail, and order a hold on broad reassurance while the issues are reviewed."
+        "rationale": "Create a preserved written record of the escalation and the instruction to pause assurances."
       }
     ],
     "usage": {
       "provider": "openai",
       "model": "gpt-5-mini",
       "prompt_tokens": 1083,
-      "completion_tokens": 5877,
-      "total_tokens": 6960,
-      "estimated_cost_usd": 0.01202475
+      "completion_tokens": 6347,
+      "total_tokens": 7430,
+      "estimated_cost_usd": 0.01296475
     },
     "scheduled_event_count": 3,
     "delivered_event_count": 3,
     "inbox_count": 4,
     "top_subjects": [
-      "Re: Escalation — Audit Committee and Legal notified; communications hold",
-      "For Audit Committee: Please escalate my Aug 22 questions and hold external reassurance",
-      "Escalation: Questions I raised with Lay on Aug 22 — legal review requested",
+      "Record copy: Escalation of Aug 22 accounting questions",
+      "Please share with Audit Committee: Accounting questions I raised with Lay (Aug 22)",
+      "Escalation: The key questions I asked Lay on Aug 22",
       "The key questions I asked Lay on Aug 22"
     ],
     "notes": [

@@ -27,11 +27,11 @@ Prompt: Pause the strategy, preserve the record, alert legal and compliance, and
 
 ## LLM Actor
 - Status: ok
-- Summary: Portland Desk acknowledges Tim's notice, immediately pauses the trading strategy, preserves all records under litigation hold, notifies Legal and Compliance, and begins compiling a self-report packet for counsel review instead of continuing the trading play.
+- Summary: Portland desk immediately halts the trading play, instructs preservation of all electronic records, alerts Legal and Compliance, and opens a self-report pathway. Tim Belden acknowledges, suspends trading, documents steps taken, and confirms contact with Legal/Compliance.
 - Delivered actions: 2
 - Inbox count: 5
-- `mail` `portland.desk@enron.com` -> `tim.belden@enron.com` after 60000 ms: Re: IMPORTANT - READ IMMEDIATELY — Pausing activity and notifying Legal/Compliance
-- `mail` `portland.desk@enron.com` -> `tim.belden@enron.com` after 300000 ms: Re: IMPORTANT - READ IMMEDIATELY — Legal/Compliance acknowledged
+- `mail` `portland.desk@enron.com` -> `tim.belden@enron.com` after 1000 ms: Re: IMPORTANT - READ IMMEDIATELY — Pause Trading, Preserve Records
+- `mail` `tim.belden@enron.com` -> `portland.desk@enron.com` after 60000 ms: Re: IMPORTANT - READ IMMEDIATELY — Acknowledgement and Actions Taken
 
 ## Forecast
 - Status: ok

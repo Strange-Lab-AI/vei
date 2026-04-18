@@ -9655,43 +9655,43 @@
     "provider": "openai",
     "model": "gpt-5-mini",
     "prompt": "Keep the draft inside Enron, ask Gerald Nemec and Sara Shackleton for review, and hold the outside send.",
-    "summary": "Instead of sending the draft Master Firm Purchase/Sale Agreement to Cargill, Debra retains it internally and requests review from Gerald Nemec and Sara Shackleton, instructing them to hold any outside transmission.",
+    "summary": "Debra Perlingiere keeps the draft Master Firm Purchase/Sale Agreement inside Enron and circulates it for internal review. She asks Gerald Nemec and Sara Shackleton to review and explicitly instructs that the draft not be sent externally to Cargill until internal comments are resolved.",
     "messages": [
       {
         "actor_id": "debra.perlingiere@enron.com",
         "surface": "mail",
         "to": "gerald.nemec@enron.com",
-        "subject": "Master Agreement — Draft for Internal Review",
-        "body_text": "Gerald,\n\nAttached is a draft Master Firm Purchase/Sale Agreement prepared for Cargill. Please review the commercial and operational provisions and send any comments or redlines by EOD Thursday. Do not forward this outside Enron — hold any outreach to Cargill until Sara and I have coordinated on credit/legal points.\n\nThanks,\nDebra Perlingiere",
-        "delay_ms": 60000,
+        "subject": "Master Agreement",
+        "body_text": "Gerald — Attached is a draft Master Firm Purchase/Sale Agreement intended for Cargill. Please review the commercial and credit-related provisions and send me any redlines or comments. Do not forward this outside Enron; please hold any external distribution to Cargill until we finalize internal comments. Thanks, Debra",
+        "delay_ms": 600000,
         "conversation_anchor": "",
-        "rationale": "Solicit Gerald's commercial review while keeping the draft internal and preventing premature external distribution."
+        "rationale": "Route the draft to the internal commercial/credit reviewer and prevent premature external transmission."
       },
       {
         "actor_id": "debra.perlingiere@enron.com",
         "surface": "mail",
         "to": "sara.shackleton@enron.com",
-        "subject": "Master Agreement — Draft for Legal/Credit Review",
-        "body_text": "Sara,\n\nAttached is the draft Master Firm Purchase/Sale Agreement we were preparing for Cargill. Please review credit, indemnity and other legal terms and advise any necessary changes. Please do not send this to Cargill yet — hold until Gerald and I have consolidated internal comments. Can you provide feedback by EOD Thursday?\n\nRegards,\nDebra Perlingiere",
-        "delay_ms": 120000,
+        "subject": "Master Agreement",
+        "body_text": "Sara — Attached is the draft Master Firm Purchase/Sale Agreement we were going to send to Cargill. Please review legal terms, indemnities, and assignment language and advise any required edits. Keep this internal and do not forward outside Enron. I appreciate your comments. Debra",
+        "delay_ms": 1200000,
         "conversation_anchor": "",
-        "rationale": "Obtain Sara's legal and credit input and explicitly instruct to hold external transmission until internal consensus is reached."
+        "rationale": "Obtain internal legal review and explicitly instruct counsel to hold the outside send until legal and credit comments are resolved."
       }
     ],
     "usage": {
       "provider": "openai",
       "model": "gpt-5-mini",
       "prompt_tokens": 2127,
-      "completion_tokens": 3547,
-      "total_tokens": 5674,
-      "estimated_cost_usd": 0.00762575
+      "completion_tokens": 4167,
+      "total_tokens": 6294,
+      "estimated_cost_usd": 0.00886575
     },
     "scheduled_event_count": 2,
     "delivered_event_count": 2,
     "inbox_count": 4,
     "top_subjects": [
-      "Master Agreement — Draft for Legal/Credit Review",
-      "Master Agreement — Draft for Internal Review",
+      "Master Agreement",
+      "Master Agreement",
       "Master Agreement",
       "Master Agreement"
     ],

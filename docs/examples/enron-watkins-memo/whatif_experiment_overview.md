@@ -25,12 +25,12 @@ Prompt: Escalate the memo to Ken Lay, the audit committee, and internal legal, p
 
 ## LLM Actor
 - Status: ok
-- Summary: Sherron Watkins formally escalates her Aug 22 memo and accounting questions to Internal Legal and the Audit Committee, requests Ken Lay be notified, demands preservation of the written record, and instructs a pause on any broad reassurances. The audit committee/legal group acknowledges and commits to review and to hold public/internal reassurance until the accounting issues are cleared.
+- Summary: Sherron Watkins immediately escalates the Aug 22 memo and the accounting questions she raised with Ken Lay to internal legal and the audit committee, asks that Ken Lay be notified, instructs preservation of all related records, and halts any broad reassurance until audit and legal complete their review. A copy is saved to her mailbox to preserve the written record.
 - Delivered actions: 3
 - Inbox count: 4
-- `mail` `sherron.watkins@enron.com` -> `e..haedicke@enron.com` after 1000 ms: Escalation: Questions I raised with Lay on Aug 22 — legal review requested
-- `mail` `sherron.watkins@enron.com` -> `.schuler@enron.com` after 300000 ms: For Audit Committee: Please escalate my Aug 22 questions and hold external reassurance
-- `mail` `group:6e7dcb485343bd1d` -> `sherron.watkins@enron.com` after 900000 ms: Re: Escalation — Audit Committee and Legal notified; communications hold
+- `mail` `sherron.watkins@enron.com` -> `e..haedicke@enron.com` after 1000 ms: Escalation: The key questions I asked Lay on Aug 22
+- `mail` `sherron.watkins@enron.com` -> `.schuler@enron.com` after 30000 ms: Please share with Audit Committee: Accounting questions I raised with Lay (Aug 22)
+- `mail` `sherron.watkins@enron.com` -> `sherron.watkins@enron.com` after 60000 ms: Record copy: Escalation of Aug 22 accounting questions
 
 ## Forecast
 - Status: ok

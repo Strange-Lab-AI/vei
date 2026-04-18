@@ -31,6 +31,10 @@ try:
         spec_by_bundle_slug,
     )
     from scripts.package_enron_master_agreement_example import package_example
+    from scripts.render_enron_timeline_asset import (
+        render_timeline_image,
+        render_timeline_markdown,
+    )
 except ModuleNotFoundError:
     import sys
 
@@ -43,6 +47,10 @@ except ModuleNotFoundError:
         spec_by_bundle_slug,
     )
     from package_enron_master_agreement_example import package_example
+    from render_enron_timeline_asset import (
+        render_timeline_image,
+        render_timeline_markdown,
+    )
 
 
 DEFAULT_ARTIFACTS_ROOT = Path("_vei_out/whatif_repo_examples")
@@ -235,6 +243,14 @@ def _write_bundle_readme(spec, bundle_root: Path) -> None:
         for other in bundle_specs()
         if other.bundle_slug != spec.bundle_slug
     ]
+    timeline_lines: list[str] = []
+    if spec.bundle_slug == "enron-master-agreement-public-context":
+        timeline_lines = [
+            "",
+            "## Bankruptcy Arc Timeline",
+            "",
+            "See [timeline_arc.md](timeline_arc.md) for the public timeline that places this branch beside the PG&E, California, and Watkins examples.",
+        ]
     readme = "\n".join(
         [
             f"# {spec.title}",
@@ -299,6 +315,7 @@ def _write_bundle_readme(spec, bundle_root: Path) -> None:
             "## Other Enron Examples",
             "",
             *sibling_lines,
+            *timeline_lines,
             "",
             "## Refresh",
             "",
@@ -392,6 +409,8 @@ def main() -> None:
             model=model,
         )
         print(f"built: {output_root}")
+    render_timeline_image()
+    render_timeline_markdown()
 
 
 if __name__ == "__main__":

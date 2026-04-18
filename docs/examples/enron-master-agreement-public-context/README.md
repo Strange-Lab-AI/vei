@@ -43,6 +43,10 @@ Open `http://127.0.0.1:3055`.
 - [Enron California Crisis Strategy Example](../enron-california-crisis-strategy/README.md)
 - [Enron PG&E Power Deal Example](../enron-pge-power-deal/README.md)
 
+## Bankruptcy Arc Timeline
+
+See [timeline_arc.md](timeline_arc.md) for the public timeline that places this branch beside the PG&E, California, and Watkins examples.
+
 ## Refresh
 
 ```bash

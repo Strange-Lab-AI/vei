@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
+from textwrap import wrap
 
 from PIL import Image, ImageDraw, ImageFont
 
@@ -76,9 +77,33 @@ def _parse_date(value: str) -> datetime:
     return datetime.fromisoformat(f"{value}T00:00:00+00:00").astimezone(UTC)
 
 
+def _wrap_text(
+    draw: ImageDraw.ImageDraw,
+    text: str,
+    *,
+    font: ImageFont.ImageFont,
+    max_width: int,
+) -> str:
+    words = text.split()
+    if not words:
+        return ""
+    lines: list[str] = []
+    current = words[0]
+    for word in words[1:]:
+        candidate = f"{current} {word}"
+        left, _top, right, _bottom = draw.textbbox((0, 0), candidate, font=font)
+        if right - left <= max_width:
+            current = candidate
+            continue
+        lines.append(current)
+        current = word
+    lines.append(current)
+    return "\n".join(lines)
+
+
 def render_timeline_image(path: Path = TIMELINE_IMAGE_PATH) -> Path:
     width = 1800
-    height = 1000
+    height = 1080
     image = Image.new("RGB", (width, height), "#f7f2e8")
     draw = ImageDraw.Draw(image)
     title_font = ImageFont.load_default()
@@ -114,8 +139,15 @@ def render_timeline_image(path: Path = TIMELINE_IMAGE_PATH) -> Path:
         draw.ellipse((x - 11, timeline_y - 11, x + 11, timeline_y + 11), fill=event.color)
         draw.text((x - 35, timeline_y + 22), event.when, fill="#333333", font=small_font)
 
-        box_width = 300
-        box_height = 110
+        box_width = 360
+        detail_text = _wrap_text(
+            draw,
+            event.detail,
+            font=small_font,
+            max_width=box_width - 32,
+        )
+        line_count = len(detail_text.splitlines()) if detail_text else 1
+        box_height = 74 + (line_count * 16)
         box_top = 240 if index % 2 == 0 else 610
         box_left = min(max(30, x - box_width // 2), width - box_width - 30)
         box_right = box_left + box_width
@@ -132,7 +164,7 @@ def render_timeline_image(path: Path = TIMELINE_IMAGE_PATH) -> Path:
         draw.text((box_left + 16, box_top + 14), event.label, fill="#171717", font=body_font)
         draw.multiline_text(
             (box_left + 16, box_top + 48),
-            event.detail,
+            detail_text,
             fill="#4a4a4a",
             font=small_font,
             spacing=4,

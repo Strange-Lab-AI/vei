@@ -38,6 +38,13 @@ EXAMPLE_ROOT = (
     / "examples"
     / "enron-master-agreement-public-context"
 )
+TIMELINE_IMAGE = (
+    Path(__file__).resolve().parents[1]
+    / "docs"
+    / "assets"
+    / "enron-whatif"
+    / "enron-bankruptcy-arc-timeline.png"
+)
 
 
 def _write_packaging_source_fixture(root: Path, *, forecast_filename: str) -> Path:
@@ -135,6 +142,7 @@ def test_repo_owned_enron_example_bundle_is_present_and_clean() -> None:
 
     required_paths = [
         EXAMPLE_ROOT / "README.md",
+        EXAMPLE_ROOT / "timeline_arc.md",
         EXAMPLE_ROOT / "whatif_experiment_overview.md",
         EXAMPLE_ROOT / "whatif_experiment_result.json",
         EXAMPLE_ROOT / "whatif_llm_result.json",
@@ -145,6 +153,7 @@ def test_repo_owned_enron_example_bundle_is_present_and_clean() -> None:
         EXAMPLE_ROOT / "workspace" / "context_snapshot.json",
         EXAMPLE_ROOT / "workspace" / "episode_manifest.json",
         EXAMPLE_ROOT / "workspace" / "whatif_public_context.json",
+        TIMELINE_IMAGE,
     ]
     for path in required_paths:
         assert path.exists(), path

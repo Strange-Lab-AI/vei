@@ -3,53 +3,53 @@
   "provider": "openai",
   "model": "gpt-5-mini",
   "prompt": "Hold the deal until PG&E credit is rechecked, ask for collateral, and keep legal and credit on one internal review loop.",
-  "summary": "Hold PG&E Financial Power trade EW9838 pending immediate credit recheck; require collateral; ensure Legal and Credit perform a joint internal review before any confirmation.",
+  "summary": "Hold the PG&E Financial Power trade (EW9838) pending an immediate credit recheck, require collateral, and keep Legal and Credit on a single coordinated internal review loop.",
   "messages": [
     {
       "actor_id": "sara.shackleton@enron.com",
       "surface": "mail",
       "to": "mark.taylor@enron.com",
       "subject": "PG&E Financial Power Deal — HOLD pending credit/legal review",
-      "body_text": "Mark,\n\nHold the PG&E Financial Power trade (EW9838) executed 5/11. Credit/Legal previously flagged this counterparty — do not confirm or settle. I am requesting an immediate credit recheck and that PG&E provide collateral (letter of credit or cash margin) pending clearance. Legal and Credit will review jointly; do not proceed until they clear the trade. Please acknowledge and pause any confirmations.\n\nSara",
-      "delay_ms": 60000,
+      "body_text": "Mark,\n\nWe executed a Financial Power trade with PG&E (EW9838) on 5/11. Credit/Legal previously advised against Financial Power deals with this counterparty. Do not confirm or settle the trade — HOLD all activity until Credit completes a recheck of PG&E exposure and acceptable collateral is obtained. Please request PG&E provide collateral (LOC or cash) acceptable to Credit. I will keep Credit and Legal on a single internal review loop; Tana will lead the credit recheck. I will update once we have joint clearance.\n\nSara",
+      "delay_ms": 1000,
       "conversation_anchor": "",
-      "rationale": "Immediate stop to prevent confirmation while credit and legal reassess; requests collateral to limit exposure."
+      "rationale": "Immediately stop settlement/confirmation to prevent exposure until Credit and Legal jointly clear the trade."
     },
     {
       "actor_id": "sara.shackleton@enron.com",
       "surface": "mail",
       "to": "tana.jones@enron.com",
-      "subject": "PG&E Financial Power Deal — Immediate credit recheck & collateral request",
-      "body_text": "Tana,\n\nPlace the PG&E EW9838 trade on hold and perform an immediate credit re-evaluation of PG&E Energy Trading - Power L.P. Require PG&E to post collateral (LOC or cash margin) while we reassess. Coordinate directly with Legal (Rod) and copy me on all communications so we have a single Credit/Legal decision. Provide a written credit recommendation and proposed collateral terms within 24 hours.\n\nSara",
-      "delay_ms": 120000,
+      "subject": "PG&E (EW9838) — Immediate credit recheck & collateral request",
+      "body_text": "Tana,\n\nPlease perform an immediate credit re-evaluation for PG&E regarding the EW9838 Financial Power trade booked 5/11. Request acceptable collateral (LOC preferred) and identify any limit breaches. Coordinate directly with Legal so we run a single, joint internal review; produce written clearance or recommended refusal. Do not allow confirmation until both groups sign off. Keep Mark and me updated.\n\nThanks,\nSara",
+      "delay_ms": 60000,
       "conversation_anchor": "",
-      "rationale": "Directs Credit to re-evaluate counterparty and specify collateral; instructs coordination with Legal to ensure a single internal decision."
+      "rationale": "Directs Credit to re-evaluate counterparty risk, secure collateral, and ensure Legal and Credit operate on one coordinated review loop."
     },
     {
-      "actor_id": "sara.shackleton@enron.com",
+      "actor_id": "tana.jones@enron.com",
       "surface": "mail",
-      "to": "rod.nelson@enron.com",
-      "subject": "PG&E Financial Power Deal — Legal review & coordinate with Credit",
-      "body_text": "Rod,\n\nFYI/action: PG&E Financial Power trade EW9838 (5/11) has been placed on hold pending credit recheck. Please review legal exposure and documentation (including enforceability of any LOC) and coordinate with Tana so we produce a single Legal/Credit clearance or denial. Do not clear the trade until Legal and Credit jointly sign off.\n\nSara",
-      "delay_ms": 180000,
+      "to": "sara.shackleton@enron.com",
+      "subject": "Re: PG&E (EW9838) — Credit recheck started",
+      "body_text": "Sara,\n\nAcknowledged. I'll start an immediate credit recheck, request LOC/cash collateral from PG&E, and set up a single Credit/Legal review. I will report back with the results and recommended next steps within 24 hours. If collateral is not acceptable, we'll recommend not proceeding.\n\n-Tana",
+      "delay_ms": 300000,
       "conversation_anchor": "",
-      "rationale": "Brings Legal into the same review loop to review enforceability and to ensure a unified, documented legal/credit decision before proceeding."
+      "rationale": "Confirms Credit will act immediately, request collateral, and coordinate with Legal on a joint review loop to clear or refuse the trade."
     }
   ],
   "usage": {
     "provider": "openai",
     "model": "gpt-5-mini",
     "prompt_tokens": 719,
-    "completion_tokens": 4655,
-    "total_tokens": 5374,
-    "estimated_cost_usd": 0.00948975
+    "completion_tokens": 5153,
+    "total_tokens": 5872,
+    "estimated_cost_usd": 0.01048575
   },
   "scheduled_event_count": 3,
   "delivered_event_count": 3,
   "inbox_count": 4,
   "top_subjects": [
-    "PG&E Financial Power Deal — Legal review & coordinate with Credit",
-    "PG&E Financial Power Deal — Immediate credit recheck & collateral request",
+    "Re: PG&E (EW9838) — Credit recheck started",
+    "PG&E (EW9838) — Immediate credit recheck & collateral request",
     "PG&E Financial Power Deal — HOLD pending credit/legal review",
     "PG&E Financial Power Deal"
   ],
