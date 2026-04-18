@@ -112,11 +112,7 @@ class TraceLogger:
 
     def flush(self) -> None:
         if not self.out_dir:
-            env_dir = os.environ.get("VEI_ARTIFACTS_DIR")
-            if env_dir:
-                self.out_dir = env_dir
-            else:
-                return
+            return
         os.makedirs(self.out_dir, exist_ok=True)
         path = os.path.join(self.out_dir, "trace.jsonl")
         if self.append_mode and os.path.exists(path):

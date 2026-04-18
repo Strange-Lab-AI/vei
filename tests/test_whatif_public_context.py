@@ -8,6 +8,7 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 
 from vei.context.public_context import _core as public_context_core
+from vei.context.public_context import _fetchers as public_context_fetchers
 from vei.whatif import (
     build_branch_point_benchmark,
     build_saved_decision_scene,
@@ -37,6 +38,29 @@ from vei.context.api import (
     WhatIfPublicRegulatoryEvent,
     WhatIfPublicStockHistoryRow,
 )
+
+
+def test_cached_fetch_recovers_from_corrupt_cache_file(tmp_path, monkeypatch) -> None:
+    monkeypatch.setenv("VEI_ARTIFACTS_DIR", str(tmp_path / "artifacts"))
+    cache_root = tmp_path / "artifacts" / "public_context_cache"
+    cache_root.mkdir(parents=True, exist_ok=True)
+    cache_key = "cache-recovery"
+    cache_file = cache_root / f"{cache_key}.json"
+    cache_file.write_text('{"stale": true}{"extra": true}', encoding="utf-8")
+    fetch_calls = 0
+
+    def fetcher() -> dict[str, str]:
+        nonlocal fetch_calls
+        fetch_calls += 1
+        return {"status": "fresh"}
+
+    recovered = public_context_fetchers._cached_fetch(cache_key, fetcher, ttl_hours=24)
+    cached = public_context_fetchers._cached_fetch(cache_key, fetcher, ttl_hours=24)
+
+    assert recovered == {"status": "fresh"}
+    assert cached == {"status": "fresh"}
+    assert fetch_calls == 1
+    assert json.loads(cache_file.read_text(encoding="utf-8")) == {"status": "fresh"}
 
 
 def _write_public_context_rosetta_fixture(root: Path) -> None:

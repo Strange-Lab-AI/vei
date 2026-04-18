@@ -7,6 +7,7 @@ import logging
 import os
 import re
 import time
+from contextlib import suppress
 from dataclasses import dataclass
 from datetime import UTC
 from email.utils import parsedate_to_datetime
@@ -524,10 +525,56 @@ def _cached_fetch(
     if cache_file.exists():
         age_hours = (time.time() - cache_file.stat().st_mtime) / 3600
         if age_hours < ttl_hours:
-            return json.loads(cache_file.read_text(encoding="utf-8"))
+            cached = _read_cached_payload(cache_file)
+            if cached is not None:
+                return cached
     result = fetcher()
-    cache_file.write_text(json.dumps(result, default=str), encoding="utf-8")
+    _write_cached_payload(cache_file, result)
     return result
+
+
+def _read_cached_payload(cache_file: Path) -> Any | None:
+    try:
+        return json.loads(cache_file.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError, ValueError) as exc:
+        logger.warning(
+            "whatif public context cache read failed for %s (%s); refetching",
+            cache_file,
+            type(exc).__name__,
+            extra={
+                "source": "public_context",
+                "provider": "cache",
+                "file_path": str(cache_file),
+                "exception_type": type(exc).__name__,
+            },
+        )
+        with suppress(OSError):
+            cache_file.unlink()
+        return None
+
+
+def _write_cached_payload(cache_file: Path, result: Any) -> None:
+    payload = json.dumps(result, default=str)
+    temp_path = cache_file.with_suffix(
+        f"{cache_file.suffix}.{os.getpid()}.{time.time_ns()}.tmp"
+    )
+    try:
+        temp_path.write_text(payload, encoding="utf-8")
+        temp_path.replace(cache_file)
+    except OSError:
+        logger.warning(
+            "whatif public context cache write failed for %s",
+            cache_file,
+            extra={
+                "source": "public_context",
+                "provider": "cache",
+                "file_path": str(cache_file),
+            },
+            exc_info=True,
+        )
+    finally:
+        with suppress(OSError):
+            temp_path.unlink()
 
 
 # ---------------------------------------------------------------------------

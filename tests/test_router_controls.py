@@ -70,3 +70,15 @@ def test_tick_delivers_new_twin_targets_and_tracks_pending_counts() -> None:
     assert any(doc["title"] == "Policy update" for doc in r.docs.list())
     assert any(event["title"] == "Approval Sync" for event in r.calendar.list_events())
     assert any(ticket["title"] == "Follow up approval" for ticket in r.tickets.list())
+
+
+def test_router_without_explicit_artifacts_dir_ignores_env_artifacts_dir(
+    tmp_path, monkeypatch
+) -> None:
+    shared_artifacts = tmp_path / "shared-artifacts"
+    monkeypatch.setenv("VEI_ARTIFACTS_DIR", str(shared_artifacts))
+
+    router = Router(seed=11, artifacts_dir=None)
+    router.call_and_step("browser.read", {})
+
+    assert not shared_artifacts.exists()
