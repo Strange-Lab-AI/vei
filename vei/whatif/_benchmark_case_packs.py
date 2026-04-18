@@ -184,6 +184,55 @@ BENCHMARK_CASE_PACKS: dict[str, list[BenchmarkCaseSeed]] = {
             summary="A senior-counsel interview thread is choosing between private handling and wider alignment.",
             family="org_heat",
         ),
+        BenchmarkCaseSeed(
+            case_id="watkins_memo_release_path",
+            title="Watkins Memo Release Path",
+            event_id="enron_d8d296de473f63be",
+            summary="The Watkins memo path captures an internal warning about accounting exposure after Skilling's resignation.",
+            family="whistleblower",
+        ),
+        BenchmarkCaseSeed(
+            case_id="california_crisis_order",
+            title="California Crisis Preservation Order",
+            event_id="enron_99afc1ca73d1a1bb",
+            summary="A California Attorney General preservation order lands on the trading desk while the crisis strategy is active.",
+            family="market_manipulation",
+        ),
+        BenchmarkCaseSeed(
+            case_id="baxter_press_release",
+            title="Baxter Press Release",
+            event_id="enron_f9851a464c7fa074",
+            summary="The Cliff Baxter resignation press-release loop becomes a crisis-communications branch point.",
+            family="crisis_communication",
+        ),
+        BenchmarkCaseSeed(
+            case_id="q3_disclosure_review",
+            title="Q3 Disclosure Review",
+            event_id="enron_da8450d95fa6346a",
+            summary="Third-quarter review material is moving during the October 2001 disclosure crisis.",
+            family="crisis_communication",
+        ),
+        BenchmarkCaseSeed(
+            case_id="ees_preholiday_update",
+            title="EES Pre-holiday Update",
+            event_id="enron_3f324462154fdf8f",
+            summary="The year-end EES update captures accounting and coordination pressure at a disclosure-sensitive moment.",
+            family="accounting_disclosure",
+        ),
+        BenchmarkCaseSeed(
+            case_id="braveheart_forward",
+            title="Braveheart",
+            event_id="enron_c13a9a082c39a49d",
+            summary="The Braveheart thread links the broadband structure story to a real internal branch point.",
+            family="accounting_disclosure",
+        ),
+        BenchmarkCaseSeed(
+            case_id="skilling_resignation_materials",
+            title="Skilling Resignation Materials",
+            event_id="enron_f225c917c6f1076f",
+            summary="Draft communications materials around Skilling's resignation create a live trust and messaging branch point.",
+            family="crisis_communication",
+        ),
     ]
 }
 

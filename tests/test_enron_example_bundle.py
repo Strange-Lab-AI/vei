@@ -25,8 +25,10 @@ from vei.whatif.filenames import (
     EPISODE_MANIFEST_FILE,
     EXPERIMENT_OVERVIEW_FILE,
     EXPERIMENT_RESULT_FILE,
+    HEURISTIC_FORECAST_FILE,
     LLM_RESULT_FILE,
     PUBLIC_CONTEXT_FILE,
+    STUDIO_SAVED_FORECAST_FILES,
 )
 from vei.ui import api as ui_api
 
@@ -136,7 +138,7 @@ def test_repo_owned_enron_example_bundle_is_present_and_clean() -> None:
         EXAMPLE_ROOT / "whatif_experiment_overview.md",
         EXAMPLE_ROOT / "whatif_experiment_result.json",
         EXAMPLE_ROOT / "whatif_llm_result.json",
-        EXAMPLE_ROOT / "whatif_ejepa_result.json",
+        EXAMPLE_ROOT / HEURISTIC_FORECAST_FILE,
         EXAMPLE_ROOT / "whatif_business_state_comparison.json",
         EXAMPLE_ROOT / "whatif_business_state_comparison.md",
         EXAMPLE_ROOT / "workspace" / "vei_project.json",
@@ -180,7 +182,7 @@ def test_repo_owned_enron_example_bundle_is_present_and_clean() -> None:
 
     for relative_path in (
         "whatif_experiment_result.json",
-        "whatif_ejepa_result.json",
+        HEURISTIC_FORECAST_FILE,
         "workspace/episode_manifest.json",
     ):
         text = (EXAMPLE_ROOT / relative_path).read_text(encoding="utf-8")
@@ -189,9 +191,10 @@ def test_repo_owned_enron_example_bundle_is_present_and_clean() -> None:
     overview_text = (EXAMPLE_ROOT / "whatif_experiment_overview.md").read_text(
         encoding="utf-8"
     )
-    assert "External-send delta: -29" in overview_text
-    assert "Predicted risk: 0.983" in overview_text
+    assert "External-send delta: -64" in overview_text
+    assert "Predicted risk: 0.56" in overview_text
     assert "## Business State Change" in overview_text
+    assert "## Macro Outcomes" in overview_text
 
     comparison_payload = json.loads(
         (EXAMPLE_ROOT / "whatif_business_state_comparison.json").read_text(
@@ -223,9 +226,14 @@ def test_canonical_saved_forecast_filenames_are_stable() -> None:
     assert EXPERIMENT_OVERVIEW_FILE == "whatif_experiment_overview.md"
     assert LLM_RESULT_FILE == "whatif_llm_result.json"
     assert EJEPA_RESULT_FILE == "whatif_ejepa_result.json"
+    assert HEURISTIC_FORECAST_FILE == "whatif_heuristic_baseline_result.json"
     assert BUSINESS_STATE_COMPARISON_FILE == "whatif_business_state_comparison.json"
     assert (
         BUSINESS_STATE_COMPARISON_OVERVIEW_FILE == "whatif_business_state_comparison.md"
+    )
+    assert STUDIO_SAVED_FORECAST_FILES == (
+        EJEPA_RESULT_FILE,
+        HEURISTIC_FORECAST_FILE,
     )
 
 
@@ -537,7 +545,7 @@ def test_repo_owned_enron_example_workspace_loads_saved_scene() -> None:
     assert status_response.status_code == 200
     status_payload = status_response.json()
     assert status_payload["available"] is True
-    assert status_payload["source"] == "mail_archive"
+    assert status_payload["source"] == "enron"
 
     historical_response = client.get("/api/workspace/historical")
     assert historical_response.status_code == 200
@@ -605,9 +613,7 @@ def test_repo_owned_enron_example_workspace_uses_saved_experiment_without_rosett
 
     assert response.status_code == 200
     payload = response.json()
-    assert (
-        payload["label"] == "master_agreement_internal_review_public_context_20260412"
-    )
+    assert payload["label"] == "master_agreement_saved_bundle_20260417"
     assert payload["saved_result"] is True
     assert "saved reference result" in payload["saved_bundle_notice"]
     assert payload["materialization"]["branch_event_id"] == "enron_bcda1b925800af8c"
@@ -645,9 +651,9 @@ def test_repo_owned_enron_example_workspace_uses_saved_ranked_result_without_ros
     assert response.status_code == 200
     payload = response.json()
     assert payload["recommended_candidate_label"] == "Hold for internal review"
-    assert payload["objective_pack"]["pack_id"] == "reduce_delay"
+    assert payload["objective_pack"]["pack_id"] == "contain_exposure"
     assert payload["candidates"][0]["outcome_score"]["objective_pack_id"] == (
-        "reduce_delay"
+        "contain_exposure"
     )
     assert (
         payload["candidates"][0]["intervention"]["label"] == "Hold for internal review"

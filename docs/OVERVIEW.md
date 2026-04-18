@@ -43,7 +43,7 @@ The first version of that flow is mail-first:
 - that workspace replays real past messages up to just before the chosen event and schedules the chosen event plus the later historical messages as the baseline future
 - only after that branch point does VEI run counterfactual continuation logic
 
-For Enron, that mail-first branch point can also carry a packaged public-company backdrop. VEI ships 11 dated public financial checkpoints and 13 dated public news events from 17 archived public source files, filters them to the loaded Enron email window, then filters them again to the branch date. The same pre-branch slice flows into the saved episode manifest, Studio decision scene, bounded LLM prompt, and benchmark dossiers.
+For Enron, that mail-first branch point can also carry a packaged public-company backdrop. VEI now ships 11 dated public financial checkpoints, 21 dated public news events, 986 daily stock rows, 7 credit events, and 1 FERC timeline event from 24 archived public source files. VEI filters those rows to the loaded Enron email window, then filters them again to the branch date. The same pre-branch slice flows into the saved episode manifest, Studio decision scene, bounded LLM prompt, and benchmark dossiers.
 
 Two compare paths exist today:
 

@@ -120,7 +120,7 @@ vei whatif experiment \
 - business-state comparison Markdown
 - the strict replay workspace used for the run
 
-The forecast bundle is written as `whatif_ejepa_result.json` when the real JEPA path runs and `whatif_heuristic_baseline_result.json` for direct heuristic runs.
+The forecast bundle is written as `whatif_ejepa_result.json` when the real JEPA path runs and `whatif_heuristic_baseline_result.json` for direct heuristic runs. The repo-owned Enron examples currently save the heuristic file so they stay runnable on a fresh clone.
 
 This makes it easy to inspect the result in Studio later, compare runs, or hand the output to another tool.
 
@@ -139,7 +139,9 @@ Optional sidecars are validated when present:
 - `whatif_ejepa_result.json` or `whatif_heuristic_baseline_result.json`: saved forecast result
 - `whatif_business_state_comparison.json` + `whatif_business_state_comparison.md`: ranked comparison payload and summary when the ranked path is saved
 
-For Enron, VEI also ships a packaged public-company context fixture under `vei/whatif/fixtures/enron_public_context`. Refresh it with `python scripts/prepare_enron_public_context.py`. The current fixture carries 11 dated financial checkpoints and 13 dated public news events from 17 archived public source files, spanning December 31, 1998 through December 2, 2001. VEI slices that fixture to the active Enron email window and then to the chosen branch date before it is shown in Studio, written into the saved episode manifest, added to the LLM counterfactual prompt, or attached to benchmark dossiers.
+For Enron, VEI now ships the full repo-owned data chain. The archive lives under `data/enron/`, the public-company fixture lives under `vei/whatif/fixtures/enron_public_context`, and the helper docs live in [ROSETTA_SOURCE.md](ROSETTA_SOURCE.md). Refresh the public fixture with `python scripts/prepare_enron_public_context.py`, verify the vendored archive with `python scripts/check_rosetta_archive.py`, and refresh screenshots with `python scripts/capture_enron_bundle_screenshots.py`.
+
+The current Enron public context carries 11 dated financial checkpoints, 21 dated public news events, 986 daily stock rows, 7 credit events, and 1 FERC timeline event across 24 archived public source files. VEI slices those rows to the active Enron window and then to the chosen branch date before they are shown in Studio, written into the saved episode manifest, attached to the saved bundle, or added to benchmark dossiers.
 
 The same path now works for a new company history bundle. Put the normalized historical source in `context_snapshot.json`. Multi-source snapshots can now branch from mail, Slack or Teams-style chat, and Jira-style ticket history through the same typed what-if path. VEI derives a shared case id from that history, shows earlier cross-surface case activity in the branch scene, and carries that linked operational history plus linked document or CRM records into the saved workspace when the bundle includes them. Put a sidecar `whatif_public_context.json` in the same folder when you want dated public facts in the branch scene, the prompt, and the saved run. Put a research-pack JSON file anywhere on disk when you want a reusable set of held-out branch cases for `vei whatif pack run` or `vei whatif benchmark build`.
 
@@ -195,12 +197,14 @@ vei whatif benchmark build \
 
 ## Current Studio flow
 
-The current repo-owned Enron example has two committed layers:
+The current repo-owned Enron set has four saved bundles:
 
-- the saved `Master Agreement` example bundle under `docs/examples/enron-master-agreement-public-context/` for the branch workspace and saved result files
-- the packaged public-company context fixture under `vei/whatif/fixtures/enron_public_context` for dated financial and public-news facts
+- `docs/examples/enron-master-agreement-public-context/`
+- `docs/examples/enron-watkins-memo/`
+- `docs/examples/enron-california-crisis-strategy/`
+- `docs/examples/enron-pge-power-deal/`
 
-The screenshots below were refreshed from the repo-owned `Master Agreement` bundle under `docs/examples/enron-master-agreement-public-context/`, so a fresh clone can show the same branch point, search it, and inspect the saved comparisons without depending on ignored local output folders.
+The flow gif and search screenshot below still show the interactive loop at a high level. The decision, public-context, macro, and ranking panels were refreshed from the repo-owned bundles with `python scripts/capture_enron_bundle_screenshots.py`, so a fresh clone can open the same saved branch points and inspect the same saved comparisons without a sibling checkout.
 
 ![Enron historical what-if flow](assets/enron-whatif/enron-whatif-flow.gif)
 
@@ -212,17 +216,21 @@ The public-company panel is its own dated slice. This saved `Master Agreement` b
 
 ![Enron public company context panel](assets/enron-whatif/enron-public-context.png)
 
-The repo-owned `Master Agreement` example also carries the saved result panels for the same branch point. The single saved counterfactual keeps the same 84-event horizon, predicts 29 fewer outside sends, and translates that into plain business effects.
+The repo-owned `Master Agreement` example also carries the saved result panels for the same branch point. The single saved counterfactual keeps the same 84-event horizon, moves risk from `1.000` to `0.560`, and predicts `64` fewer outside-addressed sends.
 
 ![Enron predicted business change](assets/enron-whatif/enron-predicted-business-change.png)
 
-The saved ranked comparison then turns that into a real decision view for the same moment: hold for internal review ranks first, a narrow status note ranks second, and a fast-turnaround push loses the containment gain.
+The same bundle now shows a macro panel beside the email-path readout. The current Enron macro calibration stays weak, so the stock, credit, and FERC heads are clearly labeled as advisory context.
+
+![Enron macro outcome panel](assets/enron-whatif/enron-macro-outcomes.png)
+
+The saved ranked comparison then turns that into a real decision view for the same moment: hold for internal review ranks first at `0.209`, a narrow status note lands second at `0.208`, and a fast-turnaround push loses the containment gain at `-0.019`.
 
 ![Enron ranked business comparison](assets/enron-whatif/enron-ranked-comparison.png)
 
 ## Live Enron display in Studio
 
-Use the repo-owned saved Enron example directly when you want the screen to show Enron itself from a fresh clone.
+Use the repo-owned saved Enron examples directly when you want the screen to show Enron itself from a fresh clone.
 
 ```bash
 vei ui serve \
@@ -233,7 +241,7 @@ vei ui serve \
 
 Open `http://127.0.0.1:3055` and stay inside that workspace. This keeps the display tied to the actual Enron branch point and the actual saved result.
 
-This repo-owned Studio path is a saved reference display. When the full Enron Rosetta archive is missing, Studio returns the committed saved result for this workspace and ignores custom prompt, label, provider, and mode changes in the what-if panel.
+This repo-owned Studio path is a saved reference display first. The repo now also carries the Rosetta archive under `data/enron/rosetta`, so a fresh clone can rebuild the examples and run whole-history Enron search without reaching outside the repo.
 
 Use the saved snapshot directly when you want a fresh-clone rerun of the same branch slice:
 
@@ -249,26 +257,26 @@ vei whatif experiment \
   --mode heuristic_baseline
 ```
 
-That rerun uses the saved branch workspace slice that ships in the repo. Whole-history Enron search still requires a local Rosetta checkout.
+That rerun uses the saved branch workspace slice that ships in the repo. Whole-history Enron search uses the vendored archive by default, or `VEI_WHATIF_ROSETTA_DIR` when you point it somewhere else.
 
 The committed example bundle also carries:
 
 - `whatif_experiment_overview.md`
 - `whatif_llm_result.json`
-- `whatif_ejepa_result.json`
+- `whatif_heuristic_baseline_result.json`
 - `whatif_experiment_result.json`
 - `whatif_business_state_comparison.md`
 - `whatif_business_state_comparison.json`
 
 Unlike a plain saved run (which may omit ranked sidecars), this repo-owned example intentionally includes ranked comparison artifacts as part of the reference story.
 
-Those files live under `docs/examples/enron-master-agreement-public-context/` beside the saved workspace. The branch date is September 27, 2000, so the saved scene shows 5 financial checkpoints and 6 public-news items. Use the real Rosetta archive when you want whole-history Enron search or a new run from the full corpus.
+Those files live under `docs/examples/enron-master-agreement-public-context/` beside the saved workspace. The branch date is September 27, 2000, so the saved scene shows 5 financial checkpoints, 6 public-news items, and 680 market rows. Use the vendored Rosetta archive when you want whole-history Enron search or a new run from the full corpus.
 
-Refresh the repo-owned example and validate it before you report a change:
+Refresh the repo-owned bundles, validate them, and refresh the screenshots before you report a change:
 
 ```bash
-python scripts/build_enron_business_state_example.py
-python scripts/validate_whatif_artifacts.py docs/examples/enron-master-agreement-public-context
+make enron-example
+make enron-screens
 ```
 
 ## Enron business-outcome benchmark
@@ -307,7 +315,7 @@ All trained model families use the same boundary for this benchmark:
 
 The held-out Enron dossiers now include dated public financial checkpoints and public news items that were already known by the branch date. That public context helps the judge and the audit workflow. It does not change the model-training contract in this pass.
 
-Rebuilding this benchmark requires a local Enron Rosetta dataset. The repo ships the public-context fixture, but it does not ship the Rosetta email archive needed for `vei whatif benchmark build`.
+Rebuilding this benchmark now uses the vendored Enron Rosetta dataset under `data/enron/rosetta` by default. `VEI_WHATIF_ROSETTA_DIR` still overrides that path when you want to point at a different archive.
 
 The matched-input benchmark study now gives `jepa_latent` and `full_context_transformer` the same pre-branch event sequence, summary features, and action schema. That makes the main rerun a clean model comparison instead of a mixed input comparison.
 
@@ -382,7 +390,7 @@ vei whatif benchmark study \
 
 ### Current model state
 
-The current saved Enron public-context build uses 24 held-out cases with 4 candidate actions each. The headline result now comes from the matched-input study rerun over that build rather than from the older single-run comparison.
+The current saved Enron public-context build uses 31 held-out cases with 4 candidate actions each across 10 case families. The headline result still comes from the matched-input study rerun rather than from the older single-run comparison.
 
 The held-out dossiers now also carry the dated Enron public-company backdrop that was already public by each branch date. That richer context is for replay, judging, and audit review. The model-training inputs stay the same in this pass.
 

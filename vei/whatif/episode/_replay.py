@@ -23,6 +23,7 @@ from ..corpus import (
 from .._helpers import (
     chat_channel_name_from_reference as _chat_channel_name_from_reference,
 )
+from ..macro_outcomes import attach_macro_outcomes_to_historical_score
 
 logger = logging.getLogger(__name__)
 
@@ -127,6 +128,8 @@ def score_historical_tail(
     events: Sequence[WhatIfEvent],
     *,
     organization_domain: str = ENRON_DOMAIN,
+    branch_timestamp: str = "",
+    public_context=None,
 ) -> WhatIfHistoricalScore:
     future_event_count = len(events)
     future_escalation_count = sum(
@@ -160,7 +163,7 @@ def score_historical_tail(
         f"{future_escalation_count} escalations and {future_external_event_count} "
         "externally addressed messages."
     )
-    return WhatIfHistoricalScore(
+    score = WhatIfHistoricalScore(
         backend="historical",
         future_event_count=future_event_count,
         future_escalation_count=future_escalation_count,
@@ -169,6 +172,12 @@ def score_historical_tail(
         future_external_event_count=future_external_event_count,
         risk_score=round(risk_score, 3),
         summary=summary,
+    )
+    return attach_macro_outcomes_to_historical_score(
+        score,
+        organization_domain=organization_domain,
+        branch_timestamp=branch_timestamp,
+        public_context=public_context,
     )
 
 

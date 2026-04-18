@@ -1,5 +1,5 @@
 {
-  "version": "1",
+  "version": "2",
   "name": "enron_public_context",
   "title": "Enron Public Context Pack",
   "description": "Archived public financial checkpoints and public-news timeline data for Enron. Intended to be filtered against the oldest and latest email dates in an Enron historical world.",
@@ -12,7 +12,7 @@
       "source_system": "public_archive",
       "file_type": "pdf",
       "relative_path": "raw/2000_financial_highlights.pdf",
-      "collected_at": "2026-04-15T15:54:57Z",
+      "collected_at": "2026-04-18T04:49:27Z",
       "redaction_status": "public_source",
       "source_url": "https://enroncorp.com/src/doc/investors/2000_Financial_Highlights2.pdf",
       "description": "Archived Enron financial highlights with selected multi-year figures.",
@@ -20,7 +20,8 @@
         "financials",
         "annual"
       ],
-      "sha256": "6431eb0e2b0c790d30cff3dcaa8f964115d8ab0286653753e6234da23b4c081b",
+      "content_digest_algorithm": "sha256_prefix8",
+      "content_digest_prefix": "6431eb0e",
       "size_bytes": 105293
     },
     {
@@ -28,7 +29,7 @@
       "source_system": "public_archive",
       "file_type": "pdf",
       "relative_path": "raw/2000_form_10k.pdf",
-      "collected_at": "2026-04-15T15:54:57Z",
+      "collected_at": "2026-04-18T04:49:27Z",
       "redaction_status": "public_source",
       "source_url": "https://enroncorp.com/src/doc/investors/2001-04-02-10-k.pdf",
       "description": "Enron Form 10-K for the fiscal year ended December 31, 2000.",
@@ -37,7 +38,8 @@
         "annual",
         "filing"
       ],
-      "sha256": "326636591c8aead1a694aae98ffd7a31c974398c020bfcb0a53b9f7eab6c24d4",
+      "content_digest_algorithm": "sha256_prefix8",
+      "content_digest_prefix": "32663659",
       "size_bytes": 318025
     },
     {
@@ -45,7 +47,7 @@
       "source_system": "public_archive",
       "file_type": "html",
       "relative_path": "raw/2000_q4_1999_earnings_release.html",
-      "collected_at": "2026-04-15T15:54:57Z",
+      "collected_at": "2026-04-18T04:49:27Z",
       "redaction_status": "public_source",
       "source_url": "https://enroncorp.com/corp/pressroom/releases/2000/ene/4qenet",
       "description": "Archived fourth-quarter 1999 Enron earnings release.",
@@ -53,15 +55,16 @@
         "financials",
         "quarterly"
       ],
-      "sha256": "88728456e37800e89065d131c0417f7f7f265750c6f7f509ac8ac972e0b35c86",
-      "size_bytes": 18533
+      "content_digest_algorithm": "sha256_prefix8",
+      "content_digest_prefix": "71227555",
+      "size_bytes": 15709
     },
     {
       "source_id": "enron_2000_q1_release",
       "source_system": "public_archive",
       "file_type": "html",
       "relative_path": "raw/2000_q1_earnings_release.html",
-      "collected_at": "2026-04-15T15:54:57Z",
+      "collected_at": "2026-04-18T04:49:27Z",
       "redaction_status": "public_source",
       "source_url": "https://enroncorp.com/corp/pressroom/releases/2000/ene/1q00release-4-11-final",
       "description": "Archived first-quarter 2000 Enron earnings release.",
@@ -69,15 +72,16 @@
         "financials",
         "quarterly"
       ],
-      "sha256": "734faf041ab92434b97c93644922b8ccc2ce7f50581ad6c718b07eb40eb2c9dd",
-      "size_bytes": 17235
+      "content_digest_algorithm": "sha256_prefix8",
+      "content_digest_prefix": "ccb8da04",
+      "size_bytes": 14394
     },
     {
       "source_id": "enron_2000_q2_release",
       "source_system": "public_archive",
       "file_type": "html",
       "relative_path": "raw/2000_q2_earnings_release.html",
-      "collected_at": "2026-04-15T15:54:57Z",
+      "collected_at": "2026-04-18T04:49:27Z",
       "redaction_status": "public_source",
       "source_url": "https://enroncorp.com/corp/pressroom/releases/2000/ene/2qearnreal-jul20",
       "description": "Archived second-quarter 2000 Enron earnings release.",
@@ -85,15 +89,35 @@
         "financials",
         "quarterly"
       ],
-      "sha256": "b0e9a5b1792cd389085b494ea8ae28b066b71458152fe65c2078e660f71e63ab",
-      "size_bytes": 17206
+      "content_digest_algorithm": "sha256_prefix8",
+      "content_digest_prefix": "5449e3e3",
+      "size_bytes": 14373
+    },
+    {
+      "source_id": "enron_historical_stock_price_pdf",
+      "source_system": "public_archive",
+      "file_type": "pdf",
+      "relative_path": "raw/2001_enron_historical_stock_price.pdf",
+      "collected_at": "2026-04-18T04:49:27Z",
+      "redaction_status": "public_source",
+      "source_url": "https://www.famous-trials.com/images/ftrials/Enron/documents/enronstockchart.pdf",
+      "description": "Archived daily Enron historical stock price and volume table spanning 1998 through 2001.",
+      "topics": [
+        "financials",
+        "stock_price",
+        "market_history",
+        "daily_prices"
+      ],
+      "content_digest_algorithm": "sha256_prefix8",
+      "content_digest_prefix": "1ed07be3",
+      "size_bytes": 6083168
     },
     {
       "source_id": "enron_2000_q3_release",
       "source_system": "public_archive",
       "file_type": "html",
       "relative_path": "raw/2000_q3_earnings_release.html",
-      "collected_at": "2026-04-15T15:54:57Z",
+      "collected_at": "2026-04-18T04:49:27Z",
       "redaction_status": "public_source",
       "source_url": "https://enroncorp.com/corp/pressroom/releases/2000/ene/3q-final",
       "description": "Archived third-quarter 2000 Enron earnings release.",
@@ -101,15 +125,16 @@
         "financials",
         "quarterly"
       ],
-      "sha256": "6f61f7f7cbf01bcbbfdb3f30b52444bfc64fec60fe10f01079eb71d9cace0b41",
-      "size_bytes": 17863
+      "content_digest_algorithm": "sha256_prefix8",
+      "content_digest_prefix": "1ee6b739",
+      "size_bytes": 15029
     },
     {
       "source_id": "enron_2000_emissions_auction",
       "source_system": "public_archive",
       "file_type": "html",
       "relative_path": "raw/2000_enrononline_emissions_auction.html",
-      "collected_at": "2026-04-15T15:54:57Z",
+      "collected_at": "2026-04-18T04:49:27Z",
       "redaction_status": "public_source",
       "source_url": "https://enroncorp.com/corp/pressroom/releases/2000/ene/enrononline_auction_press_release",
       "description": "Archived EnronOnline emissions auction launch release.",
@@ -118,15 +143,16 @@
         "market_launch",
         "enrononline"
       ],
-      "sha256": "af3adf14bbff62b02ae6d53340936a9bff8391afde6b7bd69ef4c423dbbbe789",
-      "size_bytes": 12163
+      "content_digest_algorithm": "sha256_prefix8",
+      "content_digest_prefix": "73ca1f20",
+      "size_bytes": 9340
     },
     {
       "source_id": "enron_2000_ibm_agreement",
       "source_system": "public_archive",
       "file_type": "html",
       "relative_path": "raw/2000_ibm_energy_services_agreement.html",
-      "collected_at": "2026-04-15T15:54:57Z",
+      "collected_at": "2026-04-18T04:49:27Z",
       "redaction_status": "public_source",
       "source_url": "https://enroncorp.com/corp/pressroom/releases/2000/ene/ibmreleaseversion2",
       "description": "Archived Enron Energy Services agreement with IBM.",
@@ -135,15 +161,16 @@
         "commercial_agreement",
         "energy_services"
       ],
-      "sha256": "7395b8fe450b03a675ce5eda6b2928b689f5f58e57ed55baae39780e0153f799",
-      "size_bytes": 11641
+      "content_digest_algorithm": "sha256_prefix8",
+      "content_digest_prefix": "cacdc6ca",
+      "size_bytes": 8833
     },
     {
       "source_id": "enron_2000_mg_offer",
       "source_system": "public_archive",
       "file_type": "html",
       "relative_path": "raw/2000_mg_plc_offer.html",
-      "collected_at": "2026-04-15T15:54:57Z",
+      "collected_at": "2026-04-18T04:49:27Z",
       "redaction_status": "public_source",
       "source_url": "https://enroncorp.com/corp/pressroom/releases/2000/ene/merlinrelease",
       "description": "Archived Enron offer for MG plc.",
@@ -152,15 +179,16 @@
         "acquisition_offer",
         "metals"
       ],
-      "sha256": "1b8cb512d87e2479228768602e8286561c265f2ee23d46485156faed0b7eb119",
-      "size_bytes": 14186
+      "content_digest_algorithm": "sha256_prefix8",
+      "content_digest_prefix": "1370801b",
+      "size_bytes": 11383
     },
     {
       "source_id": "enron_2000_enrononline_milestone",
       "source_system": "public_archive",
       "file_type": "html",
       "relative_path": "raw/2000_enrononline_50b_milestone.html",
-      "collected_at": "2026-04-15T15:54:57Z",
+      "collected_at": "2026-04-18T04:49:27Z",
       "redaction_status": "public_source",
       "source_url": "https://enroncorp.com/corp/pressroom/releases/2000/ene/49-enrononlinemilestone",
       "description": "Archived EnronOnline $50B transaction milestone release.",
@@ -169,15 +197,16 @@
         "platform_growth",
         "enrononline"
       ],
-      "sha256": "f530815e7a296db7895de828ecbf4abfa27e92df3511b258d17924eaa42ebbb5",
-      "size_bytes": 11918
+      "content_digest_algorithm": "sha256_prefix8",
+      "content_digest_prefix": "f6c68188",
+      "size_bytes": 9105
     },
     {
       "source_id": "enron_2000_blockbuster_launch",
       "source_system": "public_archive",
       "file_type": "html",
       "relative_path": "raw/2000_blockbuster_on_demand_launch.html",
-      "collected_at": "2026-04-15T15:54:57Z",
+      "collected_at": "2026-04-18T04:49:27Z",
       "redaction_status": "public_source",
       "source_url": "https://enroncorp.com/corp/pressroom/releases/2000/ec/68-blockbuster",
       "description": "Archived Enron and Blockbuster on-demand launch release.",
@@ -186,15 +215,16 @@
         "product_launch",
         "broadband"
       ],
-      "sha256": "e0e007e613e0014f08a74f215c05d60fb8af717715eb20380b0fd66e0d3e330f",
-      "size_bytes": 17424
+      "content_digest_algorithm": "sha256_prefix8",
+      "content_digest_prefix": "c5e5f1aa",
+      "size_bytes": 14502
     },
     {
       "source_id": "enron_2000_clickpaper_launch",
       "source_system": "public_archive",
       "file_type": "html",
       "relative_path": "raw/2000_clickpaper_launch.html",
-      "collected_at": "2026-04-15T15:54:57Z",
+      "collected_at": "2026-04-18T04:49:27Z",
       "redaction_status": "public_source",
       "source_url": "https://enroncorp.com/corp/pressroom/releases/2000/ene/clickpaper.com",
       "description": "Archived Clickpaper.com launch release.",
@@ -203,15 +233,16 @@
         "product_launch",
         "industrial_markets"
       ],
-      "sha256": "c2b4ace897c422ea75cd2627b47edfa484f3cc3359a2a9d2a029e256f80dc618",
-      "size_bytes": 12953
+      "content_digest_algorithm": "sha256_prefix8",
+      "content_digest_prefix": "1dcbc260",
+      "size_bytes": 10149
     },
     {
       "source_id": "enron_2001_press_chronology",
       "source_system": "public_archive",
       "file_type": "html",
       "relative_path": "raw/2001_press_chronology.html",
-      "collected_at": "2026-04-15T15:54:57Z",
+      "collected_at": "2026-04-18T04:49:27Z",
       "redaction_status": "public_source",
       "source_url": "https://enroncorp.com/corp/pressroom/releases/2001/press_chron2001",
       "description": "Archived 2001 Enron press release chronology.",
@@ -219,15 +250,16 @@
         "news",
         "timeline"
       ],
-      "sha256": "0a9dc6187f59f5d801e4e7a64eebd740d06e1f7ac0c1f045a4f7e264f76e28f4",
-      "size_bytes": 33496
+      "content_digest_algorithm": "sha256_prefix8",
+      "content_digest_prefix": "fc94bbe5",
+      "size_bytes": 20757
     },
     {
       "source_id": "enron_2001_q1_release",
       "source_system": "public_archive",
       "file_type": "html",
       "relative_path": "raw/2001_q1_earnings_release.html",
-      "collected_at": "2026-04-15T15:54:57Z",
+      "collected_at": "2026-04-18T04:49:27Z",
       "redaction_status": "public_source",
       "source_url": "https://enroncorp.com/corp/pressroom/releases/2001/ene/ene-q1-01-ltr",
       "description": "Archived first-quarter 2001 Enron earnings release.",
@@ -235,15 +267,16 @@
         "financials",
         "quarterly"
       ],
-      "sha256": "cb4206e9e2adbca472064ae38fefac53d72bc47f214f08a626355ea85ef704ea",
-      "size_bytes": 18553
+      "content_digest_algorithm": "sha256_prefix8",
+      "content_digest_prefix": "8a2509db",
+      "size_bytes": 15668
     },
     {
       "source_id": "enron_2001_q2_release",
       "source_system": "public_archive",
       "file_type": "html",
       "relative_path": "raw/2001_q2_earnings_release.html",
-      "collected_at": "2026-04-15T15:54:57Z",
+      "collected_at": "2026-04-18T04:49:27Z",
       "redaction_status": "public_source",
       "source_url": "https://enroncorp.com/corp/pressroom/releases/2001/ene/51-enronsecondquarterrelease-07-12-01-ltr",
       "description": "Archived second-quarter 2001 Enron earnings release.",
@@ -251,15 +284,126 @@
         "financials",
         "quarterly"
       ],
-      "sha256": "490bce87de195cabf86d87e588a738f4ce026f5b4dd80e0caad3e34a06950463",
-      "size_bytes": 19621
+      "content_digest_algorithm": "sha256_prefix8",
+      "content_digest_prefix": "0ccb8100",
+      "size_bytes": 16696
+    },
+    {
+      "source_id": "pge_2001_chapter11_record",
+      "source_system": "public_archive",
+      "file_type": "html",
+      "relative_path": "raw/2001_pge_chapter11_record.html",
+      "collected_at": "2026-04-18T04:49:27Z",
+      "redaction_status": "public_source",
+      "source_url": "https://www.sec.gov/Archives/edgar/data/1004980/000095014904000430/f95893ae10vk.htm",
+      "description": "SEC filing that records PG&E's April 6, 2001 Chapter 11 filing.",
+      "topics": [
+        "news",
+        "bankruptcy",
+        "counterparty"
+      ],
+      "content_digest_algorithm": "sha256_prefix8",
+      "content_digest_prefix": "234e63c3",
+      "size_bytes": 1068284
+    },
+    {
+      "source_id": "california_refund_order_record",
+      "source_system": "public_archive",
+      "file_type": "html",
+      "relative_path": "raw/2001_california_refund_hearing.html",
+      "collected_at": "2026-04-18T04:49:27Z",
+      "redaction_status": "public_source",
+      "source_url": "https://seuc.senate.ca.gov/june-19-2001-hearing-information",
+      "description": "California Senate hearing page summarizing the June 19, 2001 FERC refund and mitigation action.",
+      "topics": [
+        "news",
+        "regulatory",
+        "ferc",
+        "california_crisis"
+      ],
+      "content_digest_algorithm": "sha256_prefix8",
+      "content_digest_prefix": "8c659063",
+      "size_bytes": 64763
+    },
+    {
+      "source_id": "skilling_resignation_release",
+      "source_system": "public_archive",
+      "file_type": "pdf",
+      "relative_path": "raw/2001_skilling_resignation.pdf",
+      "collected_at": "2026-04-18T04:49:27Z",
+      "redaction_status": "public_source",
+      "source_url": "https://www.justice.gov/archive/enron/exhibit/02-02/BBC-0001/Images/EXH023-00160.PDF",
+      "description": "Archived Enron press release announcing Jeff Skilling's resignation.",
+      "topics": [
+        "news",
+        "governance",
+        "leadership"
+      ],
+      "content_digest_algorithm": "sha256_prefix8",
+      "content_digest_prefix": "6e2b1dc8",
+      "size_bytes": 73943
+    },
+    {
+      "source_id": "watkins_memo_public_release",
+      "source_system": "public_archive",
+      "file_type": "html",
+      "relative_path": "raw/2002_watkins_memo_release.html",
+      "collected_at": "2026-04-18T04:49:27Z",
+      "redaction_status": "public_source",
+      "source_url": "https://www.latimes.com/archives/la-xpm-2002-jan-16-mn-22968-story.html",
+      "description": "Public press coverage from January 16, 2002 when the full Watkins memo text became public.",
+      "topics": [
+        "news",
+        "whistleblower",
+        "accounting"
+      ],
+      "content_digest_algorithm": "sha256_prefix8",
+      "content_digest_prefix": "914fd7c1",
+      "size_bytes": 349943
+    },
+    {
+      "source_id": "arthur_andersen_indictment",
+      "source_system": "public_archive",
+      "file_type": "html",
+      "relative_path": "raw/2002_arthur_andersen_indictment.html",
+      "collected_at": "2026-04-18T04:49:27Z",
+      "redaction_status": "public_source",
+      "source_url": "https://www.justice.gov/archive/dag/speeches/2002/031402newsconferncearthurandersen.htm",
+      "description": "DOJ announcement and transcript for the Arthur Andersen indictment.",
+      "topics": [
+        "news",
+        "auditor",
+        "indictment"
+      ],
+      "content_digest_algorithm": "sha256_prefix8",
+      "content_digest_prefix": "76280db7",
+      "size_bytes": 18134
+    },
+    {
+      "source_id": "enron_credit_rating_report",
+      "source_system": "public_archive",
+      "file_type": "pdf",
+      "relative_path": "raw/2002_enron_credit_rating_report.pdf",
+      "collected_at": "2026-04-18T04:49:27Z",
+      "redaction_status": "public_source",
+      "source_url": "https://www.govinfo.gov/content/pkg/CPRT-107SPRT80604/pdf/CPRT-107SPRT80604.pdf",
+      "description": "Senate committee print on Enron and private-sector watchdogs with the credit-rating action timeline.",
+      "topics": [
+        "news",
+        "credit",
+        "ratings",
+        "senate_report"
+      ],
+      "content_digest_algorithm": "sha256_prefix8",
+      "content_digest_prefix": "42434ea3",
+      "size_bytes": 519016
     },
     {
       "source_id": "pge_2001_q3_10q_note",
       "source_system": "public_archive",
       "file_type": "html",
       "relative_path": "raw/pge_2001_q3_10q.html",
-      "collected_at": "2026-04-15T15:54:57Z",
+      "collected_at": "2026-04-18T04:49:27Z",
       "redaction_status": "public_source",
       "source_url": "https://www.sec.gov/Archives/edgar/data/784977/000078497701500017/q10qtr3.htm",
       "description": "SEC-filed Portland General Electric 10-Q with dated notes on Enron's October and November 2001 disclosures.",
@@ -268,15 +412,16 @@
         "financials",
         "regulatory"
       ],
-      "sha256": "a7ceb7b4aa97243ea168de78ac3201933368d9ea53e4c3f48ea12bfe2f4c2ee8",
-      "size_bytes": 181498
+      "content_digest_algorithm": "sha256_prefix8",
+      "content_digest_prefix": "b046308c",
+      "size_bytes": 181407
     },
     {
       "source_id": "sec_enron_chapter11_record",
       "source_system": "public_archive",
       "file_type": "html",
       "relative_path": "raw/sec_enron_chapter11_record.html",
-      "collected_at": "2026-04-15T15:54:57Z",
+      "collected_at": "2026-04-18T04:49:27Z",
       "redaction_status": "public_source",
       "source_url": "https://www.sec.gov/file/35-27810",
       "description": "SEC proceeding record for the Enron Chapter 11 case.",
@@ -284,21 +429,23 @@
         "news",
         "bankruptcy"
       ],
-      "sha256": "e96e17f2229be81532806a0d6f41b4292f8412d95acbe62aa1624129fb13c756",
-      "size_bytes": 305873
+      "content_digest_algorithm": "sha256_prefix8",
+      "content_digest_prefix": "df70287e",
+      "size_bytes": 224749
     }
   ],
   "artifacts": [
     {
-      "artifact_id": "enron_public_context_v1",
+      "artifact_id": "enron_public_context_v2",
+      "version": "2",
       "file_type": "json",
-      "relative_path": "enron_public_context_v1.json",
+      "relative_path": "enron_public_context_v2.json",
       "description": "Normalized dated financial checkpoints and public-news events for later slicing by email time window."
     }
   ],
   "metadata": {
     "fixture": true,
-    "prepared_at": "2026-04-15T15:54:57Z",
+    "prepared_at": "2026-04-18T04:49:27Z",
     "notes": [
       "This pack keeps raw downloaded source files beside a normalized JSON bundle so later integration can stay deterministic."
     ]

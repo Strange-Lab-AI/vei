@@ -1,0 +1,10 @@
+{
+  "row_count": 62,
+  "heldout_count": 31,
+  "sample_count": 31,
+  "stock_spearman": 0.041,
+  "credit_auroc": 0.37,
+  "credit_brier": 0.516,
+  "ferc_auroc": 0.568,
+  "ferc_brier": 0.425
+}

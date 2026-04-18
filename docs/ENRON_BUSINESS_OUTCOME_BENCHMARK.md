@@ -17,18 +17,21 @@ The held-out Enron dossiers can include a separate public-company context sectio
 
 ## Combined source data
 
-The current Enron benchmark build joins one required local input and one repo-owned input:
+The current Enron benchmark build joins two repo-owned inputs:
 
 - the Enron Rosetta email archive for branch history and observed futures
 - the packaged public-company context fixture under `vei/whatif/fixtures/enron_public_context`
 
-You need a local Rosetta checkout before `vei whatif benchmark build` can run. A fresh clone has the public-context fixture, but it does not include the Rosetta email archive.
+The benchmark reads the vendored Rosetta archive under `data/enron/rosetta` by default. `VEI_WHATIF_ROSETTA_DIR` still overrides that path when you want to point at a different archive.
 
 That public-context fixture currently contains:
 
 - 11 dated financial checkpoints
-- 13 dated public news events
-- 17 archived public source files
+- 21 dated public news events
+- 24 archived public source files
+- 986 daily stock rows
+- 7 credit events
+- 1 FERC timeline event
 
 Its public dates span December 31, 1998 through December 2, 2001.
 
@@ -84,7 +87,7 @@ Each pack scores the same business heads with a different weighting rubric.
 
 The default held-out pack is `enron_business_outcome_v1`.
 
-It contains 24 fixed Enron branch points across these case families:
+It contains 31 fixed Enron branch points across these case families:
 
 - `outside_sharing`
 - `legal_contract`
@@ -92,14 +95,18 @@ It contains 24 fixed Enron branch points across these case families:
 - `executive_regulatory`
 - `coordination_strain`
 - `org_heat`
+- `whistleblower`
+- `market_manipulation`
+- `crisis_communication`
+- `accounting_disclosure`
 
 Each held-out case has 4 candidate actions.
 
 The current benchmark build uses:
 
-- 24 held-out Enron cases
+- 31 held-out Enron cases
 - 4 candidate actions per case
-- 120 pairwise-style dominance checks in the headline ranking table
+- 155 pairwise-style dominance checks in the headline ranking table
 
 ## Judge path
 
@@ -145,7 +152,7 @@ The matched-input comparison path uses:
 ```bash
 # Build the factual dataset and held-out Enron pack
 vei whatif benchmark build \
-  --rosetta-dir /path/to/rosetta \
+  --rosetta-dir data/enron/rosetta \
   --artifacts-root _vei_out/whatif_benchmarks/branch_point_ranking_v2 \
   --label enron_business_outcome_public_context_20260412
 
@@ -227,7 +234,7 @@ Study runs write:
 
 ## Current comparison result
 
-The current headline result is the matched-input multi-seed rerun over one saved Enron public-context build that was produced from a local Rosetta checkout. A fresh clone can read these numbers. A fresh clone cannot rebuild them until the Enron Rosetta archive is available locally again. That rerun compares the three aligned models that all read the same pre-branch contract: `jepa_latent`, `full_context_transformer`, and `treatment_transformer`.
+The current headline result is the matched-input multi-seed rerun over one saved Enron public-context build that was produced from the vendored Rosetta archive. A fresh clone can read these numbers and rebuild the same benchmark without reaching outside the repo. That rerun compares the three aligned models that all read the same pre-branch contract: `jepa_latent`, `full_context_transformer`, and `treatment_transformer`.
 
 The current saved 5-seed, 2-epoch matched-input study produced these held-out decision scores:
 
@@ -239,6 +246,8 @@ The current saved 5-seed, 2-epoch matched-input study produced these held-out de
 
 On the simpler factual task of predicting whether anything goes outside after the branch point, all three models stayed tightly grouped around `0.98` AUROC: `0.981` for `jepa_latent`, `0.982` for `full_context_transformer`, and `0.980` for `treatment_transformer`.
 
+The repo now also carries macro outcome side data for stock, credit, and FERC events. Those heads are available in the replay and saved bundle path, but the current Enron calibration stays weak: stock Spearman `0.041`, credit AUROC `0.370`, and FERC AUROC `0.568`. Treat the macro heads as advisory context beside the email-path evidence until those numbers improve.
+
 The main point is that the fair rerun keeps the JEPA-style path in front on the business decision checks even after the held-out dossiers picked up the dated Enron public-company context. The full-context transformer stays close. The treatment transformer varies much more from seed to seed.
 
-An earlier single-run reference comparison is still useful as a historical checkpoint, but it should not be treated as the headline result because it mixed narrower and richer model inputs. Use `vei whatif benchmark study` for the clean comparison path after placing the Rosetta archive locally, then look under `studies/` for the aggregate report.
+An earlier single-run reference comparison is still useful as a historical checkpoint, but it should not be treated as the headline result because it mixed narrower and richer model inputs. Use `vei whatif benchmark study` for the clean comparison path, then look under `studies/` for the aggregate report.

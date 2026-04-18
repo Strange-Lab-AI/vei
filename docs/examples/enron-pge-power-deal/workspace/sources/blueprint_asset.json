@@ -1,0 +1,340 @@
+{
+  "name": "enron_corporation.customer_twin.blueprint",
+  "title": "Enron Corporation",
+  "description": "Customer-shaped twin for Enron Corporation",
+  "scenario_name": "enterprise_renewal_risk",
+  "family_name": "b2b_saas",
+  "workflow_name": "b2b_saas",
+  "workflow_variant": "enterprise_renewal_risk",
+  "workflow_parameters": {},
+  "requested_facades": [
+    "identity",
+    "mail"
+  ],
+  "surface_fidelity": {},
+  "capability_graphs": {
+    "organization_name": "Enron Corporation",
+    "organization_domain": "enron.com",
+    "timezone": "America/New_York",
+    "scenario_brief": "A $480K enterprise renewal is at risk. The product champion left, a breaking API change hit the customer's pipeline, and the new decision-maker is evaluating a competitor.",
+    "comm_graph": {
+      "slack_initial_message": "Apex renewal war room is live.",
+      "slack_channels": [],
+      "mail_threads": [
+        {
+          "thread_id": "thr_c33f65c4d4da5d75",
+          "title": "PG&E Financial Power Deal",
+          "category": "historical",
+          "messages": [
+            {
+              "from_address": "sara.shackleton@enron.com",
+              "to_address": "mark.taylor@enron.com",
+              "subject": "PG&E Financial Power Deal",
+              "body_text": "[Historical email excerpt]\nLarry Joe Hunter\n05/12/99 02:03 PM\nTo: Kelly Minear/HOU/ECT@ECT\ncc: Dale Neuner/HOU/ECT@ECT, Sara Shackleton/HOU/ECT@ECT \nSubject: PG&E Financial Power Deal\n\nKelly,\n\nOn 5/11 we traded a Financial Power deal with PG&E Energy Trading - Power \nL.P., EW9838.  We had previously been notified by Credit/Legal that no \nFinancial Power deals were to be done with this C/P.  Please advise.\n\nThanks,\nJoe\n\n[Excerpt limited by source data. Original body may be longer.]\n\nEvent type: assignment\nEscalation detected in source metadata.\nLegal specialist signal present.",
+              "unread": false,
+              "time_ms": 926523840000
+            }
+          ]
+        }
+      ],
+      "metadata": {}
+    },
+    "doc_graph": null,
+    "work_graph": null,
+    "identity_graph": {
+      "users": [
+        {
+          "user_id": "tana.jones@enron.com",
+          "email": "tana.jones@enron.com",
+          "first_name": "Tana",
+          "last_name": "Jones",
+          "login": "tana.jones@enron.com",
+          "display_name": "Tana Jones",
+          "status": "ACTIVE",
+          "department": null,
+          "title": null,
+          "manager": null,
+          "groups": [],
+          "applications": [],
+          "factors": [],
+          "last_login_ms": null
+        },
+        {
+          "user_id": "group:9103487041557b4f",
+          "email": "group:9103487041557b4f",
+          "first_name": "Group:9103487041557b4f",
+          "last_name": "Actor",
+          "login": "group:9103487041557b4f",
+          "display_name": "Group:9103487041557b4f",
+          "status": "ACTIVE",
+          "department": null,
+          "title": null,
+          "manager": null,
+          "groups": [],
+          "applications": [],
+          "factors": [],
+          "last_login_ms": null
+        },
+        {
+          "user_id": "group:f5252189e3adb059",
+          "email": "group:f5252189e3adb059",
+          "first_name": "Group:f5252189e3adb059",
+          "last_name": "Actor",
+          "login": "group:f5252189e3adb059",
+          "display_name": "Group:f5252189e3adb059",
+          "status": "ACTIVE",
+          "department": null,
+          "title": null,
+          "manager": null,
+          "groups": [],
+          "applications": [],
+          "factors": [],
+          "last_login_ms": null
+        },
+        {
+          "user_id": "rod.nelson@enron.com",
+          "email": "rod.nelson@enron.com",
+          "first_name": "Rod",
+          "last_name": "Nelson",
+          "login": "rod.nelson@enron.com",
+          "display_name": "Rod Nelson",
+          "status": "ACTIVE",
+          "department": null,
+          "title": null,
+          "manager": null,
+          "groups": [],
+          "applications": [],
+          "factors": [],
+          "last_login_ms": null
+        },
+        {
+          "user_id": "sara.shackleton@enron.com",
+          "email": "sara.shackleton@enron.com",
+          "first_name": "Sara",
+          "last_name": "Shackleton",
+          "login": "sara.shackleton@enron.com",
+          "display_name": "Sara Shackleton",
+          "status": "ACTIVE",
+          "department": null,
+          "title": null,
+          "manager": null,
+          "groups": [],
+          "applications": [],
+          "factors": [],
+          "last_login_ms": null
+        }
+      ],
+      "groups": [],
+      "applications": [],
+      "hris_employees": [],
+      "policies": [],
+      "metadata": {}
+    },
+    "revenue_graph": null,
+    "knowledge_graph": null,
+    "ops_graph": null,
+    "property_graph": null,
+    "campaign_graph": null,
+    "inventory_graph": null,
+    "metadata": {
+      "vertical": "b2b_saas",
+      "what_if_branches": [
+        "Fix the integration and rebuild trust before the renewal conversation",
+        "Lead with the discount and hope the product issues don't kill the deal"
+      ],
+      "customer_twin_capture": true,
+      "source_providers": [
+        "mail_archive"
+      ],
+      "customer_twin_mold": {
+        "density_level": "medium",
+        "named_team_expansion": "minimal",
+        "crisis_family": null,
+        "redaction_mode": "preserve",
+        "synthetic_expansion_strength": "light",
+        "included_surfaces": [
+          "mail",
+          "identity"
+        ]
+      }
+    }
+  },
+  "environment": {
+    "organization_name": "Enron Corporation",
+    "organization_domain": "enron.com",
+    "timezone": "America/New_York",
+    "scenario_brief": "A $480K enterprise renewal is at risk. The product champion left, a breaking API change hit the customer's pipeline, and the new decision-maker is evaluating a competitor.",
+    "slack_initial_message": null,
+    "slack_channels": [],
+    "mail_threads": [
+      {
+        "thread_id": "thr_c33f65c4d4da5d75",
+        "title": "PG&E Financial Power Deal",
+        "category": "historical",
+        "messages": [
+          {
+            "from_address": "sara.shackleton@enron.com",
+            "to_address": "mark.taylor@enron.com",
+            "subject": "PG&E Financial Power Deal",
+            "body_text": "[Historical email excerpt]\nLarry Joe Hunter\n05/12/99 02:03 PM\nTo: Kelly Minear/HOU/ECT@ECT\ncc: Dale Neuner/HOU/ECT@ECT, Sara Shackleton/HOU/ECT@ECT \nSubject: PG&E Financial Power Deal\n\nKelly,\n\nOn 5/11 we traded a Financial Power deal with PG&E Energy Trading - Power \nL.P., EW9838.  We had previously been notified by Credit/Legal that no \nFinancial Power deals were to be done with this C/P.  Please advise.\n\nThanks,\nJoe\n\n[Excerpt limited by source data. Original body may be longer.]\n\nEvent type: assignment\nEscalation detected in source metadata.\nLegal specialist signal present.",
+            "unread": false,
+            "time_ms": 926523840000
+          }
+        ]
+      }
+    ],
+    "documents": [],
+    "tickets": [],
+    "identity_users": [
+      {
+        "user_id": "tana.jones@enron.com",
+        "email": "tana.jones@enron.com",
+        "first_name": "Tana",
+        "last_name": "Jones",
+        "login": "tana.jones@enron.com",
+        "display_name": "Tana Jones",
+        "status": "ACTIVE",
+        "department": null,
+        "title": null,
+        "manager": null,
+        "groups": [],
+        "applications": [],
+        "factors": [],
+        "last_login_ms": null
+      },
+      {
+        "user_id": "group:9103487041557b4f",
+        "email": "group:9103487041557b4f",
+        "first_name": "Group:9103487041557b4f",
+        "last_name": "Actor",
+        "login": "group:9103487041557b4f",
+        "display_name": "Group:9103487041557b4f",
+        "status": "ACTIVE",
+        "department": null,
+        "title": null,
+        "manager": null,
+        "groups": [],
+        "applications": [],
+        "factors": [],
+        "last_login_ms": null
+      },
+      {
+        "user_id": "group:f5252189e3adb059",
+        "email": "group:f5252189e3adb059",
+        "first_name": "Group:f5252189e3adb059",
+        "last_name": "Actor",
+        "login": "group:f5252189e3adb059",
+        "display_name": "Group:f5252189e3adb059",
+        "status": "ACTIVE",
+        "department": null,
+        "title": null,
+        "manager": null,
+        "groups": [],
+        "applications": [],
+        "factors": [],
+        "last_login_ms": null
+      },
+      {
+        "user_id": "rod.nelson@enron.com",
+        "email": "rod.nelson@enron.com",
+        "first_name": "Rod",
+        "last_name": "Nelson",
+        "login": "rod.nelson@enron.com",
+        "display_name": "Rod Nelson",
+        "status": "ACTIVE",
+        "department": null,
+        "title": null,
+        "manager": null,
+        "groups": [],
+        "applications": [],
+        "factors": [],
+        "last_login_ms": null
+      },
+      {
+        "user_id": "sara.shackleton@enron.com",
+        "email": "sara.shackleton@enron.com",
+        "first_name": "Sara",
+        "last_name": "Shackleton",
+        "login": "sara.shackleton@enron.com",
+        "display_name": "Sara Shackleton",
+        "status": "ACTIVE",
+        "department": null,
+        "title": null,
+        "manager": null,
+        "groups": [],
+        "applications": [],
+        "factors": [],
+        "last_login_ms": null
+      }
+    ],
+    "identity_groups": [],
+    "identity_applications": [],
+    "service_requests": [],
+    "google_drive_shares": [],
+    "hris_employees": [],
+    "crm_companies": [],
+    "crm_contacts": [],
+    "crm_deals": [],
+    "metadata": {
+      "vertical": "b2b_saas",
+      "what_if_branches": [
+        "Fix the integration and rebuild trust before the renewal conversation",
+        "Lead with the discount and hope the product issues don't kill the deal"
+      ],
+      "customer_twin_capture": true,
+      "source_providers": [
+        "mail_archive"
+      ],
+      "customer_twin_mold": {
+        "density_level": "medium",
+        "named_team_expansion": "minimal",
+        "crisis_family": null,
+        "redaction_mode": "preserve",
+        "synthetic_expansion_strength": "light",
+        "included_surfaces": [
+          "mail",
+          "identity"
+        ]
+      },
+      "strict_empty_slack": true,
+      "mail_archive_view": true,
+      "mail_archive_mailbox": "mark.taylor@enron.com"
+    }
+  },
+  "metadata": {
+    "vertical": "b2b_saas",
+    "customer_twin": {
+      "organization_name": "Enron Corporation",
+      "organization_domain": "enron.com",
+      "mold": {
+        "archetype": "b2b_saas",
+        "expansion_level": "medium",
+        "density_level": "medium",
+        "named_team_expansion": "minimal",
+        "crisis_family": null,
+        "included_surfaces": [
+          "mail",
+          "identity"
+        ],
+        "redaction_mode": "preserve",
+        "synthetic_expansion_strength": "light",
+        "scenario_variant": null,
+        "contract_variant": null
+      },
+      "source_providers": [
+        "mail_archive"
+      ]
+    },
+    "customer_twin_mold": {
+      "density_level": "medium",
+      "named_team_expansion": "minimal",
+      "crisis_family": null,
+      "redaction_mode": "preserve",
+      "synthetic_expansion_strength": "light",
+      "included_surfaces": [
+        "mail",
+        "identity"
+      ]
+    }
+  }
+}

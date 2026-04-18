@@ -1,0 +1,21 @@
+{
+  "version": "1",
+  "pack_name": "enron_ferc_history",
+  "organization_name": "Enron Corporation",
+  "organization_domain": "enron.com",
+  "prepared_at": "2026-04-18T04:49:27Z",
+  "integration_hint": "This derived fixture is loaded automatically for repo-local Enron worlds and is sliced to the active email window.",
+  "ferc_history": [
+    {
+      "event_id": "ferc_june_2001_mitigation_and_refund_path",
+      "timestamp": "2001-06-19T00:00:00Z",
+      "agency": "FERC",
+      "category": "mitigation_order",
+      "headline": "FERC imposed Western mitigation and opened the refund path",
+      "summary": "The June 19, 2001 FERC action turned California power-market conduct and refund exposure into a concrete public regulatory fact.",
+      "source_ids": [
+        "california_refund_order_record"
+      ]
+    }
+  ]
+}

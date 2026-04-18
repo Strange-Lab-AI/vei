@@ -11,6 +11,7 @@ from vei.dynamics.models import CandidateAction, DynamicsRequest
 from .harness import EvalResult
 
 DYNAMICS_EVAL_METRICS_PATH = Path("_vei_out/dynamics_eval/metrics.json")
+MACRO_CALIBRATION_METRICS_PATH = Path("studies/macro_calibration_enron_v1/metrics.json")
 
 
 def build_dynamics_eval_metrics() -> dict[str, float]:
@@ -77,7 +78,7 @@ def build_dynamics_eval_metrics() -> dict[str, float]:
         if preferred_score < worse_score:
             correct_rankings += 1
 
-    return {
+    metrics = {
         "factual_next_event_auroc": round(_auroc(factual_labels, factual_scores), 3),
         "counterfactual_rank_pct": round(
             correct_rankings / len(ranking_pairs),
@@ -85,6 +86,8 @@ def build_dynamics_eval_metrics() -> dict[str, float]:
         ),
         "calibration_ece": 0.0,
     }
+    metrics.update(_load_macro_metrics())
+    return metrics
 
 
 def write_dynamics_eval_metrics(
@@ -94,6 +97,25 @@ def write_dynamics_eval_metrics(
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(metrics, indent=2) + "\n", encoding="utf-8")
     return path
+
+
+def _load_macro_metrics() -> dict[str, float | None]:
+    if not MACRO_CALIBRATION_METRICS_PATH.exists():
+        return {
+            "macro_stock_spearman": None,
+            "macro_credit_auroc": None,
+            "macro_credit_brier": None,
+            "macro_ferc_auroc": None,
+            "macro_ferc_brier": None,
+        }
+    payload = json.loads(MACRO_CALIBRATION_METRICS_PATH.read_text(encoding="utf-8"))
+    return {
+        "macro_stock_spearman": payload.get("stock_spearman"),
+        "macro_credit_auroc": payload.get("credit_auroc"),
+        "macro_credit_brier": payload.get("credit_brier"),
+        "macro_ferc_auroc": payload.get("ferc_auroc"),
+        "macro_ferc_brier": payload.get("ferc_brier"),
+    }
 
 
 def _auroc(labels: list[int], scores: list[float]) -> float:

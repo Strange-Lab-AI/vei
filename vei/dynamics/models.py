@@ -76,6 +76,9 @@ class BusinessHeads(BaseModel):
     approval: PointInterval = Field(default_factory=PointInterval)
     load: PointInterval = Field(default_factory=PointInterval)
     drag: PointInterval = Field(default_factory=PointInterval)
+    stock_return_5d: PointInterval | None = None
+    credit_action_30d: PointInterval | None = None
+    ferc_action_180d: PointInterval | None = None
 
 
 class CalibrationMetrics(BaseModel):

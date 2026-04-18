@@ -1,0 +1,616 @@
+{
+  "label": "enron_california_crisis_business_state_comparison_20260417",
+  "objective_pack_id": "contain_exposure",
+  "thread_id": "thr_af4757447fa4b384",
+  "branch_event_id": "enron_99afc1ca73d1a1bb",
+  "thread_subject": "IMPORTANT - READ IMMEDIATELY",
+  "historical_business_state": {
+    "method": "historical_v1",
+    "confidence": "medium",
+    "summary": "Recorded business state centers on approval and escalation pressure and relationship stability.",
+    "snapshot": {
+      "exposure": 0.044,
+      "trust": 0.955,
+      "coordination_load": 0.023,
+      "execution_delay": 0.028,
+      "deal_position": 0.96,
+      "governance_pressure": 0.096
+    },
+    "indicators": [
+      {
+        "state_id": "governance_pressure",
+        "label": "Approval and escalation pressure",
+        "value": 0.096,
+        "level": "very_low",
+        "summary": "Approval and escalation pressure stays limited in the recorded path."
+      },
+      {
+        "state_id": "trust",
+        "label": "Relationship stability",
+        "value": 0.955,
+        "level": "very_high",
+        "summary": "Relationship stability looks strong in the recorded path."
+      },
+      {
+        "state_id": "exposure",
+        "label": "Exposure risk",
+        "value": 0.044,
+        "level": "very_low",
+        "summary": "Exposure risk stays limited in the recorded path."
+      },
+      {
+        "state_id": "deal_position",
+        "label": "Commercial position",
+        "value": 0.96,
+        "level": "very_high",
+        "summary": "Commercial position looks strong in the recorded path."
+      },
+      {
+        "state_id": "execution_delay",
+        "label": "Execution delay",
+        "value": 0.028,
+        "level": "very_low",
+        "summary": "Execution delay stays limited in the recorded path."
+      },
+      {
+        "state_id": "coordination_load",
+        "label": "Internal handling load",
+        "value": 0.023,
+        "level": "very_low",
+        "summary": "Internal handling load stays limited in the recorded path."
+      }
+    ],
+    "implications": [
+      "Approval and escalation pressure stays limited in the recorded path.",
+      "Relationship stability looks strong in the recorded path.",
+      "Exposure risk stays limited in the recorded path."
+    ]
+  },
+  "candidates": [
+    {
+      "label": "Seek Skilling sign-off",
+      "prompt": "Preserve the record, memo the issue to Jeff Skilling for an explicit decision, and keep the current strategy on hold until leadership answers.",
+      "forecast": {
+        "backend": "heuristic_baseline",
+        "summary": "Predicted risk moves down by 0.080, with escalation delta 0 and external-send delta 0.",
+        "baseline_risk_score": 0.08,
+        "predicted_risk_score": 0.0,
+        "external_event_delta": 0,
+        "escalation_delta": 0,
+        "baseline_stock_return_5d": 0.0468,
+        "predicted_stock_return_5d": 0.0868,
+        "baseline_credit_action_30d": 1.0,
+        "predicted_credit_action_30d": 0.88,
+        "baseline_ferc_action_180d": 0.0,
+        "predicted_ferc_action_180d": 0.0
+      },
+      "business_state_change": {
+        "method": "heuristic_baseline_business_state_v1",
+        "confidence": "medium",
+        "summary": "Slightly lower exposure risk.",
+        "baseline": {
+          "exposure": 0.044,
+          "trust": 0.955,
+          "coordination_load": 0.023,
+          "execution_delay": 0.028,
+          "deal_position": 0.96,
+          "governance_pressure": 0.096
+        },
+        "predicted": {
+          "exposure": 0.0,
+          "trust": 0.977,
+          "coordination_load": 0.021,
+          "execution_delay": 0.024,
+          "deal_position": 0.982,
+          "governance_pressure": 0.096
+        },
+        "impacts": [
+          {
+            "state_id": "exposure",
+            "label": "Exposure risk",
+            "baseline_value": 0.044,
+            "predicted_value": 0.0,
+            "delta": -0.044,
+            "effect": "better",
+            "magnitude": "slight",
+            "summary": "Slightly lower exposure risk."
+          },
+          {
+            "state_id": "deal_position",
+            "label": "Commercial position",
+            "baseline_value": 0.96,
+            "predicted_value": 0.982,
+            "delta": 0.022,
+            "effect": "flat",
+            "magnitude": "flat",
+            "summary": "Commercial position stays close to the historical path."
+          },
+          {
+            "state_id": "trust",
+            "label": "Relationship stability",
+            "baseline_value": 0.955,
+            "predicted_value": 0.977,
+            "delta": 0.022,
+            "effect": "flat",
+            "magnitude": "flat",
+            "summary": "Relationship stability stays close to the historical path."
+          },
+          {
+            "state_id": "execution_delay",
+            "label": "Execution delay",
+            "baseline_value": 0.028,
+            "predicted_value": 0.024,
+            "delta": -0.004,
+            "effect": "flat",
+            "magnitude": "flat",
+            "summary": "Execution delay stays close to the historical path."
+          },
+          {
+            "state_id": "coordination_load",
+            "label": "Internal handling load",
+            "baseline_value": 0.023,
+            "predicted_value": 0.021,
+            "delta": -0.002,
+            "effect": "flat",
+            "magnitude": "flat",
+            "summary": "Internal handling load stays close to the historical path."
+          },
+          {
+            "state_id": "governance_pressure",
+            "label": "Approval and escalation pressure",
+            "baseline_value": 0.096,
+            "predicted_value": 0.096,
+            "delta": 0.0,
+            "effect": "flat",
+            "magnitude": "flat",
+            "summary": "Approval and escalation pressure stays close to the historical path."
+          }
+        ],
+        "consequence_estimates": [
+          {
+            "consequence_id": "containment",
+            "label": "Containment",
+            "effect": "better",
+            "magnitude": "slight",
+            "summary": "The thread looks safer to contain."
+          },
+          {
+            "consequence_id": "review_burden",
+            "label": "Handling burden",
+            "effect": "flat",
+            "magnitude": "flat",
+            "summary": "Handling burden stays close to the historical path."
+          },
+          {
+            "consequence_id": "execution_path",
+            "label": "Execution path",
+            "effect": "flat",
+            "magnitude": "flat",
+            "summary": "Execution pace stays close to the historical path."
+          },
+          {
+            "consequence_id": "commercial_position",
+            "label": "Commercial footing",
+            "effect": "flat",
+            "magnitude": "flat",
+            "summary": "Commercial footing stays close to the historical path."
+          }
+        ],
+        "tradeoffs": [],
+        "net_effect_score": 0.023
+      },
+      "rank": 1
+    },
+    {
+      "label": "Proceed with narrow circulation",
+      "prompt": "Keep the strategy moving, preserve the order inside a narrow legal and trading loop, and avoid broad distribution while continuing the desk play.",
+      "forecast": {
+        "backend": "heuristic_baseline",
+        "summary": "Predicted risk moves down by 0.080, with escalation delta 0 and external-send delta 0.",
+        "baseline_risk_score": 0.08,
+        "predicted_risk_score": 0.0,
+        "external_event_delta": 0,
+        "escalation_delta": 0,
+        "baseline_stock_return_5d": 0.0468,
+        "predicted_stock_return_5d": 0.0368,
+        "baseline_credit_action_30d": 1.0,
+        "predicted_credit_action_30d": 1.0,
+        "baseline_ferc_action_180d": 0.0,
+        "predicted_ferc_action_180d": 0.0
+      },
+      "business_state_change": {
+        "method": "heuristic_baseline_business_state_v1",
+        "confidence": "medium",
+        "summary": "Slightly lower exposure risk. Trade-off: Slightly higher approval and escalation pressure.",
+        "baseline": {
+          "exposure": 0.044,
+          "trust": 0.955,
+          "coordination_load": 0.023,
+          "execution_delay": 0.028,
+          "deal_position": 0.96,
+          "governance_pressure": 0.096
+        },
+        "predicted": {
+          "exposure": 0.0,
+          "trust": 0.946,
+          "coordination_load": 0.082,
+          "execution_delay": 0.072,
+          "deal_position": 0.954,
+          "governance_pressure": 0.159
+        },
+        "impacts": [
+          {
+            "state_id": "governance_pressure",
+            "label": "Approval and escalation pressure",
+            "baseline_value": 0.096,
+            "predicted_value": 0.159,
+            "delta": 0.063,
+            "effect": "worse",
+            "magnitude": "slight",
+            "summary": "Slightly higher approval and escalation pressure."
+          },
+          {
+            "state_id": "coordination_load",
+            "label": "Internal handling load",
+            "baseline_value": 0.023,
+            "predicted_value": 0.082,
+            "delta": 0.059,
+            "effect": "worse",
+            "magnitude": "slight",
+            "summary": "Slightly higher internal handling load."
+          },
+          {
+            "state_id": "exposure",
+            "label": "Exposure risk",
+            "baseline_value": 0.044,
+            "predicted_value": 0.0,
+            "delta": -0.044,
+            "effect": "better",
+            "magnitude": "slight",
+            "summary": "Slightly lower exposure risk."
+          },
+          {
+            "state_id": "execution_delay",
+            "label": "Execution delay",
+            "baseline_value": 0.028,
+            "predicted_value": 0.072,
+            "delta": 0.044,
+            "effect": "worse",
+            "magnitude": "slight",
+            "summary": "Slightly higher execution delay."
+          },
+          {
+            "state_id": "trust",
+            "label": "Relationship stability",
+            "baseline_value": 0.955,
+            "predicted_value": 0.946,
+            "delta": -0.009,
+            "effect": "flat",
+            "magnitude": "flat",
+            "summary": "Relationship stability stays close to the historical path."
+          },
+          {
+            "state_id": "deal_position",
+            "label": "Commercial position",
+            "baseline_value": 0.96,
+            "predicted_value": 0.954,
+            "delta": -0.006,
+            "effect": "flat",
+            "magnitude": "flat",
+            "summary": "Commercial position stays close to the historical path."
+          }
+        ],
+        "consequence_estimates": [
+          {
+            "consequence_id": "containment",
+            "label": "Containment",
+            "effect": "better",
+            "magnitude": "slight",
+            "summary": "The thread looks safer to contain."
+          },
+          {
+            "consequence_id": "review_burden",
+            "label": "Handling burden",
+            "effect": "worse",
+            "magnitude": "slight",
+            "summary": "Internal handling looks heavier."
+          },
+          {
+            "consequence_id": "execution_path",
+            "label": "Execution path",
+            "effect": "worse",
+            "magnitude": "slight",
+            "summary": "Near-term execution looks slower."
+          },
+          {
+            "consequence_id": "commercial_position",
+            "label": "Commercial footing",
+            "effect": "flat",
+            "magnitude": "flat",
+            "summary": "Commercial footing stays close to the historical path."
+          }
+        ],
+        "tradeoffs": [
+          "Slightly higher approval and escalation pressure.",
+          "Slightly higher internal handling load."
+        ],
+        "net_effect_score": -0.005
+      },
+      "rank": 2
+    },
+    {
+      "label": "Halt and self-report",
+      "prompt": "Pause the strategy, preserve the record, alert legal and compliance, and prepare a self-report path to FERC and the California authorities.",
+      "forecast": {
+        "backend": "heuristic_baseline",
+        "summary": "Predicted risk moves down by 0.080, with escalation delta 0 and external-send delta 0.",
+        "baseline_risk_score": 0.08,
+        "predicted_risk_score": 0.0,
+        "external_event_delta": 0,
+        "escalation_delta": 0,
+        "baseline_stock_return_5d": 0.0468,
+        "predicted_stock_return_5d": 0.0868,
+        "baseline_credit_action_30d": 1.0,
+        "predicted_credit_action_30d": 0.88,
+        "baseline_ferc_action_180d": 0.0,
+        "predicted_ferc_action_180d": 0.0
+      },
+      "business_state_change": {
+        "method": "heuristic_baseline_business_state_v1",
+        "confidence": "medium",
+        "summary": "Slightly lower exposure risk. Trade-off: Moderately higher approval and escalation pressure.",
+        "baseline": {
+          "exposure": 0.044,
+          "trust": 0.955,
+          "coordination_load": 0.023,
+          "execution_delay": 0.028,
+          "deal_position": 0.96,
+          "governance_pressure": 0.096
+        },
+        "predicted": {
+          "exposure": 0.0,
+          "trust": 0.938,
+          "coordination_load": 0.1,
+          "execution_delay": 0.082,
+          "deal_position": 0.947,
+          "governance_pressure": 0.179
+        },
+        "impacts": [
+          {
+            "state_id": "governance_pressure",
+            "label": "Approval and escalation pressure",
+            "baseline_value": 0.096,
+            "predicted_value": 0.179,
+            "delta": 0.083,
+            "effect": "worse",
+            "magnitude": "moderate",
+            "summary": "Moderately higher approval and escalation pressure."
+          },
+          {
+            "state_id": "coordination_load",
+            "label": "Internal handling load",
+            "baseline_value": 0.023,
+            "predicted_value": 0.1,
+            "delta": 0.077,
+            "effect": "worse",
+            "magnitude": "slight",
+            "summary": "Slightly higher internal handling load."
+          },
+          {
+            "state_id": "execution_delay",
+            "label": "Execution delay",
+            "baseline_value": 0.028,
+            "predicted_value": 0.082,
+            "delta": 0.054,
+            "effect": "worse",
+            "magnitude": "slight",
+            "summary": "Slightly higher execution delay."
+          },
+          {
+            "state_id": "exposure",
+            "label": "Exposure risk",
+            "baseline_value": 0.044,
+            "predicted_value": 0.0,
+            "delta": -0.044,
+            "effect": "better",
+            "magnitude": "slight",
+            "summary": "Slightly lower exposure risk."
+          },
+          {
+            "state_id": "trust",
+            "label": "Relationship stability",
+            "baseline_value": 0.955,
+            "predicted_value": 0.938,
+            "delta": -0.017,
+            "effect": "flat",
+            "magnitude": "flat",
+            "summary": "Relationship stability stays close to the historical path."
+          },
+          {
+            "state_id": "deal_position",
+            "label": "Commercial position",
+            "baseline_value": 0.96,
+            "predicted_value": 0.947,
+            "delta": -0.013,
+            "effect": "flat",
+            "magnitude": "flat",
+            "summary": "Commercial position stays close to the historical path."
+          }
+        ],
+        "consequence_estimates": [
+          {
+            "consequence_id": "containment",
+            "label": "Containment",
+            "effect": "better",
+            "magnitude": "slight",
+            "summary": "The thread looks safer to contain."
+          },
+          {
+            "consequence_id": "review_burden",
+            "label": "Handling burden",
+            "effect": "worse",
+            "magnitude": "slight",
+            "summary": "Internal handling looks heavier."
+          },
+          {
+            "consequence_id": "execution_path",
+            "label": "Execution path",
+            "effect": "worse",
+            "magnitude": "slight",
+            "summary": "Near-term execution looks slower."
+          },
+          {
+            "consequence_id": "commercial_position",
+            "label": "Commercial footing",
+            "effect": "flat",
+            "magnitude": "flat",
+            "summary": "Commercial footing stays close to the historical path."
+          }
+        ],
+        "tradeoffs": [
+          "Moderately higher approval and escalation pressure.",
+          "Slightly higher internal handling load."
+        ],
+        "net_effect_score": -0.013
+      },
+      "rank": 3
+    },
+    {
+      "label": "Proceed and widen",
+      "prompt": "Keep the strategy moving, widen the internal circulation for rapid comments, and keep the desk fully active despite the preservation order.",
+      "forecast": {
+        "backend": "heuristic_baseline",
+        "summary": "Predicted risk moves up by 0.120, with escalation delta 0 and external-send delta 1.",
+        "baseline_risk_score": 0.08,
+        "predicted_risk_score": 0.2,
+        "external_event_delta": 1,
+        "escalation_delta": 0,
+        "baseline_stock_return_5d": 0.0468,
+        "predicted_stock_return_5d": -0.0032,
+        "baseline_credit_action_30d": 1.0,
+        "predicted_credit_action_30d": 1.0,
+        "baseline_ferc_action_180d": 0.0,
+        "predicted_ferc_action_180d": 0.0
+      },
+      "business_state_change": {
+        "method": "heuristic_baseline_business_state_v1",
+        "confidence": "medium",
+        "summary": "Moderately higher exposure risk.",
+        "baseline": {
+          "exposure": 0.044,
+          "trust": 0.955,
+          "coordination_load": 0.023,
+          "execution_delay": 0.028,
+          "deal_position": 0.96,
+          "governance_pressure": 0.096
+        },
+        "predicted": {
+          "exposure": 0.16,
+          "trust": 0.873,
+          "coordination_load": 0.115,
+          "execution_delay": 0.093,
+          "deal_position": 0.875,
+          "governance_pressure": 0.096
+        },
+        "impacts": [
+          {
+            "state_id": "exposure",
+            "label": "Exposure risk",
+            "baseline_value": 0.044,
+            "predicted_value": 0.16,
+            "delta": 0.116,
+            "effect": "worse",
+            "magnitude": "moderate",
+            "summary": "Moderately higher exposure risk."
+          },
+          {
+            "state_id": "coordination_load",
+            "label": "Internal handling load",
+            "baseline_value": 0.023,
+            "predicted_value": 0.115,
+            "delta": 0.092,
+            "effect": "worse",
+            "magnitude": "moderate",
+            "summary": "Moderately higher internal handling load."
+          },
+          {
+            "state_id": "deal_position",
+            "label": "Commercial position",
+            "baseline_value": 0.96,
+            "predicted_value": 0.875,
+            "delta": -0.085,
+            "effect": "worse",
+            "magnitude": "moderate",
+            "summary": "Moderately weaker commercial position."
+          },
+          {
+            "state_id": "trust",
+            "label": "Relationship stability",
+            "baseline_value": 0.955,
+            "predicted_value": 0.873,
+            "delta": -0.082,
+            "effect": "worse",
+            "magnitude": "moderate",
+            "summary": "Moderately weaker relationship stability."
+          },
+          {
+            "state_id": "execution_delay",
+            "label": "Execution delay",
+            "baseline_value": 0.028,
+            "predicted_value": 0.093,
+            "delta": 0.065,
+            "effect": "worse",
+            "magnitude": "slight",
+            "summary": "Slightly higher execution delay."
+          },
+          {
+            "state_id": "governance_pressure",
+            "label": "Approval and escalation pressure",
+            "baseline_value": 0.096,
+            "predicted_value": 0.096,
+            "delta": 0.0,
+            "effect": "flat",
+            "magnitude": "flat",
+            "summary": "Approval and escalation pressure stays close to the historical path."
+          }
+        ],
+        "consequence_estimates": [
+          {
+            "consequence_id": "containment",
+            "label": "Containment",
+            "effect": "worse",
+            "magnitude": "moderate",
+            "summary": "The thread carries slightly more exposure."
+          },
+          {
+            "consequence_id": "review_burden",
+            "label": "Handling burden",
+            "effect": "worse",
+            "magnitude": "slight",
+            "summary": "Internal handling looks heavier."
+          },
+          {
+            "consequence_id": "execution_path",
+            "label": "Execution path",
+            "effect": "worse",
+            "magnitude": "slight",
+            "summary": "Near-term execution looks slower."
+          },
+          {
+            "consequence_id": "commercial_position",
+            "label": "Commercial footing",
+            "effect": "worse",
+            "magnitude": "moderate",
+            "summary": "Commercial footing looks weaker."
+          }
+        ],
+        "tradeoffs": [
+          "Moderately higher exposure risk.",
+          "Moderately higher internal handling load."
+        ],
+        "net_effect_score": -0.087
+      },
+      "rank": 4
+    }
+  ]
+}

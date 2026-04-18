@@ -1,0 +1,101 @@
+{
+  "version": "1",
+  "pack_name": "enron_credit_history",
+  "organization_name": "Enron Corporation",
+  "organization_domain": "enron.com",
+  "prepared_at": "2026-04-18T04:49:27Z",
+  "integration_hint": "This derived fixture is loaded automatically for repo-local Enron worlds and is sliced to the active email window.",
+  "credit_history": [
+    {
+      "event_id": "moodys_baseline_investment_grade",
+      "as_of": "2000-12-31T00:00:00Z",
+      "agency": "Moody's",
+      "category": "baseline",
+      "headline": "Moody's baseline senior debt rating",
+      "summary": "Enron's senior debt was listed at Baa1 in the 2000 financial highlights.",
+      "to_rating": "Baa1",
+      "source_ids": [
+        "enron_2000_financial_highlights"
+      ]
+    },
+    {
+      "event_id": "sp_baseline_investment_grade",
+      "as_of": "2000-12-31T00:00:00Z",
+      "agency": "S&P",
+      "category": "baseline",
+      "headline": "S&P baseline senior debt rating",
+      "summary": "Enron's senior debt was listed at BBB+ in the 2000 financial highlights.",
+      "to_rating": "BBB+",
+      "source_ids": [
+        "enron_2000_financial_highlights"
+      ]
+    },
+    {
+      "event_id": "fitch_baseline_investment_grade",
+      "as_of": "2000-12-31T00:00:00Z",
+      "agency": "Fitch",
+      "category": "baseline",
+      "headline": "Fitch baseline senior debt rating",
+      "summary": "Enron's senior debt was listed at BBB+ in the 2000 financial highlights.",
+      "to_rating": "BBB+",
+      "source_ids": [
+        "enron_2000_financial_highlights"
+      ]
+    },
+    {
+      "event_id": "moodys_baa2_review",
+      "as_of": "2001-10-29T00:00:00Z",
+      "agency": "Moody's",
+      "category": "rating_action",
+      "headline": "Moody's cut Enron to Baa2 and kept it under review",
+      "summary": "Moody's lowered Enron's senior unsecured debt to Baa2 and kept the rating under review for downgrade.",
+      "from_rating": "Baa1",
+      "to_rating": "Baa2",
+      "watch_status": "review_for_downgrade",
+      "source_ids": [
+        "enron_credit_rating_report"
+      ]
+    },
+    {
+      "event_id": "sp_bbb_creditwatch_negative",
+      "as_of": "2001-11-01T00:00:00Z",
+      "agency": "S&P",
+      "category": "rating_action",
+      "headline": "S&P cut Enron to BBB and kept CreditWatch negative",
+      "summary": "S&P lowered Enron's rating from BBB+ to BBB and kept the name on CreditWatch negative.",
+      "from_rating": "BBB+",
+      "to_rating": "BBB",
+      "watch_status": "creditwatch_negative",
+      "source_ids": [
+        "enron_credit_rating_report"
+      ]
+    },
+    {
+      "event_id": "fitch_bbb_minus_watch_negative",
+      "as_of": "2001-11-05T00:00:00Z",
+      "agency": "Fitch",
+      "category": "rating_action",
+      "headline": "Fitch cut Enron to BBB- and kept watch negative",
+      "summary": "Fitch lowered Enron's senior unsecured debt from BBB+ to BBB- and maintained a negative watch.",
+      "from_rating": "BBB+",
+      "to_rating": "BBB-",
+      "watch_status": "watch_negative",
+      "source_ids": [
+        "enron_credit_rating_report"
+      ]
+    },
+    {
+      "event_id": "moodys_sp_cut_to_junk",
+      "as_of": "2001-11-28T00:00:00Z",
+      "agency": "Moody's_and_S&P",
+      "category": "rating_action",
+      "headline": "Moody's and S&P cut Enron below investment grade",
+      "summary": "By November 28, 2001, Moody's and S&P had cut Enron to junk, which triggered the liquidity spiral that preceded the bankruptcy filing.",
+      "to_rating": "below_investment_grade",
+      "watch_status": "junk_status",
+      "source_ids": [
+        "enron_credit_rating_report"
+      ]
+    }
+  ]
+}

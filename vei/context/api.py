@@ -46,8 +46,11 @@ _BOUNDARY_EXPORTS = (
 logger = logging.getLogger(__name__)
 
 WhatIfPublicContext = _public_context.WhatIfPublicContext
+WhatIfPublicCreditEvent = _public_context.WhatIfPublicCreditEvent
 WhatIfPublicFinancialSnapshot = _public_context.WhatIfPublicFinancialSnapshot
 WhatIfPublicNewsEvent = _public_context.WhatIfPublicNewsEvent
+WhatIfPublicRegulatoryEvent = _public_context.WhatIfPublicRegulatoryEvent
+WhatIfPublicStockHistoryRow = _public_context.WhatIfPublicStockHistoryRow
 build_public_context = _public_context.build_public_context
 discover_public_context_path = _public_context.discover_public_context_path
 empty_enron_public_context = _public_context.empty_enron_public_context
@@ -64,9 +67,12 @@ __all__ = [
     "ContextProviderConfig",
     "ContextProviderStatusSummary",
     "ContextSnapshot",
+    "WhatIfPublicCreditEvent",
     "WhatIfPublicContext",
     "WhatIfPublicFinancialSnapshot",
     "WhatIfPublicNewsEvent",
+    "WhatIfPublicRegulatoryEvent",
+    "WhatIfPublicStockHistoryRow",
     "ContextSnapshotRole",
     "ContextSnapshotStatusSummary",
     "ContextStatusFinding",

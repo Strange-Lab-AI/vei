@@ -1,0 +1,194 @@
+{
+  "name": "b2b_saas.contract",
+  "workflow_name": "b2b_saas",
+  "scenario_name": "enterprise_renewal_risk",
+  "success_predicates": [
+    {
+      "name": "predicate_1",
+      "source": "oracle_state",
+      "assertion": {
+        "kind": "state_contains",
+        "field": "components.tickets.metadata.JRA-PIN-101.comments",
+        "contains": "Integration fix deployed, customer confirmed, and renewal proposal advanced.",
+        "equals": null,
+        "focus": null,
+        "max_value": null,
+        "description": null,
+        "params": {}
+      },
+      "description": null,
+      "metadata": {
+        "category": "communication"
+      }
+    },
+    {
+      "name": "predicate_2",
+      "source": "oracle_state",
+      "assertion": {
+        "kind": "state_contains",
+        "field": "components.crm.activities",
+        "contains": "Apex renewal back on track after integration restore and stakeholder engagement.",
+        "equals": null,
+        "focus": null,
+        "max_value": null,
+        "description": null,
+        "params": {}
+      },
+      "description": null,
+      "metadata": {
+        "category": "general"
+      }
+    },
+    {
+      "name": "predicate_3",
+      "source": "oracle_state",
+      "assertion": {
+        "kind": "state_contains",
+        "field": "components.slack.channels.#apex-renewal.messages",
+        "contains": "Apex integration fixed, exec sponsor engaged, and renewal proposal ready to send.",
+        "equals": null,
+        "focus": null,
+        "max_value": null,
+        "description": null,
+        "params": {}
+      },
+      "description": null,
+      "metadata": {
+        "category": "communication"
+      }
+    }
+  ],
+  "forbidden_predicates": [
+    {
+      "name": "predicate_4",
+      "source": "time",
+      "assertion": {
+        "kind": "time_max_ms",
+        "field": null,
+        "contains": null,
+        "equals": null,
+        "focus": null,
+        "max_value": 180000,
+        "description": null,
+        "params": {}
+      },
+      "description": null,
+      "metadata": {
+        "category": "sla_timing"
+      }
+    }
+  ],
+  "observation_boundary": {
+    "allowed_tools": [
+      "vei.graph_action",
+      "vei.graph_plan"
+    ],
+    "focus_hints": [
+      "comm_graph",
+      "doc_graph",
+      "revenue_graph",
+      "work_graph"
+    ],
+    "hidden_state_fields": [
+      "components.crm.activities",
+      "components.slack.channels.#apex-renewal.messages",
+      "components.tickets.metadata.JRA-PIN-101.comments"
+    ],
+    "description": "Agent-visible observations remain bounded to declared focuses."
+  },
+  "policy_invariants": [
+    {
+      "name": "customer_trust",
+      "description": "Do not advance the commercial conversation before the product issue is resolved.",
+      "required": true,
+      "evidence": null,
+      "metadata": {}
+    },
+    {
+      "name": "approval:engineering",
+      "description": "Approval required from product-lead at engineering",
+      "required": true,
+      "evidence": null,
+      "metadata": {}
+    }
+  ],
+  "reward_terms": [
+    {
+      "name": "predicate_1",
+      "weight": 0.333,
+      "term_type": "success",
+      "description": null,
+      "metadata": {}
+    },
+    {
+      "name": "predicate_2",
+      "weight": 0.333,
+      "term_type": "success",
+      "description": null,
+      "metadata": {}
+    },
+    {
+      "name": "predicate_3",
+      "weight": 0.333,
+      "term_type": "success",
+      "description": null,
+      "metadata": {}
+    },
+    {
+      "name": "predicate_4",
+      "weight": 1.0,
+      "term_type": "penalty",
+      "description": null,
+      "metadata": {}
+    }
+  ],
+  "intervention_rules": [
+    {
+      "name": "approval:engineering",
+      "trigger": "approval:engineering",
+      "action": "request_approval",
+      "actor": "product-lead",
+      "required": true,
+      "evidence": null
+    },
+    {
+      "name": "discount_without_fix",
+      "trigger": "log_renewal_activity",
+      "action": "resolve_p1 -> update_renewal_doc -> post_save_summary",
+      "actor": null,
+      "required": true,
+      "evidence": "Branch if the commercial move happens before the product fix lands."
+    }
+  ],
+  "metadata": {
+    "benchmark_family": "b2b_saas",
+    "workflow_variant": "enterprise_renewal_risk",
+    "workflow_parameters": {
+      "request_id": "SR-PIN-201",
+      "ticket_id": "JRA-PIN-101",
+      "deal_id": "DEAL-APEX-RENEWAL",
+      "doc_id": "DOC-PIN-PROPOSAL",
+      "contact_id": "CON-JORDAN",
+      "slack_channel": "#apex-renewal",
+      "ticket_note": "Integration fix deployed, customer confirmed, and renewal proposal advanced.",
+      "crm_note": "Apex renewal back on track after integration restore and stakeholder engagement.",
+      "slack_summary": "Apex integration fixed, exec sponsor engaged, and renewal proposal ready to send.",
+      "discount_pct": 0,
+      "deadline_max_ms": 180000
+    },
+    "workflow_tags": [
+      "benchmark-family",
+      "vertical",
+      "saas",
+      "enterprise_renewal_risk"
+    ],
+    "objective": "Save a $480K enterprise renewal by fixing the product, rebuilding trust, and closing the deal.",
+    "success_outcomes": [
+      "integration fixed",
+      "stakeholder engaged",
+      "competitive threat neutralized",
+      "renewal advanced"
+    ],
+    "base_contract": true
+  }
+}

@@ -1,0 +1,61 @@
+{
+  "name": "enron_rosetta_events",
+  "description": "Medium-agnostic event schema for Enron email (Rosetta representation).",
+  "fields": [
+    {
+      "name": "event_id",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "timestamp",
+      "type": "datetime",
+      "required": true
+    },
+    {
+      "name": "actor_id",
+      "type": "string",
+      "required": true,
+      "description": "Sender (human)"
+    },
+    {
+      "name": "target_id",
+      "type": "string",
+      "required": true,
+      "description": "Primary target person/group/thread fallback"
+    },
+    {
+      "name": "event_type",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "content",
+      "type": "string",
+      "required": false,
+      "description": "Optional body snippet; blank in metadata-only export"
+    },
+    {
+      "name": "thread_task_id",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "artifacts",
+      "type": "json-string",
+      "required": true
+    }
+  ],
+  "event_type_values": [
+    "message",
+    "message_reply",
+    "message_forward",
+    "assignment",
+    "approval",
+    "escalation"
+  ],
+  "notes": [
+    "Escalation includes forwards, cc/bcc broadcasts, and specialist-consult cues.",
+    "thread_task_id is subject-time heuristic (90-day split), not RFC message-id threading."
+  ]
+}

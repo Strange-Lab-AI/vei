@@ -7,11 +7,11 @@ SETUP_STAMP := $(VENV)/.setup-complete
 SETUP_FULL_STAMP := $(VENV)/.setup-full-complete
 VENV_BIN := $(VENV)/bin
 SETUP_EXTRAS := dev,sse,ui
-SETUP_FULL_EXTRAS := dev,llm,sse,ui,test,rl
+SETUP_FULL_EXTRAS := dev,llm,sse,ui,test,rl,browser
 COVERAGE_FAIL_UNDER ?= $(or $(shell awk 'BEGIN { section = 0 } $$1 == "coverage:" { section = 1; next } section && $$1 == "global:" { print int($$2 * 100); exit }' $(AGENTS_FILE) 2>/dev/null),80)
 PIPAPI_PYTHON := $(abspath $(VENV_BIN)/python)
 
-.PHONY: setup bootstrap setup-full check check-full test test-full dynamics-eval llm-live deps-audit enron-example all clean clean-workspace clean-workspace-dry-run
+.PHONY: setup bootstrap setup-full check check-full test test-full dynamics-eval llm-live deps-audit enron-example enron-screens all clean clean-workspace clean-workspace-dry-run
 
 $(VENV)/bin/activate:
 	$(PYTHON) -m venv $(VENV)
@@ -53,10 +53,10 @@ check-full: check
 		$(VENV_BIN)/semgrep --config p/python --config p/security-audit --config .semgrep.yml --error vei scripts || true; \
 	fi
 	@mkdir -p .artifacts
-	@DETECT_SECRETS_FILES="$$(git ls-files | grep -v '^\.secrets\.baseline$$' || true)"; \
+	@DETECT_SECRETS_FILES="$$(git ls-files --cached --others --exclude-standard | grep -v '^\.secrets\.baseline$$' || true)"; \
 	$(VENV_BIN)/detect-secrets scan $$DETECT_SECRETS_FILES > .artifacts/detect-secrets.json
 	@if [ -f .secrets.baseline ]; then \
-		DETECT_SECRETS_FILES="$$(git ls-files | grep -v '^\.secrets\.baseline$$' || true)"; \
+		DETECT_SECRETS_FILES="$$(git ls-files --cached --others --exclude-standard | grep -v '^\.secrets\.baseline$$' || true)"; \
 		$(VENV_BIN)/detect-secrets-hook --baseline .secrets.baseline $$DETECT_SECRETS_FILES; \
 	else \
 		echo "No .secrets.baseline found; detect-secrets check is advisory-only."; \
@@ -111,8 +111,12 @@ dynamics-eval: $(SETUP_FULL_STAMP)
 	@echo "Dynamics evaluation passed."
 
 enron-example: $(SETUP_FULL_STAMP)
-	$(VENV_BIN)/python scripts/package_enron_master_agreement_example.py
-	$(VENV_BIN)/python scripts/validate_whatif_artifacts.py docs/examples/enron-master-agreement-public-context
+	$(VENV_BIN)/python scripts/build_enron_example_bundles.py
+	$(VENV_BIN)/python scripts/validate_enron_example_bundles.py
+
+enron-screens: $(SETUP_FULL_STAMP)
+	$(VENV_BIN)/python -m playwright install chromium
+	$(VENV_BIN)/python scripts/capture_enron_bundle_screenshots.py
 
 all: check-full test-full dynamics-eval llm-live deps-audit
 

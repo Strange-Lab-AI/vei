@@ -63,6 +63,14 @@ from .filenames import (
 )
 from .decision import build_decision_scene, build_saved_decision_scene
 from .ejepa import default_forecast_backend, run_ejepa_counterfactual
+from .macro_outcomes import (
+    MACRO_CALIBRATION_METRICS,
+    MACRO_CALIBRATION_REPORT_PATH,
+    attach_macro_outcomes_to_forecast_result,
+    attach_macro_outcomes_to_historical_score,
+    macro_delta_from_prompt,
+    preview_macro_outcomes_for_prompt,
+)
 from ._saved_bundle import (
     build_saved_ranked_result_payload,
     resolve_saved_whatif_bundle,
@@ -115,6 +123,10 @@ __all__ = [
     "build_decision_scene",
     "build_saved_decision_scene",
     "build_public_context",
+    "MACRO_CALIBRATION_METRICS",
+    "MACRO_CALIBRATION_REPORT_PATH",
+    "attach_macro_outcomes_to_forecast_result",
+    "attach_macro_outcomes_to_historical_score",
     "default_forecast_backend",
     "empty_public_context",
     "estimate_counterfactual_delta",
@@ -137,7 +149,9 @@ __all__ = [
     "load_ranked_experiment_result",
     "load_research_pack_run_result",
     "load_world",
+    "macro_delta_from_prompt",
     "materialize_episode",
+    "preview_macro_outcomes_for_prompt",
     "build_saved_ranked_result_payload",
     "BUSINESS_STATE_COMPARISON_FILE",
     "BUSINESS_STATE_COMPARISON_OVERVIEW_FILE",

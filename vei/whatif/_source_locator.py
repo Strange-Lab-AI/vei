@@ -11,30 +11,18 @@ from .episode import load_episode_manifest
 
 
 def resolve_whatif_rosetta_dir(workspace_root: Path) -> Path | None:
-    candidates: list[Path] = [workspace_root / "rosetta"]
+    candidates: list[Path] = []
     manifest_source_dir = _resolve_manifest_source_dir(
         workspace_root,
         expected_source="enron",
     )
     if manifest_source_dir is not None:
         candidates.append(manifest_source_dir)
+    candidates.append(_repo_default_rosetta_dir())
     configured = os.environ.get("VEI_WHATIF_ROSETTA_DIR", "").strip()
     if configured:
         candidates.append(Path(configured).expanduser())
-    candidates.append(
-        workspace_root.parent
-        / "human_v_llm_messages_experiment"
-        / "experiments"
-        / "org_simulator"
-        / "rosetta"
-    )
-    candidates.append(
-        workspace_root.parent.parent
-        / "human_v_llm_messages_experiment"
-        / "experiments"
-        / "org_simulator"
-        / "rosetta"
-    )
+    candidates.append(workspace_root / "rosetta")
     for candidate in candidates:
         resolved = candidate.expanduser().resolve()
         if (resolved / "enron_rosetta_events_metadata.parquet").exists():
@@ -112,7 +100,10 @@ def resolve_whatif_source_path(
         if archive_path is not None:
             return ("mail_archive", archive_path)
     if normalized in {"", "auto", "enron"}:
-        rosetta_dir = resolve_whatif_rosetta_dir(workspace_root)
+        if normalized == "enron":
+            rosetta_dir = _resolve_preferred_enron_rosetta_dir(workspace_root)
+        else:
+            rosetta_dir = resolve_whatif_rosetta_dir(workspace_root)
         if rosetta_dir is not None:
             return ("enron", rosetta_dir)
     return None
@@ -167,17 +158,74 @@ def _workspace_whatif_source_hint(workspace_root: Path) -> str | None:
         if manifest is not None and manifest.source:
             normalized_source = str(manifest.source).strip().lower()
             if normalized_source == "enron":
-                if resolve_whatif_rosetta_dir(workspace_root) is not None:
+                if _resolve_explicit_enron_rosetta_dir(workspace_root) is not None:
                     return "enron"
                 if _workspace_saved_mail_archive_path(workspace_root) is not None:
+                    if _repo_workspace_uses_default_enron_rosetta(workspace_root):
+                        return "enron"
                     return "mail_archive"
-            return normalized_source
+                if _resolve_preferred_enron_rosetta_dir(workspace_root) is not None:
+                    return "enron"
+            elif normalized_source == "mail_archive":
+                return "mail_archive"
+            elif normalized_source == "company_history":
+                return "company_history"
     if _workspace_saved_mail_archive_path(workspace_root) is not None:
         return "mail_archive"
     if _workspace_saved_company_history_path(workspace_root) is not None:
         return "company_history"
-    if (workspace_root / "rosetta" / "enron_rosetta_events_metadata.parquet").exists():
+    if resolve_whatif_company_history_path(workspace_root) is not None:
+        return "company_history"
+    if resolve_whatif_mail_archive_path(workspace_root) is not None:
+        return "mail_archive"
+    if resolve_whatif_rosetta_dir(workspace_root) is not None:
         return "enron"
+    return None
+
+
+def _repo_default_rosetta_dir() -> Path:
+    return Path(__file__).resolve().parents[2] / "data" / "enron" / "rosetta"
+
+
+def _resolve_explicit_enron_rosetta_dir(workspace_root: Path) -> Path | None:
+    candidates: list[Path] = []
+    manifest_source_dir = _resolve_manifest_source_dir(
+        workspace_root,
+        expected_source="enron",
+    )
+    if manifest_source_dir is not None:
+        candidates.append(manifest_source_dir)
+    configured = os.environ.get("VEI_WHATIF_ROSETTA_DIR", "").strip()
+    if configured:
+        candidates.append(Path(configured).expanduser())
+    candidates.append(workspace_root / "rosetta")
+    for candidate in candidates:
+        resolved = candidate.expanduser().resolve()
+        if (resolved / "enron_rosetta_events_metadata.parquet").exists():
+            return resolved
+    return None
+
+
+def _repo_workspace_uses_default_enron_rosetta(workspace_root: Path) -> bool:
+    repo_root = Path(__file__).resolve().parents[2]
+    resolved_workspace_root = workspace_root.expanduser().resolve()
+    if not resolved_workspace_root.is_relative_to(repo_root):
+        return False
+    return (
+        _repo_default_rosetta_dir() / "enron_rosetta_events_metadata.parquet"
+    ).exists()
+
+
+def _resolve_preferred_enron_rosetta_dir(workspace_root: Path) -> Path | None:
+    candidates: list[Path] = []
+    explicit_dir = _resolve_explicit_enron_rosetta_dir(workspace_root)
+    if explicit_dir is not None:
+        candidates.append(explicit_dir)
+    candidates.append(_repo_default_rosetta_dir())
+    for candidate in candidates:
+        resolved = candidate.expanduser().resolve()
+        if (resolved / "enron_rosetta_events_metadata.parquet").exists():
+            return resolved
     return None
 
 

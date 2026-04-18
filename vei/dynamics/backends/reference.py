@@ -39,6 +39,7 @@ from vei.whatif.api import (
     WhatIfObservedEvidenceHeads,
     WhatIfPreBranchContract,
     WhatIfSequenceStep,
+    macro_delta_from_prompt,
 )
 from vei.whatif.api import run_branch_point_benchmark_prediction
 
@@ -109,7 +110,10 @@ class ReferenceBackend:
             backend_id="reference",
             backend_version="1.0.0",
             predicted_events=predicted_events,
-            business_heads=business_heads,
+            business_heads=self._attach_macro_heads(
+                business_heads,
+                action_text=self._action_text(request),
+            ),
             calibration=CalibrationMetrics(),
             state_delta_summary={
                 "model_id": str(prediction.get("model_id", "reference")),
@@ -449,6 +453,27 @@ class ReferenceBackend:
             approval=_interval(approval),
             load=_interval(load),
             drag=_interval(drag),
+        )
+
+    def _attach_macro_heads(
+        self,
+        business_heads: BusinessHeads,
+        *,
+        action_text: str,
+    ) -> BusinessHeads:
+        macro_delta = macro_delta_from_prompt(action_text)
+        return business_heads.model_copy(
+            update={
+                "stock_return_5d": PointInterval(
+                    point=macro_delta["stock_return_5d_delta"]
+                ),
+                "credit_action_30d": PointInterval(
+                    point=macro_delta["credit_action_30d_delta"]
+                ),
+                "ferc_action_180d": PointInterval(
+                    point=macro_delta["ferc_action_180d_delta"]
+                ),
+            }
         )
 
     def _event_reference(self, event: CanonicalEvent):

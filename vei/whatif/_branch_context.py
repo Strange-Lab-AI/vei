@@ -86,6 +86,8 @@ def build_branch_context(
     forecast = score_historical_tail(
         future_events,
         organization_domain=resolved_organization_domain,
+        branch_timestamp=branch_event.timestamp,
+        public_context=branch_public_context,
     )
     historical_business_state = assess_historical_business_state(
         branch_event=branch_reference,

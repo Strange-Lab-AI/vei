@@ -155,9 +155,21 @@ function whatIfSupportsPublicContext(context) {
   const hasNews =
     Array.isArray(context.public_news_events) &&
     context.public_news_events.length > 0;
+  const hasStock =
+    Array.isArray(context.stock_history) &&
+    context.stock_history.length > 0;
+  const hasCredit =
+    Array.isArray(context.credit_history) &&
+    context.credit_history.length > 0;
+  const hasFerc =
+    Array.isArray(context.ferc_history) &&
+    context.ferc_history.length > 0;
   return Boolean(
     hasFinancial ||
       hasNews ||
+      hasStock ||
+      hasCredit ||
+      hasFerc ||
       context.pack_name ||
       context.organization_name ||
       context.organization_domain ||
@@ -165,6 +177,22 @@ function whatIfSupportsPublicContext(context) {
       context.window_end ||
       context.branch_timestamp,
   );
+}
+
+function formatWhatIfPercent(value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) {
+    return "n/a";
+  }
+  return `${(numeric * 100).toFixed(1)}%`;
+}
+
+function formatWhatIfProbability(value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) {
+    return "n/a";
+  }
+  return `${(numeric * 100).toFixed(0)}%`;
 }
 
 function renderWhatIfPublicContext(context) {
@@ -177,6 +205,9 @@ function renderWhatIfPublicContext(context) {
   const news = Array.isArray(context?.public_news_events)
     ? context.public_news_events
     : [];
+  const stock = Array.isArray(context?.stock_history) ? context.stock_history : [];
+  const credit = Array.isArray(context?.credit_history) ? context.credit_history : [];
+  const ferc = Array.isArray(context?.ferc_history) ? context.ferc_history : [];
   return `
     <div class="whatif-scene-panel is-public-context">
       <div class="whatif-thread-head">
@@ -187,6 +218,9 @@ function renderWhatIfPublicContext(context) {
         <div class="whatif-chip-row">
           <span class="whatif-chip">${escapeHtml(financial.length)} financial</span>
           <span class="whatif-chip">${escapeHtml(news.length)} news</span>
+          <span class="whatif-chip">${escapeHtml(stock.length)} market</span>
+          <span class="whatif-chip">${escapeHtml(credit.length)} credit</span>
+          <span class="whatif-chip">${escapeHtml(ferc.length)} regulatory</span>
         </div>
       </div>
       <div class="whatif-public-grid">
@@ -226,6 +260,112 @@ function renderWhatIfPublicContext(context) {
               : `<div class="whatif-empty">No dated public-news checkpoints fall before this branch point.</div>`
           }
         </div>
+        <div class="whatif-public-list">
+          <strong>Market checkpoints</strong>
+          ${
+            stock.length
+              ? stock
+                  .slice(-8)
+                  .map(
+                    (item) => `
+                      <div class="whatif-public-item">
+                        <span class="whatif-result-meta">${escapeHtml((item.as_of || "").slice(0, 10))}</span>
+                        <strong>Close ${escapeHtml(String(item.close ?? "n/a"))}</strong>
+                        <span class="whatif-result-caption">${escapeHtml(item.summary || item.label || "")}</span>
+                      </div>
+                    `,
+                  )
+                  .join("")
+              : `<div class="whatif-empty">No dated market checkpoints fall before this branch point.</div>`
+          }
+        </div>
+        <div class="whatif-public-list">
+          <strong>Credit checkpoints</strong>
+          ${
+            credit.length
+              ? credit
+                  .map(
+                    (item) => `
+                      <div class="whatif-public-item">
+                        <span class="whatif-result-meta">${escapeHtml((item.as_of || "").slice(0, 10))}</span>
+                        <strong>${escapeHtml(item.headline || item.event_id || "Credit event")}</strong>
+                        <span class="whatif-result-caption">${escapeHtml(item.summary || "")}</span>
+                      </div>
+                    `,
+                  )
+                  .join("")
+              : `<div class="whatif-empty">No dated credit checkpoints fall before this branch point.</div>`
+          }
+        </div>
+        <div class="whatif-public-list">
+          <strong>Regulatory checkpoints</strong>
+          ${
+            ferc.length
+              ? ferc
+                  .map(
+                    (item) => `
+                      <div class="whatif-public-item">
+                        <span class="whatif-result-meta">${escapeHtml((item.timestamp || "").slice(0, 10))}</span>
+                        <strong>${escapeHtml(item.headline || item.event_id || "Regulatory event")}</strong>
+                        <span class="whatif-result-caption">${escapeHtml(item.summary || "")}</span>
+                      </div>
+                    `,
+                  )
+                  .join("")
+              : `<div class="whatif-empty">No dated regulatory checkpoints fall before this branch point.</div>`
+          }
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderWhatIfMacroOutcomes(forecast) {
+  const baseline = forecast?.baseline || {};
+  const predicted = forecast?.predicted || {};
+  const delta = forecast?.delta || {};
+  const hasAnyMacro =
+    baseline.stock_return_5d != null ||
+    baseline.credit_action_30d != null ||
+    baseline.ferc_action_180d != null ||
+    predicted.stock_return_5d != null ||
+    predicted.credit_action_30d != null ||
+    predicted.ferc_action_180d != null;
+  if (!hasAnyMacro) {
+    return "";
+  }
+  return `
+    <div class="whatif-scene-panel is-business-change">
+      <div class="whatif-thread-head">
+        <div>
+          <p class="eyebrow">Macro Outcome Panel</p>
+          <strong>Short-horizon market, credit, and FERC predictions for this branch</strong>
+        </div>
+      </div>
+      <div class="whatif-business-grid">
+        <div class="whatif-business-item">
+          <span class="whatif-result-meta">5 trading days</span>
+          <strong>Stock return</strong>
+          <span class="whatif-result-caption">Historical ${escapeHtml(formatWhatIfPercent(baseline.stock_return_5d))} -> Predicted ${escapeHtml(formatWhatIfPercent(predicted.stock_return_5d))}</span>
+          <span class="whatif-result-caption">Delta ${escapeHtml(formatWhatIfPercent(delta.stock_return_5d_delta))}</span>
+        </div>
+        <div class="whatif-business-item">
+          <span class="whatif-result-meta">30 days</span>
+          <strong>Credit action</strong>
+          <span class="whatif-result-caption">Historical ${escapeHtml(formatWhatIfProbability(baseline.credit_action_30d))} -> Predicted ${escapeHtml(formatWhatIfProbability(predicted.credit_action_30d))}</span>
+          <span class="whatif-result-caption">Delta ${escapeHtml(formatWhatIfProbability(delta.credit_action_30d_delta))}</span>
+        </div>
+        <div class="whatif-business-item">
+          <span class="whatif-result-meta">180 days</span>
+          <strong>FERC action</strong>
+          <span class="whatif-result-caption">Historical ${escapeHtml(formatWhatIfProbability(baseline.ferc_action_180d))} -> Predicted ${escapeHtml(formatWhatIfProbability(predicted.ferc_action_180d))}</span>
+          <span class="whatif-result-caption">Delta ${escapeHtml(formatWhatIfProbability(delta.ferc_action_180d_delta))}</span>
+        </div>
+      </div>
+      <div class="whatif-business-list">
+        <span class="whatif-result-caption">Calibration report: <code>studies/macro_calibration_enron_v1/calibration_report.md</code></span>
+        <span class="whatif-result-caption">Current calibration is weak: stock Spearman 0.041, credit AUROC 0.370, FERC AUROC 0.568.</span>
+        <span class="whatif-result-caption">Treat these macro heads as advisory context beside the email-path evidence, not as a standalone decision rule.</span>
       </div>
     </div>
   `;
@@ -1206,6 +1346,7 @@ function renderWhatIfStudio() {
       </div>
       </div>
       ${renderWhatIfBusinessChange(forecast?.business_state_change, { title: "Predicted Business Change" })}
+      ${renderWhatIfMacroOutcomes(forecast)}
       ${experiment.saved_bundle_notice ? `<div class="whatif-notice whatif-notice-info">${escapeHtml(experiment.saved_bundle_notice)}</div>` : ""}
       <div class="whatif-artifacts">
         <span><strong>Saved result</strong> ${escapeHtml(experiment.artifacts?.result_json_path || "")}</span>

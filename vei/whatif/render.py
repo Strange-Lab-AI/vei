@@ -41,17 +41,33 @@ def _public_context_lines(
 ) -> list[str]:
     if context is None:
         return []
-    if not context.financial_snapshots and not context.public_news_events:
+    if (
+        not context.financial_snapshots
+        and not context.public_news_events
+        and not context.stock_history
+        and not context.credit_history
+        and not context.ferc_history
+    ):
         return []
 
     lines = [
         "## Public Company Context",
         f"- Financial checkpoints: {len(context.financial_snapshots)}",
         f"- Public news events: {len(context.public_news_events)}",
+        f"- Market checkpoints: {len(context.stock_history)}",
+        f"- Credit checkpoints: {len(context.credit_history)}",
+        f"- Regulatory checkpoints: {len(context.ferc_history)}",
     ]
     for snapshot in context.financial_snapshots[-max(1, max_financial) :]:
         lines.append(f"- {snapshot.as_of[:10]} {snapshot.label}")
     for event in context.public_news_events[-max(1, max_news) :]:
+        lines.append(f"- {event.timestamp[:10]} {event.headline}")
+    for row in context.stock_history[-max(1, max_financial) :]:
+        lines.append(f"- {row.as_of[:10]} close {row.close:.2f}")
+    for event in context.credit_history[-max(1, max_news) :]:
+        headline = event.headline or f"{event.agency} rating action"
+        lines.append(f"- {event.as_of[:10]} {headline}")
+    for event in context.ferc_history[-max(1, max_news) :]:
         lines.append(f"- {event.timestamp[:10]} {event.headline}")
     return ["", *lines]
 
@@ -370,6 +386,27 @@ def render_forecast_result(result: WhatIfCounterfactualEstimateResult) -> str:
         f"- Escalation delta: {result.delta.escalation_delta}",
         f"- External-send delta: {result.delta.external_event_delta}",
     ]
+    if (
+        result.baseline.stock_return_5d is not None
+        or result.predicted.stock_return_5d is not None
+    ):
+        lines.append(
+            f"- Stock return (5d): {result.baseline.stock_return_5d} -> {result.predicted.stock_return_5d}"
+        )
+    if (
+        result.baseline.credit_action_30d is not None
+        or result.predicted.credit_action_30d is not None
+    ):
+        lines.append(
+            f"- Credit action (30d): {result.baseline.credit_action_30d} -> {result.predicted.credit_action_30d}"
+        )
+    if (
+        result.baseline.ferc_action_180d is not None
+        or result.predicted.ferc_action_180d is not None
+    ):
+        lines.append(
+            f"- FERC action (180d): {result.baseline.ferc_action_180d} -> {result.predicted.ferc_action_180d}"
+        )
     if result.surprise_score is not None:
         lines.append(f"- Surprise score: {result.surprise_score}")
     if result.notes:
@@ -447,6 +484,33 @@ def render_experiment(result: WhatIfExperimentResult) -> str:
                 f"- Escalation delta: {result.forecast_result.delta.escalation_delta}",
             ]
         )
+        if (
+            result.forecast_result.baseline.stock_return_5d is not None
+            or result.forecast_result.predicted.stock_return_5d is not None
+        ):
+            lines.append(
+                "- Stock return (5d): "
+                f"{result.forecast_result.baseline.stock_return_5d} -> "
+                f"{result.forecast_result.predicted.stock_return_5d}"
+            )
+        if (
+            result.forecast_result.baseline.credit_action_30d is not None
+            or result.forecast_result.predicted.credit_action_30d is not None
+        ):
+            lines.append(
+                "- Credit action (30d): "
+                f"{result.forecast_result.baseline.credit_action_30d} -> "
+                f"{result.forecast_result.predicted.credit_action_30d}"
+            )
+        if (
+            result.forecast_result.baseline.ferc_action_180d is not None
+            or result.forecast_result.predicted.ferc_action_180d is not None
+        ):
+            lines.append(
+                "- FERC action (180d): "
+                f"{result.forecast_result.baseline.ferc_action_180d} -> "
+                f"{result.forecast_result.predicted.ferc_action_180d}"
+            )
         lines.extend(
             _business_state_change_lines(result.forecast_result.business_state_change)
         )

@@ -1,0 +1,1001 @@
+timestamp,actor_id,event_type,subject_preview,folder,custodian_id,target_count,to_count,cc_count,bcc_count
+2001-09-14T21:05:43Z,fran.fagan@enron.com,escalation,FW: Promotions and Transfers- Gas Logistics,personnel___promotions,blair-l,1,1,0,0
+2001-09-10T17:33:15Z,maggie.matheson@enron.com,escalation,Customer Training,meetings___nng_customer_mtg,blair-l,7,5,2,2
+2001-08-20T19:34:19Z,sharon.brown@enron.com,escalation,Winter Ops - KC Hotel Information,meetings___nng_customer_mtg,blair-l,37,28,9,9
+2001-07-05T15:35:29Z,lynn.blair@enron.com,escalation,Winter Ops Meeting,meetings___nng_customer_mtg,blair-l,3,1,3,3
+2001-07-26T15:16:14Z,sharon.brown@enron.com,assignment,Draft - Winter Ops Agenda,meetings___nng_customer_mtg,blair-l,13,10,3,3
+2001-10-03T19:28:17Z,sharon.brown@enron.com,escalation,Follow-up - 2001 Winter Operations Meeting,meetings___nng_customer_mtg,blair-l,99,92,7,7
+2001-09-27T13:37:23Z,gerry.medeles@enron.com,escalation,RE: FAQ's for HotTap,meetings___nng_customer_mtg,blair-l,4,2,2,2
+2001-10-02T19:29:55Z,bradley.holmes@enron.com,escalation,System Enhancements for Feedback at NNG Winter Op's Meeting,meetings___nng_customer_mtg,blair-l,11,11,0,0
+2001-08-16T19:23:57Z,sharon.brown@enron.com,assignment,NNG - Winter Operations Meeting,meetings___nng_customer_mtg,blair-l,157,148,9,9
+2001-09-13T17:06:38Z,maggie.matheson@enron.com,message,Customer Feedback,meetings___nng_customer_mtg,blair-l,2,2,0,0
+2001-09-11T12:18:38Z,sharon.brown@enron.com,escalation,FW: Winter Ops Presentations,meetings___nng_customer_mtg,blair-l,55,52,3,3
+2001-09-20T11:08:16Z,sharon.brown@enron.com,assignment,NNG Winter Operations Attendees,meetings___nng_customer_mtg,blair-l,99,92,7,7
+2001-09-14T17:21:48Z,shelley.corman@enron.com,escalation,Recap of the NNG Winter Operations Meeting,meetings___nng_customer_mtg,blair-l,33,33,0,0
+2001-09-20T13:23:12Z,hasan.kedwaii@enron.com,escalation,RE: Email Notifications,meetings___nng_customer_mtg,blair-l,7,2,5,5
+2001-09-08T15:32:51Z,john.buchanan@enron.com,message,Customer meeting notes,meetings___nng_customer_mtg,blair-l,1,1,0,0
+2001-09-10T13:35:37Z,bradley.holmes@enron.com,escalation,Customer Service Concerns from NNG Customer Meeting; September 6,meetings___nng_customer_mtg,blair-l,15,15,0,0
+2001-06-29T13:08:36Z,sharon.brown@enron.com,assignment,FW: Northern Natural Gas 2001 Winter Operations Meeting,meetings___nng_customer_mtg,blair-l,143,125,18,18
+2001-08-23T21:43:37Z,vernon.mercaldo@enron.com,assignment,FW: Agenda for Ops meeting in KC,meetings___nng_customer_mtg,blair-l,1,1,0,0
+2001-08-22T13:28:51Z,john.buchanan@enron.com,escalation,Winter Ops. Meeting,meetings___nng_customer_mtg,blair-l,4,2,2,2
+2001-12-06T17:04:31Z,w..mcgowan@enron.com,assignment,FW: SLA Document for 3:30 PM Meeting,nng___sla_settlement,blair-l,5,2,3,3
+2001-12-10T13:07:45Z,steve.kirk@enron.com,escalation,FW: Operational Team,nng___sla_settlement,blair-l,4,4,0,0
+2001-12-10T20:50:55Z,steve.kirk@enron.com,escalation,SLA Team 12/12 Conference Call,nng___sla_settlement,blair-l,24,23,1,1
+2001-10-17T21:45:03Z,w..mcgowan@enron.com,escalation,SLA Settlement,nng___sla_settlement,blair-l,3,2,1,1
+2001-11-06T18:15:37Z,rita.bianchi@enron.com,escalation,RE: TAS Refund update,nng___sla_settlement,blair-l,11,4,7,7
+2001-10-08T20:50:19Z,shelley.corman@enron.com,escalation,FW: TW Negotiated Rates (Message from Greg Porter),tw___negotiated_rates_issues,blair-l,3,3,0,0
+2001-10-16T18:54:10Z,kevin.hyatt@enron.com,escalation,RE: TW Index Deals,tw___negotiated_rates_issues,blair-l,6,6,0,0
+2001-10-16T21:01:30Z,toby.kuehl@enron.com,escalation,RE: TW Index Deals,tw___negotiated_rates_issues,blair-l,13,6,7,7
+2001-10-19T18:44:16Z,michael.bodnar@enron.com,escalation,,customer___uses,blair-l,5,2,3,3
+2001-10-18T16:12:31Z,kay.threet@enron.com,assignment,RE: Information Request for LS Power FDD Overrun Analysis,customer___uses,blair-l,5,2,3,3
+2001-10-18T15:50:18Z,kay.threet@enron.com,escalation,Information Request for LS Power FDD Overrun Analysis,customer___uses,blair-l,5,1,4,4
+2001-10-31T15:32:01Z,michael.bodnar@enron.com,assignment,LSP's Storage - Nominations & Scheduled Activity Analysis,customer___uses,blair-l,4,1,3,3
+2001-09-27T15:45:28Z,john.buchanan@enron.com,escalation,USES Storage Allocation,customer___uses,blair-l,6,4,2,2
+2001-06-11T15:44:00Z,john.buchanan@enron.com,assignment,SCADA Data,customer___uses,blair-l,1,1,0,0
+2001-08-16T20:41:44Z,michael.bodnar@enron.com,escalation,FW: Business Objects Training,training___business_objects,blair-l,13,7,7,7
+2001-08-03T12:09:20Z,bradley.holmes@enron.com,escalation,Business Objects Training,training___business_objects,blair-l,6,2,4,4
+2001-11-27T14:19:22Z,center.ets@enron.com,assignment,Business Objects Upgrade Information,training___business_objects,blair-l,0,0,0,0
+2001-08-07T16:36:18Z,bradley.holmes@enron.com,assignment,Business Objects Training,training___business_objects,blair-l,13,7,6,6
+2001-09-18T16:04:45Z,michael.bodnar@enron.com,escalation,Updated: Business Objects Training,training___business_objects,blair-l,18,6,14,14
+2001-10-08T18:38:07Z,kimberly.watson@enron.com,escalation,RE: TW OBAs,tw___imbalances___netting_trading,blair-l,16,14,2,2
+2001-10-31T19:20:12Z,glen.hass@enron.com,escalation,RE: FYI - 637 Imbal Mtg,tw___imbalances___netting_trading,blair-l,10,3,7,7
+2001-08-15T15:48:59Z,glen.hass@enron.com,escalation,FW: TW 637 Meeting,tw___imbalances___netting_trading,blair-l,18,19,0,0
+2001-09-12T18:38:03Z,richard.hanagriff@enron.com,escalation,RE: TW Imbalance Netting and Trading posting,tw___imbalances___netting_trading,blair-l,7,4,3,3
+2001-07-20T21:34:06Z,rick.dietz@enron.com,assignment,ONEOK Letter and Supporting Documents,customer___oneok,blair-l,8,5,3,3
+2001-09-13T21:48:06Z,deborah.cappiello@enron.com,assignment,FW:,customer___oneok,blair-l,11,11,0,0
+2001-10-25T14:24:14Z,charlie.graham@enron.com,escalation,Mt. Jesus Drip,customer___oneok,blair-l,9,7,2,2
+2001-09-27T17:09:03Z,drew.fossum@enron.com,escalation,OneOk,customer___oneok,blair-l,13,11,2,2
+2001-10-03T18:51:18Z,britt.davis@enron.com,assignment,Northern v. ONEOK,customer___oneok,blair-l,28,6,22,22
+2001-10-02T14:56:19Z,britt.davis@enron.com,escalation,Northern v. ONEOK/ RE: Bushton ESD,customer___oneok,blair-l,20,2,18,18
+2001-10-04T12:49:18Z,kay.miller@enron.com,escalation,RE: Northern v. ONEOK,customer___oneok,blair-l,30,8,22,22
+2001-09-21T17:49:46Z,lynn.blair@enron.com,escalation,RE: Northern v. ONEOK/Proposed Letter to ONEOK re Fisher Roc,customer___oneok,blair-l,16,12,5,5
+2001-09-13T14:06:17Z,terry.kowalke@enron.com,assignment,OneOk Meeting,customer___oneok,blair-l,6,2,4,4
+2001-10-02T21:29:20Z,charlie.graham@enron.com,escalation,Mt. Jesus !!!,customer___oneok,blair-l,11,7,4,4
+2001-09-21T17:36:39Z,britt.davis@enron.com,assignment,Northern v. ONEOK/Spreadsheet attachment to letter to ONEOK re Fisher Roc,customer___oneok,blair-l,15,11,4,4
+2001-10-12T16:33:24Z,britt.davis@enron.com,escalation,Northern v. ONEOK/Bushton Measurement Issue/Chromatograph malfunction 9/19-10/11,customer___oneok,blair-l,28,4,24,24
+2001-09-18T22:44:37Z,drew.fossum@enron.com,escalation,OneOk Talking Points,customer___oneok,blair-l,12,1,11,11
+2001-10-15T13:18:36Z,charlie.graham@enron.com,escalation,RE: Mt. Jesus payment,customer___oneok,blair-l,5,2,3,3
+2001-10-15T20:13:05Z,kenneth.cessac@enron.com,escalation,RE: Northern v. ONEOK/Bushton Measurement Issue/Chromatograph malfunction 9/19-10/11,customer___oneok,blair-l,28,5,23,23
+2001-09-19T15:23:44Z,drew.fossum@enron.com,escalation,FW: OneOk Talking Points,customer___oneok,blair-l,12,2,10,10
+2001-06-20T00:46:00Z,charlie.graham@enron.com,escalation,FW: Mt. Jesus Condensate,customer___oneok,blair-l,7,2,5,5
+2001-11-05T20:04:29Z,britt.davis@enron.com,escalation,Northern v. ONEOK,customer___oneok,blair-l,31,4,27,27
+2001-09-19T20:19:30Z,dan.fancler@enron.com,assignment,FW: MT. Jesus,customer___oneok,blair-l,3,2,1,1
+2001-08-01T22:47:54Z,rick.dietz@enron.com,assignment,ONEOK Payment,customer___oneok,blair-l,5,3,2,2
+2001-06-14T22:53:00Z,tangie.dykes@enron.com,assignment,Re: STRANGERS GAS SHIPPERS AND ESTIMATED VOLUMES (6/98 thru 6/01),customer___oneok,blair-l,5,1,5,5
+2001-09-21T16:19:19Z,britt.davis@enron.com,escalation,Northern v. ONEOK/Proposed Letter to ONEOK re Fisher Roc,customer___oneok,blair-l,15,11,4,4
+2001-11-07T14:08:11Z,lynn.blair@enron.com,escalation,RE: Northern v. ONEOK,customer___oneok,blair-l,31,5,27,27
+2001-10-19T18:18:16Z,britt.davis@enron.com,escalation,FW: Northern vs OneOk/Measurement,customer___oneok,blair-l,31,4,27,27
+2001-11-05T23:28:04Z,britt.davis@enron.com,assignment,Northern v. ONEOK,customer___oneok,blair-l,8,2,6,6
+2001-08-28T03:33:30Z,rick.kile@enron.com,message_reply,Re: FW: Mt. Jesus Condensate,customer___oneok,blair-l,2,2,0,0
+2001-11-06T15:45:00Z,dari.dornan@enron.com,assignment,RE: Northern v. ONEOK,customer___oneok,blair-l,8,3,5,5
+2001-08-21T12:59:02Z,charlie.graham@enron.com,escalation,FW: Mt. Jesus Condensate,customer___oneok,blair-l,4,1,3,3
+2001-09-15T17:40:16Z,chris.greaney@enron.com,assignment,FW: Low flows to Oneok at Bushton,customer___oneok,blair-l,19,19,0,0
+2001-09-13T21:48:28Z,deborah.cappiello@enron.com,escalation,FW:,customer___oneok,blair-l,11,11,0,0
+2001-10-01T17:02:41Z,phil.lowry@enron.com,escalation,RE: OneOk Letter,customer___oneok,blair-l,11,5,6,6
+2001-08-29T15:15:57Z,tangie.dykes@enron.com,assignment,RE: Oneok A/R-OBA Summary as of 8/28/01,customer___oneok,blair-l,9,3,7,7
+2001-12-11T20:10:00Z,harry.woodson@enron.com,assignment,Helium Volumes,customer___oneok,blair-l,5,4,1,1
+2001-08-28T13:21:23Z,charlie.graham@enron.com,escalation,Mt. Jesus Condensate Sampling,customer___oneok,blair-l,4,1,3,3
+2001-09-04T19:10:01Z,kay.miller@enron.com,escalation,RE: ONEOK's July PTR Statement,customer___oneok,blair-l,10,9,1,1
+2001-09-20T15:08:08Z,charlie.graham@enron.com,escalation,FW: Condensate Hauling,customer___oneok,blair-l,12,6,6,6
+2001-09-27T14:26:27Z,britt.davis@enron.com,escalation,Northern v. ONEOK/Copies of Arbitration Award,customer___oneok,blair-l,17,3,14,14
+2001-09-24T13:48:51Z,joe.linhart@enron.com,escalation,RE: Northern v. ONEOK/Proposed Fisher Roc Outage Letter,customer___oneok,blair-l,18,1,17,17
+2001-10-03T15:38:16Z,britt.davis@enron.com,escalation,FW: Northern v. ONEOK/Proposed Response to ONEOK's request for a Special Test,customer___oneok,blair-l,29,29,0,0
+2001-10-16T17:18:31Z,britt.davis@enron.com,escalation,Northern v. ONEOK/Measurement Incident,customer___oneok,blair-l,31,4,27,27
+2001-10-16T21:50:13Z,britt.davis@enron.com,escalation,Northern v. ONEOK/Measurement Incident,customer___oneok,blair-l,31,4,27,27
+2001-07-11T22:23:08Z,britt.davis@enron.com,escalation,RE: Northern v. ONEOK,customer___oneok,blair-l,11,1,10,10
+2001-10-19T17:31:11Z,britt.davis@enron.com,escalation,Northern v. ONEOK/Response to ONEOK's Request for a Special Test,customer___oneok,blair-l,31,4,27,27
+2001-11-07T20:18:10Z,lynn.blair@enron.com,escalation,Demarc Allocation Conference Call - 11/06/01,customer___virginia_power_dominion,blair-l,15,9,7,7
+2001-11-12T01:50:01Z,greg_hathaway@dom.com,escalation,Re: Demarc Allocation Conference Call - 11/06/01,customer___virginia_power_dominion,blair-l,2,1,1,1
+2001-11-05T19:36:31Z,gerry.medeles@enron.com,escalation,Demarc Questions: Responses,customer___virginia_power_dominion,blair-l,3,1,2,2
+2001-11-16T13:31:52Z,vernon.mercaldo@enron.com,escalation,"RE: Critical , Other , 20011117 , NNG , 784158214",customer___virginia_power_dominion,blair-l,2,1,1,1
+2001-09-28T14:29:46Z,vernon.mercaldo@enron.com,escalation,FW: NNG Letter asking for Written Clarifications,customer___virginia_power_dominion,blair-l,2,2,0,0
+2001-09-28T21:20:23Z,vernon.mercaldo@enron.com,escalation,Virginia Power Final Draft,customer___virginia_power_dominion,blair-l,6,1,5,5
+2001-09-28T16:19:03Z,bradley.holmes@enron.com,escalation,RE: NNG Letter asking for Written Clarifications,customer___virginia_power_dominion,blair-l,6,1,5,5
+2001-07-31T23:01:17Z,vernon.mercaldo@enron.com,message,Responses to Virginia Power,customer___virginia_power_dominion,blair-l,3,3,0,0
+2001-11-13T22:48:50Z,lynn.blair@enron.com,escalation,Demarc Allocation Conference Call - 11/06/01,customer___virginia_power_dominion,blair-l,3,1,3,3
+2001-11-05T02:57:22Z,greg_hathaway@dom.com,assignment,Re: Demarc Allocation Conference Call,customer___virginia_power_dominion,blair-l,6,1,5,5
+2001-11-02T19:20:11Z,ava.garcia@enron.com,message,Vacation Days,vacations_2001,blair-l,1,1,0,0
+2001-11-06T20:26:07Z,michael.bodnar@enron.com,message,Out of Office,vacations_2001,blair-l,1,1,0,0
+2001-11-15T16:35:17Z,donna.scott@enron.com,escalation,Vacation Schedule,vacations_2001,blair-l,10,7,3,3
+2001-06-28T16:55:24Z,larry.berger@enron.com,escalation,Vacation days in July,vacations_2001,blair-l,3,1,2,2
+2001-07-06T18:17:00Z,sheila.nacey@enron.com,escalation,Vacation plans,vacations_2001,blair-l,9,8,1,1
+2001-08-30T14:43:51Z,larry.berger@enron.com,message,Vacation in Sept,vacations_2001,blair-l,3,3,0,0
+2001-07-26T13:59:38Z,larry.berger@enron.com,escalation,Vacation Days in August,vacations_2001,blair-l,3,1,2,2
+2001-09-21T16:26:14Z,ava.garcia@enron.com,message,Vacation Day,vacations_2001,blair-l,1,1,0,0
+2001-09-17T14:56:52Z,steven.january@enron.com,escalation,VACATION,vacations_2001,blair-l,11,11,0,0
+2001-06-15T17:44:00Z,steven.january@enron.com,escalation,VACATION,itinerary_off_duty,blair-l,7,7,0,0
+2001-12-20T17:56:45Z,sheila.nacey@enron.com,escalation,O-o-O,itinerary_off_duty,blair-l,5,5,0,0
+2001-08-20T14:10:20Z,john.buchanan@enron.com,message,Omaha Marketing Meeting Notes,itinerary_off_duty,blair-l,1,1,0,0
+2001-07-27T21:21:12Z,shelley.corman@enron.com,assignment,Next Week,itinerary_off_duty,blair-l,9,8,1,1
+2001-07-20T14:00:40Z,alma.green@enron.com,assignment,CORRECTIONS,itinerary_off_duty,blair-l,92,93,0,0
+2001-08-06T19:10:51Z,alma.green@enron.com,escalation,Phone & Team Lists,itinerary_off_duty,blair-l,91,92,0,0
+2001-10-01T16:03:57Z,raetta.zadow@enron.com,escalation,FW: Updated Phone List ETS Accounting,itinerary_off_duty,blair-l,28,29,0,0
+2001-10-04T13:58:05Z,ava.garcia@enron.com,assignment,FW: Revised Gas Logistics Work Locations,itinerary_off_duty,blair-l,46,46,0,0
+2001-10-10T14:36:21Z,alma.green@enron.com,escalation,New Phone List & Locations,itinerary_off_duty,blair-l,98,99,0,0
+2001-05-31T20:45:00Z,alma.carrillo@enron.com,escalation,Brad Holmes Pager Number,itinerary_off_duty,blair-l,22,22,1,1
+2001-10-03T20:31:35Z,steven.january@enron.com,escalation,VACATION,itinerary_off_duty,blair-l,5,5,0,0
+2001-09-21T04:22:27Z,jennifer.lowry@enron.com,message,TMS Team weekend schedule,itinerary_off_duty,blair-l,3,3,0,0
+2001-09-18T13:54:17Z,alma.green@enron.com,escalation,New Team List,itinerary_off_duty,blair-l,90,91,0,0
+2001-08-20T22:01:43Z,alma.carrillo@enron.com,escalation,FW: itinerary for grace lynn blair 27aug travel,itinerary_off_duty,blair-l,2,1,1,1
+2001-12-20T21:56:45Z,gary.kenagy@enron.com,escalation,Gas Control Support over the Holidays,itinerary_off_duty,blair-l,45,45,0,0
+2001-11-06T21:21:25Z,shelley.corman@enron.com,assignment,Draft Transwestern Presentation,presentations,blair-l,8,7,1,1
+2001-08-23T11:01:57Z,john.buchanan@enron.com,message,NNG Winter Ops. presentation,presentations,blair-l,1,1,0,0
+2001-10-25T17:39:42Z,shelley.corman@enron.com,escalation,customerserv 10-25.ppt,presentations,blair-l,4,4,0,0
+2001-11-07T19:59:06Z,lynn.blair@enron.com,escalation,TW Shipper Imbalance Presentation,presentations,blair-l,1,1,1,1
+2001-11-07T13:57:22Z,bradley.holmes@enron.com,escalation,Final review,presentations,blair-l,3,1,2,2
+2001-10-10T14:08:21Z,shelley.corman@enron.com,escalation,Gas Logistics Presentation,presentations,blair-l,8,7,1,1
+2001-08-21T20:56:20Z,john.buchanan@enron.com,message,NNG Winter Ops. Presentation,presentations,blair-l,3,3,0,0
+2001-07-16T15:23:08Z,terry.kowalke@enron.com,escalation,FW: Presentation,presentations,blair-l,1,1,0,0
+2001-11-12T22:27:25Z,toby.kuehl@enron.com,escalation,TW Customer Meeting Slides,presentations,blair-l,14,14,0,0
+2001-11-02T16:49:41Z,maggie.matheson@enron.com,assignment,Training Material,presentations,blair-l,7,4,3,3
+2001-09-26T13:11:50Z,gary.kenagy@enron.com,escalation,RE: Security Access,move,blair-l,8,2,6,6
+2001-09-24T21:09:13Z,donna.scott@enron.com,assignment,TW Move Information,move,blair-l,12,9,4,4
+2001-09-20T21:41:21Z,audrey.robertson@enron.com,assignment,FW: New Location for Steve Harris' Staff Meeting,move,blair-l,33,34,0,0
+2001-07-27T18:24:58Z,michael.bodnar@enron.com,escalation,FW: Demarc Allocations,demarc_allocation,blair-l,2,2,0,0
+2001-12-01T00:29:51Z,lynn.blair@enron.com,escalation,FW: Transwestern 12/01/01 Nominations,daily_updates___12_1_01,blair-l,5,3,3,3
+2001-09-27T19:40:09Z,shelley.corman@enron.com,escalation,FW: SoCalGas Complaint,tw___invoicing,blair-l,4,4,0,0
+2001-06-25T06:05:00Z,lynn.blair@enron.com,message,Transwestern Invoicing,tw___invoicing,blair-l,0,1,0,0
+2001-07-03T21:19:01Z,integrated.solutions.center@enron.com,message,Concur Expense (XMS) Common Questions,expense_reports,blair-l,1,1,0,0
+2001-07-02T02:11:04Z,integrated.solutions.center@enron.com,assignment,Concur Expense (XMS) Logon Instructions - All XMS Users Please Read!,expense_reports,blair-l,1,1,0,0
+2001-08-30T04:03:03Z,40enron@enron.com,message,How to prepare your expense report,expense_reports,blair-l,0,0,0,0
+2001-06-29T18:18:40Z,ava.garcia@enron.com,escalation,FW: Bullets for 6/28/01,weekly_reports___2001,blair-l,6,6,0,0
+2001-07-05T20:28:46Z,alma.carrillo@enron.com,escalation,Weekly Bullets 7/5/01,weekly_reports___2001,blair-l,80,81,0,0
+2001-07-20T16:17:38Z,ava.garcia@enron.com,escalation,CORRECTION: Revison on Bullets,weekly_reports___2001,blair-l,77,68,11,11
+2001-06-15T01:26:00Z,ava.garcia@enron.com,escalation,CORRECTION: Bullets,weekly_reports___2001,blair-l,77,70,9,9
+2001-09-07T15:53:08Z,raetta.zadow@enron.com,escalation,Bullets for the week of Sept 7,weekly_reports___2001,blair-l,3,3,1,1
+2001-11-09T23:48:54Z,chairman.ken@enron.com,message,Enron Announces Plans to Merge with Dynegy,merger_with_dynegy,blair-l,1,1,0,0
+2001-11-15T03:26:42Z,chairman.ken@enron.com,message,Overview of Investor Conference Call,merger_with_dynegy,blair-l,1,1,0,0
+2001-12-02T19:42:43Z,shelley.corman@enron.com,escalation,FW: UPDATE - Reporting to Work Next Week,merger_with_dynegy,blair-l,5,5,0,0
+2001-11-08T23:35:50Z,chairman.ken@enron.com,message,SEC Information/Earnings Restatement,merger_with_dynegy,blair-l,1,1,0,0
+2001-09-20T01:11:58Z,40enron@enron.com,message,SECURITY TRAVEL UPDATE,dra_info,blair-l,0,0,0,0
+2001-09-21T15:54:50Z,toby.kuehl@enron.com,assignment,System Notice 9/21/01,dra_info,blair-l,126,127,0,0
+2001-09-21T20:12:32Z,steven.january@enron.com,escalation,INGAA Conference Call,dra_info,blair-l,9,9,0,0
+2001-09-20T15:38:24Z,shelley.corman@enron.com,assignment,Please Read This Message,dra_info,blair-l,108,109,0,0
+2001-09-20T15:33:26Z,center.ets@enron.com,assignment,Customer Notification,dra_info,blair-l,1,0,1,1
+2001-09-20T01:16:00Z,40enron@enron.com,message,"Message from the Office of the Chair Enron Americas Re: September 11, 2001",dra_info,blair-l,0,0,0,0
+2001-10-10T04:03:50Z,no.address@enron.com,message,Security Update,dra_info,blair-l,0,0,0,0
+2001-09-18T21:07:24Z,toby.kuehl@enron.com,assignment,FW: ETS Customer Notice,dra_info,blair-l,8,6,2,2
+2001-09-19T14:26:43Z,toby.kuehl@enron.com,escalation,Revised Customer Notice #2 9/19/01,dra_info,blair-l,133,134,0,0
+2001-09-19T11:32:49Z,lynn.blair@enron.com,assignment,Customer Service,dra_info,blair-l,51,47,5,5
+2001-09-20T14:25:08Z,toby.kuehl@enron.com,escalation,Revised Customer Notice 9/20/01,dra_info,blair-l,133,134,0,0
+2001-09-19T14:26:07Z,john.buchanan@enron.com,assignment,System Update,dra_info,blair-l,49,46,3,3
+2001-09-18T23:13:19Z,ets1@mail.ev1.net,escalation,Revised ETS Notice,dra_info,blair-l,8,8,0,0
+2001-09-19T00:26:37Z,toby.kuehl@enron.com,escalation,FW: Revised ETS Notice,dra_info,blair-l,7,7,0,0
+2001-09-21T04:27:08Z,gary.kenagy@enron.com,escalation,Vacation on Friday,dra_info,blair-l,44,44,0,0
+2001-10-03T15:02:18Z,john.buchanan@enron.com,escalation,NNG Card List by Team,christmas_cards_list,blair-l,4,4,0,0
+2001-11-03T00:25:15Z,ipayit@enron.com,approval,iPayit Enhancements,ipayit_information,blair-l,0,0,0,0
+2001-08-27T05:44:48Z,ipayit@enron.com,approval,"Moved, New, and Improved!",ipayit_information,blair-l,12,0,12,12
+2001-12-19T19:31:36Z,frank.semin@enron.com,escalation,Account Receivables,inbox,blair-l,9,1,8,8
+2001-11-07T21:53:16Z,michele.winckowski@enron.com,escalation,Capacity Posting Procedures,inbox,blair-l,35,32,3,3
+2001-11-16T22:56:22Z,lynn.blair@enron.com,escalation,FW: Org Charts,inbox,blair-l,2,1,2,2
+2001-10-26T15:46:27Z,michael.bodnar@enron.com,escalation,Storage Summary Sheets,inbox,blair-l,6,4,2,2
+2001-10-30T03:06:38Z,no.address@enron.com,message,Lexis-Nexis Training: Houston & Worldwide / Dow Jones Training,inbox,blair-l,0,0,0,0
+2001-10-12T21:32:37Z,sue.neville@enron.com,escalation,RE: PNR Balance on PNM Cr# 25672 - PO# 27190,inbox,blair-l,7,3,4,4
+2001-11-14T20:47:46Z,raetta.zadow@enron.com,escalation,EPPI Schedules,inbox,blair-l,6,6,1,1
+2001-11-15T16:48:27Z,jodie.floyd@enron.com,escalation,RE: Clayton Energy,inbox,blair-l,7,3,5,5
+2001-10-15T14:08:22Z,gerry.medeles@enron.com,escalation,FW: Pool example,inbox,blair-l,2,2,0,0
+2001-08-27T17:22:54Z,john.buchanan@enron.com,escalation,Remote Access Pilot List,inbox,blair-l,4,2,2,2
+2002-01-01T07:34:52Z,special@flowgo.com,message,75% off on printer ink. 100% guaranteed!,inbox,blair-l,1,1,0,0
+2001-11-27T19:55:01Z,lynn.blair@enron.com,escalation,TW Imbalance Mtg.,inbox,blair-l,10,11,0,0
+2001-10-25T13:17:25Z,e..anderson@enron.com,escalation,RE: Daily Volumes For Midwest Natural Gas,inbox,blair-l,8,5,3,3
+2001-10-12T14:49:16Z,courtney.barker@enron.com,escalation,Duke Field Services Contract,inbox,blair-l,5,1,4,4
+2001-10-18T16:12:31Z,kay.threet@enron.com,assignment,RE: Information Request for LS Power FDD Overrun Analysis,inbox,blair-l,5,2,3,3
+2001-10-15T16:28:06Z,amy.mulligan@enron.com,message,Negotiated Rates,inbox,blair-l,1,1,0,0
+2001-12-31T17:05:12Z,ava.garcia@enron.com,escalation,Out of Office,inbox,blair-l,48,31,17,17
+2001-09-24T16:29:34Z,richard.hanagriff@enron.com,assignment,RE: K #27291 - Invoices not capturing incremental fees for alternate points,inbox,blair-l,1,1,0,0
+2001-11-27T23:58:44Z,lynn.blair@enron.com,message_reply,RE: East of Belleville allocation,inbox,blair-l,2,3,0,0
+2001-12-21T18:39:53Z,lynn.blair@enron.com,escalation,"RE: FDD Status for Dec 19th, 2001",inbox,blair-l,3,2,2,2
+2001-10-10T20:41:48Z,dan.fancler@enron.com,escalation,Transok offsystem accounting,inbox,blair-l,8,6,2,2
+2001-10-08T14:25:48Z,raetta.zadow@enron.com,escalation,RE: RER DDVC/SMS Issue,inbox,blair-l,11,6,6,6
+2001-12-31T20:41:36Z,lynn.blair@enron.com,escalation,TW Imbalance Meeting,inbox,blair-l,15,10,6,6
+2001-12-19T22:19:53Z,dari.dornan@enron.com,escalation,Oneok Dispute Notice Response,inbox,blair-l,13,13,0,0
+2001-10-27T11:25:33Z,randy.janzen@enron.com,assignment,RE: Tentative Meeting - Amarillo Natural Gas problems,inbox,blair-l,7,6,1,1
+2001-11-12T20:53:16Z,michele.winckowski@enron.com,message,SBA Contracts,inbox,blair-l,2,2,0,0
+2001-12-26T19:14:03Z,kay.miller@enron.com,escalation,RE: Services Agmt et al,inbox,blair-l,19,19,1,1
+2001-12-28T13:25:48Z,lynn.blair@enron.com,assignment,Carlton Resolution - PLEASE READ!!!!,inbox,blair-l,31,29,3,3
+2001-10-26T04:54:56Z,no.address@enron.com,assignment,Important Announcement Regarding Document Preservation,inbox,blair-l,0,0,0,0
+2001-10-28T14:51:22Z,jean.mcfarland@enron.com,escalation,"RE: Maintenance Window-Saturday, Oct 27",inbox,blair-l,18,19,0,0
+2001-11-21T20:35:51Z,bob.stevens@enron.com,escalation,Duluth Bypass Draft Letter Agreement,inbox,blair-l,8,4,4,4
+2001-10-24T21:58:28Z,shelley.corman@enron.com,escalation,Articles,inbox,blair-l,5,5,0,0
+2001-10-17T19:59:51Z,michael.bodnar@enron.com,assignment,FW: PNR Balance on PNM Cr# 25672 - PO# 27190,inbox,blair-l,6,2,4,4
+2001-12-27T15:28:37Z,jodie.floyd@enron.com,escalation,RE: October (Forward) Positive Displacement Meter PPA Status,inbox,blair-l,3,1,2,2
+2002-01-02T02:55:33Z,continental_airlines_inc@coair.rsc01.com,message,continental.com Specials for Grace Blair,inbox,blair-l,1,1,0,0
+2001-10-28T14:25:02Z,randy.janzen@enron.com,escalation,Actual Volumes in TMS for October 26th,inbox,blair-l,34,35,0,0
+2001-11-28T00:48:58Z,randy.janzen@enron.com,escalation,Update on Robert's Mother,inbox,blair-l,36,37,0,0
+2001-10-25T17:25:06Z,jodie.floyd@enron.com,escalation,FW: Daily Volumes For Midwest Natural Gas,inbox,blair-l,4,2,2,2
+2001-10-28T15:42:43Z,karen.clapper@enron.com,escalation,FW: Final AM Process for 10/26/01,inbox,blair-l,1,1,0,0
+2001-10-18T22:10:12Z,no.address@enron.com,message,UPDATE - Supported Internet Email Addresses,inbox,blair-l,0,0,0,0
+2001-10-05T07:17:08Z,40enron@enron.com,message,Important Information About Security & ClickAtHome,inbox,blair-l,0,0,0,0
+2001-09-28T18:18:35Z,elizabeth.brown@enron.com,escalation,FW: TW California reports w/minor changes,inbox,blair-l,9,9,0,0
+2001-12-12T19:19:54Z,michael.bodnar@enron.com,escalation,November Storage Allocations,inbox,blair-l,4,1,3,3
+2001-10-29T15:58:24Z,terry.kowalke@enron.com,escalation,FW: Carlton Resolution Reporting,inbox,blair-l,24,21,3,3
+2001-11-19T15:23:16Z,randy.bryan@enron.com,message_reply,RE: Requested training by Xcel in Denver,inbox,blair-l,1,1,0,0
+2001-12-14T20:47:08Z,mary.draemer@enron.com,assignment,EDI Confirmations Between Transwestern and El Paso,inbox,blair-l,9,9,0,0
+2001-12-21T00:15:17Z,kay.miller@enron.com,escalation,RE: Producer meeting,inbox,blair-l,15,14,2,2
+2001-12-18T14:10:50Z,raetta.zadow@enron.com,escalation,RE: Wire and Check Request Changes,inbox,blair-l,26,25,2,2
+2001-10-08T23:13:44Z,bradley.holmes@enron.com,escalation,TW Negotiated Rate Settlement Offer,inbox,blair-l,5,3,2,2
+2001-11-30T20:00:17Z,mbellido@southerngas.org,escalation,SGA Energy Accounting & Market Services Conference,inbox,blair-l,1,1,1,1
+2001-11-29T21:47:43Z,steve.kirk@enron.com,escalation,FW: SLA Operational Team,inbox,blair-l,2,2,0,0
+2001-12-21T18:01:30Z,chris.sebesta@enron.com,assignment,Measurement Detail,inbox,blair-l,4,3,1,1
+2001-11-27T22:05:59Z,mary.draemer@enron.com,escalation,Confirmations - Transwestern with El Paso,inbox,blair-l,6,6,0,0
+2001-12-12T18:50:00Z,lynn.blair@enron.com,escalation,FW: Bushton Processing Shut Down Plan - Receipt Point C6+ Listing,inbox,blair-l,1,1,1,1
+2001-10-26T21:23:25Z,harry.woodson@enron.com,assignment,Oneok Payments,inbox,blair-l,9,3,6,6
+2001-12-14T02:09:34Z,charlie.thompson@enron.com,assignment,Daily Volume Information for NNG Meters,inbox,blair-l,18,18,0,0
+2001-10-31T15:07:09Z,penny.mccarran@enron.com,assignment,Meeting on Gas Quality,inbox,blair-l,11,11,0,0
+2001-12-14T15:41:04Z,chris.sebesta@enron.com,escalation,October (Forward) Positive Displacement Meter PPA Status,inbox,blair-l,3,2,1,1
+2001-10-26T17:41:08Z,lynn.blair@enron.com,assignment,RE: Gas Logistics Presentation,inbox,blair-l,2,1,2,2
+2001-11-02T23:43:09Z,michele.winckowski@enron.com,assignment,RE: Meeting on Gas Quality,inbox,blair-l,11,11,0,0
+2001-10-03T00:08:04Z,bert.hernandez@enron.com,assignment,RE: K #27291 - Invoices not capturing incremental fees for alternate points,inbox,blair-l,13,8,5,5
+2001-10-17T19:37:06Z,raetta.zadow@enron.com,escalation,RE: Post Rock K# 104759,inbox,blair-l,5,2,4,4
+2001-11-16T22:27:33Z,lynn.blair@enron.com,escalation,FW: Storage Desk 3rd Party Storage Procedures,inbox,blair-l,0,1,0,0
+2001-12-10T19:22:45Z,larry.berger@enron.com,assignment,Customer A/R Inquiry form,inbox,blair-l,4,3,1,1
+2001-12-20T17:00:54Z,ava.garcia@enron.com,assignment,FW: Customer Notices on TMS System Enhancements,inbox,blair-l,47,47,0,0
+2001-12-14T18:08:49Z,sharon.brown@enron.com,assignment,eHRonline P/R Inquiry,inbox,blair-l,45,33,12,12
+2001-10-29T19:37:49Z,updates@send4fun.com,message,----> A Woman's Thoughts on Life! from Send4fun!,inbox,blair-l,1,1,0,0
+2001-12-31T12:46:55Z,lynn.blair@enron.com,assignment,Kermit to Beaver Grouping,inbox,blair-l,4,2,3,3
+2001-10-27T12:01:24Z,randy.janzen@enron.com,escalation,RE: Tentative Meeting - Amarillo Natural Gas problems - REVISION,inbox,blair-l,6,7,0,0
+2001-12-05T19:18:29Z,michael.bodnar@enron.com,escalation,Plainview Allocation Modifications,inbox,blair-l,3,2,1,1
+2001-12-19T16:21:29Z,penny.mccarran@enron.com,escalation,Bushton Universe Gas Quality,inbox,blair-l,15,15,0,0
+2001-10-16T02:15:23Z,administration.enron@enron.com,message,Supported Internet Email Addresses,inbox,blair-l,0,0,0,0
+2001-11-21T18:42:56Z,bill.rapp@enron.com,escalation,FW: Transwestern Advice Comments -- SoCalGas Advice 2837-A,inbox,blair-l,10,10,0,0
+2001-11-15T19:38:27Z,raetta.zadow@enron.com,escalation,FW: Daily Measurement,inbox,blair-l,3,3,1,1
+2001-11-25T23:15:46Z,resources.human@enron.com,message,Update to Merger Q&A,inbox,blair-l,1,1,0,0
+2001-10-29T16:32:06Z,lynn.blair@enron.com,escalation,RE: Gas Logistics Presentation,inbox,blair-l,4,1,4,4
+2001-10-16T22:29:41Z,donna.scott@enron.com,escalation,Red Phone Locations,inbox,blair-l,47,1,46,46
+2001-12-17T21:40:00Z,rick.dietz@enron.com,assignment,FW: Outstanding Invoices Related to Transwestern Pipeline Capacity Release Acquisitions from Citizens Communications Com,inbox,blair-l,10,7,3,3
+2001-10-31T22:34:08Z,terry.kowalke@enron.com,assignment,Data Request for 637 filing,inbox,blair-l,5,5,0,0
+2001-10-26T17:36:16Z,lynn.blair@enron.com,escalation,FW: SBA Priority during Allocations,inbox,blair-l,1,1,1,1
+2001-10-29T03:12:51Z,amy.mulligan@enron.com,escalation,TW Weekend Notes,inbox,blair-l,16,9,7,7
+2001-09-25T22:04:00Z,40enron@enron.com,message,2001 Special Stock Option Grant Awards,inbox,blair-l,0,0,0,0
+2001-10-26T18:07:13Z,michael.bodnar@enron.com,message_reply,RE: SBA Priority during Allocations,inbox,blair-l,1,1,0,0
+2002-01-01T18:32:54Z,updates@send4fun.com,message,----> Wishing You A Happy And Prosperous New Year!,inbox,blair-l,1,1,0,0
+2001-12-06T18:45:18Z,vernon.mercaldo@enron.com,escalation,RE: OneOk Field Services November Invoice Issues,inbox,blair-l,11,4,7,7
+2001-12-28T22:49:43Z,robert.benningfield@enron.com,escalation,FW: Outstanding Accounts Receivable,inbox,blair-l,1,1,0,0
+2001-12-07T22:11:27Z,steve.january@enron.com,escalation,FW: EFM Stations,inbox,blair-l,5,2,3,3
+2001-12-28T16:42:41Z,rick.dietz@enron.com,escalation,FW: Richardson Products Non-payment of Invoices,inbox,blair-l,1,1,0,0
+2001-12-13T21:41:54Z,kay.threet@enron.com,escalation,MidAmerican Gas Purchase Payment,inbox,blair-l,10,1,9,9
+2001-12-28T17:09:42Z,lynn.blair@enron.com,assignment,Weekly Report for Gas Logistics,inbox,blair-l,7,2,6,6
+2001-10-29T20:04:28Z,tim.johanson@enron.com,assignment,Requested training by Xcel in Denver,inbox,blair-l,5,4,1,1
+2001-12-12T16:19:16Z,raetta.zadow@enron.com,escalation,"Top imbalances for November, 2001",inbox,blair-l,3,3,1,1
+2001-10-10T14:08:21Z,shelley.corman@enron.com,escalation,Gas Logistics Presentation,inbox,blair-l,8,7,1,1
+2001-10-29T14:59:48Z,lynn.blair@enron.com,message,Finalize Transwestern Presentations,inbox,blair-l,2,3,0,0
+2001-11-20T14:17:13Z,raetta.zadow@enron.com,approval,FW: Carlton Surcharge .0175,inbox,blair-l,29,23,7,7
+2001-10-28T13:22:40Z,randy.janzen@enron.com,assignment,Bushton Balance through 10-26-01 - UPDATE - Please disregard previous Bushton Report for 26th!,inbox,blair-l,23,24,0,0
+2001-11-08T19:44:43Z,bert.hernandez@enron.com,escalation,DUKE INVOICES,inbox,blair-l,5,2,3,3
+2001-08-28T16:37:10Z,ramona.betancourt@enron.com,assignment,TW requirements for Inside/Outside the Path and TW Flow Direction,inbox,blair-l,11,6,5,5
+2001-10-17T21:45:03Z,w..mcgowan@enron.com,escalation,SLA Settlement,inbox,blair-l,3,2,1,1
+2001-12-26T13:59:58Z,rick.dietz@enron.com,message_reply,RE: Account Receivables,inbox,blair-l,3,3,0,0
+2001-10-26T19:14:09Z,ranelle.paladino@enron.com,assignment,daily capacity,inbox,blair-l,16,10,6,6
+2001-11-21T15:56:35Z,dan.fancler@enron.com,escalation,RE: Storage Desk 3rd Party Storage Procedures,inbox,blair-l,9,6,3,3
+2001-09-25T17:35:25Z,john.buchanan@enron.com,escalation,Notes from Critical Business Apps. meeting,inbox,blair-l,2,1,2,2
+2001-10-11T21:41:55Z,kimberly.watson@enron.com,escalation,FW: Oasis Dairy Farms Judgement,inbox,blair-l,1,1,0,0
+2001-12-28T22:48:45Z,robert.benningfield@enron.com,escalation,FW: Oustanding A/Rs,inbox,blair-l,1,1,0,0
+2001-10-26T15:46:57Z,jane.joyce@enron.com,message,Market Knowledge Survey (not a test!!),inbox,blair-l,2,2,0,0
+2001-12-31T22:07:37Z,rick.dietz@enron.com,escalation,NNG A/R Issues,inbox,blair-l,2,1,1,1
+2001-11-07T14:52:55Z,shelley.corman@enron.com,escalation,Fire Drills and Emergency Response,inbox,blair-l,40,36,4,4
+2001-11-15T19:04:01Z,shelley.corman@enron.com,escalation,Gas Logistics Update,inbox,blair-l,119,120,0,0
+2001-10-26T16:43:32Z,ava.garcia@enron.com,message,TW Attendee Spreadsheet,inbox,blair-l,2,2,0,0
+2001-11-21T16:12:12Z,frank.semin@enron.com,assignment,FW: NNG October 2001 Charges,inbox,blair-l,5,5,0,0
+2001-10-29T15:29:00Z,e..anderson@enron.com,assignment,RE: Gas Logistics Presentation,inbox,blair-l,3,1,2,2
+2001-12-20T22:06:26Z,raetta.zadow@enron.com,assignment,FW: November Reservation Invoices,inbox,blair-l,3,3,1,1
+2001-11-27T23:45:47Z,sheila.nacey@enron.com,message,New York City tribute,inbox,blair-l,2,2,0,0
+2001-12-31T22:28:12Z,jean.blair@enron.com,escalation,Process Responsibility as of 01/01/02 thru 01/07/02,inbox,blair-l,36,37,0,0
+2001-11-09T16:40:43Z,christine.mcevoy@enron.com,escalation,RE: TEAM MEETING,inbox,blair-l,9,7,2,2
+2001-11-12T17:03:15Z,ranelle.paladino@enron.com,escalation,FW: short term/daily capacity update,inbox,blair-l,18,18,0,0
+2002-01-01T20:39:42Z,chris.greaney@enron.com,escalation,New Years Day,inbox,blair-l,6,5,1,1
+2001-12-26T13:23:24Z,vernon.mercaldo@enron.com,escalation,RE: Potential Customer,inbox,blair-l,7,4,3,3
+2001-12-20T21:56:25Z,ava.garcia@enron.com,assignment,SGA New Orleans Conference,inbox,blair-l,5,4,1,1
+2001-12-28T22:49:19Z,robert.benningfield@enron.com,assignment,FW: Outstanding Accounts Receivable,inbox,blair-l,1,1,0,0
+2001-11-19T13:06:30Z,lynn.blair@enron.com,escalation,FW: K#21349 FOR GAS DAY ENDING 11-16-01,inbox,blair-l,3,2,2,2
+2001-10-26T17:37:20Z,lynn.blair@enron.com,assignment,FW: Conference Rooms/Shared Calendar Migration,inbox,blair-l,1,1,1,1
+2001-11-12T16:04:06Z,ranelle.paladino@enron.com,assignment,short term/daily capacity update,inbox,blair-l,18,18,0,0
+2001-12-08T15:55:56Z,charlie.thompson@enron.com,escalation,RE: EFM Stations,inbox,blair-l,5,2,3,3
+2001-12-13T18:03:43Z,donna.scott@enron.com,message,worksheet for you both,inbox,blair-l,2,2,0,0
+2001-10-17T17:59:48Z,jan.moore@enron.com,escalation,TMS Shipper Scheduled Quantities Report,inbox,blair-l,3,2,1,1
+2001-09-26T19:36:01Z,michelle.lokay@enron.com,assignment,AccountDistribution.xls,inbox,blair-l,4,4,0,0
+2001-11-15T22:26:58Z,sheila.nacey@enron.com,escalation,Weekend duty,inbox,blair-l,3,2,1,1
+2001-10-25T16:12:48Z,chris.sebesta@enron.com,escalation,RE: Alliant-WP&L Write-Off Spreadsheet and Request Agreement,inbox,blair-l,7,1,6,6
+2001-12-31T21:35:47Z,lynn.blair@enron.com,escalation,"UCU - SBA - Peaking at Carlton for 20,000 dth",inbox,blair-l,5,2,4,4
+2001-12-17T17:40:26Z,michael.bodnar@enron.com,escalation,FW: Results of Meeting on Storage Allocation Changes,inbox,blair-l,1,1,0,0
+2001-12-20T15:58:16Z,terry.kowalke@enron.com,escalation,Revised: TW OBA Filing Info.,inbox,blair-l,9,10,0,0
+2001-11-07T22:27:37Z,no.address@enron.com,message,Viewing Electronic Pay Stubs,inbox,blair-l,0,0,0,0
+2001-10-19T15:28:30Z,john.buchanan@enron.com,escalation,FW: Williams visit,inbox,blair-l,3,2,1,1
+2001-12-13T14:57:51Z,glen.hass@enron.com,escalation,RE: OBA & Scheduling Alt FT by Price Tariff Filings,inbox,blair-l,14,9,5,5
+2001-11-02T22:11:56Z,ruth.mann@enron.com,escalation,Regulatory Roundtable Meetings for 2002,inbox,blair-l,62,62,0,0
+2001-10-12T21:15:48Z,michael.bodnar@enron.com,escalation,3rd Party Storage Procedures - Initial Draft,inbox,blair-l,7,6,1,1
+2001-11-14T23:50:40Z,lynn.blair@enron.com,assignment,RE: Business Objects Upgrade,inbox,blair-l,8,4,5,5
+2001-10-11T20:39:55Z,penny.mccarran@enron.com,escalation,RE: NNG - South End Small customer deliveries,inbox,blair-l,10,4,6,6
+2001-10-23T13:53:07Z,john.buchanan@enron.com,escalation,FW: MOPS,inbox,blair-l,2,2,0,0
+2001-12-17T22:31:49Z,rick.dietz@enron.com,escalation,TW November 2001 Transportation Invoices Outstanding,inbox,blair-l,9,6,3,3
+2001-10-29T21:40:46Z,randy.janzen@enron.com,assignment,GPM Dumas Plant Information,inbox,blair-l,18,19,0,0
+2001-11-21T15:38:09Z,steve.january@enron.com,escalation,FW: Meas. Meeting,inbox,blair-l,1,1,0,0
+2001-12-14T23:59:46Z,theresa.hess@enron.com,escalation,GISB Update,inbox,blair-l,35,36,0,0
+2001-12-20T16:41:56Z,tim.johanson@enron.com,assignment,RE: LS Power,inbox,blair-l,5,2,3,3
+2001-10-29T23:26:17Z,ava.garcia@enron.com,escalation,Out of Office,inbox,blair-l,51,51,0,0
+2001-12-13T22:05:42Z,donna.scott@enron.com,assignment,Employee Company Level Changes for 2002,inbox,blair-l,8,1,7,7
+2001-11-21T15:53:45Z,fran.fagan@enron.com,escalation,Remote access is available for PEP,inbox,blair-l,25,24,1,1
+2001-10-29T12:26:55Z,lynn.blair@enron.com,escalation,FW: Production Migration 10/28/01,inbox,blair-l,3,1,3,3
+2001-11-01T02:14:43Z,pwah@socalgas.com,message,Bread Pudding Recipe,inbox,blair-l,1,1,0,0
+2001-12-13T22:56:02Z,donna.scott@enron.com,escalation,Reduced %,inbox,blair-l,7,7,0,0
+2001-10-26T22:31:39Z,bob.d.johnson@mailman.enron.com,escalation,Borderline,inbox,blair-l,18,18,0,0
+2001-12-31T17:48:05Z,elizabeth.brown@enron.com,escalation,Transwestern Capacity Release Report for December 2001 Reservation Invoices,inbox,blair-l,21,17,4,4
+2001-11-21T19:21:58Z,gerry.medeles@enron.com,escalation,RE: Plainview Allocations,inbox,blair-l,3,2,1,1
+2001-12-31T21:52:19Z,lynn.blair@enron.com,escalation,RE: Oneok - Cargray OBA,inbox,blair-l,12,7,6,6
+2001-12-17T15:32:21Z,vernon.mercaldo@enron.com,assignment,OneOk Repath for contract 101559,inbox,blair-l,2,1,1,1
+2001-10-03T20:51:07Z,lynn.blair@enron.com,escalation,"Outstanding A/R Issues Back to January, 1998",inbox,blair-l,30,29,3,3
+2001-10-28T15:34:20Z,jean.mcfarland@enron.com,assignment,IT Weekly Tip - Use vCards to share your contact info with clients and businesses,inbox,blair-l,84,85,0,0
+2001-10-29T15:34:52Z,michael.bodnar@enron.com,escalation,New NNG Deferred Delivery Points,inbox,blair-l,3,1,2,2
+2001-10-15T20:10:10Z,randy.janzen@enron.com,assignment,RE: Duke Field Services Contract,inbox,blair-l,5,1,4,4
+2001-12-19T14:10:14Z,sharon.brown@enron.com,escalation,FW: Merry Christmas,inbox,blair-l,1,1,0,0
+2001-12-07T23:03:32Z,lynn.blair@enron.com,assignment,FW: Important TW Accounts Receivable Collection Procedures,inbox,blair-l,2,2,1,1
+2001-10-29T13:16:04Z,steve.january@enron.com,escalation,FW:,inbox,blair-l,2,2,0,0
+2001-10-29T13:12:06Z,jknight@oneok.com,assignment,RE: Bushton Balance through 10-26-01 - UPDATE - Please disregard previous Bushton Report for 26th!,inbox,blair-l,27,27,0,0
+2001-12-31T16:54:37Z,lynn.blair@enron.com,approval,FW: File Restore Request,inbox,blair-l,2,1,2,2
+2001-10-29T19:14:38Z,john.buchanan@enron.com,message,Omaha,inbox,blair-l,1,1,0,0
+2001-10-29T17:21:19Z,james.studebaker@enron.com,assignment,Sched Qty Report posting,inbox,blair-l,5,5,0,0
+2001-12-17T22:04:38Z,no.address@enron.com,assignment,ATTENTION: Changes in Remote Access,inbox,blair-l,0,0,0,0
+2001-11-20T20:48:47Z,raetta.zadow@enron.com,assignment,FW: IES October SMS Invoice,inbox,blair-l,5,5,1,1
+2001-11-15T23:51:59Z,robert.benningfield@enron.com,escalation,Results of 11/14/01 Duke Meeting,inbox,blair-l,16,1,16,16
+2001-10-29T15:33:50Z,randy.janzen@enron.com,escalation,RE: Actual Volumes in TMS for October 26th,inbox,blair-l,34,35,0,0
+2001-08-06T13:25:00Z,lindy.donoho@enron.com,escalation,TW's Firm Capacity Procedures,inbox,blair-l,23,23,0,0
+2001-12-07T22:25:00Z,center.ets@enron.com,assignment,ATTENTION REMOTE ACCESS USERS,inbox,blair-l,1,0,1,1
+2001-11-17T00:43:41Z,gary.kenagy@enron.com,escalation,A draft Business Continuity Plan for a Short or No Notice Evacuation of the Enron Building,inbox,blair-l,13,7,6,6
+2001-12-26T17:35:49Z,lynn.blair@enron.com,assignment,Carlton Resolution,inbox,blair-l,7,5,3,3
+2001-10-25T00:06:13Z,shelley.corman@enron.com,escalation,Texas Gas Case,inbox,blair-l,5,5,0,0
+2001-12-26T13:33:18Z,raetta.zadow@enron.com,escalation,RE: Account Receivables,inbox,blair-l,3,3,1,1
+2001-12-19T12:33:32Z,terry.kowalke@enron.com,escalation,RE: Request Submitted: Access Request 000000000078904,inbox,blair-l,14,3,11,11
+2001-09-20T19:24:53Z,michael.bodnar@enron.com,escalation,Results of Meeting on Storage Allocation Changes,inbox,blair-l,19,16,3,3
+2001-12-12T12:45:39Z,michael.bodnar@enron.com,message_reply,RE: Job Duties,inbox,blair-l,1,1,0,0
+2001-12-22T01:12:20Z,fran.fagan@enron.com,message,contact,inbox,blair-l,1,1,0,0
+2001-10-22T18:08:53Z,michele.winckowski@enron.com,escalation,Draft - Procedures for Offsytem Transactions,inbox,blair-l,13,11,2,2
+2001-12-27T16:35:22Z,lynn.blair@enron.com,escalation,North Team Mtg. per Jerry W. Ava-35842,inbox,blair-l,14,14,1,1
+2001-11-26T23:34:44Z,randy.janzen@enron.com,escalation,Robert Benningfield's Mother,inbox,blair-l,34,35,0,0
+2001-12-28T22:22:50Z,renee.perry@enron.com,escalation,Clarification of IES Industries,inbox,blair-l,2,1,1,1
+2001-12-05T19:26:28Z,raetta.zadow@enron.com,escalation,Draft to Measurement,inbox,blair-l,3,2,2,2
+2001-10-29T15:36:49Z,randy.janzen@enron.com,escalation,Estimated volumes for the October 20th,inbox,blair-l,34,35,0,0
+2002-01-01T05:30:51Z,newsletter@quickinspirations.com,message,Someone has an eye on you!,inbox,blair-l,1,1,0,0
+2001-12-31T19:57:05Z,richard.hanagriff@enron.com,assignment,"""Crawford"" oba",inbox,blair-l,6,2,4,4
+2001-10-19T21:30:34Z,vernon.mercaldo@enron.com,escalation,Schematics from our Meeting,inbox,blair-l,9,7,2,2
+2001-11-28T01:25:15Z,randy.bryan@enron.com,assignment,RE: PEP suggested reviewers,inbox,blair-l,1,1,0,0
+2001-10-27T19:55:21Z,news@real-net.net,message,Put the fun back on your desktop - FREE!,inbox,blair-l,1,1,0,0
+2001-11-14T20:30:58Z,gerry.medeles@enron.com,escalation,RE: SBA Contracts,inbox,blair-l,4,3,1,1
+2001-11-20T23:18:10Z,miranda.southard@enron.com,assignment,RE: Org Charts,inbox,blair-l,1,1,0,0
+2001-12-12T21:19:15Z,w..mcgowan@enron.com,assignment,Draft SLA Summary,inbox,blair-l,3,3,0,0
+2001-10-25T17:39:42Z,shelley.corman@enron.com,escalation,customerserv 10-25.ppt,inbox,blair-l,4,4,0,0
+2001-10-25T15:08:54Z,terry.kowalke@enron.com,assignment,TW Accounting Testing Project,inbox,blair-l,1,1,0,0
+2001-09-20T20:56:28Z,lindy.donoho@enron.com,escalation,Notes from 637 Imbal Mtg 9/18/01,inbox,blair-l,8,7,1,1
+2001-12-17T22:50:29Z,steve.january@enron.com,approval,FW: Lincoln Electric System - Delivery Point Operator,inbox,blair-l,1,1,0,0
+2001-09-24T11:04:55Z,john.buchanan@enron.com,escalation,FW: E-mail Addresses,inbox,blair-l,1,1,0,0
+2001-12-19T14:46:29Z,kay.miller@enron.com,escalation,Producer meeting,inbox,blair-l,16,13,3,3
+2001-11-20T18:49:31Z,jo.williams@enron.com,escalation,"RE: Hobbs System Conversation -- Gas Control Meeting, 11/20",inbox,blair-l,8,7,1,1
+2001-12-28T22:29:06Z,chris.sebesta@enron.com,assignment,Accounts Receivables,inbox,blair-l,5,1,4,4
+2001-10-29T17:22:32Z,michelle_m_willis@reliantenergy.com,message,Forum,inbox,blair-l,2,2,0,0
+2001-10-16T19:59:25Z,michael.bodnar@enron.com,assignment,FW: Storage Charges on Allocation Error Days,inbox,blair-l,3,3,0,0
+2001-09-24T14:26:45Z,john.buchanan@enron.com,escalation,NNG/Oneok Meeting Notes,inbox,blair-l,12,13,0,0
+2001-11-21T15:24:32Z,michael.bodnar@enron.com,escalation,RE: Storage Allocation Request - REVISED,inbox,blair-l,2,1,1,1
+2001-10-31T20:23:05Z,gerry.medeles@enron.com,escalation,Market Point Allocations,inbox,blair-l,3,2,1,1
+2001-11-14T23:38:50Z,alice.johnson@enron.com,escalation,FW: AR Report,inbox,blair-l,1,1,0,0
+2001-10-21T19:58:43Z,ava.garcia@enron.com,message,Nutcraker Invitation,inbox,blair-l,1,1,0,0
+2001-12-12T16:29:00Z,wwputnam@midamerican.com,message,ENRON,inbox,blair-l,1,1,0,0
+2001-12-14T20:38:23Z,gary.spraggins@enron.com,escalation,FW: Gas Tariff Issues at Winkler Co. Point - DRN 42599,inbox,blair-l,5,5,0,0
+2001-12-20T17:01:48Z,ava.garcia@enron.com,assignment,FW: Production Migration 12/21/01,inbox,blair-l,47,47,0,0
+2001-12-13T19:42:07Z,chris.sebesta@enron.com,message,Alliant Energy Meeting Notes,inbox,blair-l,1,1,0,0
+2001-12-31T20:30:14Z,rick.dietz@enron.com,message_reply,RE: Mid-Year Performance Evaluation (Jodie),inbox,blair-l,1,1,0,0
+2001-10-08T15:05:27Z,raetta.zadow@enron.com,escalation,FW: RER DDVC/SMS Issue,inbox,blair-l,1,1,1,1
+2001-10-19T21:19:53Z,sylvia.thomas@enron.com,assignment,Requested Information,inbox,blair-l,32,32,0,0
+2001-09-21T13:30:54Z,chris.greaney@enron.com,escalation,team covergae,inbox,blair-l,14,11,3,3
+2001-12-07T22:15:44Z,theresa.hess@enron.com,escalation,RE: Pipeline Interconnect Forum Meeting Minutes,inbox,blair-l,1,1,1,1
+2001-12-27T17:24:01Z,renee.perry@enron.com,assignment,FW: North End Team Shipper/Interconnect Assignments,inbox,blair-l,1,1,0,0
+2001-11-20T18:24:21Z,ricki.winters@enron.com,escalation,Christmas Cards,inbox,blair-l,3,2,1,1
+2001-12-26T12:34:09Z,lynn.blair@enron.com,assignment,RE: Services Agmt et al,inbox,blair-l,19,19,1,1
+2001-10-22T18:06:22Z,dennis.lee@enron.com,escalation,New OBA's,inbox,blair-l,7,7,1,1
+2001-11-13T16:27:23Z,michael.bodnar@enron.com,escalation,FW: Storage issues,inbox,blair-l,1,1,0,0
+2001-09-19T17:28:33Z,toby.kuehl@enron.com,escalation,RE: Communication Alternatives in Crisis/Disaster/Outage Situations,inbox,blair-l,10,6,5,5
+2001-10-29T16:06:16Z,legale.black@enron.com,escalation,RE: New NNG Deferred Delivery Points,inbox,blair-l,3,1,2,2
+2001-09-11T22:56:48Z,lynn.blair@enron.com,escalation,FW: Possible System Changes,inbox,blair-l,0,1,0,0
+2001-10-30T14:43:03Z,john.buchanan@enron.com,escalation,Timeline,inbox,blair-l,2,1,1,1
+2001-12-11T21:20:40Z,lynn.blair@enron.com,escalation,RE: Job Duties,inbox,blair-l,1,1,1,1
+2001-11-21T16:57:10Z,raetta.zadow@enron.com,escalation,Measurement TBS/End User Problems,inbox,blair-l,7,7,1,1
+2001-12-10T16:55:35Z,john.buchanan@enron.com,assignment,RE: TW/ENA compressor deal,inbox,blair-l,1,1,0,0
+2001-12-20T00:00:39Z,dave.neubauer@enron.com,escalation,RE: Oneok,inbox,blair-l,15,15,0,0
+2001-12-21T14:21:37Z,r..keller@enron.com,assignment,RE: Producer meeting,inbox,blair-l,15,13,2,2
+2001-11-23T18:43:20Z,terry.kowalke@enron.com,escalation,Data Request for Tariff Filing (OBA's),inbox,blair-l,3,4,0,0
+2001-10-18T20:31:03Z,john.buchanan@enron.com,escalation,Revised Timeline,inbox,blair-l,2,1,1,1
+2001-09-27T15:45:28Z,john.buchanan@enron.com,escalation,USES Storage Allocation,inbox,blair-l,6,4,2,2
+2001-10-05T21:02:20Z,lynn.blair@enron.com,escalation,Team Shipper/Operator Assignments,inbox,blair-l,17,18,1,1
+2001-11-21T16:47:07Z,steve.january@enron.com,assignment,RE: Storage Allocations,inbox,blair-l,1,1,0,0
+2001-12-17T13:07:23Z,ricki.winters@enron.com,assignment,Shelley's e-mail,inbox,blair-l,8,9,0,0
+2001-10-18T15:50:18Z,kay.threet@enron.com,escalation,Information Request for LS Power FDD Overrun Analysis,inbox,blair-l,5,1,4,4
+2001-11-16T19:05:53Z,michael.bodnar@enron.com,assignment,RE: Storage Desk 3rd Party Storage Procedures,inbox,blair-l,7,6,1,1
+2001-10-29T17:00:46Z,jodie.floyd@enron.com,assignment,End User Measurement,inbox,blair-l,2,2,0,0
+2001-12-28T21:33:55Z,lynn.blair@enron.com,escalation,RE: Performance Evaluation due dates,inbox,blair-l,9,9,1,1
+2001-10-05T17:48:40Z,e..anderson@enron.com,escalation,RE: End-user Agreement Processes,inbox,blair-l,6,2,4,4
+2001-10-28T14:28:04Z,randy.janzen@enron.com,escalation,Oneok recap Oct.26th is Unavailable,inbox,blair-l,18,19,0,0
+2001-11-19T16:56:53Z,bob.stevens@enron.com,escalation,RE: Receipt Points,inbox,blair-l,3,1,2,2
+2001-12-07T18:03:26Z,rick.dietz@enron.com,escalation,Important NNG Accounts Receivable Collection Procedures,inbox,blair-l,9,4,5,5
+2001-10-18T16:40:26Z,scott.coburn@enron.com,escalation,Aberdeen and Welcome,inbox,blair-l,8,2,6,6
+2001-10-17T17:49:37Z,joe.linhart@enron.com,escalation,TEAM COVERAGE REQUEST,inbox,blair-l,16,1,16,16
+2001-11-12T23:19:25Z,lynn.blair@enron.com,escalation,"FW: Top imbalances for October, 2001",inbox,blair-l,0,1,0,0
+2001-12-05T21:27:39Z,lynn.blair@enron.com,escalation,FW: FYI - 637 Imbal Mtg,inbox,blair-l,3,3,1,1
+2001-12-28T23:52:40Z,robert.benningfield@enron.com,assignment,Kermit to Beaver,inbox,blair-l,13,4,12,12
+2001-10-19T18:44:16Z,michael.bodnar@enron.com,escalation,,inbox,blair-l,5,2,3,3
+2001-10-29T20:00:09Z,enron_update@concureworkplace.com,approval,<<Concur Expense Document>> - Nov. Home Pilot,inbox,blair-l,1,1,0,0
+2001-11-27T20:28:30Z,tgh4@pge.com,assignment,Pipeline Interconnect Forum Draft Minutes,inbox,blair-l,5,5,0,0
+2001-10-15T17:31:54Z,bradley.holmes@enron.com,message,Personal Best Award Request,inbox,blair-l,1,1,0,0
+2001-11-16T21:06:22Z,jodie.floyd@enron.com,escalation,Late Charts for Oct. 2001,inbox,blair-l,10,1,9,9
+2001-12-27T18:10:50Z,kay.miller@enron.com,escalation,RE: Northern vs. Oneok: Oneok measurement settlement,inbox,blair-l,17,17,1,1
+2001-12-12T14:30:40Z,randy.janzen@enron.com,escalation,Dr. Appointments - Eye and Diabetes,inbox,blair-l,12,12,1,1
+2001-12-26T23:27:43Z,lynn.blair@enron.com,assignment,North End Team Shipper/Interconnect Assignments,inbox,blair-l,15,11,5,5
+2001-10-16T22:57:19Z,robert.benningfield@enron.com,assignment,FW: Check it out Awards,inbox,blair-l,1,1,1,1
+2001-11-14T13:05:02Z,steve.january@enron.com,escalation,FW: Galena/Belleville Firm Volume Split,inbox,blair-l,2,2,0,0
+2001-10-29T17:56:57Z,alice.johnson@enron.com,assignment,Updates for CA Meeting Due by Noon Tomorrow.,inbox,blair-l,28,28,0,0
+2001-11-20T18:48:35Z,lindy.donoho@enron.com,escalation,RE: SoCal Gas CPUC Proceeding,inbox,blair-l,10,10,0,0
+2001-11-20T23:25:33Z,shelley.corman@enron.com,escalation,Staff Meeting Notice and Performance Feedback Training,inbox,blair-l,122,123,0,0
+2001-11-19T16:59:05Z,bob.stevens@enron.com,message_reply,RE: Requested training by Xcel in Denver,inbox,blair-l,1,1,0,0
+2002-01-02T08:02:10Z,special@flowgo.com,assignment,You CAN lose weight this year!,inbox,blair-l,1,1,0,0
+2001-12-26T17:26:47Z,dennis.lee@enron.com,escalation,Contracts/PLE On Call Schedule January through June 2002,inbox,blair-l,75,76,0,0
+2001-11-13T16:02:28Z,steve.weller@enron.com,escalation,FW: NNG Worksheet Jan 2000,inbox,blair-l,3,2,1,1
+2001-12-26T22:02:03Z,raetta.zadow@enron.com,escalation,Info,inbox,blair-l,2,1,2,2
+2001-10-29T19:49:15Z,reyna.cabrera@enron.com,escalation,Packets ending October 2001,inbox,blair-l,38,39,0,0
+2001-10-26T18:59:39Z,sylvia.thomas@enron.com,message,FILENET SYSTEM OUTAGE,inbox,blair-l,0,1,0,0
+2001-12-05T14:19:51Z,jodie.floyd@enron.com,assignment,FW: Interstate Power and Wisc P & L 16 day chart lists,inbox,blair-l,8,1,7,7
+2001-11-21T19:40:58Z,michele.winckowski@enron.com,escalation,RE: SBA Contracts,inbox,blair-l,4,4,0,0
+2001-12-27T23:37:37Z,no.address@enron.com,assignment,Please Read: Resolution Center to Disconnect Toll Free number,inbox,blair-l,0,0,0,0
+2001-11-28T21:27:19Z,jodie.floyd@enron.com,escalation,Midamerican Meter,inbox,blair-l,12,1,11,11
+2001-11-20T18:27:41Z,gary.spraggins@enron.com,escalation,"RE: Hobbs System Conversation -- Gas Control Meeting, 11/20",inbox,blair-l,8,6,2,2
+2001-10-29T13:10:12Z,terry.kowalke@enron.com,escalation,Scheduled Quantities Report,inbox,blair-l,44,41,3,3
+2001-10-29T13:09:52Z,tom.rice@enron.com,escalation,RE: Daily Volumes For Midwest Natural Gas,inbox,blair-l,9,5,4,4
+2001-10-29T18:23:04Z,jean.mcfarland@enron.com,assignment,Updated: Overall Update for DRA (BCP),inbox,blair-l,13,13,0,0
+2001-10-29T19:41:35Z,ava.garcia@enron.com,message,San Francisco/Los Angeles/ Omaha,inbox,blair-l,1,1,0,0
+2001-12-07T22:09:07Z,tgh4@pge.com,escalation,RE: Pipeline Interconnect Forum Draft Minutes,inbox,blair-l,5,5,0,0
+2001-12-19T15:37:47Z,lindy.donoho@enron.com,escalation,Scheduling Alt FT by Price,inbox,blair-l,13,11,2,2
+2001-12-11T16:46:29Z,lynn.blair@enron.com,escalation,October (Forward) Positive Displacement Meter PPA Status,inbox,blair-l,11,3,9,9
+2001-10-27T12:13:59Z,randy.janzen@enron.com,assignment,RE: Oneok recap Oct.25th,inbox,blair-l,18,19,0,0
+2001-10-11T22:30:45Z,michele.winckowski@enron.com,approval,RE: Transok Offsystem Fuel Accounting Procedure,inbox,blair-l,12,6,6,6
+2001-10-29T14:22:07Z,james.studebaker@enron.com,approval,Draft Notice for reinstating the Sched Qty report,inbox,blair-l,8,1,7,7
+2001-12-21T15:04:56Z,jean.mcfarland@enron.com,escalation,RE: Outbound TMS Messages,inbox,blair-l,8,3,5,5
+2001-12-17T23:06:12Z,lynn.blair@enron.com,assignment,Stan Horton's Staff Meeting,inbox,blair-l,6,6,1,1
+2001-12-05T20:43:42Z,center.ets@enron.com,escalation,Common Sense for your Personal Home Computer,inbox,blair-l,11,11,0,0
+2001-06-11T21:06:00Z,shelley.corman@enron.com,escalation,Follow-up on Weekend,tropical_storm_allison,blair-l,5,4,1,1
+2001-11-12T20:53:16Z,michele.winckowski@enron.com,message,SBA Contracts,nng___sba,blair-l,2,2,0,0
+2001-10-31T16:02:14Z,reyna.cabrera@enron.com,escalation,New SBA Season 2001-2002,nng___sba,blair-l,40,41,0,0
+2001-07-06T06:17:38Z,40enron@enron.com,approval,iBuyit Spend and Approval Guidelines,ibuyit_information,blair-l,0,0,0,0
+2001-06-29T01:59:29Z,enron.announcements@enron.com,escalation,Important eProcurement Information,ibuyit_information,blair-l,6,1,5,5
+2001-07-02T02:17:19Z,40enron@enron.com,message,iBuyit,ibuyit_information,blair-l,0,0,0,0
+2001-09-26T19:36:01Z,michelle.lokay@enron.com,assignment,AccountDistribution.xls,tw___marketing,blair-l,4,4,0,0
+2001-10-30T19:38:12Z,elizabeth.brown@enron.com,escalation,September 2001 FERC California Report - Final,tw___transactional_requirements,blair-l,11,11,0,0
+2001-09-28T18:18:35Z,elizabeth.brown@enron.com,escalation,FW: TW California reports w/minor changes,tw___transactional_requirements,blair-l,9,9,0,0
+2001-09-04T20:29:44Z,elizabeth.brown@enron.com,assignment,FERC Requirements for California Market Reporting,tw___transactional_requirements,blair-l,20,20,0,0
+2001-08-07T13:29:54Z,elizabeth.brown@enron.com,assignment,RE: TW Order report formats and data capture Mtg,tw___transactional_requirements,blair-l,13,12,1,1
+2001-07-26T15:48:37Z,ricki.winters@enron.com,escalation,RE: Transwestern's Reporting Requirements under FERC Order on Reporting CA gas sales,tw___transactional_requirements,blair-l,15,8,7,7
+2001-07-26T13:51:46Z,nancy.bagot@enron.com,escalation,FERC Order on Reporting CA gas sales,tw___transactional_requirements,blair-l,65,66,0,0
+2001-09-27T20:10:51Z,rita.bianchi@enron.com,escalation,RE: Final Review of FERC California Reporting - August 2001,tw___transactional_requirements,blair-l,14,14,0,0
+2001-09-07T14:04:42Z,ramona.betancourt@enron.com,escalation,RE: FERC Requirements for California Market Reporting,tw___transactional_requirements,blair-l,20,20,0,0
+2001-09-19T16:52:05Z,ramona.betancourt@enron.com,escalation,RE: East of CA Questions,tw___transactional_requirements,blair-l,13,7,6,6
+2001-11-01T17:47:40Z,vernon.mercaldo@enron.com,escalation,Demarc Allocation Conference Call,meetings___general,blair-l,6,1,5,5
+2001-09-19T21:12:35Z,mbellido@southerngas.org,message,SGA Conference Postponement,meetings___general,blair-l,0,1,0,0
+2001-10-02T21:52:21Z,tgh4@pge.com,escalation,Pipeline Interconnect Forum - Sunday Event Schedule,meetings___general,blair-l,10,1,10,10
+2001-10-09T22:11:31Z,tgh4@pge.com,escalation,Interconnect Forum Info,meetings___general,blair-l,8,1,8,8
+2001-09-27T21:39:50Z,elizabeth.bouldin@travelpark.com,escalation,6 Enron Transportation Services travelers,meetings___general,blair-l,4,1,3,3
+2001-09-26T16:20:04Z,penny.mccarran@enron.com,assignment,Small Volume Delivery Points in the Field,meetings___general,blair-l,14,13,1,1
+2001-09-21T20:49:21Z,cxm2@pge.com,message_reply,RE: Pipeline Interconnect Forum Information,meetings___general,blair-l,1,1,0,0
+2001-09-14T15:55:37Z,theresa.hess@enron.com,message,Hotel in San Francisco,meetings___general,blair-l,1,1,0,0
+2001-09-12T21:11:33Z,cxm2@pge.com,escalation,FW: Pipeline Interconnect Forum Information,meetings___general,blair-l,3,3,0,0
+2001-09-12T18:48:03Z,cxm2@pge.com,escalation,FW: Pipeline Interconnect Forum Information,meetings___general,blair-l,1,1,0,0
+2001-09-19T21:06:02Z,audrey.robertson@enron.com,assignment,Rescheduled Appreciation Luncheon for ETS' TW Teams,meetings___general,blair-l,57,58,0,0
+2001-09-12T20:27:28Z,tgh4@pge.com,escalation,RE: Pipeline Interconnect Forum Information,meetings___general,blair-l,2,1,1,1
+2001-07-20T17:08:03Z,cxm2@pge.com,escalation,Pipeline Interconnect Forum,meetings___general,blair-l,5,0,5,5
+2001-09-12T19:12:19Z,theresa.hess@enron.com,approval,FW: plz review and approve for ticketing by sept 11...theresa hess..travel on oct 20...non refundable,meetings___general,blair-l,1,1,0,0
+2001-10-02T18:17:17Z,tgh4@pge.com,escalation,Update!!! for Pipeline Interconnect Forum Information,meetings___general,blair-l,5,1,4,4
+2001-08-23T16:24:44Z,lynn.blair@enron.com,approval,FW: PAA,outbox,blair-l,1,1,1,1
+2001-07-03T21:55:34Z,tammy.jaquet@enron.com,message,Training Scheduled - Updated,training___2001,blair-l,3,3,0,0
+2001-07-26T22:10:38Z,katherine.perry@enron.com,escalation,Accounting Gas Logistics Training - NNG,training___2001,blair-l,13,1,12,12
+2001-05-30T02:48:00Z,tammy.jaquet@enron.com,assignment,Zenger-Miller Course,training___2001,blair-l,3,3,0,0
+2001-10-15T14:54:45Z,ava.garcia@enron.com,escalation,FW: Marketing Brown Bag Training Session - Date/Time Info,training___2001,blair-l,2,1,1,1
+2001-08-07T13:49:13Z,bradley.holmes@enron.com,assignment,2002 Capital IT Projects,budget___2002,blair-l,9,8,1,1
+2001-07-31T20:36:53Z,randy.bryan@enron.com,escalation,North Team Expected Tuition Reimbursement 2002,budget___2002,blair-l,1,1,1,1
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,TMS Weekly Mtg. Conference room EB4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Ava-35842/Market Services Council Mtg. conference room 42C2,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Bob Gifford/Mobil/Exxon Audit Meeting EB3907,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Sheila Nacey & Bob Martinez to meet in Lynn's office./Ava-35842-,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,John Buchanan - Oncall,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Staff Meeting EB 4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Market Services Concil Mtg - Sheila 42C2,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Weekly Priority Mtg./Raetta,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Staff Mtg. Conference room EB4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Leave for Civic Board Mtg,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Lynn - Oncall,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Return from Omaha,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,John Buchanan - Oncall,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Terry K. - Oncall,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,"Strangers Gas w/Raetta, Tangie, Harry (your office)",meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,John Buchanan - Oncall,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,"TW Customer Service Meeting-Lynn's office (John, Richard & Elizabeth)",meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,United Way Mtg - HAVE TO ATTEND 5C2,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Follow-up Staff Mtg 4194,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Lynn-OUT OF OFFICE,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Mobil Audit Mtg. to meet in Lynn's office attendees: Harry Woodson & Larry Berger,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Tammy Jaquet/EDI Training class,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Great River Energy - Lia H (4109),meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Terry K. - Oncall,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Ramona-Revalidation Meeting - Conference room 4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Team Leader Mtg. Conference room EB4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Leaving for FL/ Annual Shipper Meeting/ Ava-35842,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,"EDI DRA Omaha w/Sheila, Bob M, D. daze, F. Punts, Mary D, Jim S & Tammy L-J - 4102",meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,United Way Campaign - 50th Floor Boardroom (Required to Attend),meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,TMS Weekly Mtg. Conference room EB4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Sheila/Budget,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Marysusan/Training Meeting/ attendees: Sheila Nacey (Lynn's Office),meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Staff Mtg. Conference room EB4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Larry Vacation Day,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,no.address@enron.com,message,Do Not Delete - Repeat parent for John Buchanan - Oncall,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Socal - Imbalance Netting/Trading 3907,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Manual scheduling - 4194,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Terry K. - Oncall,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Doctor's appt. Leave at 1:30 Appt 2:15,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,lynn.blair@enron.com,message,Larry- out of office (Surgery),meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Raetta/Conference call Lynn's office,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Breakfast - Tenaska (Theresa/Janet),meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,GISB Update Mtg. Conference room EB47C2,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,PRC-Interviews,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Larry Berger/Monthly Acctg. Mtg. Conference room EB4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Fran/Donna - Transition Planning,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Lunch with Gina,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,no.address@enron.com,message,Julia / Danny Staff Meeting in video room EB49C2,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,"Mtg. in Lynn's office Donna, Lynn, Sheila",meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Terry K. - Oncall,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,2001 Budget Mtg with Rich & Sheila - your office,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Interview with Ava Garcia,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,"Meeting over Gaurdian Attendees: J. Buchanan, S. Lueng, J. Dushinski, D. Neubauer, C. Wilkinson, LD Stevenson, Steven Ja",meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Donna,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,J. McDaniel & S. Forbish/Debra Ava/35842 Meet in Lynn's office,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,John/Interviews,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,"Knowledge Center Review Attendees are: Sheila N., Lynn, Jerry M., Jan, John, B., Larry, Mike B., Tammy J., to meet in Ly",meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Dr. Ehini (2:00 ) 713-790-1211 (Lisa),meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,John Buchanan - Oncall,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Terry K. - Oncall,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Team Leader Mtg. Conference room EB4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Bi directional Operational flow availablility 4053,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Terry K. - Oncall Thanksgiving,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Larry/Reviews,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Lunch with Coordinators,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Staff Mtg. Conference room EB4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Chuck Wilkinson,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Weekly Priority Mtg./Raetta,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,KN/ONEOK - Issues - VIdeo Conference,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,John Buchanan - Oncall,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Jan - SBA,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,"Team Meeting Review/Robert over Team Merger (Julia White, Robert B., John Buchanan & Lynn Blair) Conference room 4102.",meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Ava-35842/Market Services Council Mtg. conference room 42C2,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Shirley Walden,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,"Four Seasons Hotel, Fairfield Four Seasons Hotel 713-650-1300 1300 Lamar Corner of Austin & Caroline",meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Regulatory Roundtable 49C1,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Terry K. - Oncall,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,John B. - vacation,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,no.address@enron.com,message,Do Not Delete - Repeat parent for Manuel Schedule Mtg.,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Team Leader Mtg. Conference room EB4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Terry Kowalki/Vacation,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,John Buchanan - Oncall,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Terry K. - Oncall,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Need to Leave by 3:30,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Joe/Steve Weller/ 48C1,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,John Buchanan - Oncall,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Coordinators - McGowan's Group Review,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Team Leader Mtg. Conference room EB4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Meet w/ Tangie & Terry over Team Assignments to meet in Lynn's office,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Weekly Priority Mtg./Raetta,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Team Leader Mtg. Conference room EB4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Market Service Council,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Staff Mtg. Conference room EB4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Sherley Walden Evaluation,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Alice on A/R,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Julia's office,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,7:20 Hightlight - Melissa,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,no.address@enron.com,message,ETS GISB Weekly Update/XML Discussion Conference room EB47C2/Houston 7C1 in Omaha Terry Lehn attending,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Mastio/FGT Mtg.,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Marion/Donna/Sheila - Remedy,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Lynn - Oncall,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Darrell/TW Calpine,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Team Leader Mtg. Conference room EB4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Team Leader Mtg. Conference room EB4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Frank Semin,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Lynn needs to leave at 4:30,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Lynn-OUT OF OFFICE,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,no.address@enron.com,message,Extended Staff Meeting/EB4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,"Discuss Training of Business Objects attendees (Rick D., Sheila, N., Steve G.) Conference room 4194",meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,TMS problem Log Mtg/Sheila EB4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Ava-35842/Market Services Council Mtg. conference room 42C2,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Lynn/Vacation,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Staff Mtg. Conference room EB4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Terry K. - Oncall Presidents Day,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,New Contract System - EB47C2,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Team Leader Mtg. Conference room EB4194,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Jan & Ava-Vacation Day,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Terry K. - Oncall,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Ava - Vacation,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,PRC-Interview,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Ava-35842/Market Services Council Mtg. conference room 42C2,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,2nd Qtr Credit Review 13C2,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Lynn - Oncall,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Tammy Hopkins/Scheduling Equality Process for Capacity Release conference room 49C2,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,1/2 Day Vacation,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,no.address@enron.com,message,Do Not Delete - Repeat parent for Team Leader Mtg.,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,lynn.blair@enron.com,message,Larry - out (Doctor's appts),meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,TW Round Table/Kevin Hyatt,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Lynn-OUT OF OFFICE,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Team Leader Mtg. Conference room EB4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,TW's christmas Lunch,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Dan - Lunch,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Team Leader Mtg. Conference room EB4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Staff Mtg. Conference room EB4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Larry-Vacation,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Order 637 - GPG Tammy Hopkins 4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,"Sunflower meeting - Loren (Steve, Lynn, Rockey)",meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Larry-Tulsa,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Need to leave for an appointment,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,no.address@enron.com,message,GPG United Way Rally - Energizer,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,TMS Weekly Mtg. Conference room EB4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Team Leader Mtg. Conference room EB4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Camille Gerard lunch,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Staff Mtg. Conference room EB4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Team Leader Mtg. Conference room EB4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Lynn - Oncall,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,"T.Kowalke/Shipper assingments Attendees: T. Dykes, H. Woodson, L.Blair To meet in Lynn's office",meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,no.address@enron.com,message,Extended Staff Meeting/EB4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Monthly Accounting Mtg. Conference EB4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,VACATION - CANNOT CANCEL John Buchanan on vacation,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,GISB Update mtg. Conference room EB47C2,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Tangie,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Danny - Lunch,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,no.address@enron.com,message,Staff Meeting/4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Jerry Wilkens,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Cross Contract Ranking - Tammy Hopkins Conference EB4701,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Lynn - Oncall,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,S. Central PRC,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Lunch with Sarabeth,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,John Buchanan - Oncall,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Tangie/KN/Oneok,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Britt Davis -Bushton conf: 4823,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Mike Bryant-out of office/working from home.,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,John Buchanan - Oncall,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Oneok Conference call - Steve's Office,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,A/R Richard,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,"Flowing Gas Phase II Meeting (Larry,Sheila,Rick&Legale) - 4102",meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Mike Bryant,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,no.address@enron.com,message,"Alma-XKR Meeting (Tammy Hopkins, Donna Scott, Jerry M, Tammy J, Dan, John & Jim S.)",meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Weekly Priority Mtg./Raetta,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,UCU Meeting - 4194 (Larry/Raetta),meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Jan on vacation,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,GISB Mtg. EB4746,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Regulatory Roundtable - EB49C2,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,"Knowledge Center (Jan, Tammie J, Leagle, Gerry, Sheila, Mike B. Bob Marinez, Rick D.) Conference room 4102.",meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Jim Voss,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,no.address@enron.com,message,Extended Staff Meeting/4102 CANCELED,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,S. Central PRC,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Lynn - Oncall,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Ava-Vaction,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Ava-35842/Market Services Council Mtg. conference room 42C2,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Manuel Schedule Mtg. conference room EB4194 Ava-35842,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Dan Pribble,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,CHeck with Pam on UCU,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,"8:00 Morning mtg. changes. Conf: EB4194 Attendees: S. Corman, J. Buchanan, T. Kowalke, S. January, L. Blair, G. Spraggin",meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,no.address@enron.com,message,Staff Meeting/4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Jerry/Donna/Sheila Call Center,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Staff Mtg. Conference room EB4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,TMS Weekly Mtg. Conference room EB4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Staff Mtg. Conference room EB4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Lynn Vacation,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Richard/OBA Mtg. To meet in Lynn's office,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,TW PRC,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,lynn.blair@enron.com,message,Donna/Sheila--Call Cntr,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Julia PRC,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Lynn-OUT OF OFFICE,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Chris Greaney?,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,John Buchanan - Oncall,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Larry-OUT,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Breakfast for Morgan,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Customer Accounts Monthly Mtg. conference room 4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,"Cost Center Mtg. To meet in Steve Hotte's office Attendees: Sheila Nacey, Shelley Corman & Steve Hotte",meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,no.address@enron.com,message,Travel to Minneapolis/Minnegasco Mtg. Ava-35842 - Flight leaves at 2:20 p.m.,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,no.address@enron.com,message,Staff Meeting/4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Meet with Donna 4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Customer Accounts Monthly Mtg. conference room 4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,TMS Weekly Mtg. Conference room EB4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Order No. 637 Customer Mtg. Conference room 7C1,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Amy - Calpine trip - Lynn's office,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,MID Pool 17 (Chris Sebesta/Dari Dornan),meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Larry Berger/Monthly Acct. Mtg. Conference room EB4194,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Returning from Minneapolis/Minnegasco Mtg./Ava-35842,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Chuck Wilkinson/Ref: Gaurdian conf call : Chuck will call you.,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Weekly Priority Mtg./Raetta,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,no.address@enron.com,message,Do Not Delete - Repeat parent for Lynn-OUT OF OFFICE,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Dr. Burbridge - 713-796-1505 (10:00),meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,TMS Weekly Mtg. Conference room EB4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,John Buchanan - Oncall,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Donna - Floor Plan,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Donna/SCE Data Request EB4194,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,no.address@enron.com,message,Staff Meeting/4102 Meet over SCE Data Request,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Staff Mtg. Conference room EB4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Sheila/J.Wiltfong/NNG Mktg. Training Session conf. room 50M Lunch will be provided.,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Mike Bodnar - Vacation,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,7:40 Hair Cut,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Staff Mtg. Conference room EB4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,TW Luncheon w/ Shelley The Met,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Sheila - Call Center,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,TW - LFT (Ramona) 4194,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Lynn-OUT OF OFFICE,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Weekly Priority Mtg./Raetta,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,TMS Weekly Mtg. Conference room EB4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Lynn - Oncall,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Team Leader Mtg. Conference room EB4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,"Call Log Recap/ Conf: EB4102 D. Scott, J. Buchanan, S. Nacey Ava/35842",meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Lynn - Oncall,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Ava-35842/Market Services Council Mtg. conference room 42C2,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Ava-35842/Market Services Council Mtg. conference room 42C2,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Staff Mtg. Conference room EB4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Dr Appointment - 3:00 - Leave at 2:00 for test,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Contract System Review - EB 4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,no.address@enron.com,message,637 Internet Training (Maggie Matheson) Ava-35842,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Estalee,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Review & Discuss Revalidation enhancement request/Lynn Ava-35842,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,"Keyex Customer Mtg. Santa Barbara, CA",meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Tenaska Meeting/Sue/Theresa/Steve Conference call with Tenaska EB4180,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Robert/Personal,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Lynn - Oncall Christmas,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,TMS Weekly Mtg. Conference room EB4194,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Operations Call on Bushton Shutdown 877-795-3687 (453941),meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Ripley House Review 1134,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,John Buchanan - Oncall,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,"Mary Kay, Mary, Maria, Sheila, Lindy Review Shipper Imbalances due to ID2 Process. EB42C1",meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,no.address@enron.com,message,Do Not Delete - Repeat parent for Larry Berger/Monthly Acct. Mtg.,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Ava-Out,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Weekly Priority Mtg./Raetta,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Dr Lee 713-795-5584,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Sheila/NNG Acct. System & identify variances EB4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Reservation Flash Mtg. EB4194,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Ava-35842/Market Services Council Mtg. conference room 42C2,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,no.address@enron.com,message,Dashboard Demo - 4102 (Janousek),meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Donna - Lunch,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Weekly Priority Mtg./Raetta,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,"Return from Midland, Michigan",meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Terry K. - Oncall,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,TMS Weekly Mtg. Conference room EB4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,TW - Automate PNR - 4194,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Team Leader Mtg. Conference room EB4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,no.address@enron.com,message,Staff Meeting/4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Dave and Busters,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Estalee,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,"Contracts & Point & Legal Entity Speakers: K. Brostad, L. Trevino/FGT, NNG, TW Conference EB40C2",meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,John Buchanan - Oncall,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Staff Mtg. Conference room EB4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Connie-Interruptible to Carlton this winter in Lynn's office attendee's: Steve January,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Larry Berger/Monthly Acctg. Mtg. Conference room EB4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Staff Mtg. Conference room EB4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,1/2 Day Vacation,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,S. Brown/Lamar Power Plant Conf: EB42C2,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Round table TW,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,TMS Weekly Mtg. Conference room EB4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Weekly Priority Mtg./Raetta,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,John Buchanan - Oncall,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Weekly Priority Mtg./Raetta,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Lynn - Oncall,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,jan.moore@enron.com,message,"UCU Pathing Meeting-Pam, Larry, Raetta, Jan & John",meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Manuel Schedule Mtg. conference room EB4194 Ava-35842,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Tangie/Mobil Audit Mtg. EB3907 Ava-35842 Lynn,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Regulatory Roundtable Mtg. Conference room EB49C2,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Weekly Priority Mtg./Raetta,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Camille/Power Paks,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Lynn - Oncall,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Tangie,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,TMS Weekly Mtg. Conference room EB4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,2001 Summer Operations Meeting,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,TMS Weekly Mtg. Conference room EB4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Customer Accounts Monthly Mtg. Conference room 4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,TMS Weekly Mtg. Conference room EB4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,2001 Summer Operations Meeting,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Ava-35842/Market Services Council Mtg. conference room 42C2,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Staff Mtg. Conference room EB4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Bob Stevens Conference call,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Terry K. - Oncall,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Team Leader Mtg. Conference room EB4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Alma-36503 PRC/Contracts,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,no.address@enron.com,message,John B. - vacation,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Team Leader Mtg. Conference room EB4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Team Leader Mtg. Conference room EB4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Welcome Breakfast for Shelley Corman,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,"Greg Whalley, Enron Wholesale Srvcs - fx ctr",meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Terry K. - Oncall,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Manuel Schedule Mtg. conference room EB4194 Ava-35842,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Weekly Priority Mtg./Raetta,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Manual Scheduling EB4194,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,no.address@enron.com,message,PRC---Smoothing - Hyatt Regency IAH Suite 318 (3rd flr) Lunch 11:30,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,KN Meeting/Tangie,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Jan vacation Day,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Team Leader Mtg. Conference room EB4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Omaha Team Mtg. Jerry Wilkens Ava-35842,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Julia's Staff Meeting,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Market Service Meetings w/ Julia at the 43rd (Wedge),meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Karen/PRC,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,S. Central/PRC,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Vacation-Mike Bodnar,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Donna/FGT to review DVC,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Phone call on non grid am cycle (Lynn's Office),meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Jodie/Des Moines Team,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,John Buchanan - Oncall,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Tangie/KN Imbalances (Lynn's Office),meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,TMS Weekly Mtg. Conference room EB4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Estalee,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,TMS Weekly Mtg. Conference room EB4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Budget Mtg. Location: EB4106/Shelley's office,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Larry Berger/Monthly Acct. Mtg. Conference room EB4194,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Lynn/Vacation,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,no.address@enron.com,message,Staff Meeting/4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,lynn.blair@enron.com,message,Theresa/Sheila (Pooling alloc),meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Julia's Staff Mtg. Conf. EB4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Maggie M./Prioritize July & August Projects EB42C2,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,"John-Home Pilot, Night Owl Mtg. conference room 4194 attendees: B. Miller, A. Mulligan, L. Cramer, J. McDaniel, M, Lockn",meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,"Sheila, Meeting w/direct reports conference 4053A",meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Rick & Larry/AR write off package to meet in Lynn's office,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Alice Johnson,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Staff Mtg. Conference room EB4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Electric Trading Training - Shelly Corman Double Tree (HAVE TO ATTEND),meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Market Area Rollout/Shane/Mike/Sheila Lynn's Office,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Steve/Sheila - PRC,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,"Call Center Meeting w/Sheila, Bob Martinez, Gerry, Donna - 4102",meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Tangie would like to meet w/you in your office @ this time.,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Alice,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,"Keyex Customer Mtg. Santa Barbara, CA",meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,"Training/Susan, Jim Wiltfong, Sheila (Conference Room 4102)",meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Kathy W/Utilicorp & Sunflower mtg. To meet in Lynn's office,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Reserved for Jerry Wilkens,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,"EDI Coverage FGT/Conf: EB4102 attendees: J. Studabaker, T. Jaquet, J. Buchanan, L. Blair, M. Bryant Ava/35842",meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,A/R & Imbalance Status Alice Johnson & Esther Dasilva,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Staff Mtg. Conference room EB4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Ranelle Paladino/Reverse Auction Pooling Point Conf 49C2,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Grundy Center SBA (your office) C.Sebesta,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Ava-35842/Market Services Council Mtg. conference room 42C2,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Team Leader Mtg. Conference room EB4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,DesMoines Team on SBA Tenaska - Lynn's office,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Weekly Priority Mtg./Raetta,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Omaha Trip,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,no.address@enron.com,message,All Day PRC Mtg. EB4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Team Leader Mtg. Conference room EB4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,John Buchanan - Oncall,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Mtg. w/Valeria & Christie Sullivan preparation for Friday's Mtg. Meet in Christie's office EB4861. Ava-35842,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Rick &Sheila - Prioritization of Flowing Gas Phase II Doc - your office,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,TMS Weekly Mtg. Conference room EB4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Phil Lowry/Britt Davis - Three Allen Center,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Team Leader Mtg. Conference room EB4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,SGA Meeting,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Allocation,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Lunch with Directors,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Raetta/Randy B.- conference call w/Chris Sebesta (Omaha) & WI Power (WPS) Lynn's office,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Lunch w/Terry Galassini,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,ESA Review? (John),meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Lynn - Oncall,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Lynn-OUT OF OFFICE,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,ONEOK Meeting,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,no.address@enron.com,message,Extended Staff Meeting/4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Staff Mtg. Conference room EB4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Staff Mtg. Conference room EB4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Ava-35842/Market Services Council Mtg. conference room 42C2,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,TW - Capacity Options 49C2 (Susan Scott),meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Sharon McKnight/Dave Neubauer - 4160 Meas. Wiscon. Gas.,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,no.address@enron.com,message,GPG GISB Weekly Update - 47C2,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,TW Roundtable,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Team Leader Mtg. Conference room EB4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,no.address@enron.com,message,Julia / Danny Staff Meeting in video room EB49C2,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,TMS Weekly Mtg. Conference room EB4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,KN Conf. call/Delaine/Gary/Steve,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Team Leader Mtg. Conference room EB4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,"Re-validation Mtg w/Sheila, Ramona & others - 4102",meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Staff Mtg. Conference room EB4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,"Lynn Blair/Vacation, Terry Kowalki/Vacation",meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Mike Bryant-out of office,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,"1999 Westar Settlement w/Benningfield, Dietz, Berger, Fancler, Hanagriff, Dykes & Johnson - 4194",meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Revalidation Process Appreciation Luncheon - Ruggels,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Mike/terry/John,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Bushton Mtg - Stan Horton - 49C2,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,no.address@enron.com,message,Pre-Mtg f/Aug. 8 Pooling-Demarc Mtg - 4102 (Sheila N.),meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Lynn Vacation,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Staff Meeting,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Raetta,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,S. Central PRC,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Review Pinnacle/Powertex - Terry,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Staff Mtg. Conference room EB4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Larry needs to meet w/you Personal,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Oneok conference call S. January's office,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Lunch with Steve January and Mike Bryant,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Randy B to meet in Lynn's office,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Team Leader Mtg. Conference room EB4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Jeff Skilling Visit,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Weekly Priority Mtg./Raetta,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,"Estalee Russi, Kathy Washington/discuss payroll deduction (Lynn's office) Ava-35842",meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Ava-35842/Market Services Council Mtg. conference room 42C2,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Lynn-OUT OF OFFICE,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,no.address@enron.com,message,Lynn/Vacation Larry/Family Leave,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,"Lynn/Account Invoice Mktg. Meeting L. Berger, J. Williams, B. Fowler",meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Weekly Priority Mtg./Raetta,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Terry K. - Oncall,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Weekly Priority Mtg./Raetta,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,TMS Weekly Mtg. Conference room EB4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Hourly Nom Mtg - 49C2 MaryKay,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Weekly Priority Mtg./Raetta,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Regulatory Roundtable Mtg. Conference room EB49C2,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,"Ava/Demarc Allocation Attendees/J. Medeles, S. January, S. Nacey To meet in Lynn's office",meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Team Leader Mtg. Conference room EB4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Team Leader Mtg. Conference room EB4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Team Leader Mtg. Conference room EB4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,John Buchanan - Oncall,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,TMS Weekly Mtg. Conference room EB4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Terry Kowalki/Vacation,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Ava-35842/Market Services Council Mtg. conference room 42C2,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,no.address@enron.com,message,Rtn from FL Annual Shipper Meeting /Ava-35842,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Staff Mtg. Conference room EB4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,John Buchanan - Oncall Labor Day,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Lynn - Oncall Martin Luther King/Holiday,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Gulf South Pipeline Mtg./EB4194 To discuss nominations & confirmations w/new interconnect @ Mobile Bay Gulf South attend,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Winter Ops Mtg - Julia/Steve/Sheila/Lynn 4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,no.address@enron.com,message,"Discuss 9/13 NNG Commodity Invoice print delay, mailout delay. To meet in 4105 (Lynn's office) attendees are: (Bob Marti",meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,MANDATORY Annual Marketing Affiliate Training in conference room 5C2 at 8:30a.m.-9:30a.m.,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Staff Mtg. Conference room EB4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Lynn - Oncall,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Weekly Priority Mtg./Raetta,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,"Monthly Acct. Mtg./ confernce room 4194 attendees: L. Daily, R. Perry, D. Porter, T. Dykes, K. Sturr, D. Fancler, E. Das",meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Staff Mtg. Conference room EB4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,John Buchanan on vacation,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,UCU Pathing (Loren),meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,EDI DRA/Tammi Jaquet w/ more details,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Jan/Chris/Grundy Center - Lynn's Office,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Lynn Vacation,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Antitrust mtg/ EB5C2,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Dr. Appointment 1:15 Need to Leave by Noon,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,TMS Weekly Mtg. Conference room EB4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Terry Kowale/Roundtable Mtg. w/marketers & Team,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,"3rd Current Estimate Officer Review for NNG & TW. EB49C2/OMA 717. Attendees (Bill C., Rick D., Dea C., Mike Z.)",meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Ava-Out,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,PRC Reveiws,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Team Leader Mtg. Conference room EB4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,"J. Buchanan/Callog Task Force Mtg. Conference room EB4102 attendees: G. Medeles, J. Buchanan, T. Minter, R. Bryan, K. St",meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,TMS Weekly Mtg. Conference room EB4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Lynn-OUT OF OFFICE,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Market Services council Mtg. & continue discussion of GISB 1.5 version of ANSI Compliance Conference room EB42C2,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,ESA Presentation (HAVE TO ATTEND) 4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,no.address@enron.com,message,PRC---Smoothing - Hyatt Regency IAH Suite 318 (3rd flr) Lunch 11:30,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Terry Kowalki/Vacation,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Regulatory Roundtable Mtg. EB49C2,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,no.address@enron.com,message,Extended Staff Meeting/EB4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,M. Bodnar/Storage Allocation to meet in Lynn's office,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Team Leader Mtg. Conference room EB4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Larry Berger/Monthly Acct. Mtg. Conference room EB4194,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Staff Meeting,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Terry K. - Oncall,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Staff Mtg. Conference room EB4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Wisconson Gas Review (Renee) Raetta 4194,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Dr. appointment - at 9:30 (Solcher),meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Dave Nutter/Conference Call - 7 AM Nom Cycle Issue/conference room 4194,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,LFT Mtg./Ranelle EB 4102,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Lynn - Oncall,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Phase IV and V Expansion EB39C1,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,no.address@enron.com,message,All Day offsite PRC Mtg. EB49C1,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Kevin Hyatt,meetings,blair-l,0,0,0,0
+2001-06-27T23:02:00Z,outlook.team@enron.com,message,Lynn - Oncall,meetings,blair-l,0,0,0,0

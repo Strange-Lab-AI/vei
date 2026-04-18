@@ -16,4 +16,9 @@ def test_dynamics_eval_writes_metrics_json() -> None:
     assert metrics["factual_next_event_auroc"] >= 0.8
     assert metrics["counterfactual_rank_pct"] >= 0.65
     assert metrics["calibration_ece"] <= 0.08
+    assert "macro_stock_spearman" in metrics
+    assert "macro_credit_auroc" in metrics
+    assert "macro_credit_brier" in metrics
+    assert "macro_ferc_auroc" in metrics
+    assert "macro_ferc_brier" in metrics
     assert metrics_path.exists()

@@ -1,0 +1,105 @@
+{
+  "metadata": {
+    "name": "whatif-baseline-thr_c33f65c4d4da5d75",
+    "description": "Historical future events scheduled after the branch point.",
+    "tags": [
+      "whatif",
+      "baseline",
+      "historical"
+    ],
+    "source": "enron_rosetta",
+    "transform_hash": null
+  },
+  "events": [
+    {
+      "time_ms": 1,
+      "actor_id": "sara.shackleton@enron.com",
+      "channel": "mail",
+      "type": "assignment",
+      "correlation_id": "thr_c33f65c4d4da5d75",
+      "payload": {
+        "from": "sara.shackleton@enron.com",
+        "to": "mark.taylor@enron.com",
+        "subj": "PG&E Financial Power Deal",
+        "body_text": "[Historical email excerpt]\nLarry Joe Hunter\n05/12/99 02:03 PM\nTo: Kelly Minear/HOU/ECT@ECT\ncc: Dale Neuner/HOU/ECT@ECT, Sara Shackleton/HOU/ECT@ECT \nSubject: PG&E Financial Power Deal\n\nKelly,\n\nOn 5/11 we traded a Financial Power deal with PG&E Energy Trading - Power \nL.P., EW9838.  We had previously been notified by Credit/Legal that no \nFinancial Power deals were to be done with this C/P.  Please advise.\n\nThanks,\nJoe\n\n[Excerpt limited by source data. Original body may be longer.]\n\nEvent type: assignment\nEscalation detected in source metadata.\nLegal specialist signal present.",
+        "thread_id": "thr_c33f65c4d4da5d75",
+        "category": "historical"
+      }
+    },
+    {
+      "time_ms": 1,
+      "actor_id": "sara.shackleton@enron.com",
+      "channel": "mail",
+      "type": "assignment",
+      "correlation_id": "thr_c33f65c4d4da5d75",
+      "payload": {
+        "from": "sara.shackleton@enron.com",
+        "to": "mark.taylor@enron.com",
+        "subj": "PG&E Financial Power Deal",
+        "body_text": "[Historical email excerpt]\nLarry Joe Hunter\n05/12/99 02:03 PM\nTo: Kelly Minear/HOU/ECT@ECT\ncc: Dale Neuner/HOU/ECT@ECT, Sara Shackleton/HOU/ECT@ECT \nSubject: PG&E Financial Power Deal\n\nKelly,\n\nOn 5/11 we traded a Financial Power deal with PG&E Energy Trading - Power \nL.P., EW9838.  We had previously been notified by Credit/Legal that no \nFinancial Power deals were to be done with this C/P.  Please advise.\n\nThanks,\nJoe\n\n[Excerpt limited by source data. Original body may be longer.]\n\nEvent type: assignment\nEscalation detected in source metadata.\nLegal specialist signal present.",
+        "thread_id": "thr_c33f65c4d4da5d75",
+        "category": "historical"
+      }
+    },
+    {
+      "time_ms": 720000,
+      "actor_id": "tana.jones@enron.com",
+      "channel": "mail",
+      "type": "escalation",
+      "correlation_id": "thr_c33f65c4d4da5d75",
+      "payload": {
+        "from": "tana.jones@enron.com",
+        "to": "rod.nelson@enron.com",
+        "subj": "PG&E Financial Power Deal",
+        "body_text": "[Historical email excerpt]\nSara Shackleton\n05/12/99 03:44 PM\nTo: Tana Jones/HOU/ECT@ECT, Mark - ECT Legal Taylor/HOU/ECT@ECT\ncc:  \nSubject: PG&E Financial Power Deal\n\nFYI.  Maybe this relates to your PG&E counterparty.\n---------------------- Forwarded by Sara Shackleton/HOU/ECT on 05/12/99 03:43 \nPM ---------------------------\n\n\nLarry Joe Hunter\n05/12/99 02:03 PM\nTo: Kelly Minear/HOU/ECT@ECT\ncc: Dale Neuner/HOU/ECT@ECT, Sara Shackleton/HOU/ECT@ECT \nSubject: PG&E Financial Power Deal\n\nKelly,\n\nOn 5/11 we traded a Financial Power deal with PG&E Energy Trading - Power \nL.P., EW9838.  We had previously been notified by Cred\n\n[Excerpt limited by source data. Original body may be longer.]\n\nEvent type: escalation\nForward detected in source metadata.\nEscalation detected in source metadata.",
+        "thread_id": "thr_c33f65c4d4da5d75",
+        "category": "historical"
+      }
+    },
+    {
+      "time_ms": 720000,
+      "actor_id": "tana.jones@enron.com",
+      "channel": "mail",
+      "type": "escalation",
+      "correlation_id": "thr_c33f65c4d4da5d75",
+      "payload": {
+        "from": "tana.jones@enron.com",
+        "to": "rod.nelson@enron.com",
+        "subj": "PG&E Financial Power Deal",
+        "body_text": "[Historical email excerpt]\nSara Shackleton\n05/12/99 03:44 PM\nTo: Tana Jones/HOU/ECT@ECT, Mark - ECT Legal Taylor/HOU/ECT@ECT\ncc:  \nSubject: PG&E Financial Power Deal\n\nFYI.  Maybe this relates to your PG&E counterparty.\n---------------------- Forwarded by Sara Shackleton/HOU/ECT on 05/12/99 03:43 \nPM ---------------------------\n\n\nLarry Joe Hunter\n05/12/99 02:03 PM\nTo: Kelly Minear/HOU/ECT@ECT\ncc: Dale Neuner/HOU/ECT@ECT, Sara Shackleton/HOU/ECT@ECT \nSubject: PG&E Financial Power Deal\n\nKelly,\n\nOn 5/11 we traded a Financial Power deal with PG&E Energy Trading - Power \nL.P., EW9838.  We had previously been notified by Cred\n\n[Excerpt limited by source data. Original body may be longer.]\n\nEvent type: escalation\nForward detected in source metadata.\nEscalation detected in source metadata.",
+        "thread_id": "thr_c33f65c4d4da5d75",
+        "category": "historical"
+      }
+    },
+    {
+      "time_ms": 64620000,
+      "actor_id": "tana.jones@enron.com",
+      "channel": "mail",
+      "type": "message_reply",
+      "correlation_id": "thr_c33f65c4d4da5d75",
+      "payload": {
+        "from": "tana.jones@enron.com",
+        "to": "rod.nelson@enron.com",
+        "subj": "Re: PG&E Financial Power Deal",
+        "body_text": "[Historical event recorded without body text excerpt]\n\nEvent type: message_reply",
+        "thread_id": "thr_c33f65c4d4da5d75",
+        "category": "historical"
+      }
+    },
+    {
+      "time_ms": 64620000,
+      "actor_id": "tana.jones@enron.com",
+      "channel": "mail",
+      "type": "message_reply",
+      "correlation_id": "thr_c33f65c4d4da5d75",
+      "payload": {
+        "from": "tana.jones@enron.com",
+        "to": "rod.nelson@enron.com",
+        "subj": "Re: PG&E Financial Power Deal",
+        "body_text": "[Historical event recorded without body text excerpt]\n\nEvent type: message_reply",
+        "thread_id": "thr_c33f65c4d4da5d75",
+        "category": "historical"
+      }
+    }
+  ]
+}

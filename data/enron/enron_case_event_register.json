@@ -1,0 +1,104 @@
+{
+  "version": "1",
+  "generated_from": "data/enron/rosetta",
+  "organization_name": "Enron Corporation",
+  "organization_domain": "enron.com",
+  "events": [
+    {
+      "case_id": "watkins_memo_release_path",
+      "family": "whistleblower",
+      "event_id": "enron_d8d296de473f63be",
+      "thread_id": "thr_6ca597ba4bf815ac",
+      "timestamp": "2001-10-30T14:58:45Z",
+      "actor_id": "sherron.watkins@enron.com",
+      "subject": "The key questions I asked Lay on Aug 22",
+      "summary": "Watkins preserves the August warning path inside the archive after the accounting concerns became public inside Enron's leadership circle.",
+      "excerpt": "Sherron Watkins preserves the August warning path and frames the accounting questions she put to Ken Lay.",
+      "bundle_slug": "enron-watkins-memo"
+    },
+    {
+      "case_id": "california_crisis_order",
+      "family": "market_manipulation",
+      "event_id": "enron_99afc1ca73d1a1bb",
+      "thread_id": "thr_af4757447fa4b384",
+      "timestamp": "2000-12-15T06:10:00Z",
+      "actor_id": "tim.belden@enron.com",
+      "subject": "IMPORTANT - READ IMMEDIATELY",
+      "summary": "California crisis trading staff are told to preserve material after an attorney general order, creating a strong branch point for strategy, self-reporting, and escalation choices.",
+      "excerpt": "The California Attorney General preservation order lands on the Portland trading desk and turns the power-crisis conduct into an immediate management problem.",
+      "bundle_slug": "enron-california-crisis-strategy"
+    },
+    {
+      "case_id": "baxter_press_release",
+      "family": "crisis_communication",
+      "event_id": "enron_f9851a464c7fa074",
+      "thread_id": "thr_76b3a6fa85ec2f54",
+      "timestamp": "2001-05-02T05:07:00Z",
+      "actor_id": "karen.denne@enron.com",
+      "subject": "Baxter Press Release",
+      "summary": "Cliff Baxter's resignation moves through the executive communications loop and gives the benchmark a governance-driven crisis-communications case.",
+      "excerpt": "The resignation press-release thread captures the internal handling around Cliff Baxter's exit.",
+      "bundle_slug": null
+    },
+    {
+      "case_id": "q3_disclosure_review",
+      "family": "crisis_communication",
+      "event_id": "enron_da8450d95fa6346a",
+      "thread_id": "thr_23255c500305185d",
+      "timestamp": "2001-10-31T14:44:52Z",
+      "actor_id": "richard.causey@enron.com",
+      "subject": "FW: Third Quarter Review of Northern and Transwestern",
+      "summary": "Third-quarter review material moves through the Causey and Hayslett disclosure lane after Enron's losses become public.",
+      "excerpt": "Third-quarter review material is moving with Andersen involvement during the October 2001 disclosure crunch.",
+      "bundle_slug": null
+    },
+    {
+      "case_id": "ees_preholiday_update",
+      "family": "accounting_disclosure",
+      "event_id": "enron_3f324462154fdf8f",
+      "thread_id": "thr_dc0c00d776de62bb",
+      "timestamp": "2000-12-29T12:37:00Z",
+      "actor_id": "john.lavorato@enron.com",
+      "subject": "EES Pre-holiday Update",
+      "summary": "The EES pre-holiday update shows the year-end loss-shift and coordination pressure around energy-services exposure.",
+      "excerpt": "A year-end EES update goes to a broad risk and trading loop just as reporting pressure is building.",
+      "bundle_slug": null
+    },
+    {
+      "case_id": "braveheart_forward",
+      "family": "accounting_disclosure",
+      "event_id": "enron_c13a9a082c39a49d",
+      "thread_id": "thr_5ece5722490045f0",
+      "timestamp": "2000-12-19T14:06:00Z",
+      "actor_id": "kevin.kindall@enron.com",
+      "subject": "Braveheart",
+      "summary": "The Braveheart thread exposes the broadband-valuation and structure path that later fed Enron's accounting credibility problems.",
+      "excerpt": "Braveheart is forwarded through the valuation chain, linking the broadband narrative to a concrete branch point.",
+      "bundle_slug": null
+    },
+    {
+      "case_id": "skilling_resignation_materials",
+      "family": "crisis_communication",
+      "event_id": "enron_f225c917c6f1076f",
+      "thread_id": "thr_d5715810ccdf7655",
+      "timestamp": "2001-08-14T15:45:24Z",
+      "actor_id": ".palmer@enron.com",
+      "subject": "Latest drafts of communications materials",
+      "summary": "The crisis-management communications draft around Skilling's resignation anchors the trust-collapse branch in August 2001.",
+      "excerpt": "Draft communications materials are circulating on the day Skilling resigns, with the crisis-management folder preserving the branch.",
+      "bundle_slug": null
+    },
+    {
+      "case_id": "pg_e_power_deal_context",
+      "family": "commercial_counterparty",
+      "event_id": "enron_e2e504e2ff9e60de",
+      "thread_id": "thr_c33f65c4d4da5d75",
+      "timestamp": "1999-05-12T15:44:00Z",
+      "actor_id": "sara.shackleton@enron.com",
+      "subject": "PG&E Financial Power Deal",
+      "summary": "The PG&E financial power deal remains the counterparty branch, now paired with the repo-owned credit and bankruptcy arc fixtures.",
+      "excerpt": "The deal note captures the legal and counterparty pressure on the PG&E power structure.",
+      "bundle_slug": "enron-pge-power-deal"
+    }
+  ]
+}

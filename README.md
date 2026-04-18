@@ -71,7 +71,15 @@ Public-company facts live beside the bundle in `whatif_public_context.json` when
 
 ## Walk Through The Enron Case
 
-The repo ships a real saved Enron example under `docs/examples/enron-master-agreement-public-context/`. It combines a real Enron email branch point with a dated public-company context pack built from 11 financial checkpoints and 13 public news events across 17 archived public source files. This specific branch date only shows the facts that were already public on September 27, 2000. Later Enron branch dates automatically pick up the later public news items too.
+The repo now ships the whole Enron what-if chain under `data/enron/` and `docs/examples/`. That includes the raw mail tar, the normalized source parquet, the repo-local Rosetta parquet archive, the public-company context fixtures, and four saved Studio bundles.
+
+The repo-owned Enron public context now carries 11 dated financial checkpoints, 21 dated public news events, 986 daily stock rows, 7 credit events, and 1 FERC timeline event across 24 archived public source files.
+
+Verify the vendored archive before you start:
+
+```bash
+python scripts/check_rosetta_archive.py
+```
 
 Open it in Studio:
 
@@ -84,34 +92,46 @@ vei ui serve \
 
 Open `http://127.0.0.1:3055`.
 
-This Studio view is a saved reference demo. When the full Enron source archive is not present, Studio shows the committed saved result for this workspace and ignores custom prompt, label, mode, and provider changes in the what-if panel. Use the CLI against the saved `workspace/context_snapshot.json` when you want to run a fresh counterfactual from a clean clone.
+This saved Master Agreement workspace is still the simplest Enron walkthrough in the repo. The branch date is September 27, 2000, so the public slice only shows the facts that were already public by then: 5 financial checkpoints, 6 public news events, and 680 daily stock rows. Credit and FERC rows stay empty at that date because those later signals had not landed yet.
 
 ![Decision scene for the Enron Master Agreement branch point, showing the branch moment, what actually happened, public company context, and recorded business state](docs/assets/enron-whatif/enron-decision-scene-top.png)
 
-Here is the exact story this example shows:
-
-1. VEI loads a real Enron branch point from the `Master Agreement` thread.
-2. The saved world contains 6 prior messages and 84 recorded future events on that case.
-3. The branch date is September 27, 2000, so the public-company slice shows the facts that were already public by that date: 5 financial checkpoints and 6 public news items.
+The public-company panel now comes from the repo-owned v2 fixture rather than a side checkout:
 
 ![Public company context sliced to the branch date, showing financial checkpoints and public news known before September 27, 2000](docs/assets/enron-whatif/enron-public-context.png)
 
-4. The real move is Debra Perlingiere sending a draft agreement outside Enron to `kathy_gerken@cargill.com`.
-5. The alternate move keeps the draft inside Enron, asks Gerald Nemec and Sara Shackleton for review, and holds the outside send.
-6. The saved continuation stays internal. The saved forecast keeps the same 84-event horizon, moves risk from `1.000` to `0.983`, and predicts `29` fewer outside sends.
+The saved counterfactual keeps the draft inside Enron, asks Gerald Nemec and Sara Shackleton for review, and holds the outside send. The saved forecast keeps the same 84-event horizon, moves risk from `1.000` to `0.560`, and predicts `64` fewer outside-addressed sends.
 
 ![Predicted business change comparing the historical baseline, the LLM alternate path, and the learned forecast](docs/assets/enron-whatif/enron-predicted-business-change.png)
 
-7. The ranked comparison turns that into a business choice: `Hold for internal review` ranks first at `0.352`, `Send a narrow status note` ranks second at `0.155`, and `Push for fast turnaround` falls to `-0.019`.
+VEI now also shows a macro outcome panel for the saved Enron bundles. It carries short-horizon stock, credit, and FERC heads, plus the measured calibration note. The current calibration is weak, so these macro heads stay advisory beside the email-path evidence.
+
+![Macro outcome panel for the saved Master Agreement branch, showing stock, credit, and FERC heads with the measured calibration note](docs/assets/enron-whatif/enron-macro-outcomes.png)
+
+The ranked comparison turns the same branch into a business choice. `Hold for internal review` ranks first at `0.209`, `Send a narrow status note` ranks second at `0.208`, and `Push for fast turnaround` falls to `-0.019`.
 
 ![Ranked business comparison of three candidate moves scored against the recorded future](docs/assets/enron-whatif/enron-ranked-comparison.png)
 
-Useful files in that example:
+The repo now ships four saved Enron examples:
+
+- `enron-master-agreement-public-context`: procedural legal review inside the wider company arc
+- `enron-watkins-memo`: the accounting-warning path after Skilling's exit
+- `enron-california-crisis-strategy`: California trading conduct inside the refund and FERC timeline
+- `enron-pge-power-deal`: commercial legal handling against counterparty deterioration
+
+Useful files in the Master Agreement example:
 
 - [workspace](docs/examples/enron-master-agreement-public-context/workspace/)
 - [whatif_experiment_overview.md](docs/examples/enron-master-agreement-public-context/whatif_experiment_overview.md)
 - [whatif_experiment_result.json](docs/examples/enron-master-agreement-public-context/whatif_experiment_result.json)
 - [whatif_business_state_comparison.md](docs/examples/enron-master-agreement-public-context/whatif_business_state_comparison.md)
+
+Refresh the bundles and screenshots:
+
+```bash
+make enron-example
+make enron-screens
+```
 
 ## Live Dispatch demo (Clearwater Field Services)
 

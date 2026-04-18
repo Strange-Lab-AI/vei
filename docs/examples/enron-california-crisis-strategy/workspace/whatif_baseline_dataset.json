@@ -1,0 +1,75 @@
+{
+  "metadata": {
+    "name": "whatif-baseline-thr_af4757447fa4b384",
+    "description": "Historical future events scheduled after the branch point.",
+    "tags": [
+      "whatif",
+      "baseline",
+      "historical"
+    ],
+    "source": "enron_rosetta",
+    "transform_hash": null
+  },
+  "events": [
+    {
+      "time_ms": 1,
+      "actor_id": "tim.belden@enron.com",
+      "channel": "mail",
+      "type": "message",
+      "correlation_id": "thr_af4757447fa4b384",
+      "payload": {
+        "from": "tim.belden@enron.com",
+        "to": "portland.desk@enron.com",
+        "subj": "IMPORTANT - READ IMMEDIATELY",
+        "body_text": "[Historical email excerpt]\nWe have just received an order from the California Attorney General requiring \nall employees (except legal, admin, and human resources staff) to take the \nfollowing steps immediately:\n\n   1.  Save all e-mails, i.e., don't delete any e-mails.\n   2.  Do not delete any information in databases.\n   3.  Do not delete any word processing files or file fragments.\n   4.  Do not delete any excel spreadsheets or calendars or scheduling \nprograms. \n   5.  Any other electronic data not otherwise covered.\n\nThis request is being made in connection with the California AG's \ninvestigation into electricity pri\n\n[Excerpt limited by source data. Original body may be longer.]\n\nEvent type: message",
+        "thread_id": "thr_af4757447fa4b384",
+        "category": "historical"
+      }
+    },
+    {
+      "time_ms": 1,
+      "actor_id": "tim.belden@enron.com",
+      "channel": "mail",
+      "type": "message",
+      "correlation_id": "thr_af4757447fa4b384",
+      "payload": {
+        "from": "tim.belden@enron.com",
+        "to": "portland.desk@enron.com",
+        "subj": "IMPORTANT - READ IMMEDIATELY",
+        "body_text": "[Historical email excerpt]\nWe have just received an order from the California Attorney General requiring \nall employees (except legal, admin, and human resources staff) to take the \nfollowing steps immediately:\n\n   1.  Save all e-mails, i.e., don't delete any e-mails.\n   2.  Do not delete any information in databases.\n   3.  Do not delete any word processing files or file fragments.\n   4.  Do not delete any excel spreadsheets or calendars or scheduling \nprograms. \n   5.  Any other electronic data not otherwise covered.\n\nThis request is being made in connection with the California AG's \ninvestigation into electricity pri\n\n[Excerpt limited by source data. Original body may be longer.]\n\nEvent type: message",
+        "thread_id": "thr_af4757447fa4b384",
+        "category": "historical"
+      }
+    },
+    {
+      "time_ms": 1,
+      "actor_id": "tim.belden@enron.com",
+      "channel": "mail",
+      "type": "message",
+      "correlation_id": "thr_af4757447fa4b384",
+      "payload": {
+        "from": "tim.belden@enron.com",
+        "to": "portland.desk@enron.com",
+        "subj": "IMPORTANT - READ IMMEDIATELY",
+        "body_text": "[Historical email excerpt]\nWe have just received an order from the California Attorney General requiring \nall employees (except legal, admin, and human resources staff) to take the \nfollowing steps immediately:\n\n   1.  Save all e-mails, i.e., don't delete any e-mails.\n   2.  Do not delete any information in databases.\n   3.  Do not delete any word processing files or file fragments.\n   4.  Do not delete any excel spreadsheets or calendars or scheduling \nprograms. \n   5.  Any other electronic data not otherwise covered.\n\nThis request is being made in connection with the California AG's \ninvestigation into electricity pri\n\n[Excerpt limited by source data. Original body may be longer.]\n\nEvent type: message",
+        "thread_id": "thr_af4757447fa4b384",
+        "category": "historical"
+      }
+    },
+    {
+      "time_ms": 1,
+      "actor_id": "tim.belden@enron.com",
+      "channel": "mail",
+      "type": "message",
+      "correlation_id": "thr_af4757447fa4b384",
+      "payload": {
+        "from": "tim.belden@enron.com",
+        "to": "portland.desk@enron.com",
+        "subj": "IMPORTANT - READ IMMEDIATELY",
+        "body_text": "[Historical email excerpt]\nWe have just received an order from the California Attorney General requiring \nall employees (except legal, admin, and human resources staff) to take the \nfollowing steps immediately:\n\n   1.  Save all e-mails, i.e., don't delete any e-mails.\n   2.  Do not delete any information in databases.\n   3.  Do not delete any word processing files or file fragments.\n   4.  Do not delete any excel spreadsheets or calendars or scheduling \nprograms. \n   5.  Any other electronic data not otherwise covered.\n\nThis request is being made in connection with the California AG's \ninvestigation into electricity pri\n\n[Excerpt limited by source data. Original body may be longer.]\n\nEvent type: message",
+        "thread_id": "thr_af4757447fa4b384",
+        "category": "historical"
+      }
+    }
+  ]
+}

@@ -2,56 +2,49 @@
   "status": "ok",
   "provider": "openai",
   "model": "gpt-5-mini",
-  "prompt": "Keep the draft inside Enron, loop in Gerald Nemec for legal review, and hold the outside send until the clean version is approved.",
-  "summary": "Rather than sending the draft Master Firm Purchase/Sale Agreement outside to Cargill, Debra retains the draft inside Enron, loops in Enron legal (Gerald Nemec) and credit/legal support (Sara Shackleton) for review, and explicitly instructs the team to hold any external transmission until a clean, legally approved version is circulated. Gerald acknowledges, flags specific legal points, and commits to legal sign-off; Debra issues an internal status update confirming the hold.",
+  "prompt": "Keep the draft inside Enron, ask Gerald Nemec and Sara Shackleton for review, and hold the outside send.",
+  "summary": "Instead of sending the draft Master Firm Purchase/Sale Agreement to Cargill, Debra retains it internally and requests review from Gerald Nemec and Sara Shackleton, instructing them to hold any outside transmission.",
   "messages": [
     {
       "actor_id": "debra.perlingiere@enron.com",
+      "surface": "mail",
       "to": "gerald.nemec@enron.com",
-      "subject": "Master Agreement (Internal draft — DO NOT SEND)",
-      "body_text": "Attached is the draft Master Firm Purchase/Sale Agreement prepared for Cargill. Please review internally. Gerald, please lead the legal review; Sara, please review credit provisions. Do NOT send this outside Enron (to Cargill or any third party) until we have a clean, approved version. Please return comments by end of next week so I can circulate a redline.",
-      "delay_ms": 1000,
-      "rationale": "Keeps the draft inside Enron and formally loops in legal and credit reviewers while explicitly instructing to hold external transmission."
-    },
-    {
-      "actor_id": "gerald.nemec@enron.com",
-      "to": "debra.perlingiere@enron.com",
-      "subject": "Re: Master Agreement (Internal draft — DO NOT SEND)",
-      "body_text": "Thanks, Debra. I'll review for legal issues and return marked-up comments by Thursday. Initial flags: tighten indemnity/limitation language, clarify force majeure and termination triggers, and confirm any credit carve-outs with Sara. I will not clear any external sending until I sign off on the final clean copy.",
-      "delay_ms": 1800000,
-      "rationale": "Legal acknowledges review, identifies key clauses to address, and reiterates the hold on external distribution pending legal sign-off."
+      "subject": "Master Agreement — Draft for Internal Review",
+      "body_text": "Gerald,\n\nAttached is a draft Master Firm Purchase/Sale Agreement prepared for Cargill. Please review the commercial and operational provisions and send any comments or redlines by EOD Thursday. Do not forward this outside Enron — hold any outreach to Cargill until Sara and I have coordinated on credit/legal points.\n\nThanks,\nDebra Perlingiere",
+      "delay_ms": 60000,
+      "conversation_anchor": "",
+      "rationale": "Solicit Gerald's commercial review while keeping the draft internal and preventing premature external distribution."
     },
     {
       "actor_id": "debra.perlingiere@enron.com",
-      "to": "marie.heard@enron.com",
-      "subject": "Re: Master Agreement — internal status",
-      "body_text": "Quick update: Holding the draft internally pending Gerald's legal review and Sara's credit input. I will circulate a clean, approved version for final sign-off before any outreach to Cargill.",
-      "delay_ms": 3600000,
-      "rationale": "Notifies internal stakeholders that external send is on hold and outlines next steps for internal approval."
+      "surface": "mail",
+      "to": "sara.shackleton@enron.com",
+      "subject": "Master Agreement — Draft for Legal/Credit Review",
+      "body_text": "Sara,\n\nAttached is the draft Master Firm Purchase/Sale Agreement we were preparing for Cargill. Please review credit, indemnity and other legal terms and advise any necessary changes. Please do not send this to Cargill yet — hold until Gerald and I have consolidated internal comments. Can you provide feedback by EOD Thursday?\n\nRegards,\nDebra Perlingiere",
+      "delay_ms": 120000,
+      "conversation_anchor": "",
+      "rationale": "Obtain Sara's legal and credit input and explicitly instruct to hold external transmission until internal consensus is reached."
     }
   ],
   "usage": {
     "provider": "openai",
     "model": "gpt-5-mini",
-    "prompt_tokens": 1783,
-    "completion_tokens": 4896,
-    "total_tokens": 6679,
-    "estimated_cost_usd": 0.01023775
+    "prompt_tokens": 2127,
+    "completion_tokens": 3547,
+    "total_tokens": 5674,
+    "estimated_cost_usd": 0.00762575
   },
-  "scheduled_event_count": 3,
-  "delivered_event_count": 3,
-  "inbox_count": 5,
+  "scheduled_event_count": 2,
+  "delivered_event_count": 2,
+  "inbox_count": 4,
   "top_subjects": [
-    "Re: Master Agreement — internal status",
-    "Re: Master Agreement (Internal draft — DO NOT SEND)",
-    "Master Agreement (Internal draft — DO NOT SEND)",
+    "Master Agreement — Draft for Legal/Credit Review",
+    "Master Agreement — Draft for Internal Review",
     "Master Agreement",
     "Master Agreement"
   ],
   "notes": [
-    "Recipient scope was clamped to internal Enron participants.",
-    "Message 1 used a non-thread recipient; it was clamped to gerald.nemec@enron.com.",
-    "Message 2 used a non-thread recipient; it was clamped to debra.perlingiere@enron.com."
+    "Recipient scope was clamped to internal Enron participants."
   ],
   "error": null
 }

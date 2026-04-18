@@ -3,6 +3,7 @@ from __future__ import annotations
 import heapq
 import json
 import logging
+import tempfile
 from dataclasses import asdict, is_dataclass
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, TYPE_CHECKING
@@ -404,6 +405,7 @@ class WorldSession:
     def __init__(self, router: "Router") -> None:
         self.router = router
         self.actor_registry: Optional[Any] = None
+        self._fallback_snapshot_dir: Optional[Path] = None
         if not hasattr(self.router, "actor_states"):
             self.router.actor_states = {}
         if not hasattr(self.router, "_replay_state"):
@@ -758,11 +760,11 @@ class WorldSession:
             "data": snapshot.data.model_dump(),
         }
         if directory is None:
-            fallback = (
-                Path(self.router.trace.out_dir or ".") / ".artifacts" / "snapshots"
-            )
-            fallback.mkdir(parents=True, exist_ok=True)
-            path = fallback / f"{snapshot.snapshot_id:09d}.json"
+            if self._fallback_snapshot_dir is None:
+                self._fallback_snapshot_dir = Path(
+                    tempfile.mkdtemp(prefix="vei-snapshots-")
+                )
+            path = self._fallback_snapshot_dir / f"{snapshot.snapshot_id:09d}.json"
         else:
             path = directory / f"{snapshot.snapshot_id:09d}.json"
         path.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")

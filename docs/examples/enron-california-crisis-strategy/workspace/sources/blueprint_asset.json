@@ -1,0 +1,276 @@
+{
+  "name": "enron_corporation.customer_twin.blueprint",
+  "title": "Enron Corporation",
+  "description": "Customer-shaped twin for Enron Corporation",
+  "scenario_name": "enterprise_renewal_risk",
+  "family_name": "b2b_saas",
+  "workflow_name": "b2b_saas",
+  "workflow_variant": "enterprise_renewal_risk",
+  "workflow_parameters": {},
+  "requested_facades": [
+    "identity",
+    "mail"
+  ],
+  "surface_fidelity": {},
+  "capability_graphs": {
+    "organization_name": "Enron Corporation",
+    "organization_domain": "enron.com",
+    "timezone": "America/New_York",
+    "scenario_brief": "A $480K enterprise renewal is at risk. The product champion left, a breaking API change hit the customer's pipeline, and the new decision-maker is evaluating a competitor.",
+    "comm_graph": {
+      "slack_initial_message": "Apex renewal war room is live.",
+      "slack_channels": [],
+      "mail_threads": [
+        {
+          "thread_id": "thr_af4757447fa4b384",
+          "title": "IMPORTANT - READ IMMEDIATELY",
+          "category": "historical",
+          "messages": [
+            {
+              "from_address": "tim.belden@enron.com",
+              "to_address": "portland.desk@enron.com",
+              "subject": "IMPORTANT - READ IMMEDIATELY",
+              "body_text": "[Historical email excerpt]\nWe have just received an order from the California Attorney General requiring \nall employees (except legal, admin, and human resources staff) to take the \nfollowing steps immediately:\n\n   1.  Save all e-mails, i.e., don't delete any e-mails.\n   2.  Do not delete any information in databases.\n   3.  Do not delete any word processing files or file fragments.\n   4.  Do not delete any excel spreadsheets or calendars or scheduling \nprograms. \n   5.  Any other electronic data not otherwise covered.\n\nThis request is being made in connection with the California AG's \ninvestigation into electricity pri\n\n[Excerpt limited by source data. Original body may be longer.]\n\nEvent type: message",
+              "unread": false,
+              "time_ms": 976860600000
+            },
+            {
+              "from_address": "tim.belden@enron.com",
+              "to_address": "portland.desk@enron.com",
+              "subject": "IMPORTANT - READ IMMEDIATELY",
+              "body_text": "[Historical email excerpt]\nWe have just received an order from the California Attorney General requiring \nall employees (except legal, admin, and human resources staff) to take the \nfollowing steps immediately:\n\n   1.  Save all e-mails, i.e., don't delete any e-mails.\n   2.  Do not delete any information in databases.\n   3.  Do not delete any word processing files or file fragments.\n   4.  Do not delete any excel spreadsheets or calendars or scheduling \nprograms. \n   5.  Any other electronic data not otherwise covered.\n\nThis request is being made in connection with the California AG's \ninvestigation into electricity pri\n\n[Excerpt limited by source data. Original body may be longer.]\n\nEvent type: message",
+              "unread": false,
+              "time_ms": 976860600000
+            },
+            {
+              "from_address": "tim.belden@enron.com",
+              "to_address": "portland.desk@enron.com",
+              "subject": "IMPORTANT - READ IMMEDIATELY",
+              "body_text": "[Historical email excerpt]\nWe have just received an order from the California Attorney General requiring \nall employees (except legal, admin, and human resources staff) to take the \nfollowing steps immediately:\n\n   1.  Save all e-mails, i.e., don't delete any e-mails.\n   2.  Do not delete any information in databases.\n   3.  Do not delete any word processing files or file fragments.\n   4.  Do not delete any excel spreadsheets or calendars or scheduling \nprograms. \n   5.  Any other electronic data not otherwise covered.\n\nThis request is being made in connection with the California AG's \ninvestigation into electricity pri\n\n[Excerpt limited by source data. Original body may be longer.]\n\nEvent type: message",
+              "unread": false,
+              "time_ms": 976860600000
+            }
+          ]
+        }
+      ],
+      "metadata": {}
+    },
+    "doc_graph": null,
+    "work_graph": null,
+    "identity_graph": {
+      "users": [
+        {
+          "user_id": "portland.desk@enron.com",
+          "email": "portland.desk@enron.com",
+          "first_name": "Portland",
+          "last_name": "Desk",
+          "login": "portland.desk@enron.com",
+          "display_name": "Portland Desk",
+          "status": "ACTIVE",
+          "department": null,
+          "title": null,
+          "manager": null,
+          "groups": [],
+          "applications": [],
+          "factors": [],
+          "last_login_ms": null
+        },
+        {
+          "user_id": "tim.belden@enron.com",
+          "email": "tim.belden@enron.com",
+          "first_name": "Tim",
+          "last_name": "Belden",
+          "login": "tim.belden@enron.com",
+          "display_name": "Tim Belden",
+          "status": "ACTIVE",
+          "department": null,
+          "title": null,
+          "manager": null,
+          "groups": [],
+          "applications": [],
+          "factors": [],
+          "last_login_ms": null
+        }
+      ],
+      "groups": [],
+      "applications": [],
+      "hris_employees": [],
+      "policies": [],
+      "metadata": {}
+    },
+    "revenue_graph": null,
+    "knowledge_graph": null,
+    "ops_graph": null,
+    "property_graph": null,
+    "campaign_graph": null,
+    "inventory_graph": null,
+    "metadata": {
+      "vertical": "b2b_saas",
+      "what_if_branches": [
+        "Fix the integration and rebuild trust before the renewal conversation",
+        "Lead with the discount and hope the product issues don't kill the deal"
+      ],
+      "customer_twin_capture": true,
+      "source_providers": [
+        "mail_archive"
+      ],
+      "customer_twin_mold": {
+        "density_level": "medium",
+        "named_team_expansion": "minimal",
+        "crisis_family": null,
+        "redaction_mode": "preserve",
+        "synthetic_expansion_strength": "light",
+        "included_surfaces": [
+          "mail",
+          "identity"
+        ]
+      }
+    }
+  },
+  "environment": {
+    "organization_name": "Enron Corporation",
+    "organization_domain": "enron.com",
+    "timezone": "America/New_York",
+    "scenario_brief": "A $480K enterprise renewal is at risk. The product champion left, a breaking API change hit the customer's pipeline, and the new decision-maker is evaluating a competitor.",
+    "slack_initial_message": null,
+    "slack_channels": [],
+    "mail_threads": [
+      {
+        "thread_id": "thr_af4757447fa4b384",
+        "title": "IMPORTANT - READ IMMEDIATELY",
+        "category": "historical",
+        "messages": [
+          {
+            "from_address": "tim.belden@enron.com",
+            "to_address": "portland.desk@enron.com",
+            "subject": "IMPORTANT - READ IMMEDIATELY",
+            "body_text": "[Historical email excerpt]\nWe have just received an order from the California Attorney General requiring \nall employees (except legal, admin, and human resources staff) to take the \nfollowing steps immediately:\n\n   1.  Save all e-mails, i.e., don't delete any e-mails.\n   2.  Do not delete any information in databases.\n   3.  Do not delete any word processing files or file fragments.\n   4.  Do not delete any excel spreadsheets or calendars or scheduling \nprograms. \n   5.  Any other electronic data not otherwise covered.\n\nThis request is being made in connection with the California AG's \ninvestigation into electricity pri\n\n[Excerpt limited by source data. Original body may be longer.]\n\nEvent type: message",
+            "unread": false,
+            "time_ms": 976860600000
+          },
+          {
+            "from_address": "tim.belden@enron.com",
+            "to_address": "portland.desk@enron.com",
+            "subject": "IMPORTANT - READ IMMEDIATELY",
+            "body_text": "[Historical email excerpt]\nWe have just received an order from the California Attorney General requiring \nall employees (except legal, admin, and human resources staff) to take the \nfollowing steps immediately:\n\n   1.  Save all e-mails, i.e., don't delete any e-mails.\n   2.  Do not delete any information in databases.\n   3.  Do not delete any word processing files or file fragments.\n   4.  Do not delete any excel spreadsheets or calendars or scheduling \nprograms. \n   5.  Any other electronic data not otherwise covered.\n\nThis request is being made in connection with the California AG's \ninvestigation into electricity pri\n\n[Excerpt limited by source data. Original body may be longer.]\n\nEvent type: message",
+            "unread": false,
+            "time_ms": 976860600000
+          },
+          {
+            "from_address": "tim.belden@enron.com",
+            "to_address": "portland.desk@enron.com",
+            "subject": "IMPORTANT - READ IMMEDIATELY",
+            "body_text": "[Historical email excerpt]\nWe have just received an order from the California Attorney General requiring \nall employees (except legal, admin, and human resources staff) to take the \nfollowing steps immediately:\n\n   1.  Save all e-mails, i.e., don't delete any e-mails.\n   2.  Do not delete any information in databases.\n   3.  Do not delete any word processing files or file fragments.\n   4.  Do not delete any excel spreadsheets or calendars or scheduling \nprograms. \n   5.  Any other electronic data not otherwise covered.\n\nThis request is being made in connection with the California AG's \ninvestigation into electricity pri\n\n[Excerpt limited by source data. Original body may be longer.]\n\nEvent type: message",
+            "unread": false,
+            "time_ms": 976860600000
+          }
+        ]
+      }
+    ],
+    "documents": [],
+    "tickets": [],
+    "identity_users": [
+      {
+        "user_id": "portland.desk@enron.com",
+        "email": "portland.desk@enron.com",
+        "first_name": "Portland",
+        "last_name": "Desk",
+        "login": "portland.desk@enron.com",
+        "display_name": "Portland Desk",
+        "status": "ACTIVE",
+        "department": null,
+        "title": null,
+        "manager": null,
+        "groups": [],
+        "applications": [],
+        "factors": [],
+        "last_login_ms": null
+      },
+      {
+        "user_id": "tim.belden@enron.com",
+        "email": "tim.belden@enron.com",
+        "first_name": "Tim",
+        "last_name": "Belden",
+        "login": "tim.belden@enron.com",
+        "display_name": "Tim Belden",
+        "status": "ACTIVE",
+        "department": null,
+        "title": null,
+        "manager": null,
+        "groups": [],
+        "applications": [],
+        "factors": [],
+        "last_login_ms": null
+      }
+    ],
+    "identity_groups": [],
+    "identity_applications": [],
+    "service_requests": [],
+    "google_drive_shares": [],
+    "hris_employees": [],
+    "crm_companies": [],
+    "crm_contacts": [],
+    "crm_deals": [],
+    "metadata": {
+      "vertical": "b2b_saas",
+      "what_if_branches": [
+        "Fix the integration and rebuild trust before the renewal conversation",
+        "Lead with the discount and hope the product issues don't kill the deal"
+      ],
+      "customer_twin_capture": true,
+      "source_providers": [
+        "mail_archive"
+      ],
+      "customer_twin_mold": {
+        "density_level": "medium",
+        "named_team_expansion": "minimal",
+        "crisis_family": null,
+        "redaction_mode": "preserve",
+        "synthetic_expansion_strength": "light",
+        "included_surfaces": [
+          "mail",
+          "identity"
+        ]
+      },
+      "strict_empty_slack": true,
+      "mail_archive_view": true,
+      "mail_archive_mailbox": "portland.desk@enron.com"
+    }
+  },
+  "metadata": {
+    "vertical": "b2b_saas",
+    "customer_twin": {
+      "organization_name": "Enron Corporation",
+      "organization_domain": "enron.com",
+      "mold": {
+        "archetype": "b2b_saas",
+        "expansion_level": "medium",
+        "density_level": "medium",
+        "named_team_expansion": "minimal",
+        "crisis_family": null,
+        "included_surfaces": [
+          "mail",
+          "identity"
+        ],
+        "redaction_mode": "preserve",
+        "synthetic_expansion_strength": "light",
+        "scenario_variant": null,
+        "contract_variant": null
+      },
+      "source_providers": [
+        "mail_archive"
+      ]
+    },
+    "customer_twin_mold": {
+      "density_level": "medium",
+      "named_team_expansion": "minimal",
+      "crisis_family": null,
+      "redaction_mode": "preserve",
+      "synthetic_expansion_strength": "light",
+      "included_surfaces": [
+        "mail",
+        "identity"
+      ]
+    }
+  }
+}

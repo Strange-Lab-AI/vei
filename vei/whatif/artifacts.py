@@ -23,6 +23,42 @@ def _business_state_change_lines(change) -> list[str]:
     return lines
 
 
+def _macro_outcome_lines(result) -> list[str]:
+    baseline = getattr(result, "baseline", None)
+    predicted = getattr(result, "predicted", None)
+    delta = getattr(result, "delta", None)
+    if baseline is None or predicted is None or delta is None:
+        return []
+    if (
+        baseline.stock_return_5d is None
+        and baseline.credit_action_30d is None
+        and baseline.ferc_action_180d is None
+        and predicted.stock_return_5d is None
+        and predicted.credit_action_30d is None
+        and predicted.ferc_action_180d is None
+    ):
+        return []
+    return [
+        "",
+        "## Macro Outcomes",
+        (
+            "- Stock return (5d): "
+            f"{baseline.stock_return_5d} -> {predicted.stock_return_5d} "
+            f"(delta {delta.stock_return_5d_delta})"
+        ),
+        (
+            "- Credit action (30d): "
+            f"{baseline.credit_action_30d} -> {predicted.credit_action_30d} "
+            f"(delta {delta.credit_action_30d_delta})"
+        ),
+        (
+            "- FERC action (180d): "
+            f"{baseline.ferc_action_180d} -> {predicted.ferc_action_180d} "
+            f"(delta {delta.ferc_action_180d_delta})"
+        ),
+    ]
+
+
 def render_experiment_overview(result: WhatIfExperimentResult) -> str:
     lines = [
         f"# {result.label}",
@@ -97,6 +133,7 @@ def render_experiment_overview(result: WhatIfExperimentResult) -> str:
                 result.forecast_result.business_state_change,
             )
         )
+        lines.extend(_macro_outcome_lines(result.forecast_result))
     return "\n".join(lines)
 
 

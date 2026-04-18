@@ -1,13 +1,13 @@
-# master_agreement_internal_review_public_context_20260412
+# master_agreement_saved_bundle_20260417
 
 Thread: `thr_e565b47423d035c9`
-Case: `thr_e565b47423d035c9`
+Case: `thread:thr_e565b47423d035c9`
 Surface: mail
 Branch event: `enron_bcda1b925800af8c`
 Changed actor: `debra.perlingiere@enron.com`
 Historical event type: assignment
 Historical subject: Master Agreement
-Prompt: Keep the draft inside Enron, loop in Gerald Nemec for legal review, and hold the outside send until the clean version is approved.
+Prompt: Keep the draft inside Enron, ask Gerald Nemec and Sara Shackleton for review, and hold the outside send.
 
 ## Historical Event
 - Timestamp: 2000-09-27T13:42:00Z
@@ -27,30 +27,34 @@ Prompt: Keep the draft inside Enron, loop in Gerald Nemec for legal review, and 
 
 ## LLM Actor
 - Status: ok
-- Summary: Rather than sending the draft Master Firm Purchase/Sale Agreement outside to Cargill, Debra retains the draft inside Enron, loops in Enron legal (Gerald Nemec) and credit/legal support (Sara Shackleton) for review, and explicitly instructs the team to hold any external transmission until a clean, legally approved version is circulated. Gerald acknowledges, flags specific legal points, and commits to legal sign-off; Debra issues an internal status update confirming the hold.
-- Delivered actions: 3
-- Inbox count: 5
-- `mail` `debra.perlingiere@enron.com` -> `gerald.nemec@enron.com` after 1000 ms: Master Agreement (Internal draft — DO NOT SEND)
-- `mail` `gerald.nemec@enron.com` -> `debra.perlingiere@enron.com` after 1800000 ms: Re: Master Agreement (Internal draft — DO NOT SEND)
-- `mail` `debra.perlingiere@enron.com` -> `marie.heard@enron.com` after 3600000 ms: Re: Master Agreement — internal status
+- Summary: Instead of sending the draft Master Firm Purchase/Sale Agreement to Cargill, Debra retains it internally and requests review from Gerald Nemec and Sara Shackleton, instructing them to hold any outside transmission.
+- Delivered actions: 2
+- Inbox count: 4
+- `mail` `debra.perlingiere@enron.com` -> `gerald.nemec@enron.com` after 60000 ms: Master Agreement — Draft for Internal Review
+- `mail` `debra.perlingiere@enron.com` -> `sara.shackleton@enron.com` after 120000 ms: Master Agreement — Draft for Legal/Credit Review
 
 ## Forecast
 - Status: ok
-- Backend: e_jepa
-- Summary: E-JEPA predicts 84 follow-up events from the branch point, with risk moving from 1.000 to 0.983.
+- Backend: heuristic_baseline
+- Summary: Predicted risk moves down by 0.440, with escalation delta 0 and external-send delta -64.
 - Baseline risk: 1.0
-- Predicted risk: 0.983
-- External-send delta: -29
-- Escalation delta: 2
+- Predicted risk: 0.56
+- External-send delta: -64
+- Escalation delta: 0
 
 ## Business State Change
-- Summary: Moderately lower outside spread risk.
-- Confidence: high
-- Net effect score: 0.05
-- Moderately lower outside spread risk.
-- Slightly stronger commercial position.
-- Slightly stronger relationship stability.
-- Internal handling load stays close to the historical path.
-- The thread looks safer to contain.
-- Handling burden stays close to the historical path.
-- Execution pace stays close to the historical path.
+- Summary: Much lower outside spread risk. Trade-off: Slightly higher internal handling load.
+- Confidence: medium
+- Net effect score: 0.209
+- Much lower outside spread risk.
+- Much stronger commercial position.
+- Much stronger relationship stability.
+- Slightly higher internal handling load.
+- The thread looks much safer to contain.
+- Internal handling looks heavier.
+- Near-term execution looks faster.
+
+## Macro Outcomes
+- Stock return (5d): -0.0503 -> -0.0103 (delta 0.04)
+- Credit action (30d): 0.0 -> 0.0 (delta 0.0)
+- FERC action (180d): 0.0 -> 0.0 (delta 0.0)

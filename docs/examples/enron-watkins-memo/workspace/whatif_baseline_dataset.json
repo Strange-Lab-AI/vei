@@ -1,0 +1,30 @@
+{
+  "metadata": {
+    "name": "whatif-baseline-thr_6ca597ba4bf815ac",
+    "description": "Historical future events scheduled after the branch point.",
+    "tags": [
+      "whatif",
+      "baseline",
+      "historical"
+    ],
+    "source": "enron_rosetta",
+    "transform_hash": null
+  },
+  "events": [
+    {
+      "time_ms": 1,
+      "actor_id": "sherron.watkins@enron.com",
+      "channel": "mail",
+      "type": "message",
+      "correlation_id": "thr_6ca597ba4bf815ac",
+      "payload": {
+        "from": "sherron.watkins@enron.com",
+        "to": ".schuler@enron.com",
+        "subj": "The key questions I asked Lay on Aug 22",
+        "body_text": "[Historical email excerpt]\nSherron S. Watkins\nVice President, Enron Corp.\n713-345-8799 office\n713-416-0620 cell\n\n[Excerpt limited by source data. Original body may be longer.]\n\nEvent type: message",
+        "thread_id": "thr_6ca597ba4bf815ac",
+        "category": "historical"
+      }
+    }
+  ]
+}

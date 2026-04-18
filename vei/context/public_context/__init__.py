@@ -14,15 +14,21 @@ from ._core import (
     slice_public_context_to_window,
 )
 from .models import (
+    WhatIfPublicCreditEvent,
     WhatIfPublicContext,
     WhatIfPublicFinancialSnapshot,
     WhatIfPublicNewsEvent,
+    WhatIfPublicRegulatoryEvent,
+    WhatIfPublicStockHistoryRow,
 )
 
 __all__ = [
+    "WhatIfPublicCreditEvent",
     "WhatIfPublicContext",
     "WhatIfPublicFinancialSnapshot",
     "WhatIfPublicNewsEvent",
+    "WhatIfPublicRegulatoryEvent",
+    "WhatIfPublicStockHistoryRow",
     "build_public_context",
     "discover_public_context_path",
     "empty_enron_public_context",

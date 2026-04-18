@@ -4,15 +4,15 @@ This fixture stores public-source material that can be joined to an Enron mail s
 
 The current packaged fixture contains:
 - 11 dated financial checkpoints
-- 13 dated public news events
-- 17 archived public source files
+- 21 dated public news events
+- 24 archived public source files
 
-The public dates currently span December 31, 1998 through December 2, 2001.
+The public dates currently span December 31, 1998 through March 14, 2002.
 
 Contents:
 - `raw/`: downloaded public-source HTML and PDF files.
 - `package.json`: manifest describing the raw sources and normalized artifact.
-- `enron_public_context_v1.json`: normalized dated financial checkpoints and public-news checkpoints.
+- `enron_public_context_v2.json`: normalized dated financial checkpoints and public-news checkpoints.
 
 Regenerate with:
 - `python scripts/prepare_enron_public_context.py`

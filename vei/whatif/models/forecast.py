@@ -23,6 +23,9 @@ class WhatIfHistoricalScore(BaseModel):
     future_approval_count: int = 0
     future_external_event_count: int = 0
     risk_score: float = 0.0
+    stock_return_5d: float | None = None
+    credit_action_30d: float | None = None
+    ferc_action_180d: float | None = None
     summary: str = ""
 
 
@@ -78,6 +81,9 @@ class WhatIfCounterfactualEstimateDelta(BaseModel):
     assignment_delta: int = 0
     approval_delta: int = 0
     external_event_delta: int = 0
+    stock_return_5d_delta: float | None = None
+    credit_action_30d_delta: float | None = None
+    ferc_action_180d_delta: float | None = None
 
 
 class WhatIfCounterfactualEstimateArtifacts(BaseModel):

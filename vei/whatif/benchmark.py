@@ -4,28 +4,56 @@ import json
 from collections import defaultdict
 from dataclasses import dataclass
 from hashlib import sha256
-from math import sqrt
 from pathlib import Path
 from typing import Sequence
 
 from .benchmark_business import (
     evidence_to_business_outcomes,
-    get_business_judge_rubric,
     summarize_observed_evidence,
 )
 from ._benchmark_constants import (
     BENCHMARK_MODELS as _BENCHMARK_MODELS,
     BUSINESS_OBJECTIVE_PACK_IDS as _BUSINESS_OBJECTIVE_PACK_IDS,
-    EXECUTIVE_TERMS as _EXECUTIVE_TERMS,
     HOLD_TERMS as _HOLD_TERMS,
     MULTI_PARTY_TERMS as _MULTI_PARTY_TERMS,
-    REASSURANCE_TERMS as _REASSURANCE_TERMS,
     SINGLE_PARTY_TERMS as _SINGLE_PARTY_TERMS,
 )
 from ._benchmark_case_packs import (
     BENCHMARK_CASE_PACKS as _BENCHMARK_CASE_PACKS,
     BenchmarkCaseSeed as _BenchmarkCaseSeed,
     DEFAULT_BENCHMARK_PACK_ID as _DEFAULT_BENCHMARK_PACK_ID,
+)
+from ._benchmark_dossiers import build_dossier_files as _write_case_dossiers
+from ._benchmark_utils import (
+    clamp as _clamp,
+    coordination_breadth_for_event as _coordination_breadth_for_event,
+    coordination_breadth_for_prompt as _coordination_breadth_for_prompt,
+    decision_posture_for_text as _decision_posture_for_text,
+    delay_norm as _delay_norm,
+    escalation_level_for_text as _escalation_level_for_text,
+    event_external_count as _event_external_count,
+    event_has_commitment_signal as _event_has_commitment_signal,
+    event_has_conflict_signal as _event_has_conflict_signal,
+    event_has_cross_functional_signal as _event_has_cross_functional_signal,
+    event_has_executive_signal as _event_has_executive_signal,
+    event_has_review_signal as _event_has_review_signal,
+    event_has_urgency_signal as _event_has_urgency_signal,
+    event_reassurance_count as _event_reassurance_count,
+    event_scope as _event_scope,
+    historical_branch_tags as _historical_branch_tags,
+    kendall_tau as _kendall_tau,
+    message_count_norm as _message_count_norm,
+    metric_summary as _metric_summary,
+    optional_metric_summary as _optional_metric_summary,
+    outside_sharing_posture_for_event as _outside_sharing_posture_for_event,
+    outside_sharing_posture_for_prompt as _outside_sharing_posture_for_prompt,
+    pairwise_hits as _pairwise_hits,
+    rank_study_models as _rank_study_models,
+    reassurance_style_for_text as _reassurance_style_for_text,
+    review_path_for_prompt as _review_path_for_prompt,
+    review_path_from_text as _review_path_from_text,
+    slug as _slug,
+    write_jsonl as _write_jsonl,
 )
 from .benchmark_runtime import (
     run_branch_point_benchmark_evaluation,
@@ -36,9 +64,7 @@ from .corpus import (
     choose_branch_event,
     event_by_id,
     event_reference,
-    external_recipient_count,
     hydrate_event_snippets,
-    recipient_scope,
 )
 from ._helpers import intervention_tags
 from .models import (
@@ -54,7 +80,6 @@ from .models import (
     WhatIfBenchmarkEvalResult,
     WhatIfBenchmarkJudgeArtifacts,
     WhatIfBenchmarkJudgeResult,
-    WhatIfBenchmarkMetricSummary,
     WhatIfBenchmarkModelId,
     WhatIfBenchmarkSplit,
     WhatIfBenchmarkStudyArtifacts,
@@ -1224,6 +1249,392 @@ def _family_candidates(
                 },
             ),
         ]
+    if family == "whistleblower":
+        return [
+            _benchmark_candidate(
+                candidate_id="audit_committee_and_andersen",
+                label="Escalate to the audit committee",
+                prompt="Escalate the warning to the audit committee, copy one Andersen contact, and force a formal accounting review before anything else moves.",
+                action_schema=_copy_action(
+                    historical_action,
+                    recipient_scope="mixed",
+                    external_recipient_count=1,
+                    hold_required=True,
+                    legal_review_required=True,
+                    escalation_level="executive",
+                    owner_clarity="single_owner",
+                    review_path="executive",
+                    coordination_breadth="targeted",
+                    outside_sharing_posture="limited_external",
+                    decision_posture="escalate",
+                    action_tags=["audit_committee", "executive_gate", "accounting"],
+                ),
+                expected_hypotheses={
+                    "minimize_enterprise_risk": "best_expected",
+                    "protect_commercial_position": "middle_expected",
+                    "reduce_org_strain": "middle_expected",
+                    "preserve_stakeholder_trust": "best_expected",
+                    "maintain_execution_velocity": "worst_expected",
+                },
+            ),
+            _benchmark_candidate(
+                candidate_id="hold_for_vinson_review",
+                label="Hold for Vinson & Elkins review",
+                prompt="Hold the issue inside a small legal circle, route it to Vinson & Elkins, and wait for outside-counsel guidance before wider disclosure.",
+                action_schema=_copy_action(
+                    historical_action,
+                    recipient_scope="mixed",
+                    external_recipient_count=1,
+                    hold_required=True,
+                    legal_review_required=True,
+                    review_path="outside_counsel",
+                    coordination_breadth="targeted",
+                    outside_sharing_posture="limited_external",
+                    decision_posture="hold",
+                    action_tags=["outside_counsel", "hold", "targeted_review"],
+                ),
+                expected_hypotheses=_default_business_hypotheses("middle_expected"),
+            ),
+            _benchmark_candidate(
+                candidate_id="anonymous_warning",
+                label="Send an anonymous warning",
+                prompt="Push a narrow warning to Ken Lay, keep the loop tiny, and ask for a direct answer without opening a larger circulation list.",
+                action_schema=_copy_action(
+                    historical_action,
+                    recipient_scope="internal",
+                    external_recipient_count=0,
+                    escalation_level="executive",
+                    owner_clarity="single_owner",
+                    review_path="executive",
+                    coordination_breadth="targeted",
+                    outside_sharing_posture="status_only",
+                    decision_posture="escalate",
+                    action_tags=["executive_gate", "single_owner", "quiet_escalation"],
+                ),
+                expected_hypotheses={
+                    "minimize_enterprise_risk": "middle_expected",
+                    "protect_commercial_position": "middle_expected",
+                    "reduce_org_strain": "best_expected",
+                    "preserve_stakeholder_trust": "middle_expected",
+                    "maintain_execution_velocity": "middle_expected",
+                },
+            ),
+            _benchmark_candidate(
+                candidate_id="suppress_and_monitor",
+                label="Suppress and monitor",
+                prompt="Keep the concern private, avoid wider disclosure, and monitor the situation without opening a formal review.",
+                action_schema=_copy_action(
+                    historical_action,
+                    recipient_scope="internal",
+                    external_recipient_count=0,
+                    hold_required=False,
+                    legal_review_required=False,
+                    owner_clarity="unclear",
+                    review_path="none",
+                    coordination_breadth="single_owner",
+                    outside_sharing_posture="internal_only",
+                    decision_posture="hold",
+                    action_tags=["private", "monitor", "suppress"],
+                ),
+                expected_hypotheses={
+                    "minimize_enterprise_risk": "worst_expected",
+                    "protect_commercial_position": "worst_expected",
+                    "reduce_org_strain": "best_expected",
+                    "preserve_stakeholder_trust": "worst_expected",
+                    "maintain_execution_velocity": "best_expected",
+                },
+            ),
+        ]
+    if family == "market_manipulation":
+        return [
+            _benchmark_candidate(
+                candidate_id="halt_and_self_report",
+                label="Halt and self-report",
+                prompt="Stop the strategy, preserve the record, and self-report the exposure to FERC and internal legal review immediately.",
+                action_schema=_copy_action(
+                    historical_action,
+                    recipient_scope="mixed",
+                    external_recipient_count=1,
+                    hold_required=True,
+                    legal_review_required=True,
+                    escalation_level="executive",
+                    owner_clarity="single_owner",
+                    review_path="internal_legal",
+                    coordination_breadth="targeted",
+                    outside_sharing_posture="limited_external",
+                    decision_posture="escalate",
+                    action_tags=["hold", "legal", "regulatory", "self_report"],
+                ),
+                expected_hypotheses={
+                    "minimize_enterprise_risk": "best_expected",
+                    "protect_commercial_position": "middle_expected",
+                    "reduce_org_strain": "middle_expected",
+                    "preserve_stakeholder_trust": "best_expected",
+                    "maintain_execution_velocity": "worst_expected",
+                },
+            ),
+            _benchmark_candidate(
+                candidate_id="skilling_signoff",
+                label="Ask for Skilling sign-off",
+                prompt="Keep the thread tight, write a short internal memo to Skilling, and require explicit executive sign-off before the strategy continues.",
+                action_schema=_copy_action(
+                    historical_action,
+                    recipient_scope="internal",
+                    external_recipient_count=0,
+                    escalation_level="executive",
+                    owner_clarity="single_owner",
+                    review_path="executive",
+                    coordination_breadth="targeted",
+                    outside_sharing_posture="internal_only",
+                    decision_posture="review",
+                    action_tags=["executive_gate", "single_owner", "trading"],
+                ),
+                expected_hypotheses=_default_business_hypotheses("middle_expected"),
+            ),
+            _benchmark_candidate(
+                candidate_id="proceed_narrow",
+                label="Proceed with narrow circulation",
+                prompt="Proceed with the strategy, keep the distribution list tight, and avoid language that widens the compliance footprint.",
+                action_schema=_copy_action(
+                    historical_action,
+                    recipient_scope="internal",
+                    external_recipient_count=0,
+                    owner_clarity="single_owner",
+                    review_path="business_owner",
+                    coordination_breadth="narrow",
+                    outside_sharing_posture="status_only",
+                    decision_posture="resolve",
+                    action_tags=["single_owner", "status_only", "narrow_loop"],
+                ),
+                expected_hypotheses={
+                    "minimize_enterprise_risk": "worst_expected",
+                    "protect_commercial_position": "best_expected",
+                    "reduce_org_strain": "middle_expected",
+                    "preserve_stakeholder_trust": "worst_expected",
+                    "maintain_execution_velocity": "best_expected",
+                },
+            ),
+            _benchmark_candidate(
+                candidate_id="proceed_and_widen",
+                label="Proceed and widen circulation",
+                prompt="Proceed with the strategy, widen the trading and management loop, and push for a fast answer across the broader group.",
+                action_schema=_copy_action(
+                    historical_action,
+                    recipient_scope="mixed",
+                    external_recipient_count=max(
+                        2, historical_action.external_recipient_count or 1
+                    ),
+                    escalation_level="executive",
+                    owner_clarity="multi_owner",
+                    review_path="cross_functional",
+                    coordination_breadth="broad",
+                    outside_sharing_posture="broad_external",
+                    decision_posture="resolve",
+                    action_tags=["send_now", "widen_loop", "broad"],
+                ),
+                expected_hypotheses={
+                    "minimize_enterprise_risk": "worst_expected",
+                    "protect_commercial_position": "worst_expected",
+                    "reduce_org_strain": "worst_expected",
+                    "preserve_stakeholder_trust": "worst_expected",
+                    "maintain_execution_velocity": "middle_expected",
+                },
+            ),
+        ]
+    if family == "crisis_communication":
+        return [
+            _benchmark_candidate(
+                candidate_id="board_audit_disclosure",
+                label="Board and audit disclosure",
+                prompt="Escalate the draft to the board and audit committee, keep one owner on the message, and align disclosure language before the broader release.",
+                action_schema=_copy_action(
+                    historical_action,
+                    recipient_scope="internal",
+                    external_recipient_count=0,
+                    hold_required=True,
+                    escalation_level="executive",
+                    owner_clarity="single_owner",
+                    review_path="executive",
+                    coordination_breadth="targeted",
+                    outside_sharing_posture="internal_only",
+                    decision_posture="escalate",
+                    action_tags=["executive_gate", "hold", "single_owner"],
+                ),
+                expected_hypotheses={
+                    "minimize_enterprise_risk": "best_expected",
+                    "protect_commercial_position": "middle_expected",
+                    "reduce_org_strain": "middle_expected",
+                    "preserve_stakeholder_trust": "best_expected",
+                    "maintain_execution_velocity": "worst_expected",
+                },
+            ),
+            _benchmark_candidate(
+                candidate_id="controlled_internal_draft",
+                label="Controlled internal draft",
+                prompt="Keep the communications draft internal, use one owner and one legal reviewer, and hold external statements until the draft is settled.",
+                action_schema=_copy_action(
+                    historical_action,
+                    recipient_scope="internal",
+                    external_recipient_count=0,
+                    hold_required=True,
+                    legal_review_required=True,
+                    owner_clarity="single_owner",
+                    review_path="internal_legal",
+                    coordination_breadth="narrow",
+                    outside_sharing_posture="internal_only",
+                    decision_posture="hold",
+                    action_tags=["hold", "legal", "single_owner"],
+                ),
+                expected_hypotheses=_default_business_hypotheses("middle_expected"),
+            ),
+            _benchmark_candidate(
+                candidate_id="narrow_external_line",
+                label="Narrow external line",
+                prompt="Send one narrow status line to the outside audience, keep the detail light, and give one clear next-step owner.",
+                action_schema=_copy_action(
+                    historical_action,
+                    recipient_scope="external",
+                    external_recipient_count=1,
+                    attachment_policy="sanitized",
+                    owner_clarity="single_owner",
+                    reassurance_style="high",
+                    review_path="business_owner",
+                    coordination_breadth="single_owner",
+                    outside_sharing_posture="status_only",
+                    decision_posture="resolve",
+                    action_tags=["status_only", "single_owner", "reassurance"],
+                ),
+                expected_hypotheses={
+                    "minimize_enterprise_risk": "middle_expected",
+                    "protect_commercial_position": "best_expected",
+                    "reduce_org_strain": "best_expected",
+                    "preserve_stakeholder_trust": "middle_expected",
+                    "maintain_execution_velocity": "best_expected",
+                },
+            ),
+            _benchmark_candidate(
+                candidate_id="broad_reassurance_loop",
+                label="Broad reassurance loop",
+                prompt="Push the talking points broadly, reassure everyone quickly, and let multiple leaders speak into the message at once.",
+                action_schema=_copy_action(
+                    historical_action,
+                    recipient_scope="mixed",
+                    external_recipient_count=max(
+                        2, historical_action.external_recipient_count or 1
+                    ),
+                    escalation_level="executive",
+                    owner_clarity="multi_owner",
+                    review_path="cross_functional",
+                    coordination_breadth="broad",
+                    outside_sharing_posture="broad_external",
+                    decision_posture="resolve",
+                    action_tags=["broad", "multi_owner", "reassurance"],
+                ),
+                expected_hypotheses={
+                    "minimize_enterprise_risk": "worst_expected",
+                    "protect_commercial_position": "worst_expected",
+                    "reduce_org_strain": "worst_expected",
+                    "preserve_stakeholder_trust": "worst_expected",
+                    "maintain_execution_velocity": "middle_expected",
+                },
+            ),
+        ]
+    if family == "accounting_disclosure":
+        return [
+            _benchmark_candidate(
+                candidate_id="disclose_and_restate",
+                label="Disclose and restate",
+                prompt="Disclose the issue, route it through legal and accounting immediately, and prepare the restatement path before quarter-end pressure widens.",
+                action_schema=_copy_action(
+                    historical_action,
+                    recipient_scope="internal",
+                    external_recipient_count=0,
+                    hold_required=True,
+                    legal_review_required=True,
+                    escalation_level="executive",
+                    owner_clarity="single_owner",
+                    review_path="internal_legal",
+                    coordination_breadth="targeted",
+                    outside_sharing_posture="internal_only",
+                    decision_posture="escalate",
+                    action_tags=["hold", "legal", "accounting", "restatement"],
+                ),
+                expected_hypotheses={
+                    "minimize_enterprise_risk": "best_expected",
+                    "protect_commercial_position": "worst_expected",
+                    "reduce_org_strain": "middle_expected",
+                    "preserve_stakeholder_trust": "best_expected",
+                    "maintain_execution_velocity": "worst_expected",
+                },
+            ),
+            _benchmark_candidate(
+                candidate_id="hold_for_reconciliation",
+                label="Hold for clean reconciliation",
+                prompt="Keep the issue inside a small finance and legal loop, reconcile the numbers, and hold the wider message until the clean story is ready.",
+                action_schema=_copy_action(
+                    historical_action,
+                    recipient_scope="internal",
+                    external_recipient_count=0,
+                    hold_required=True,
+                    legal_review_required=True,
+                    owner_clarity="single_owner",
+                    review_path="cross_functional",
+                    coordination_breadth="narrow",
+                    outside_sharing_posture="internal_only",
+                    decision_posture="hold",
+                    action_tags=["hold", "cross_functional", "single_owner"],
+                ),
+                expected_hypotheses=_default_business_hypotheses("middle_expected"),
+            ),
+            _benchmark_candidate(
+                candidate_id="limited_restructure",
+                label="Restructure in a limited circle",
+                prompt="Keep the discussion to a limited finance circle, restructure the path quietly, and avoid opening a broader disclosure loop yet.",
+                action_schema=_copy_action(
+                    historical_action,
+                    recipient_scope="internal",
+                    external_recipient_count=0,
+                    owner_clarity="single_owner",
+                    review_path="business_owner",
+                    coordination_breadth="targeted",
+                    outside_sharing_posture="status_only",
+                    decision_posture="review",
+                    action_tags=["single_owner", "targeted_review", "quiet_fix"],
+                ),
+                expected_hypotheses={
+                    "minimize_enterprise_risk": "worst_expected",
+                    "protect_commercial_position": "middle_expected",
+                    "reduce_org_strain": "middle_expected",
+                    "preserve_stakeholder_trust": "worst_expected",
+                    "maintain_execution_velocity": "best_expected",
+                },
+            ),
+            _benchmark_candidate(
+                candidate_id="push_through_quarter_close",
+                label="Push through quarter close",
+                prompt="Push the item through quarter close, keep the loop broad enough to execute fast, and postpone the harder accounting clean-up.",
+                action_schema=_copy_action(
+                    historical_action,
+                    recipient_scope="mixed",
+                    external_recipient_count=max(
+                        1, historical_action.external_recipient_count
+                    ),
+                    owner_clarity="multi_owner",
+                    review_path="cross_functional",
+                    coordination_breadth="broad",
+                    outside_sharing_posture="broad_external",
+                    decision_posture="resolve",
+                    action_tags=["send_now", "widen_loop", "quarter_close"],
+                ),
+                expected_hypotheses={
+                    "minimize_enterprise_risk": "worst_expected",
+                    "protect_commercial_position": "middle_expected",
+                    "reduce_org_strain": "worst_expected",
+                    "preserve_stakeholder_trust": "worst_expected",
+                    "maintain_execution_velocity": "best_expected",
+                },
+            ),
+        ]
     if family == "executive_regulatory":
         return [
             _benchmark_candidate(
@@ -1681,98 +2092,6 @@ def _audit_template_rows(
                 )
             )
     return template
-
-
-def _write_case_dossiers(
-    *,
-    case: WhatIfBenchmarkCase,
-    dossier_root: Path,
-) -> dict[str, str]:
-    paths: dict[str, str] = {}
-    for objective_pack_id in _BUSINESS_OBJECTIVE_PACK_IDS:
-        rubric = get_business_judge_rubric(objective_pack_id)
-        dossier_path = dossier_root / f"{objective_pack_id}.md"
-        dossier_path.write_text(
-            _render_case_dossier(case, objective_pack_id=objective_pack_id),
-            encoding="utf-8",
-        )
-        paths[objective_pack_id] = str(dossier_path)
-        rubric_path = dossier_root / f"{objective_pack_id}.rubric.json"
-        rubric_path.write_text(rubric.model_dump_json(indent=2), encoding="utf-8")
-    return paths
-
-
-def _render_case_dossier(
-    case: WhatIfBenchmarkCase,
-    *,
-    objective_pack_id: WhatIfBusinessObjectivePackId,
-) -> str:
-    rubric = get_business_judge_rubric(objective_pack_id)
-    lines = [
-        f"# {case.title}",
-        "",
-        case.summary or "Held-out Enron branch-point case.",
-        "",
-        "## Objective",
-        f"- {rubric.title}",
-        f"- Question: {rubric.question}",
-        f"- Decision rule: {rubric.decision_rule}",
-        "",
-        "## Criteria",
-    ]
-    for criterion in rubric.criteria:
-        lines.append(f"- {criterion}")
-    lines.extend(
-        [
-            "",
-            "## Branch Event",
-            f"- Event id: `{case.event_id}`",
-            f"- Thread id: `{case.thread_id}`",
-            f"- Sender: `{case.branch_event.actor_id}`",
-            f"- Recipients: {', '.join(case.branch_event.to_recipients) or case.branch_event.target_id or '(none)'}",
-            f"- Subject: {case.branch_event.subject}",
-        ]
-    )
-    if case.branch_event.snippet:
-        lines.append(f"- Excerpt: {case.branch_event.snippet}")
-    lines.extend(["", "## Pre-Branch History"])
-    for event in case.history_preview:
-        lines.append(
-            f"- `{event.event_id}` {event.timestamp} {event.event_type} from `{event.actor_id}`: {event.subject}"
-        )
-    lines.extend(["", "## Public Company Context"])
-    if case.public_context and case.public_context.financial_snapshots:
-        lines.append("### Financial Checkpoints")
-        for snapshot in case.public_context.financial_snapshots:
-            lines.append(
-                f"- {snapshot.as_of[:10]} {snapshot.label}: {snapshot.summary}"
-            )
-    if case.public_context and case.public_context.public_news_events:
-        lines.append("### Public News")
-        for event in case.public_context.public_news_events:
-            lines.append(f"- {event.timestamp[:10]} {event.headline}: {event.summary}")
-    if not case.public_context or (
-        not case.public_context.financial_snapshots
-        and not case.public_context.public_news_events
-    ):
-        lines.append("- No public company context attached.")
-    lines.extend(["", "## Candidate Decisions"])
-    for candidate in case.candidates:
-        lines.extend(
-            [
-                f"### {candidate.label}",
-                f"- Candidate id: `{candidate.candidate_id}`",
-                f"- Prompt: {candidate.prompt}",
-                f"- Action tags: {', '.join(candidate.action_schema.action_tags) or '(none)'}",
-                f"- Review path: {candidate.action_schema.review_path}",
-                f"- Coordination breadth: {candidate.action_schema.coordination_breadth}",
-                f"- Outside sharing posture: {candidate.action_schema.outside_sharing_posture}",
-            ]
-        )
-        for objective_pack_id, label in candidate.expected_hypotheses.items():
-            lines.append(f"- {objective_pack_id}: {label}")
-        lines.append("")
-    return "\n".join(lines).rstrip() + "\n"
 
 
 def _build_pre_branch_contract(
@@ -2324,337 +2643,6 @@ def _study_model_summary(
             for pack_id in objective_pack_ids
         },
     )
-
-
-def _metric_summary(values: Sequence[float]) -> WhatIfBenchmarkMetricSummary:
-    cleaned = [float(value) for value in values]
-    if not cleaned:
-        return WhatIfBenchmarkMetricSummary()
-    mean = sum(cleaned) / len(cleaned)
-    variance = sum((value - mean) ** 2 for value in cleaned) / len(cleaned)
-    return WhatIfBenchmarkMetricSummary(
-        count=len(cleaned),
-        mean=round(mean, 6),
-        std=round(sqrt(variance), 6),
-        min=round(min(cleaned), 6),
-        max=round(max(cleaned), 6),
-    )
-
-
-def _optional_metric_summary(
-    values: Sequence[float | None],
-) -> WhatIfBenchmarkMetricSummary | None:
-    cleaned = [float(value) for value in values if value is not None]
-    if not cleaned:
-        return None
-    return _metric_summary(cleaned)
-
-
-def _rank_study_models(
-    summaries: Sequence[WhatIfBenchmarkStudyModelSummary],
-) -> list[WhatIfBenchmarkModelId]:
-    return [
-        summary.model_id
-        for summary in sorted(
-            summaries,
-            key=lambda summary: (
-                -summary.dominance_pass_rate.mean,
-                -(
-                    summary.judge_top1_agreement.mean
-                    if summary.judge_top1_agreement is not None
-                    else -1.0
-                ),
-                -summary.observed_auroc_any_external_spread.mean,
-                summary.model_id,
-            ),
-        )
-    ]
-
-
-def _pairwise_hits(
-    predicted_order: Sequence[str],
-    judged_order: Sequence[str],
-) -> tuple[int, int]:
-    pred_rank = {
-        candidate_id: index for index, candidate_id in enumerate(predicted_order)
-    }
-    judge_rank = {
-        candidate_id: index for index, candidate_id in enumerate(judged_order)
-    }
-    shared = [
-        candidate_id for candidate_id in judged_order if candidate_id in pred_rank
-    ]
-    hits = 0
-    total = 0
-    for left_index, left in enumerate(shared):
-        for right in shared[left_index + 1 :]:
-            total += 1
-            pred_prefers_left = pred_rank[left] < pred_rank[right]
-            judge_prefers_left = judge_rank[left] < judge_rank[right]
-            if pred_prefers_left == judge_prefers_left:
-                hits += 1
-    return hits, total
-
-
-def _kendall_tau(
-    predicted_order: Sequence[str],
-    judged_order: Sequence[str],
-) -> float | None:
-    hits, total = _pairwise_hits(predicted_order, judged_order)
-    if total == 0:
-        return None
-    discordant = total - hits
-    return (hits - discordant) / total
-
-
-def _historical_branch_tags(
-    event: WhatIfEvent,
-    *,
-    organization_domain: str,
-) -> set[str]:
-    tags: set[str] = set()
-    if event.flags.consult_legal_specialist:
-        tags.add("legal")
-    if event.flags.consult_trading_specialist:
-        tags.add("trading")
-    if event.flags.has_attachment_reference:
-        tags.add("attachment_present")
-    if _event_external_count(event, organization_domain=organization_domain) == 0:
-        tags.add("internal_only")
-    if event.flags.is_forward:
-        tags.add("forward")
-    if event.flags.is_escalation or event.event_type == "escalation":
-        tags.add("escalation")
-    return tags
-
-
-def _event_scope(
-    event: WhatIfEvent,
-    *,
-    organization_domain: str,
-) -> str:
-    recipients = [
-        item.strip().lower() for item in event.flags.to_recipients if item.strip()
-    ]
-    if event.target_id:
-        recipients.append(event.target_id.strip().lower())
-    if not recipients:
-        return "unknown"
-    return recipient_scope(
-        recipients,
-        organization_domain=organization_domain,
-    )
-
-
-def _event_external_count(
-    event: WhatIfEvent,
-    *,
-    organization_domain: str,
-) -> int:
-    recipients = [
-        item.strip().lower() for item in event.flags.to_recipients if item.strip()
-    ]
-    if event.target_id:
-        recipients.append(event.target_id.strip().lower())
-    return external_recipient_count(
-        recipients,
-        organization_domain=organization_domain,
-    )
-
-
-def _event_reassurance_count(event: WhatIfEvent) -> int:
-    text = " ".join([event.subject, event.snippet]).lower()
-    return int(any(token in text for token in _REASSURANCE_TERMS))
-
-
-def _event_has_review_signal(event: WhatIfEvent) -> bool:
-    text = " ".join([event.subject, event.snippet]).lower()
-    return any(token in text for token in ("review", "draft", "comment", "redline"))
-
-
-def _event_has_executive_signal(event: WhatIfEvent) -> bool:
-    text = " ".join([event.subject, event.snippet, event.target_id]).lower()
-    return any(token in text for token in _EXECUTIVE_TERMS)
-
-
-def _event_has_cross_functional_signal(event: WhatIfEvent) -> bool:
-    text = " ".join([event.subject, event.snippet, event.target_id]).lower()
-    marker_count = sum(
-        1
-        for token in ("legal", "trading", "risk", "credit", "regulatory", "hr")
-        if token in text
-    )
-    return marker_count >= 2
-
-
-def _event_has_conflict_signal(event: WhatIfEvent) -> bool:
-    text = " ".join([event.subject, event.snippet]).lower()
-    return any(
-        token in text
-        for token in ("problem", "concern", "disagree", "cannot", "delay", "failure")
-    )
-
-
-def _event_has_commitment_signal(event: WhatIfEvent) -> bool:
-    text = " ".join([event.subject, event.snippet]).lower()
-    return any(
-        token in text
-        for token in ("we will", "i will", "next step", "timeline", "owner", "plan")
-    )
-
-
-def _event_has_urgency_signal(event: WhatIfEvent) -> bool:
-    text = " ".join([event.subject, event.snippet]).lower()
-    return any(token in text for token in ("urgent", "asap", "immediately", "today"))
-
-
-def _delay_norm(delay_ms: int) -> float:
-    hours = max(0.0, delay_ms / 3_600_000)
-    return _clamp(hours / 72.0)
-
-
-def _message_count_norm(message_count: int) -> float:
-    return _clamp(message_count / 12.0)
-
-
-def _clamp(value: float) -> float:
-    return max(0.0, min(1.0, float(value)))
-
-
-def _escalation_level_for_text(text: str, escalated: bool) -> str:
-    if escalated and any(token in text for token in _EXECUTIVE_TERMS):
-        return "executive"
-    if escalated:
-        return "manager"
-    return "none"
-
-
-def _review_path_from_text(text: str, legal_flag: bool) -> str:
-    if legal_flag or "counsel" in text or "legal" in text:
-        return "internal_legal"
-    if "hr" in text or "personnel" in text:
-        return "hr"
-    if "executive" in text or "leadership" in text:
-        return "executive"
-    if "review" in text or "comments" in text:
-        return "cross_functional"
-    return "business_owner"
-
-
-def _review_path_for_prompt(text: str, tags: set[str]) -> str:
-    if "legal" in tags or "counsel" in text or "legal" in text:
-        return "internal_legal"
-    if "hr" in text:
-        return "hr"
-    if "executive_gate" in tags or "executive" in text:
-        return "executive"
-    if any(token in text for token in ("comments", "review", "circulation", "panel")):
-        return "cross_functional"
-    return "business_owner"
-
-
-def _coordination_breadth_for_event(
-    event: WhatIfEvent,
-    *,
-    organization_domain: str,
-) -> str:
-    recipient_total = (
-        _event_external_count(
-            event,
-            organization_domain=organization_domain,
-        )
-        + len(event.flags.to_recipients)
-        + len(event.flags.cc_recipients)
-    )
-    if recipient_total <= 1:
-        return "single_owner"
-    if recipient_total <= 3:
-        return "narrow"
-    if recipient_total <= 6:
-        return "targeted"
-    return "broad"
-
-
-def _coordination_breadth_for_prompt(text: str, tags: set[str]) -> str:
-    if any(token in text for token in ("one owner", "single owner")):
-        return "single_owner"
-    if "broad" in tags or any(token in text for token in _MULTI_PARTY_TERMS):
-        return "broad"
-    if any(token in text for token in ("small", "tight", "narrow")):
-        return "narrow"
-    return "targeted"
-
-
-def _outside_sharing_posture_for_event(
-    event: WhatIfEvent,
-    *,
-    organization_domain: str,
-) -> str:
-    external_count = _event_external_count(
-        event,
-        organization_domain=organization_domain,
-    )
-    if external_count == 0:
-        return "internal_only"
-    if not event.flags.has_attachment_reference:
-        return "status_only"
-    if external_count == 1:
-        return "limited_external"
-    return "broad_external"
-
-
-def _outside_sharing_posture_for_prompt(
-    *,
-    recipient_scope: str,
-    attachment_policy: str,
-    lowered: str,
-) -> str:
-    if recipient_scope == "internal":
-        return "internal_only"
-    if attachment_policy == "sanitized" or "status note" in lowered:
-        return "status_only"
-    if recipient_scope == "external":
-        return "limited_external"
-    return "broad_external"
-
-
-def _decision_posture_for_text(
-    text: str,
-    *,
-    hold_required: bool,
-    escalated: bool,
-) -> str:
-    if hold_required:
-        return "hold"
-    if escalated:
-        return "escalate"
-    if any(token in text for token in ("resolve", "send", "answer", "confirm")):
-        return "resolve"
-    return "review"
-
-
-def _reassurance_style_for_text(text: str) -> str:
-    hits = sum(1 for token in _REASSURANCE_TERMS if token in text)
-    if hits >= 2:
-        return "high"
-    if hits == 1:
-        return "medium"
-    return "low"
-
-
-def _write_jsonl(path: Path, rows: Sequence[WhatIfBenchmarkDatasetRow]) -> None:
-    lines = [row.model_dump_json() for row in rows]
-    path.write_text("\n".join(lines) + ("\n" if lines else ""), encoding="utf-8")
-
-
-def _slug(label: str) -> str:
-    pieces = [
-        character.lower() if character.isalnum() else "_" for character in label.strip()
-    ]
-    slug = "".join(pieces).strip("_")
-    while "__" in slug:
-        slug = slug.replace("__", "_")
-    return slug or sha256(label.encode("utf-8")).hexdigest()[:10]
 
 
 __all__ = [

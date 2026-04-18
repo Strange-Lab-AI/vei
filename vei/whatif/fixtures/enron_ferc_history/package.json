@@ -1,0 +1,24 @@
+{
+  "version": "1",
+  "name": "enron_ferc_history",
+  "title": "Enron Ferc History",
+  "description": "Public FERC actions that framed the California power crisis and Enron's later regulatory exposure.",
+  "organization_name": "Enron Corporation",
+  "organization_domain": "enron.com",
+  "sources": [
+    {
+      "source_id": "california_refund_order_record",
+      "relative_path": "../enron_public_context/raw/2001_california_refund_hearing.html",
+      "description": "California Senate hearing page summarizing the June 19, 2001 FERC refund and mitigation action."
+    }
+  ],
+  "artifacts": [
+    {
+      "artifact_id": "enron_ferc_history_v1",
+      "version": "1",
+      "file_type": "json",
+      "relative_path": "enron_ferc_history_v1.json",
+      "description": "Public FERC actions that framed the California power crisis and Enron's later regulatory exposure."
+    }
+  ]
+}

@@ -1,0 +1,45 @@
+{
+  "generated_at": "2026-04-18T05:49:30.195826Z",
+  "bundles": [
+    {
+      "bundle_slug": "enron-master-agreement-public-context",
+      "workspace_root": "docs/examples/enron-master-agreement-public-context/workspace",
+      "screenshots": {
+        "scene": "docs/assets/enron-whatif/master-agreement-public-context-scene.png",
+        "forecast": "docs/assets/enron-whatif/master-agreement-public-context-forecast.png",
+        "macro": "docs/assets/enron-whatif/master-agreement-public-context-macro.png",
+        "ranking": "docs/assets/enron-whatif/master-agreement-public-context-ranking.png"
+      }
+    },
+    {
+      "bundle_slug": "enron-watkins-memo",
+      "workspace_root": "docs/examples/enron-watkins-memo/workspace",
+      "screenshots": {
+        "scene": "docs/assets/enron-whatif/watkins-memo-scene.png",
+        "forecast": "docs/assets/enron-whatif/watkins-memo-forecast.png",
+        "macro": "docs/assets/enron-whatif/watkins-memo-macro.png",
+        "ranking": "docs/assets/enron-whatif/watkins-memo-ranking.png"
+      }
+    },
+    {
+      "bundle_slug": "enron-california-crisis-strategy",
+      "workspace_root": "docs/examples/enron-california-crisis-strategy/workspace",
+      "screenshots": {
+        "scene": "docs/assets/enron-whatif/california-crisis-strategy-scene.png",
+        "forecast": "docs/assets/enron-whatif/california-crisis-strategy-forecast.png",
+        "macro": "docs/assets/enron-whatif/california-crisis-strategy-macro.png",
+        "ranking": "docs/assets/enron-whatif/california-crisis-strategy-ranking.png"
+      }
+    },
+    {
+      "bundle_slug": "enron-pge-power-deal",
+      "workspace_root": "docs/examples/enron-pge-power-deal/workspace",
+      "screenshots": {
+        "scene": "docs/assets/enron-whatif/pge-power-deal-scene.png",
+        "forecast": "docs/assets/enron-whatif/pge-power-deal-forecast.png",
+        "macro": "docs/assets/enron-whatif/pge-power-deal-macro.png",
+        "ranking": "docs/assets/enron-whatif/pge-power-deal-ranking.png"
+      }
+    }
+  ]
+}

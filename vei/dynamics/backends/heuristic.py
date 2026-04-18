@@ -15,6 +15,7 @@ from vei.dynamics.models import (
     DynamicsResponse,
     PointInterval,
 )
+from vei.whatif.api import macro_delta_from_prompt
 
 _INTERVENTION_KEYWORDS: dict[str, set[str]] = {
     "legal": {"legal", "compliance"},
@@ -83,6 +84,7 @@ class HeuristicBaseline:
             spread_shift += 0.12
             load_shift += 0.08
             risk_shift += 0.12
+        macro_delta = macro_delta_from_prompt(action_text)
 
         return DynamicsResponse(
             backend_id="heuristic_baseline",
@@ -98,6 +100,15 @@ class HeuristicBaseline:
                 ),
                 load=PointInterval(point=max(-1.0, min(1.0, load_shift))),
                 drag=PointInterval(point=max(-1.0, min(1.0, drag_shift))),
+                stock_return_5d=PointInterval(
+                    point=macro_delta["stock_return_5d_delta"]
+                ),
+                credit_action_30d=PointInterval(
+                    point=macro_delta["credit_action_30d_delta"]
+                ),
+                ferc_action_180d=PointInterval(
+                    point=macro_delta["ferc_action_180d_delta"]
+                ),
             ),
         )
 

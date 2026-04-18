@@ -2,19 +2,52 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
+import requests
+import subprocess
+import tempfile
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any
-from urllib.request import Request, urlopen
+from urllib.parse import urlparse
 
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURE_ROOT = ROOT / "vei" / "whatif" / "fixtures" / "enron_public_context"
 RAW_ROOT = FIXTURE_ROOT / "raw"
 PACKAGE_PATH = FIXTURE_ROOT / "package.json"
-DATASET_PATH = FIXTURE_ROOT / "enron_public_context_v1.json"
+DATASET_PATH = FIXTURE_ROOT / "enron_public_context_v2.json"
 README_PATH = FIXTURE_ROOT / "README.md"
+STOCK_FIXTURE_ROOT = ROOT / "vei" / "whatif" / "fixtures" / "enron_stock_history"
+STOCK_DATASET_PATH = STOCK_FIXTURE_ROOT / "enron_stock_history_v1.json"
+CREDIT_FIXTURE_ROOT = ROOT / "vei" / "whatif" / "fixtures" / "enron_credit_history"
+CREDIT_DATASET_PATH = CREDIT_FIXTURE_ROOT / "enron_credit_history_v1.json"
+FERC_FIXTURE_ROOT = ROOT / "vei" / "whatif" / "fixtures" / "enron_ferc_history"
+FERC_DATASET_PATH = FERC_FIXTURE_ROOT / "enron_ferc_history_v1.json"
 USER_AGENT = "Mozilla/5.0 vei-enron-public-context-builder contact@example.com"
+_STOCK_ROW_PATTERN = re.compile(
+    r"^(?P<date>\d{1,2}/\d{1,2}/\d{4})\s+"
+    r"(?P<open>\d+\.\d+)\s+"
+    r"(?P<high>\d+\.\d+)\s+"
+    r"(?P<low>\d+\.\d+)\s+"
+    r"(?P<close>\d+\.\d+)\s+"
+    r"(?P<volume>[0-9,]+)"
+)
+_SCRIPT_BLOCK_PATTERN = re.compile(
+    r"<script\b[^>]*>.*?</script>",
+    re.IGNORECASE | re.DOTALL,
+)
+_PICTURE_BLOCK_PATTERN = re.compile(
+    r"<picture\b[^>]*>.*?</picture>",
+    re.IGNORECASE | re.DOTALL,
+)
+_IMG_TAG_PATTERN = re.compile(r"<img\b[^>]*>", re.IGNORECASE)
+_HTML_ATTR_VALUE_PATTERN = re.compile(
+    r"""\s(?:href|src|srcset|poster|content|data-[\w-]+)=["'][^"']*["']""",
+    re.IGNORECASE,
+)
+_STOCK_HISTORY_START = date(1998, 1, 1)
+_STOCK_HISTORY_END = date(2001, 12, 31)
 
 
 @dataclass(frozen=True)
@@ -70,6 +103,20 @@ SOURCE_DOCUMENTS: tuple[SourceDocument, ...] = (
         file_type="html",
         description="Archived second-quarter 2000 Enron earnings release.",
         topics=("financials", "quarterly"),
+    ),
+    SourceDocument(
+        source_id="enron_historical_stock_price_pdf",
+        filename="2001_enron_historical_stock_price.pdf",
+        url=(
+            "https://www.famous-trials.com/images/ftrials/Enron/documents/"
+            "enronstockchart.pdf"
+        ),
+        file_type="pdf",
+        description=(
+            "Archived daily Enron historical stock price and volume table spanning "
+            "1998 through 2001."
+        ),
+        topics=("financials", "stock_price", "market_history", "daily_prices"),
     ),
     SourceDocument(
         source_id="enron_2000_q3_release",
@@ -161,6 +208,75 @@ SOURCE_DOCUMENTS: tuple[SourceDocument, ...] = (
         topics=("financials", "quarterly"),
     ),
     SourceDocument(
+        source_id="pge_2001_chapter11_record",
+        filename="2001_pge_chapter11_record.html",
+        url=(
+            "https://www.sec.gov/Archives/edgar/data/1004980/"
+            "000095014904000430/f95893ae10vk.htm"
+        ),
+        file_type="html",
+        description="SEC filing that records PG&E's April 6, 2001 Chapter 11 filing.",
+        topics=("news", "bankruptcy", "counterparty"),
+    ),
+    SourceDocument(
+        source_id="california_refund_order_record",
+        filename="2001_california_refund_hearing.html",
+        url="https://seuc.senate.ca.gov/june-19-2001-hearing-information",
+        file_type="html",
+        description=(
+            "California Senate hearing page summarizing the June 19, 2001 FERC "
+            "refund and mitigation action."
+        ),
+        topics=("news", "regulatory", "ferc", "california_crisis"),
+    ),
+    SourceDocument(
+        source_id="skilling_resignation_release",
+        filename="2001_skilling_resignation.pdf",
+        url=(
+            "https://www.justice.gov/archive/enron/exhibit/02-02/BBC-0001/Images/"
+            "EXH023-00160.PDF"
+        ),
+        file_type="pdf",
+        description="Archived Enron press release announcing Jeff Skilling's resignation.",
+        topics=("news", "governance", "leadership"),
+    ),
+    SourceDocument(
+        source_id="watkins_memo_public_release",
+        filename="2002_watkins_memo_release.html",
+        url="https://www.latimes.com/archives/la-xpm-2002-jan-16-mn-22968-story.html",
+        file_type="html",
+        description=(
+            "Public press coverage from January 16, 2002 when the full Watkins memo "
+            "text became public."
+        ),
+        topics=("news", "whistleblower", "accounting"),
+    ),
+    SourceDocument(
+        source_id="arthur_andersen_indictment",
+        filename="2002_arthur_andersen_indictment.html",
+        url=(
+            "https://www.justice.gov/archive/dag/speeches/2002/"
+            "031402newsconferncearthurandersen.htm"
+        ),
+        file_type="html",
+        description="DOJ announcement and transcript for the Arthur Andersen indictment.",
+        topics=("news", "auditor", "indictment"),
+    ),
+    SourceDocument(
+        source_id="enron_credit_rating_report",
+        filename="2002_enron_credit_rating_report.pdf",
+        url=(
+            "https://www.govinfo.gov/content/pkg/CPRT-107SPRT80604/pdf/"
+            "CPRT-107SPRT80604.pdf"
+        ),
+        file_type="pdf",
+        description=(
+            "Senate committee print on Enron and private-sector watchdogs with "
+            "the credit-rating action timeline."
+        ),
+        topics=("news", "credit", "ratings", "senate_report"),
+    ),
+    SourceDocument(
         source_id="pge_2001_q3_10q_note",
         filename="pge_2001_q3_10q.html",
         url=(
@@ -196,10 +312,16 @@ def main() -> None:
     )
     _write_dataset(collected_at=collected_at)
     _write_readme()
+    _write_stock_history_fixture(collected_at=collected_at)
+    _write_credit_history_fixture(collected_at=collected_at)
+    _write_ferc_history_fixture(collected_at=collected_at)
 
     print(f"wrote fixture: {FIXTURE_ROOT}")
     print(f"wrote manifest: {PACKAGE_PATH}")
     print(f"wrote dataset: {DATASET_PATH}")
+    print(f"wrote stock history: {STOCK_DATASET_PATH}")
+    print(f"wrote credit history: {CREDIT_DATASET_PATH}")
+    print(f"wrote ferc history: {FERC_DATASET_PATH}")
 
 
 def _download_sources() -> dict[str, dict[str, Any]]:
@@ -207,19 +329,35 @@ def _download_sources() -> dict[str, dict[str, Any]]:
     for source in SOURCE_DOCUMENTS:
         target = RAW_ROOT / source.filename
         payload = _fetch_bytes(source.url)
+        payload = _sanitize_payload(source=source, payload=payload)
         target.write_bytes(payload)
+        digest = hashlib.sha256(payload).hexdigest()
         downloads[source.source_id] = {
             "relative_path": str(target.relative_to(FIXTURE_ROOT)),
-            "sha256": hashlib.sha256(payload).hexdigest(),
+            "content_digest_prefix": digest[:8],
             "size_bytes": len(payload),
         }
     return downloads
 
 
 def _fetch_bytes(url: str) -> bytes:
-    request = Request(url, headers={"User-Agent": USER_AGENT})
-    with urlopen(request, timeout=60) as response:
-        return response.read()
+    parsed = urlparse(url)
+    if parsed.scheme != "https":
+        raise ValueError(f"unsupported URL scheme for public source fetch: {url}")
+    response = requests.get(url, headers={"User-Agent": USER_AGENT}, timeout=60)
+    response.raise_for_status()
+    return response.content
+
+
+def _sanitize_payload(*, source: SourceDocument, payload: bytes) -> bytes:
+    if source.file_type != "html":
+        return payload
+    text = payload.decode("utf-8", errors="ignore")
+    cleaned = _SCRIPT_BLOCK_PATTERN.sub("", text)
+    cleaned = _PICTURE_BLOCK_PATTERN.sub("", cleaned)
+    cleaned = _IMG_TAG_PATTERN.sub("", cleaned)
+    cleaned = _HTML_ATTR_VALUE_PATTERN.sub("", cleaned)
+    return cleaned.encode("utf-8")
 
 
 def _write_package_manifest(
@@ -241,13 +379,14 @@ def _write_package_manifest(
                 "source_url": source.url,
                 "description": source.description,
                 "topics": list(source.topics),
-                "sha256": downloaded["sha256"],
+                "content_digest_algorithm": "sha256_prefix8",
+                "content_digest_prefix": downloaded["content_digest_prefix"],
                 "size_bytes": downloaded["size_bytes"],
             }
         )
 
     package_payload = {
-        "version": "1",
+        "version": "2",
         "name": "enron_public_context",
         "title": "Enron Public Context Pack",
         "description": (
@@ -261,7 +400,8 @@ def _write_package_manifest(
         "sources": sources,
         "artifacts": [
             {
-                "artifact_id": "enron_public_context_v1",
+                "artifact_id": "enron_public_context_v2",
+                "version": "2",
                 "file_type": "json",
                 "relative_path": DATASET_PATH.name,
                 "description": (
@@ -288,8 +428,16 @@ def _write_package_manifest(
 
 
 def _write_dataset(*, collected_at: str) -> None:
+    financial_snapshots = sorted(
+        _financial_snapshots(),
+        key=lambda item: (item["as_of"], item["snapshot_id"]),
+    )
+    public_news_events = sorted(
+        _public_news_events(),
+        key=lambda item: (item["timestamp"], item["event_id"]),
+    )
     dataset_payload = {
-        "version": "1",
+        "version": "2",
         "pack_name": "enron_public_context",
         "organization_name": "Enron Corporation",
         "organization_domain": "enron.com",
@@ -299,8 +447,8 @@ def _write_dataset(*, collected_at: str) -> None:
             "the active Enron slice and keep only financial_snapshots and "
             "public_news_events whose dates overlap that email window."
         ),
-        "financial_snapshots": _financial_snapshots(),
-        "public_news_events": _public_news_events(),
+        "financial_snapshots": financial_snapshots,
+        "public_news_events": public_news_events,
     }
     DATASET_PATH.write_text(
         json.dumps(dataset_payload, indent=2, sort_keys=False) + "\n",
@@ -579,6 +727,41 @@ def _public_news_events() -> list[dict[str, Any]]:
             "source_ids": ["enron_2001_press_chronology"],
         },
         {
+            "event_id": "pge_chapter_11",
+            "timestamp": "2001-04-06T00:00:00Z",
+            "category": "counterparty_bankruptcy",
+            "headline": "PG&E entered Chapter 11",
+            "summary": (
+                "PG&E's Chapter 11 filing made California power-counterparty risk a "
+                "public fact before later Enron branch points tied to power trading "
+                "and structured deals."
+            ),
+            "source_ids": ["pge_2001_chapter11_record"],
+        },
+        {
+            "event_id": "ferc_western_refund_order",
+            "timestamp": "2001-06-19T00:00:00Z",
+            "category": "regulatory",
+            "headline": "FERC imposed mitigation and opened the California refund path",
+            "summary": (
+                "Public reporting on the June 19, 2001 FERC action put Enron and "
+                "other sellers on notice that California crisis sales would face a "
+                "refund and mitigation regime."
+            ),
+            "source_ids": ["california_refund_order_record"],
+        },
+        {
+            "event_id": "skilling_resignation",
+            "timestamp": "2001-08-14T00:00:00Z",
+            "category": "governance",
+            "headline": "Jeff Skilling resigned as chief executive",
+            "summary": (
+                "Enron announced Skilling's resignation for personal reasons and "
+                "said Kenneth Lay would resume the president and chief executive role."
+            ),
+            "source_ids": ["skilling_resignation_release"],
+        },
+        {
             "event_id": "third_quarter_loss",
             "timestamp": "2001-10-16T00:00:00Z",
             "category": "financial_disclosure",
@@ -601,6 +784,28 @@ def _public_news_events() -> list[dict[str, Any]]:
             "source_ids": ["pge_2001_q3_10q_note"],
         },
         {
+            "event_id": "credit_watch_negative",
+            "timestamp": "2001-10-29T00:00:00Z",
+            "category": "credit",
+            "headline": "Moody's kept Enron under review for downgrade",
+            "summary": (
+                "Public credit-rating reporting showed Enron's investment-grade "
+                "status was under acute pressure as liquidity concerns deepened."
+            ),
+            "source_ids": ["enron_credit_rating_report"],
+        },
+        {
+            "event_id": "sp_rating_lowered_creditwatch_negative",
+            "timestamp": "2001-11-01T00:00:00Z",
+            "category": "credit",
+            "headline": "S&P lowered Enron and kept it on CreditWatch negative",
+            "summary": (
+                "S&P cut Enron's rating while leaving it just above junk, making "
+                "the company's rating threshold a visible public constraint."
+            ),
+            "source_ids": ["enron_credit_rating_report"],
+        },
+        {
             "event_id": "special_committee_and_formal_investigation",
             "timestamp": "2001-10-31T00:00:00Z",
             "category": "regulatory",
@@ -610,6 +815,17 @@ def _public_news_events() -> list[dict[str, Any]]:
                 "had opened a formal investigation into the matters under review."
             ),
             "source_ids": ["pge_2001_q3_10q_note"],
+        },
+        {
+            "event_id": "moodys_and_sp_cut_to_junk",
+            "timestamp": "2001-11-28T00:00:00Z",
+            "category": "credit",
+            "headline": "Moody's and S&P cut Enron to junk",
+            "summary": (
+                "The final investment-grade break made clear that Enron's trading "
+                "model could not survive a junk rating."
+            ),
+            "source_ids": ["enron_credit_rating_report"],
         },
         {
             "event_id": "restatement_of_prior_financials",
@@ -645,6 +861,29 @@ def _public_news_events() -> list[dict[str, Any]]:
             ),
             "source_ids": ["sec_enron_chapter11_record"],
         },
+        {
+            "event_id": "watkins_memo_public_release",
+            "timestamp": "2002-01-15T00:00:00Z",
+            "category": "whistleblower",
+            "headline": "Sherron Watkins's memo became public",
+            "summary": (
+                "Congressional investigators' release put the full warning memo into "
+                "the public record months after the internal August 2001 warning."
+            ),
+            "internally_known_date": "2001-08-22T00:00:00Z",
+            "source_ids": ["watkins_memo_public_release"],
+        },
+        {
+            "event_id": "arthur_andersen_indictment",
+            "timestamp": "2002-03-14T00:00:00Z",
+            "category": "indictment",
+            "headline": "Arthur Andersen was indicted for obstruction",
+            "summary": (
+                "The Justice Department unsealed the indictment of Enron's auditor, "
+                "turning the document-destruction scandal into a formal criminal case."
+            ),
+            "source_ids": ["arthur_andersen_indictment"],
+        },
     ]
 
 
@@ -663,12 +902,12 @@ def _write_readme() -> None:
                 f"- {news_count} dated public news events",
                 f"- {len(SOURCE_DOCUMENTS)} archived public source files",
                 "",
-                "The public dates currently span December 31, 1998 through December 2, 2001.",
+                "The public dates currently span December 31, 1998 through March 14, 2002.",
                 "",
                 "Contents:",
                 "- `raw/`: downloaded public-source HTML and PDF files.",
                 "- `package.json`: manifest describing the raw sources and normalized artifact.",
-                "- `enron_public_context_v1.json`: normalized dated financial checkpoints and public-news checkpoints.",
+                "- `enron_public_context_v2.json`: normalized dated financial checkpoints and public-news checkpoints.",
                 "",
                 "Regenerate with:",
                 "- `python scripts/prepare_enron_public_context.py`",
@@ -693,6 +932,300 @@ def _timestamp_now() -> str:
         .isoformat()
         .replace("+00:00", "Z")
     )
+
+
+def _write_stock_history_fixture(*, collected_at: str) -> None:
+    rows = _stock_history_rows()
+    _write_derived_fixture(
+        root=STOCK_FIXTURE_ROOT,
+        dataset_path=STOCK_DATASET_PATH,
+        key="stock_history",
+        rows=rows,
+        collected_at=collected_at,
+        description=(
+            "Daily Enron stock OHLCV history from January 1998 through "
+            "December 2001 extracted from the archived historical-price PDF."
+        ),
+        source_ids=["enron_historical_stock_price_pdf"],
+    )
+
+
+def _write_credit_history_fixture(*, collected_at: str) -> None:
+    rows = _credit_history_rows()
+    _write_derived_fixture(
+        root=CREDIT_FIXTURE_ROOT,
+        dataset_path=CREDIT_DATASET_PATH,
+        key="credit_history",
+        rows=rows,
+        collected_at=collected_at,
+        description=(
+            "Public Enron credit-rating checkpoints covering the baseline "
+            "investment-grade posture and the October-November 2001 downgrade "
+            "sequence."
+        ),
+        source_ids=[
+            "enron_2000_financial_highlights",
+            "enron_credit_rating_report",
+        ],
+    )
+
+
+def _write_ferc_history_fixture(*, collected_at: str) -> None:
+    rows = _ferc_history_rows()
+    _write_derived_fixture(
+        root=FERC_FIXTURE_ROOT,
+        dataset_path=FERC_DATASET_PATH,
+        key="ferc_history",
+        rows=rows,
+        collected_at=collected_at,
+        description=(
+            "Public FERC actions that framed the California power crisis and "
+            "Enron's later regulatory exposure."
+        ),
+        source_ids=["california_refund_order_record"],
+    )
+
+
+def _write_derived_fixture(
+    *,
+    root: Path,
+    dataset_path: Path,
+    key: str,
+    rows: list[dict[str, Any]],
+    collected_at: str,
+    description: str,
+    source_ids: list[str],
+) -> None:
+    root.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "version": "1",
+        "pack_name": root.name,
+        "organization_name": "Enron Corporation",
+        "organization_domain": "enron.com",
+        "prepared_at": collected_at,
+        "integration_hint": (
+            "This derived fixture is loaded automatically for repo-local Enron "
+            "worlds and is sliced to the active email window."
+        ),
+        key: rows,
+    }
+    dataset_path.write_text(
+        json.dumps(payload, indent=2, sort_keys=False) + "\n",
+        encoding="utf-8",
+    )
+    package_payload = {
+        "version": "1",
+        "name": root.name,
+        "title": root.name.replace("_", " ").title(),
+        "description": description,
+        "organization_name": "Enron Corporation",
+        "organization_domain": "enron.com",
+        "sources": [
+            {
+                "source_id": source_id,
+                "relative_path": (
+                    f"../enron_public_context/raw/{_source_document_map()[source_id].filename}"
+                ),
+                "description": _source_document_map()[source_id].description,
+            }
+            for source_id in source_ids
+        ],
+        "artifacts": [
+            {
+                "artifact_id": dataset_path.stem,
+                "version": "1",
+                "file_type": "json",
+                "relative_path": dataset_path.name,
+                "description": description,
+            }
+        ],
+    }
+    (root / "package.json").write_text(
+        json.dumps(package_payload, indent=2, sort_keys=False) + "\n",
+        encoding="utf-8",
+    )
+    (root / "README.md").write_text(
+        "\n".join(
+            [
+                f"# {package_payload['title']}",
+                "",
+                description,
+                "",
+                f"Rows: {len(rows)}",
+                "",
+                "Regenerate with:",
+                "- `python scripts/prepare_enron_public_context.py`",
+                "",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+
+def _stock_history_rows() -> list[dict[str, Any]]:
+    stock_source = (
+        RAW_ROOT / _source_document_map()["enron_historical_stock_price_pdf"].filename
+    )
+    rows_by_date: dict[str, dict[str, Any]] = {}
+    with tempfile.TemporaryDirectory() as temp_dir:
+        output_pattern = str(Path(temp_dir) / "stock-page-%02d.jpg")
+        subprocess.run(
+            ["magick", "-density", "180", str(stock_source), output_pattern],
+            check=True,
+            capture_output=True,
+        )
+        for image_path in sorted(Path(temp_dir).glob("stock-page-*.jpg")):
+            ocr_output = subprocess.run(
+                ["/opt/homebrew/bin/tesseract", "stdin", "stdout", "--psm", "6"],
+                input=image_path.read_bytes(),
+                capture_output=True,
+                check=True,
+            ).stdout.decode("utf-8", errors="ignore")
+            for line in ocr_output.splitlines():
+                normalized = (
+                    line.strip().replace("~", "").replace("=", " ").replace("  ", " ")
+                )
+                match = _STOCK_ROW_PATTERN.match(normalized)
+                if match is None:
+                    continue
+                day = datetime.strptime(
+                    match.group("date"),
+                    "%m/%d/%Y",
+                ).date()
+                if day < _STOCK_HISTORY_START or day > _STOCK_HISTORY_END:
+                    continue
+                as_of = f"{day.isoformat()}T00:00:00Z"
+                rows_by_date[as_of] = {
+                    "as_of": as_of,
+                    "open": float(match.group("open")),
+                    "high": float(match.group("high")),
+                    "low": float(match.group("low")),
+                    "close": float(match.group("close")),
+                    "volume": int(match.group("volume").replace(",", "")),
+                    "label": "Daily trading close",
+                    "summary": (
+                        "Daily Enron trading data extracted from the archived "
+                        "historical stock-price table."
+                    ),
+                    "source_ids": ["enron_historical_stock_price_pdf"],
+                }
+    return [rows_by_date[key] for key in sorted(rows_by_date)]
+
+
+def _credit_history_rows() -> list[dict[str, Any]]:
+    return [
+        {
+            "event_id": "moodys_baseline_investment_grade",
+            "as_of": "2000-12-31T00:00:00Z",
+            "agency": "Moody's",
+            "category": "baseline",
+            "headline": "Moody's baseline senior debt rating",
+            "summary": "Enron's senior debt was listed at Baa1 in the 2000 financial highlights.",
+            "to_rating": "Baa1",
+            "source_ids": ["enron_2000_financial_highlights"],
+        },
+        {
+            "event_id": "sp_baseline_investment_grade",
+            "as_of": "2000-12-31T00:00:00Z",
+            "agency": "S&P",
+            "category": "baseline",
+            "headline": "S&P baseline senior debt rating",
+            "summary": "Enron's senior debt was listed at BBB+ in the 2000 financial highlights.",
+            "to_rating": "BBB+",
+            "source_ids": ["enron_2000_financial_highlights"],
+        },
+        {
+            "event_id": "fitch_baseline_investment_grade",
+            "as_of": "2000-12-31T00:00:00Z",
+            "agency": "Fitch",
+            "category": "baseline",
+            "headline": "Fitch baseline senior debt rating",
+            "summary": "Enron's senior debt was listed at BBB+ in the 2000 financial highlights.",
+            "to_rating": "BBB+",
+            "source_ids": ["enron_2000_financial_highlights"],
+        },
+        {
+            "event_id": "moodys_baa2_review",
+            "as_of": "2001-10-29T00:00:00Z",
+            "agency": "Moody's",
+            "category": "rating_action",
+            "headline": "Moody's cut Enron to Baa2 and kept it under review",
+            "summary": (
+                "Moody's lowered Enron's senior unsecured debt to Baa2 and kept the "
+                "rating under review for downgrade."
+            ),
+            "from_rating": "Baa1",
+            "to_rating": "Baa2",
+            "watch_status": "review_for_downgrade",
+            "source_ids": ["enron_credit_rating_report"],
+        },
+        {
+            "event_id": "sp_bbb_creditwatch_negative",
+            "as_of": "2001-11-01T00:00:00Z",
+            "agency": "S&P",
+            "category": "rating_action",
+            "headline": "S&P cut Enron to BBB and kept CreditWatch negative",
+            "summary": (
+                "S&P lowered Enron's rating from BBB+ to BBB and kept the name on "
+                "CreditWatch negative."
+            ),
+            "from_rating": "BBB+",
+            "to_rating": "BBB",
+            "watch_status": "creditwatch_negative",
+            "source_ids": ["enron_credit_rating_report"],
+        },
+        {
+            "event_id": "fitch_bbb_minus_watch_negative",
+            "as_of": "2001-11-05T00:00:00Z",
+            "agency": "Fitch",
+            "category": "rating_action",
+            "headline": "Fitch cut Enron to BBB- and kept watch negative",
+            "summary": (
+                "Fitch lowered Enron's senior unsecured debt from BBB+ to BBB- and "
+                "maintained a negative watch."
+            ),
+            "from_rating": "BBB+",
+            "to_rating": "BBB-",
+            "watch_status": "watch_negative",
+            "source_ids": ["enron_credit_rating_report"],
+        },
+        {
+            "event_id": "moodys_sp_cut_to_junk",
+            "as_of": "2001-11-28T00:00:00Z",
+            "agency": "Moody's_and_S&P",
+            "category": "rating_action",
+            "headline": "Moody's and S&P cut Enron below investment grade",
+            "summary": (
+                "By November 28, 2001, Moody's and S&P had cut Enron to junk, which "
+                "triggered the liquidity spiral that preceded the bankruptcy filing."
+            ),
+            "to_rating": "below_investment_grade",
+            "watch_status": "junk_status",
+            "source_ids": ["enron_credit_rating_report"],
+        },
+    ]
+
+
+def _ferc_history_rows() -> list[dict[str, Any]]:
+    return [
+        {
+            "event_id": "ferc_june_2001_mitigation_and_refund_path",
+            "timestamp": "2001-06-19T00:00:00Z",
+            "agency": "FERC",
+            "category": "mitigation_order",
+            "headline": "FERC imposed Western mitigation and opened the refund path",
+            "summary": (
+                "The June 19, 2001 FERC action turned California power-market "
+                "conduct and refund exposure into a concrete public regulatory fact."
+            ),
+            "source_ids": ["california_refund_order_record"],
+        }
+    ]
+
+
+def _source_document_map() -> dict[str, SourceDocument]:
+    return {source.source_id: source for source in SOURCE_DOCUMENTS}
 
 
 if __name__ == "__main__":

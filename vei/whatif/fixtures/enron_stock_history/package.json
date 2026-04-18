@@ -1,0 +1,24 @@
+{
+  "version": "1",
+  "name": "enron_stock_history",
+  "title": "Enron Stock History",
+  "description": "Daily Enron stock OHLCV history from January 1998 through December 2001 extracted from the archived historical-price PDF.",
+  "organization_name": "Enron Corporation",
+  "organization_domain": "enron.com",
+  "sources": [
+    {
+      "source_id": "enron_historical_stock_price_pdf",
+      "relative_path": "../enron_public_context/raw/2001_enron_historical_stock_price.pdf",
+      "description": "Archived daily Enron historical stock price and volume table spanning 1998 through 2001."
+    }
+  ],
+  "artifacts": [
+    {
+      "artifact_id": "enron_stock_history_v1",
+      "version": "1",
+      "file_type": "json",
+      "relative_path": "enron_stock_history_v1.json",
+      "description": "Daily Enron stock OHLCV history from January 1998 through December 2001 extracted from the archived historical-price PDF."
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "version": "1",
+  "name": "enron_credit_history",
+  "title": "Enron Credit History",
+  "description": "Public Enron credit-rating checkpoints covering the baseline investment-grade posture and the October-November 2001 downgrade sequence.",
+  "organization_name": "Enron Corporation",
+  "organization_domain": "enron.com",
+  "sources": [
+    {
+      "source_id": "enron_2000_financial_highlights",
+      "relative_path": "../enron_public_context/raw/2000_financial_highlights.pdf",
+      "description": "Archived Enron financial highlights with selected multi-year figures."
+    },
+    {
+      "source_id": "enron_credit_rating_report",
+      "relative_path": "../enron_public_context/raw/2002_enron_credit_rating_report.pdf",
+      "description": "Senate committee print on Enron and private-sector watchdogs with the credit-rating action timeline."
+    }
+  ],
+  "artifacts": [
+    {
+      "artifact_id": "enron_credit_history_v1",
+      "version": "1",
+      "file_type": "json",
+      "relative_path": "enron_credit_history_v1.json",
+      "description": "Public Enron credit-rating checkpoints covering the baseline investment-grade posture and the October-November 2001 downgrade sequence."
+    }
+  ]
+}

@@ -1,5 +1,6 @@
 {
-  "label": "enron_master_agreement_business_state_comparison_20260412",
+  "label": "enron_master_agreement_business_state_comparison_20260417",
+  "objective_pack_id": "contain_exposure",
   "thread_id": "thr_e565b47423d035c9",
   "branch_event_id": "enron_bcda1b925800af8c",
   "thread_subject": "Master Agreement",
@@ -68,19 +69,25 @@
   "candidates": [
     {
       "label": "Hold for internal review",
-      "prompt": "Keep \"Master Agreement\" inside Enron Corporation, ask legal or the internal owner for one more review, and hold the outside send until one owner clears it.",
+      "prompt": "Keep the draft inside Enron, ask Gerald Nemec and Sara Shackleton for review, and hold the outside send.",
       "forecast": {
         "backend": "heuristic_baseline",
-        "summary": "Predicted risk moves down by 0.740, with escalation delta -8 and external-send delta -64.",
+        "summary": "Predicted risk moves down by 0.440, with escalation delta 0 and external-send delta -64.",
         "baseline_risk_score": 1.0,
-        "predicted_risk_score": 0.26,
+        "predicted_risk_score": 0.56,
         "external_event_delta": -64,
-        "escalation_delta": -8
+        "escalation_delta": 0,
+        "baseline_stock_return_5d": -0.0503,
+        "predicted_stock_return_5d": -0.0103,
+        "baseline_credit_action_30d": 0.0,
+        "predicted_credit_action_30d": 0.0,
+        "baseline_ferc_action_180d": 0.0,
+        "predicted_ferc_action_180d": 0.0
       },
       "business_state_change": {
         "method": "heuristic_baseline_business_state_v1",
         "confidence": "medium",
-        "summary": "Much lower outside spread risk.",
+        "summary": "Much lower outside spread risk. Trade-off: Slightly higher internal handling load.",
         "baseline": {
           "exposure": 0.94,
           "trust": 0.345,
@@ -90,20 +97,20 @@
           "governance_pressure": 0.172
         },
         "predicted": {
-          "exposure": 0.343,
-          "trust": 0.675,
-          "coordination_load": 0.322,
-          "execution_delay": 0.396,
-          "deal_position": 0.649,
-          "governance_pressure": 0.157
+          "exposure": 0.508,
+          "trust": 0.536,
+          "coordination_load": 0.494,
+          "execution_delay": 0.514,
+          "deal_position": 0.51,
+          "governance_pressure": 0.215
         },
         "impacts": [
           {
             "state_id": "exposure",
             "label": "Outside spread risk",
             "baseline_value": 0.94,
-            "predicted_value": 0.343,
-            "delta": -0.597,
+            "predicted_value": 0.508,
+            "delta": -0.432,
             "effect": "better",
             "magnitude": "strong",
             "summary": "Much lower outside spread risk."
@@ -112,8 +119,8 @@
             "state_id": "deal_position",
             "label": "Commercial position",
             "baseline_value": 0.301,
-            "predicted_value": 0.649,
-            "delta": 0.348,
+            "predicted_value": 0.51,
+            "delta": 0.209,
             "effect": "better",
             "magnitude": "strong",
             "summary": "Much stronger commercial position."
@@ -122,41 +129,41 @@
             "state_id": "trust",
             "label": "Relationship stability",
             "baseline_value": 0.345,
-            "predicted_value": 0.675,
-            "delta": 0.33,
+            "predicted_value": 0.536,
+            "delta": 0.191,
             "effect": "better",
             "magnitude": "strong",
             "summary": "Much stronger relationship stability."
           },
           {
-            "state_id": "execution_delay",
-            "label": "Execution delay",
-            "baseline_value": 0.565,
-            "predicted_value": 0.396,
-            "delta": -0.169,
-            "effect": "better",
-            "magnitude": "strong",
-            "summary": "Much lower execution delay."
-          },
-          {
             "state_id": "coordination_load",
             "label": "Internal handling load",
             "baseline_value": 0.431,
-            "predicted_value": 0.322,
-            "delta": -0.109,
+            "predicted_value": 0.494,
+            "delta": 0.063,
+            "effect": "worse",
+            "magnitude": "slight",
+            "summary": "Slightly higher internal handling load."
+          },
+          {
+            "state_id": "execution_delay",
+            "label": "Execution delay",
+            "baseline_value": 0.565,
+            "predicted_value": 0.514,
+            "delta": -0.051,
             "effect": "better",
-            "magnitude": "moderate",
-            "summary": "Moderately lower internal handling load."
+            "magnitude": "slight",
+            "summary": "Slightly lower execution delay."
           },
           {
             "state_id": "governance_pressure",
             "label": "Approval and escalation pressure",
             "baseline_value": 0.172,
-            "predicted_value": 0.157,
-            "delta": -0.015,
-            "effect": "flat",
-            "magnitude": "flat",
-            "summary": "Approval and escalation pressure stays close to the historical path."
+            "predicted_value": 0.215,
+            "delta": 0.043,
+            "effect": "worse",
+            "magnitude": "slight",
+            "summary": "Slightly higher approval and escalation pressure."
           }
         ],
         "consequence_estimates": [
@@ -170,15 +177,15 @@
           {
             "consequence_id": "review_burden",
             "label": "Handling burden",
-            "effect": "better",
+            "effect": "worse",
             "magnitude": "slight",
-            "summary": "Internal handling looks lighter."
+            "summary": "Internal handling looks heavier."
           },
           {
             "consequence_id": "execution_path",
             "label": "Execution path",
             "effect": "better",
-            "magnitude": "strong",
+            "magnitude": "slight",
             "summary": "Near-term execution looks faster."
           },
           {
@@ -189,21 +196,30 @@
             "summary": "Commercial footing looks stronger."
           }
         ],
-        "tradeoffs": [],
-        "net_effect_score": 0.352
+        "tradeoffs": [
+          "Slightly higher internal handling load.",
+          "Slightly higher approval and escalation pressure."
+        ],
+        "net_effect_score": 0.209
       },
       "rank": 1
     },
     {
       "label": "Send a narrow status note",
-      "prompt": "Send Kathy Gerken a short no-attachment status note, promise a clean update soon, and keep one internal owner on the next step.",
+      "prompt": "Send Cargill a short no-attachment status note, promise a clean draft soon, and keep one internal legal owner on the next step.",
       "forecast": {
         "backend": "heuristic_baseline",
-        "summary": "Predicted risk moves down by 0.360, with escalation delta 0 and external-send delta -16.",
+        "summary": "Predicted risk moves down by 0.540, with escalation delta -8 and external-send delta -16.",
         "baseline_risk_score": 1.0,
-        "predicted_risk_score": 0.64,
+        "predicted_risk_score": 0.46,
         "external_event_delta": -16,
-        "escalation_delta": 0
+        "escalation_delta": -8,
+        "baseline_stock_return_5d": -0.0503,
+        "predicted_stock_return_5d": -0.0103,
+        "baseline_credit_action_30d": 0.0,
+        "predicted_credit_action_30d": 0.0,
+        "baseline_ferc_action_180d": 0.0,
+        "predicted_ferc_action_180d": 0.0
       },
       "business_state_change": {
         "method": "heuristic_baseline_business_state_v1",
@@ -218,20 +234,20 @@
           "governance_pressure": 0.172
         },
         "predicted": {
-          "exposure": 0.716,
-          "trust": 0.49,
-          "coordination_load": 0.315,
-          "execution_delay": 0.451,
-          "deal_position": 0.456,
-          "governance_pressure": 0.185
+          "exposure": 0.617,
+          "trust": 0.542,
+          "coordination_load": 0.311,
+          "execution_delay": 0.449,
+          "deal_position": 0.505,
+          "governance_pressure": 0.139
         },
         "impacts": [
           {
             "state_id": "exposure",
             "label": "Outside spread risk",
             "baseline_value": 0.94,
-            "predicted_value": 0.716,
-            "delta": -0.224,
+            "predicted_value": 0.617,
+            "delta": -0.323,
             "effect": "better",
             "magnitude": "strong",
             "summary": "Much lower outside spread risk."
@@ -240,8 +256,8 @@
             "state_id": "deal_position",
             "label": "Commercial position",
             "baseline_value": 0.301,
-            "predicted_value": 0.456,
-            "delta": 0.155,
+            "predicted_value": 0.505,
+            "delta": 0.204,
             "effect": "better",
             "magnitude": "strong",
             "summary": "Much stronger commercial position."
@@ -250,18 +266,18 @@
             "state_id": "trust",
             "label": "Relationship stability",
             "baseline_value": 0.345,
-            "predicted_value": 0.49,
-            "delta": 0.145,
+            "predicted_value": 0.542,
+            "delta": 0.197,
             "effect": "better",
-            "magnitude": "moderate",
-            "summary": "Moderately stronger relationship stability."
+            "magnitude": "strong",
+            "summary": "Much stronger relationship stability."
           },
           {
             "state_id": "coordination_load",
             "label": "Internal handling load",
             "baseline_value": 0.431,
-            "predicted_value": 0.315,
-            "delta": -0.116,
+            "predicted_value": 0.311,
+            "delta": -0.12,
             "effect": "better",
             "magnitude": "moderate",
             "summary": "Moderately lower internal handling load."
@@ -270,8 +286,8 @@
             "state_id": "execution_delay",
             "label": "Execution delay",
             "baseline_value": 0.565,
-            "predicted_value": 0.451,
-            "delta": -0.114,
+            "predicted_value": 0.449,
+            "delta": -0.116,
             "effect": "better",
             "magnitude": "moderate",
             "summary": "Moderately lower execution delay."
@@ -280,11 +296,11 @@
             "state_id": "governance_pressure",
             "label": "Approval and escalation pressure",
             "baseline_value": 0.172,
-            "predicted_value": 0.185,
-            "delta": 0.013,
-            "effect": "flat",
-            "magnitude": "flat",
-            "summary": "Approval and escalation pressure stays close to the historical path."
+            "predicted_value": 0.139,
+            "delta": -0.033,
+            "effect": "better",
+            "magnitude": "slight",
+            "summary": "Slightly lower approval and escalation pressure."
           }
         ],
         "consequence_estimates": [
@@ -299,7 +315,7 @@
             "consequence_id": "review_burden",
             "label": "Handling burden",
             "effect": "better",
-            "magnitude": "slight",
+            "magnitude": "moderate",
             "summary": "Internal handling looks lighter."
           },
           {
@@ -318,20 +334,26 @@
           }
         ],
         "tradeoffs": [],
-        "net_effect_score": 0.155
+        "net_effect_score": 0.208
       },
       "rank": 2
     },
     {
       "label": "Push for fast turnaround",
-      "prompt": "Send \"Master Agreement\" now, keep the outside recipient loop active, and widen circulation for rapid comments and turnaround.",
+      "prompt": "Send the draft now, keep the outside loop active, and widen circulation for rapid comments and turnaround.",
       "forecast": {
         "backend": "heuristic_baseline",
         "summary": "Predicted risk moves flat by 0.000, with escalation delta 0 and external-send delta 10.",
         "baseline_risk_score": 1.0,
         "predicted_risk_score": 1.0,
         "external_event_delta": 10,
-        "escalation_delta": 0
+        "escalation_delta": 0,
+        "baseline_stock_return_5d": -0.0503,
+        "predicted_stock_return_5d": -0.1003,
+        "baseline_credit_action_30d": 0.0,
+        "predicted_credit_action_30d": 0.15,
+        "baseline_ferc_action_180d": 0.0,
+        "predicted_ferc_action_180d": 0.0
       },
       "business_state_change": {
         "method": "heuristic_baseline_business_state_v1",

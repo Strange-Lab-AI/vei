@@ -40,6 +40,7 @@ from .corpus import (
 from vei.context.api import public_context_prompt_lines
 from .cases import case_context_prompt_lines
 from .business_state import describe_forecast_business_change
+from .macro_outcomes import attach_macro_outcomes_to_forecast_result
 from .episode import load_episode_manifest
 from ._helpers import intervention_tags
 from .situations import situation_context_prompt_lines
@@ -819,6 +820,18 @@ def _attach_business_state_to_forecast_result(
 ) -> WhatIfCounterfactualEstimateResult:
     if branch_event is None or forecast_result.status != "ok":
         return forecast_result
+    forecast_result = attach_macro_outcomes_to_forecast_result(
+        forecast_result,
+        organization_domain=organization_domain,
+        branch_timestamp=branch_event.timestamp,
+        public_context=public_context,
+        capability_note=(
+            "This E-JEPA checkpoint does not emit macro outcome heads yet, so "
+            "stock, credit, and FERC predictions are left empty for this run."
+            if forecast_result.backend == "e_jepa"
+            else None
+        ),
+    )
     forecast_result.business_state_change = describe_forecast_business_change(
         branch_event=branch_event,
         forecast_result=forecast_result,

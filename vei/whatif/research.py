@@ -360,7 +360,12 @@ def _build_research_dataset(
             future_events=future_events,
             organization_domain=world.summary.organization_domain,
         )
-        forecast = score_historical_tail(future_events)
+        forecast = score_historical_tail(
+            future_events,
+            organization_domain=world.summary.organization_domain,
+            branch_timestamp=branch_event.timestamp,
+            public_context=world.public_context,
+        )
         contract = _build_branch_contract(
             case_id=thread.thread_id,
             intervention_label="historical_branch",

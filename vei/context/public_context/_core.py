@@ -12,8 +12,11 @@ from vei.whatif.filenames import PUBLIC_CONTEXT_FILE
 
 from .models import (
     WhatIfPublicContext,
+    WhatIfPublicCreditEvent,
     WhatIfPublicFinancialSnapshot,
     WhatIfPublicNewsEvent,
+    WhatIfPublicRegulatoryEvent,
+    WhatIfPublicStockHistoryRow,
 )
 from ._fetchers import (
     _DEFAULT_NEWS_LIMIT,
@@ -218,7 +221,7 @@ def load_enron_public_context(
             / "whatif"
             / "fixtures"
             / "enron_public_context"
-            / "enron_public_context_v1.json"
+            / "enron_public_context_v2.json"
         )
         context = load_public_context(
             path=fixture,
@@ -228,6 +231,22 @@ def load_enron_public_context(
             window_start=window_start,
             window_end=window_end,
         )
+        context = context.model_copy(
+            update={
+                "stock_history": _load_enron_stock_history(
+                    window_start=window_start,
+                    window_end=window_end,
+                ),
+                "credit_history": _load_enron_credit_history(
+                    window_start=window_start,
+                    window_end=window_end,
+                ),
+                "ferc_history": _load_enron_ferc_history(
+                    window_start=window_start,
+                    window_end=window_end,
+                ),
+            }
+        )
     except (OSError, json.JSONDecodeError, ValidationError) as exc:
         logger.warning(
             "whatif enron public context load failed (%s)",
@@ -235,7 +254,7 @@ def load_enron_public_context(
             extra={
                 "source": "public_context",
                 "provider": "enron_fixture",
-                "file_path": "fixtures/enron_public_context/enron_public_context_v1.json",
+                "file_path": "fixtures/enron_public_context/enron_public_context_v2.json",
                 "exception_type": type(exc).__name__,
             },
             exc_info=True,
@@ -304,6 +323,36 @@ def slice_public_context_to_window(
         )
     ]
     public_news_events = _sort_public_news_events(public_news_events)
+    stock_history = [
+        row
+        for row in context.stock_history
+        if _within_bounds(
+            _date_value(row.as_of),
+            start_day=start_day,
+            end_day=end_day,
+        )
+    ]
+    stock_history = _sort_stock_history(stock_history)
+    credit_history = [
+        event
+        for event in context.credit_history
+        if _within_bounds(
+            _date_value(event.as_of),
+            start_day=start_day,
+            end_day=end_day,
+        )
+    ]
+    credit_history = _sort_credit_history(credit_history)
+    ferc_history = [
+        event
+        for event in context.ferc_history
+        if _within_bounds(
+            _date_value(event.timestamp),
+            start_day=start_day,
+            end_day=end_day,
+        )
+    ]
+    ferc_history = _sort_regulatory_history(ferc_history)
     return context.model_copy(
         update={
             "window_start": window_start,
@@ -311,6 +360,9 @@ def slice_public_context_to_window(
             "branch_timestamp": "",
             "financial_snapshots": financial_snapshots,
             "public_news_events": public_news_events,
+            "stock_history": stock_history,
+            "credit_history": credit_history,
+            "ferc_history": ferc_history,
         }
     )
 
@@ -351,11 +403,34 @@ def slice_public_context_to_branch(
         and event_day <= branch_day
     ]
     public_news_events = _sort_public_news_events(public_news_events)
+    stock_history = [
+        row
+        for row in context.stock_history
+        if (row_day := _date_value(row.as_of)) is not None and row_day <= branch_day
+    ]
+    stock_history = _sort_stock_history(stock_history)
+    credit_history = [
+        event
+        for event in context.credit_history
+        if (event_day := _date_value(event.as_of)) is not None
+        and event_day <= branch_day
+    ]
+    credit_history = _sort_credit_history(credit_history)
+    ferc_history = [
+        event
+        for event in context.ferc_history
+        if (event_day := _date_value(event.timestamp)) is not None
+        and event_day <= branch_day
+    ]
+    ferc_history = _sort_regulatory_history(ferc_history)
     return context.model_copy(
         update={
             "branch_timestamp": branch_timestamp,
             "financial_snapshots": financial_snapshots,
             "public_news_events": public_news_events,
+            "stock_history": stock_history,
+            "credit_history": credit_history,
+            "ferc_history": ferc_history,
         }
     )
 
@@ -363,7 +438,13 @@ def slice_public_context_to_branch(
 def public_context_has_items(context: WhatIfPublicContext | None) -> bool:
     if context is None:
         return False
-    return bool(context.financial_snapshots or context.public_news_events)
+    return bool(
+        context.financial_snapshots
+        or context.public_news_events
+        or context.stock_history
+        or context.credit_history
+        or context.ferc_history
+    )
 
 
 def public_context_prompt_lines(
@@ -390,6 +471,27 @@ def public_context_prompt_lines(
     if public_news_events:
         lines.append("Public news checkpoints:")
         for event in public_news_events:
+            lines.append(f"- {event.timestamp[:10]} {event.headline}: {event.summary}")
+
+    stock_history = list(context.stock_history[-max(1, max_financial) :])
+    if stock_history:
+        lines.append("Market checkpoints:")
+        for row in stock_history:
+            lines.append(
+                f"- {row.as_of[:10]} close {row.close:.2f}: {row.summary or row.label}"
+            )
+
+    credit_history = list(context.credit_history[-max(1, max_news) :])
+    if credit_history:
+        lines.append("Credit checkpoints:")
+        for event in credit_history:
+            headline = event.headline or f"{event.agency} rating action"
+            lines.append(f"- {event.as_of[:10]} {headline}: {event.summary}")
+
+    ferc_history = list(context.ferc_history[-max(1, max_news) :])
+    if ferc_history:
+        lines.append("Regulatory checkpoints:")
+        for event in ferc_history:
             lines.append(f"- {event.timestamp[:10]} {event.headline}: {event.summary}")
 
     return lines
@@ -430,6 +532,42 @@ def _sort_financial_snapshots(
 def _sort_public_news_events(
     events: list[WhatIfPublicNewsEvent],
 ) -> list[WhatIfPublicNewsEvent]:
+    return sorted(
+        events,
+        key=lambda event: _date_sort_key(
+            event.timestamp,
+            tie_breaker=event.event_id,
+        ),
+    )
+
+
+def _sort_stock_history(
+    rows: list[WhatIfPublicStockHistoryRow],
+) -> list[WhatIfPublicStockHistoryRow]:
+    return sorted(
+        rows,
+        key=lambda row: _date_sort_key(
+            row.as_of,
+            tie_breaker=row.label or row.as_of,
+        ),
+    )
+
+
+def _sort_credit_history(
+    events: list[WhatIfPublicCreditEvent],
+) -> list[WhatIfPublicCreditEvent]:
+    return sorted(
+        events,
+        key=lambda event: _date_sort_key(
+            event.as_of,
+            tie_breaker=event.event_id,
+        ),
+    )
+
+
+def _sort_regulatory_history(
+    events: list[WhatIfPublicRegulatoryEvent],
+) -> list[WhatIfPublicRegulatoryEvent]:
     return sorted(
         events,
         key=lambda event: _date_sort_key(
@@ -536,6 +674,108 @@ def _fill_public_context_identity(
     if not update:
         return context
     return context.model_copy(update=update)
+
+
+def _load_enron_stock_history(
+    *,
+    window_start: str,
+    window_end: str,
+) -> list[WhatIfPublicStockHistoryRow]:
+    rows = _load_fixture_rows(
+        fixture_dir="enron_stock_history",
+        filename="enron_stock_history_v1.json",
+        key="stock_history",
+        model=WhatIfPublicStockHistoryRow,
+    )
+    return _sort_stock_history(
+        [
+            row
+            for row in rows
+            if _within_bounds(
+                _date_value(row.as_of),
+                start_day=_date_value(window_start),
+                end_day=_date_value(window_end),
+            )
+        ]
+    )
+
+
+def _load_enron_credit_history(
+    *,
+    window_start: str,
+    window_end: str,
+) -> list[WhatIfPublicCreditEvent]:
+    rows = _load_fixture_rows(
+        fixture_dir="enron_credit_history",
+        filename="enron_credit_history_v1.json",
+        key="credit_history",
+        model=WhatIfPublicCreditEvent,
+    )
+    return _sort_credit_history(
+        [
+            row
+            for row in rows
+            if _within_bounds(
+                _date_value(row.as_of),
+                start_day=_date_value(window_start),
+                end_day=_date_value(window_end),
+            )
+        ]
+    )
+
+
+def _load_enron_ferc_history(
+    *,
+    window_start: str,
+    window_end: str,
+) -> list[WhatIfPublicRegulatoryEvent]:
+    rows = _load_fixture_rows(
+        fixture_dir="enron_ferc_history",
+        filename="enron_ferc_history_v1.json",
+        key="ferc_history",
+        model=WhatIfPublicRegulatoryEvent,
+    )
+    return _sort_regulatory_history(
+        [
+            row
+            for row in rows
+            if _within_bounds(
+                _date_value(row.timestamp),
+                start_day=_date_value(window_start),
+                end_day=_date_value(window_end),
+            )
+        ]
+    )
+
+
+def _load_fixture_rows(
+    *,
+    fixture_dir: str,
+    filename: str,
+    key: str,
+    model,
+) -> list[Any]:
+    path = (
+        Path(__file__).resolve().parents[2]
+        / "whatif"
+        / "fixtures"
+        / fixture_dir
+        / filename
+    )
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except OSError:
+        return []
+    rows = payload.get(key)
+    if not isinstance(rows, list):
+        return []
+    parsed: list[Any] = []
+    for item in rows:
+        try:
+            parsed.append(model.model_validate(item))
+        except ValidationError:
+            continue
+    return parsed
 
 
 def _metadata_public_context_path(

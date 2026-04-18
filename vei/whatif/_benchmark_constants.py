@@ -31,8 +31,21 @@ BUSINESS_OBJECTIVE_PACK_IDS: tuple[WhatIfBusinessObjectivePackId, ...] = (
     "preserve_stakeholder_trust",
     "maintain_execution_velocity",
 )
+BENCHMARK_CASE_FAMILIES: tuple[str, ...] = (
+    "outside_sharing",
+    "legal_contract",
+    "commercial_counterparty",
+    "executive_regulatory",
+    "coordination_strain",
+    "org_heat",
+    "whistleblower",
+    "market_manipulation",
+    "crisis_communication",
+    "accounting_disclosure",
+)
 
 __all__ = [
+    "BENCHMARK_CASE_FAMILIES",
     "BENCHMARK_MODELS",
     "BUSINESS_OBJECTIVE_PACK_IDS",
     "EXECUTIVE_TERMS",
