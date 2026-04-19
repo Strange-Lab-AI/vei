@@ -1,0 +1,169 @@
+{
+  "status": "ok",
+  "backend": "reference",
+  "prompt": "Keep the draft inside Enron, ask Gerald Nemec and Sara Shackleton for review, and hold the outside send.",
+  "summary": "reference forecast completed.",
+  "baseline": {
+    "backend": "historical",
+    "future_event_count": 84,
+    "future_escalation_count": 16,
+    "future_assignment_count": 43,
+    "future_approval_count": 0,
+    "future_external_event_count": 64,
+    "risk_score": 1.0,
+    "stock_return_5d": 0.0007,
+    "credit_action_30d": 0.0,
+    "ferc_action_180d": 0.0,
+    "summary": "84 future events remain, including 16 escalations and 64 externally addressed messages."
+  },
+  "predicted": {
+    "backend": "reference",
+    "future_event_count": 143,
+    "future_escalation_count": 16,
+    "future_assignment_count": 43,
+    "future_approval_count": 0,
+    "future_external_event_count": 128,
+    "risk_score": 1.0,
+    "stock_return_5d": 0.0407,
+    "credit_action_30d": 0.0,
+    "ferc_action_180d": 0.0,
+    "summary": "84 future events remain, including 16 escalations and 64 externally addressed messages."
+  },
+  "delta": {
+    "risk_score_delta": 0.0,
+    "future_event_delta": 59,
+    "escalation_delta": 0,
+    "assignment_delta": 0,
+    "approval_delta": 0,
+    "external_event_delta": 64,
+    "stock_return_5d_delta": 0.04,
+    "credit_action_30d_delta": 0.0,
+    "ferc_action_180d_delta": 0.0
+  },
+  "branch_event": null,
+  "horizon_event_count": 0,
+  "surprise_score": null,
+  "current_state_summary": {},
+  "predicted_state_summary": {},
+  "actual_state_summary": {},
+  "business_state_change": {
+    "method": "reference_business_state_v1",
+    "confidence": "medium",
+    "summary": "Slightly lower internal handling load. Trade-off: Slightly higher outside spread risk.",
+    "baseline": {
+      "exposure": 0.94,
+      "trust": 0.345,
+      "coordination_load": 0.431,
+      "execution_delay": 0.565,
+      "deal_position": 0.301,
+      "governance_pressure": 0.172
+    },
+    "predicted": {
+      "exposure": 0.974,
+      "trust": 0.349,
+      "coordination_load": 0.356,
+      "execution_delay": 0.554,
+      "deal_position": 0.298,
+      "governance_pressure": 0.137
+    },
+    "impacts": [
+      {
+        "state_id": "coordination_load",
+        "label": "Internal handling load",
+        "baseline_value": 0.431,
+        "predicted_value": 0.356,
+        "delta": -0.075,
+        "effect": "better",
+        "magnitude": "slight",
+        "summary": "Slightly lower internal handling load."
+      },
+      {
+        "state_id": "governance_pressure",
+        "label": "Approval and escalation pressure",
+        "baseline_value": 0.172,
+        "predicted_value": 0.137,
+        "delta": -0.035,
+        "effect": "better",
+        "magnitude": "slight",
+        "summary": "Slightly lower approval and escalation pressure."
+      },
+      {
+        "state_id": "exposure",
+        "label": "Outside spread risk",
+        "baseline_value": 0.94,
+        "predicted_value": 0.974,
+        "delta": 0.034,
+        "effect": "worse",
+        "magnitude": "slight",
+        "summary": "Slightly higher outside spread risk."
+      },
+      {
+        "state_id": "execution_delay",
+        "label": "Execution delay",
+        "baseline_value": 0.565,
+        "predicted_value": 0.554,
+        "delta": -0.011,
+        "effect": "flat",
+        "magnitude": "flat",
+        "summary": "Execution delay stays close to the historical path."
+      },
+      {
+        "state_id": "trust",
+        "label": "Relationship stability",
+        "baseline_value": 0.345,
+        "predicted_value": 0.349,
+        "delta": 0.004,
+        "effect": "flat",
+        "magnitude": "flat",
+        "summary": "Relationship stability stays close to the historical path."
+      },
+      {
+        "state_id": "deal_position",
+        "label": "Commercial position",
+        "baseline_value": 0.301,
+        "predicted_value": 0.298,
+        "delta": -0.003,
+        "effect": "flat",
+        "magnitude": "flat",
+        "summary": "Commercial position stays close to the historical path."
+      }
+    ],
+    "consequence_estimates": [
+      {
+        "consequence_id": "containment",
+        "label": "Containment",
+        "effect": "worse",
+        "magnitude": "slight",
+        "summary": "The thread carries slightly more exposure."
+      },
+      {
+        "consequence_id": "review_burden",
+        "label": "Handling burden",
+        "effect": "better",
+        "magnitude": "slight",
+        "summary": "Internal handling looks lighter."
+      },
+      {
+        "consequence_id": "execution_path",
+        "label": "Execution path",
+        "effect": "flat",
+        "magnitude": "flat",
+        "summary": "Execution pace stays close to the historical path."
+      },
+      {
+        "consequence_id": "commercial_position",
+        "label": "Commercial footing",
+        "effect": "flat",
+        "magnitude": "flat",
+        "summary": "Commercial footing stays close to the historical path."
+      }
+    ],
+    "tradeoffs": [
+      "Slightly higher outside spread risk."
+    ],
+    "net_effect_score": 0.001
+  },
+  "artifacts": null,
+  "notes": [],
+  "error": null
+}

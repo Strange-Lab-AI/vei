@@ -1,0 +1,446 @@
+{
+  "version": "2",
+  "source": "company_history",
+  "source_dir": "not-included-in-repo-example",
+  "workspace_root": "workspace",
+  "organization_name": "Clearwater Field Services",
+  "organization_domain": "cfs.example.com",
+  "thread_id": "tickets:JRA-CFS-11",
+  "thread_subject": "Backup dispatch routing",
+  "case_id": "case:CFS-11",
+  "surface": "tickets",
+  "branch_event_id": "history_dd90fc6e8d1fa5b8",
+  "branch_timestamp": "2026-04-19T04:12:00.079000Z",
+  "branch_event": {
+    "event_id": "history_dd90fc6e8d1fa5b8",
+    "timestamp": "2026-04-19T04:12:00.079000Z",
+    "actor_id": "dispatch.lead",
+    "target_id": "JRA-CFS-11",
+    "event_type": "in_progress",
+    "thread_id": "tickets:JRA-CFS-11",
+    "case_id": "case:CFS-11",
+    "surface": "tickets",
+    "conversation_anchor": "JRA-CFS-11",
+    "subject": "Backup dispatch routing",
+    "snippet": "Backup dispatch routing",
+    "to_recipients": [
+      "JRA-CFS-11"
+    ],
+    "cc_recipients": [],
+    "has_attachment_reference": false,
+    "is_forward": false,
+    "is_reply": false,
+    "is_escalation": false
+  },
+  "history_message_count": 1,
+  "future_event_count": 1,
+  "baseline_dataset_path": "whatif_baseline_dataset.json",
+  "content_notice": "Historical excerpts come from the normalized company history bundle. They reflect the available source text for each recorded surface.",
+  "actor_ids": [
+    "JRA-CFS-11",
+    "dispatch.lead",
+    "workflow.workflow-baseline"
+  ],
+  "history_preview": [
+    {
+      "event_id": "history_c7699aaa5c60e318",
+      "timestamp": "2026-04-19T04:12:00.079000Z",
+      "actor_id": "workflow.workflow-baseline",
+      "target_id": "JRA-CFS-11",
+      "event_type": "reply",
+      "thread_id": "tickets:JRA-CFS-11",
+      "case_id": "case:CFS-11",
+      "surface": "tickets",
+      "conversation_anchor": "JRA-CFS-11",
+      "subject": "Backup dispatch routing",
+      "snippet": "WO-CFS-100 reassigned. Technician: TECH-CFS-02. Backup controls technician assigned and VIP appointment stabilized.",
+      "to_recipients": [
+        "JRA-CFS-11"
+      ],
+      "cc_recipients": [],
+      "has_attachment_reference": false,
+      "is_forward": false,
+      "is_reply": true,
+      "is_escalation": false
+    }
+  ],
+  "baseline_future_preview": [
+    {
+      "event_id": "history_dd90fc6e8d1fa5b8",
+      "timestamp": "2026-04-19T04:12:00.079000Z",
+      "actor_id": "dispatch.lead",
+      "target_id": "JRA-CFS-11",
+      "event_type": "in_progress",
+      "thread_id": "tickets:JRA-CFS-11",
+      "case_id": "case:CFS-11",
+      "surface": "tickets",
+      "conversation_anchor": "JRA-CFS-11",
+      "subject": "Backup dispatch routing",
+      "snippet": "Backup dispatch routing",
+      "to_recipients": [
+        "JRA-CFS-11"
+      ],
+      "cc_recipients": [],
+      "has_attachment_reference": false,
+      "is_forward": false,
+      "is_reply": false,
+      "is_escalation": false
+    }
+  ],
+  "forecast": {
+    "backend": "historical",
+    "future_event_count": 1,
+    "future_escalation_count": 0,
+    "future_assignment_count": 0,
+    "future_approval_count": 0,
+    "future_external_event_count": 0,
+    "risk_score": 0.02,
+    "stock_return_5d": null,
+    "credit_action_30d": null,
+    "ferc_action_180d": null,
+    "summary": "1 future events remain, including 0 escalations and 0 externally addressed messages."
+  },
+  "public_context": {
+    "version": "1",
+    "pack_name": "cfs_example_com_public_context",
+    "organization_name": "Clearwater Field Services",
+    "organization_domain": "cfs.example.com",
+    "prepared_at": "",
+    "integration_hint": "",
+    "window_start": "",
+    "window_end": "",
+    "branch_timestamp": "2026-04-19T04:12:00.079000Z",
+    "financial_snapshots": [],
+    "public_news_events": [],
+    "stock_history": [],
+    "credit_history": [],
+    "ferc_history": []
+  },
+  "case_context": null,
+  "situation_context": {
+    "situation_id": "situation:001",
+    "label": "VIP outage command thread",
+    "surfaces": [
+      "docs",
+      "slack",
+      "tickets"
+    ],
+    "actor_ids": [
+      "#billing-ops",
+      "#clearwater-dispatch",
+      "#exec-brief",
+      "#field-techs",
+      "DOC-CFS-DISPATCH",
+      "DOC-CFS-RUNBOOK",
+      "JRA-CFS-10",
+      "JRA-CFS-11",
+      "dispatch",
+      "dispatch.lead",
+      "google-actor",
+      "maya.ops",
+      "troy",
+      "workflow",
+      "workflow.workflow-baseline"
+    ],
+    "anchor_terms": [
+      "CFS-100",
+      "CFS-02",
+      "DOC-CFS-BILLING",
+      "DOC-CFS-DISPATCH",
+      "DOC-CFS-RUNBOOK",
+      "DOC-CFS-HANDOFF"
+    ],
+    "related_threads": [
+      {
+        "thread_id": "docs:DOC-CFS-DISPATCH",
+        "subject": "Morning Dispatch Board",
+        "surface": "docs",
+        "case_id": "case:CFS-100",
+        "actor_ids": [
+          "DOC-CFS-DISPATCH",
+          "google-actor",
+          "workflow.workflow-baseline"
+        ],
+        "first_timestamp": "2026-04-19T04:12:00.079000Z",
+        "last_timestamp": "2026-04-19T04:12:00.079000Z"
+      },
+      {
+        "thread_id": "docs:DOC-CFS-RUNBOOK",
+        "subject": "Clearwater Medical Response Runbook",
+        "surface": "docs",
+        "case_id": "case:CFS-100",
+        "actor_ids": [
+          "DOC-CFS-RUNBOOK",
+          "google-actor",
+          "workflow.workflow-baseline"
+        ],
+        "first_timestamp": "2026-04-19T04:11:59Z",
+        "last_timestamp": "2026-04-19T04:11:59Z"
+      },
+      {
+        "thread_id": "slack:#billing-ops:1776571921.111000",
+        "subject": "BILL-CFS-100 placed on billing hold. Billing remains stable while dispatch re...",
+        "surface": "slack",
+        "case_id": "case:CFS-100",
+        "actor_ids": [
+          "#billing-ops",
+          "workflow"
+        ],
+        "first_timestamp": "1970-01-01T00:00:03.003000Z",
+        "last_timestamp": "1970-01-01T00:00:03.003000Z"
+      },
+      {
+        "thread_id": "slack:#clearwater-dispatch:1776571919.000000",
+        "subject": "SR-CFS-100 dispatch approval updated. Status: pending_approval. Emergency dis...",
+        "surface": "slack",
+        "case_id": "case:CFS-100",
+        "actor_ids": [
+          "#clearwater-dispatch",
+          "workflow"
+        ],
+        "first_timestamp": "1970-01-01T00:00:01.004000Z",
+        "last_timestamp": "1970-01-01T00:00:01.004000Z"
+      },
+      {
+        "thread_id": "slack:#clearwater-dispatch:1776571920.079000",
+        "subject": "WO-CFS-100 reassigned. Technician: TECH-CFS-02. Backup controls technician as...",
+        "surface": "slack",
+        "case_id": "case:CFS-100",
+        "actor_ids": [
+          "#clearwater-dispatch",
+          "workflow"
+        ],
+        "first_timestamp": "1970-01-01T00:00:01.005000Z",
+        "last_timestamp": "1970-01-01T00:00:01.005000Z"
+      },
+      {
+        "thread_id": "slack:#exec-brief:1776571923.164000",
+        "subject": "DOC-CFS-HANDOFF updated. Backup dispatch assigned, billing hold linked to the...",
+        "surface": "slack",
+        "case_id": "case:DOC-CFS-HANDOFF",
+        "actor_ids": [
+          "#exec-brief",
+          "workflow"
+        ],
+        "first_timestamp": "1970-01-01T00:00:05.002000Z",
+        "last_timestamp": "1970-01-01T00:00:05.002000Z"
+      },
+      {
+        "thread_id": "slack:#field-techs:1712000480.000900",
+        "subject": "Calling out sick. I can't take WO-CFS-100 this morning.",
+        "surface": "slack",
+        "case_id": "case:CFS-100",
+        "actor_ids": [
+          "#field-techs",
+          "dispatch",
+          "troy"
+        ],
+        "first_timestamp": "1970-01-01T00:00:04Z",
+        "last_timestamp": "1970-01-01T00:00:04.001000Z"
+      },
+      {
+        "thread_id": "tickets:JRA-CFS-10",
+        "subject": "VIP outage command thread",
+        "surface": "tickets",
+        "case_id": "case:CFS-10",
+        "actor_ids": [
+          "JRA-CFS-10",
+          "maya.ops",
+          "workflow.workflow-baseline"
+        ],
+        "first_timestamp": "2026-04-19T04:11:59Z",
+        "last_timestamp": "2026-04-19T04:12:03.164000Z"
+      }
+    ],
+    "related_history": [
+      {
+        "event_id": "history_deb890ff55de25fa",
+        "timestamp": "1970-01-01T00:00:05.002000Z",
+        "actor_id": "workflow",
+        "target_id": "#exec-brief",
+        "event_type": "message",
+        "thread_id": "slack:#exec-brief:1776571923.164000",
+        "case_id": "case:DOC-CFS-HANDOFF",
+        "surface": "slack",
+        "conversation_anchor": "1776571923.164000",
+        "subject": "DOC-CFS-HANDOFF updated. Backup dispatch assigned, billing hold linked to the...",
+        "snippet": "DOC-CFS-HANDOFF updated. Backup dispatch assigned, billing hold linked to the dispute, and field-to-billing handoff aligned.",
+        "to_recipients": [
+          "#exec-brief"
+        ],
+        "cc_recipients": [],
+        "has_attachment_reference": false,
+        "is_forward": false,
+        "is_reply": false,
+        "is_escalation": false
+      },
+      {
+        "event_id": "history_71dda0d9623ad292",
+        "timestamp": "2026-04-19T04:11:59Z",
+        "actor_id": "workflow.workflow-baseline",
+        "target_id": "JRA-CFS-10",
+        "event_type": "reply",
+        "thread_id": "tickets:JRA-CFS-10",
+        "case_id": "case:CFS-10",
+        "surface": "tickets",
+        "conversation_anchor": "JRA-CFS-10",
+        "subject": "VIP outage command thread",
+        "snippet": "SR-CFS-100 dispatch approval updated. Status: pending_approval. Emergency dispatch reroute approved for Clearwater Medical.",
+        "to_recipients": [
+          "JRA-CFS-10"
+        ],
+        "cc_recipients": [],
+        "has_attachment_reference": false,
+        "is_forward": false,
+        "is_reply": true,
+        "is_escalation": false
+      },
+      {
+        "event_id": "history_90e797e63d8cb914",
+        "timestamp": "2026-04-19T04:11:59Z",
+        "actor_id": "workflow.workflow-baseline",
+        "target_id": "DOC-CFS-RUNBOOK",
+        "event_type": "reply",
+        "thread_id": "docs:DOC-CFS-RUNBOOK",
+        "case_id": "case:CFS-100",
+        "surface": "docs",
+        "conversation_anchor": "DOC-CFS-RUNBOOK",
+        "subject": "Clearwater Medical Response Runbook",
+        "snippet": "SR-CFS-100 dispatch approval updated. Status: pending_approval. Emergency dispatch reroute approved for Clearwater Medical.",
+        "to_recipients": [
+          "DOC-CFS-RUNBOOK"
+        ],
+        "cc_recipients": [],
+        "has_attachment_reference": false,
+        "is_forward": false,
+        "is_reply": true,
+        "is_escalation": false
+      },
+      {
+        "event_id": "history_dd1fae1387dcf016",
+        "timestamp": "2026-04-19T04:11:59Z",
+        "actor_id": "google-actor",
+        "target_id": "DOC-CFS-RUNBOOK",
+        "event_type": "document",
+        "thread_id": "docs:DOC-CFS-RUNBOOK",
+        "case_id": "case:DOC-CFS-RUNBOOK",
+        "surface": "docs",
+        "conversation_anchor": "DOC-CFS-RUNBOOK",
+        "subject": "Clearwater Medical Response Runbook",
+        "snippet": "Service-day runbook. If the account is VIP and billing is disputed, pause collection follow-ups before dispatch confirmation goes out.",
+        "to_recipients": [
+          "DOC-CFS-RUNBOOK"
+        ],
+        "cc_recipients": [],
+        "has_attachment_reference": false,
+        "is_forward": false,
+        "is_reply": false,
+        "is_escalation": false
+      },
+      {
+        "event_id": "history_4933377963cb1ca1",
+        "timestamp": "2026-04-19T04:12:00.079000Z",
+        "actor_id": "google-actor",
+        "target_id": "DOC-CFS-DISPATCH",
+        "event_type": "document",
+        "thread_id": "docs:DOC-CFS-DISPATCH",
+        "case_id": "case:CFS-100",
+        "surface": "docs",
+        "conversation_anchor": "DOC-CFS-DISPATCH",
+        "subject": "Morning Dispatch Board",
+        "snippet": "WO-CFS-100 currently unassigned after technician sick call. Need controls-certified backup tech in the south zone.",
+        "to_recipients": [
+          "DOC-CFS-DISPATCH"
+        ],
+        "cc_recipients": [],
+        "has_attachment_reference": false,
+        "is_forward": false,
+        "is_reply": false,
+        "is_escalation": false
+      },
+      {
+        "event_id": "history_ca21c8335107b252",
+        "timestamp": "2026-04-19T04:12:00.079000Z",
+        "actor_id": "workflow.workflow-baseline",
+        "target_id": "DOC-CFS-DISPATCH",
+        "event_type": "reply",
+        "thread_id": "docs:DOC-CFS-DISPATCH",
+        "case_id": "case:CFS-100",
+        "surface": "docs",
+        "conversation_anchor": "DOC-CFS-DISPATCH",
+        "subject": "Morning Dispatch Board",
+        "snippet": "WO-CFS-100 reassigned. Technician: TECH-CFS-02. Backup controls technician assigned and VIP appointment stabilized.",
+        "to_recipients": [
+          "DOC-CFS-DISPATCH"
+        ],
+        "cc_recipients": [],
+        "has_attachment_reference": false,
+        "is_forward": false,
+        "is_reply": true,
+        "is_escalation": false
+      }
+    ]
+  },
+  "historical_business_state": {
+    "method": "historical_v1",
+    "confidence": "medium",
+    "summary": "Recorded business state centers on exposure risk and commercial position.",
+    "snapshot": {
+      "exposure": 0.011,
+      "trust": 0.994,
+      "coordination_load": 0.002,
+      "execution_delay": 0.005,
+      "deal_position": 0.993,
+      "governance_pressure": 0.0
+    },
+    "indicators": [
+      {
+        "state_id": "exposure",
+        "label": "Exposure risk",
+        "value": 0.011,
+        "level": "very_low",
+        "summary": "Exposure risk stays limited in the recorded path."
+      },
+      {
+        "state_id": "deal_position",
+        "label": "Commercial position",
+        "value": 0.993,
+        "level": "very_high",
+        "summary": "Commercial position looks strong in the recorded path."
+      },
+      {
+        "state_id": "trust",
+        "label": "Relationship stability",
+        "value": 0.994,
+        "level": "very_high",
+        "summary": "Relationship stability looks strong in the recorded path."
+      },
+      {
+        "state_id": "execution_delay",
+        "label": "Execution delay",
+        "value": 0.005,
+        "level": "very_low",
+        "summary": "Execution delay stays limited in the recorded path."
+      },
+      {
+        "state_id": "coordination_load",
+        "label": "Internal handling load",
+        "value": 0.002,
+        "level": "very_low",
+        "summary": "Internal handling load stays limited in the recorded path."
+      },
+      {
+        "state_id": "governance_pressure",
+        "label": "Approval and escalation pressure",
+        "value": 0.0,
+        "level": "very_low",
+        "summary": "Approval and escalation pressure stays limited in the recorded path."
+      }
+    ],
+    "implications": [
+      "Exposure risk stays limited in the recorded path.",
+      "Commercial position looks strong in the recorded path.",
+      "Relationship stability looks strong in the recorded path."
+    ]
+  }
+}

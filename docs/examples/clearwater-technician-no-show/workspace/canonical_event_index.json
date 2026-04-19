@@ -1,0 +1,2203 @@
+{
+  "version": "1",
+  "organization_name": "Clearwater Field Services",
+  "organization_domain": "cfs.example.com",
+  "captured_at": "2026-04-19T04:12:00.086850Z",
+  "snapshot_role": "company_history_bundle",
+  "source_providers": [
+    "google",
+    "jira",
+    "mail_archive",
+    "slack"
+  ],
+  "event_count": 45,
+  "case_count": 25,
+  "surface_counts": {
+    "slack": 20,
+    "mail": 5,
+    "docs": 10,
+    "tickets": 10
+  },
+  "rows": [
+    {
+      "event_id": "history_019e0cbbed507f8e",
+      "timestamp": "1970-01-01T00:00:01Z",
+      "ts_ms": 1000,
+      "timestamp_quality": "derived",
+      "surface": "slack",
+      "provider": "slack",
+      "kind": "message",
+      "domain": "comm_graph",
+      "case_id": "thread:slack:#clearwater-dispatch:1712000000.000100",
+      "thread_ref": "slack:#clearwater-dispatch:1712000000.000100",
+      "conversation_anchor": "1712000000.000100",
+      "actor_id": "dispatch",
+      "target_id": "#clearwater-dispatch",
+      "participant_ids": [
+        "#clearwater-dispatch"
+      ],
+      "subject": "VIP outage just landed for Clearwater Medical Plaza. Original technician is n...",
+      "normalized_subject": "vip outage just landed for clearwater medical plaza. original technician is n...",
+      "snippet": "VIP outage just landed for Clearwater Medical Plaza. Original technician is now unavailable.",
+      "search_terms": [
+        "vip",
+        "outage",
+        "just",
+        "landed",
+        "for",
+        "clearwater",
+        "medical",
+        "plaza.",
+        "original",
+        "technician",
+        "n...",
+        "now",
+        "unavailable.",
+        "#clearwater-dispatch",
+        "1712000000.000100",
+        "dispatch"
+      ],
+      "provider_object_refs": [
+        "#clearwater-dispatch",
+        "1712000000.000100"
+      ],
+      "stitch_confidence": 0.4,
+      "stitch_basis": "thread_ref",
+      "internal_external": "internal",
+      "metadata": {
+        "channel": "#clearwater-dispatch"
+      }
+    },
+    {
+      "event_id": "history_a8c7f0c2fe9a1083",
+      "timestamp": "1970-01-01T00:00:01.001000Z",
+      "ts_ms": 1001,
+      "timestamp_quality": "derived",
+      "surface": "slack",
+      "provider": "slack",
+      "kind": "message",
+      "domain": "comm_graph",
+      "case_id": "thread:slack:#clearwater-dispatch:1712000060.000200",
+      "thread_ref": "slack:#clearwater-dispatch:1712000060.000200",
+      "conversation_anchor": "1712000060.000200",
+      "actor_id": "maya",
+      "target_id": "#clearwater-dispatch",
+      "participant_ids": [
+        "#clearwater-dispatch"
+      ],
+      "subject": "We need a replacement tech with HVAC + controls before the SLA clock goes red.",
+      "normalized_subject": "we need a replacement tech with hvac + controls before the sla clock goes red.",
+      "snippet": "We need a replacement tech with HVAC + controls before the SLA clock goes red.",
+      "search_terms": [
+        "need",
+        "replacement",
+        "tech",
+        "with",
+        "hvac",
+        "controls",
+        "before",
+        "the",
+        "sla",
+        "clock",
+        "goes",
+        "red.",
+        "#clearwater-dispatch",
+        "1712000060.000200",
+        "maya"
+      ],
+      "provider_object_refs": [
+        "#clearwater-dispatch",
+        "1712000060.000200"
+      ],
+      "stitch_confidence": 0.4,
+      "stitch_basis": "thread_ref",
+      "internal_external": "internal",
+      "metadata": {
+        "channel": "#clearwater-dispatch"
+      }
+    },
+    {
+      "event_id": "history_a656ad330296209e",
+      "timestamp": "1970-01-01T00:00:01.002000Z",
+      "ts_ms": 1002,
+      "timestamp_quality": "derived",
+      "surface": "slack",
+      "provider": "slack",
+      "kind": "reply",
+      "domain": "comm_graph",
+      "case_id": "thread:slack:#clearwater-dispatch:1712000000.000100",
+      "thread_ref": "slack:#clearwater-dispatch:1712000000.000100",
+      "conversation_anchor": "1712000000.000100",
+      "actor_id": "dispatch",
+      "target_id": "#clearwater-dispatch",
+      "participant_ids": [
+        "#clearwater-dispatch"
+      ],
+      "subject": "Billing also flagged an open dispute on this account. Do not let the field te...",
+      "normalized_subject": "billing also flagged an open dispute on this account. do not let the field te...",
+      "snippet": "Billing also flagged an open dispute on this account. Do not let the field team walk in blind.",
+      "search_terms": [
+        "billing",
+        "also",
+        "flagged",
+        "open",
+        "dispute",
+        "this",
+        "account.",
+        "not",
+        "let",
+        "the",
+        "field",
+        "te...",
+        "team",
+        "walk",
+        "blind.",
+        "#clearwater-dispatch",
+        "1712000000.000100",
+        "dispatch"
+      ],
+      "provider_object_refs": [
+        "#clearwater-dispatch",
+        "1712000000.000100"
+      ],
+      "stitch_confidence": 0.4,
+      "stitch_basis": "thread_ref",
+      "internal_external": "internal",
+      "metadata": {
+        "channel": "#clearwater-dispatch"
+      }
+    },
+    {
+      "event_id": "history_960f48a856d3e981",
+      "timestamp": "1970-01-01T00:00:01.003000Z",
+      "ts_ms": 1003,
+      "timestamp_quality": "derived",
+      "surface": "slack",
+      "provider": "slack",
+      "kind": "message",
+      "domain": "comm_graph",
+      "case_id": "thread:slack:#clearwater-dispatch:1776571920.000000",
+      "thread_ref": "slack:#clearwater-dispatch:1776571920.000000",
+      "conversation_anchor": "1776571920.000000",
+      "actor_id": "scripted",
+      "target_id": "#clearwater-dispatch",
+      "participant_ids": [
+        "#clearwater-dispatch"
+      ],
+      "subject": "browser.read executed.",
+      "normalized_subject": "browser.read executed.",
+      "snippet": "browser.read executed.",
+      "search_terms": [
+        "browser.read",
+        "executed.",
+        "#clearwater-dispatch",
+        "1776571920.000000",
+        "scripted"
+      ],
+      "provider_object_refs": [
+        "#clearwater-dispatch",
+        "1776571920.000000"
+      ],
+      "stitch_confidence": 0.4,
+      "stitch_basis": "thread_ref",
+      "internal_external": "internal",
+      "metadata": {
+        "channel": "#clearwater-dispatch"
+      }
+    },
+    {
+      "event_id": "history_5dc15ff183243fb8",
+      "timestamp": "1970-01-01T00:00:01.004000Z",
+      "ts_ms": 1004,
+      "timestamp_quality": "derived",
+      "surface": "slack",
+      "provider": "slack",
+      "kind": "message",
+      "domain": "comm_graph",
+      "case_id": "case:CFS-100",
+      "thread_ref": "slack:#clearwater-dispatch:1776571919.000000",
+      "conversation_anchor": "1776571919.000000",
+      "actor_id": "workflow",
+      "target_id": "#clearwater-dispatch",
+      "participant_ids": [
+        "#clearwater-dispatch"
+      ],
+      "subject": "SR-CFS-100 dispatch approval updated. Status: pending_approval. Emergency dis...",
+      "normalized_subject": "sr-cfs-100 dispatch approval updated. status: pending_approval. emergency dis...",
+      "snippet": "SR-CFS-100 dispatch approval updated. Status: pending_approval. Emergency dispatch reroute approved for Clearwater Medical.",
+      "search_terms": [
+        "CFS-100",
+        "sr-cfs-100",
+        "dispatch",
+        "approval",
+        "updated.",
+        "status:",
+        "pending_approval.",
+        "emergency",
+        "dis...",
+        "reroute",
+        "approved",
+        "for",
+        "clearwater",
+        "medical.",
+        "#clearwater-dispatch",
+        "1776571919.000000",
+        "workflow"
+      ],
+      "provider_object_refs": [
+        "#clearwater-dispatch",
+        "1776571919.000000"
+      ],
+      "stitch_confidence": 0.98,
+      "stitch_basis": "explicit_token",
+      "internal_external": "internal",
+      "metadata": {
+        "channel": "#clearwater-dispatch"
+      }
+    },
+    {
+      "event_id": "history_aa36eec30a4cd6a5",
+      "timestamp": "1970-01-01T00:00:01.005000Z",
+      "ts_ms": 1005,
+      "timestamp_quality": "derived",
+      "surface": "slack",
+      "provider": "slack",
+      "kind": "message",
+      "domain": "comm_graph",
+      "case_id": "case:CFS-100",
+      "thread_ref": "slack:#clearwater-dispatch:1776571920.079000",
+      "conversation_anchor": "1776571920.079000",
+      "actor_id": "workflow",
+      "target_id": "#clearwater-dispatch",
+      "participant_ids": [
+        "#clearwater-dispatch"
+      ],
+      "subject": "WO-CFS-100 reassigned. Technician: TECH-CFS-02. Backup controls technician as...",
+      "normalized_subject": "wo-cfs-100 reassigned. technician: tech-cfs-02. backup controls technician as...",
+      "snippet": "WO-CFS-100 reassigned. Technician: TECH-CFS-02. Backup controls technician assigned and VIP appointment stabilized.",
+      "search_terms": [
+        "CFS-100",
+        "CFS-02",
+        "wo-cfs-100",
+        "reassigned.",
+        "technician:",
+        "tech-cfs-02.",
+        "backup",
+        "controls",
+        "technician",
+        "as...",
+        "assigned",
+        "and",
+        "vip",
+        "appointment",
+        "stabilized.",
+        "#clearwater-dispatch",
+        "1776571920.079000",
+        "workflow"
+      ],
+      "provider_object_refs": [
+        "#clearwater-dispatch",
+        "1776571920.079000"
+      ],
+      "stitch_confidence": 0.98,
+      "stitch_basis": "explicit_token",
+      "internal_external": "internal",
+      "metadata": {
+        "channel": "#clearwater-dispatch"
+      }
+    },
+    {
+      "event_id": "history_60c49d8eac198db9",
+      "timestamp": "1970-01-01T00:00:01.006000Z",
+      "ts_ms": 1006,
+      "timestamp_quality": "derived",
+      "surface": "slack",
+      "provider": "slack",
+      "kind": "message",
+      "domain": "comm_graph",
+      "case_id": "thread:slack:#clearwater-dispatch:1776571924.279000",
+      "thread_ref": "slack:#clearwater-dispatch:1776571924.279000",
+      "conversation_anchor": "1776571924.279000",
+      "actor_id": "workflow",
+      "target_id": "#clearwater-dispatch",
+      "participant_ids": [
+        "#clearwater-dispatch"
+      ],
+      "subject": "jira.add_comment executed.",
+      "normalized_subject": "jira.add_comment executed.",
+      "snippet": "jira.add_comment executed.",
+      "search_terms": [
+        "jira.add_comment",
+        "executed.",
+        "#clearwater-dispatch",
+        "1776571924.279000",
+        "workflow"
+      ],
+      "provider_object_refs": [
+        "#clearwater-dispatch",
+        "1776571924.279000"
+      ],
+      "stitch_confidence": 0.4,
+      "stitch_basis": "thread_ref",
+      "internal_external": "internal",
+      "metadata": {
+        "channel": "#clearwater-dispatch"
+      }
+    },
+    {
+      "event_id": "history_7ef26d54dbccc611",
+      "timestamp": "1970-01-01T00:00:01.007000Z",
+      "ts_ms": 1007,
+      "timestamp_quality": "derived",
+      "surface": "slack",
+      "provider": "slack",
+      "kind": "message",
+      "domain": "comm_graph",
+      "case_id": "thread:slack:#clearwater-dispatch:1776571925.359000",
+      "thread_ref": "slack:#clearwater-dispatch:1776571925.359000",
+      "conversation_anchor": "1776571925.359000",
+      "actor_id": "workflow",
+      "target_id": "#clearwater-dispatch",
+      "participant_ids": [
+        "#clearwater-dispatch"
+      ],
+      "subject": "slack.send_message executed.",
+      "normalized_subject": "slack.send_message executed.",
+      "snippet": "slack.send_message executed.",
+      "search_terms": [
+        "slack.send_message",
+        "executed.",
+        "#clearwater-dispatch",
+        "1776571925.359000",
+        "workflow"
+      ],
+      "provider_object_refs": [
+        "#clearwater-dispatch",
+        "1776571925.359000"
+      ],
+      "stitch_confidence": 0.4,
+      "stitch_basis": "thread_ref",
+      "internal_external": "internal",
+      "metadata": {
+        "channel": "#clearwater-dispatch"
+      }
+    },
+    {
+      "event_id": "history_ac145608ce3de4c8",
+      "timestamp": "1970-01-01T00:00:02Z",
+      "ts_ms": 2000,
+      "timestamp_quality": "derived",
+      "surface": "slack",
+      "provider": "slack",
+      "kind": "message",
+      "domain": "comm_graph",
+      "case_id": "thread:slack:#vip-escalations:1712000180.000400",
+      "thread_ref": "slack:#vip-escalations:1712000180.000400",
+      "conversation_anchor": "1712000180.000400",
+      "actor_id": "account",
+      "target_id": "#vip-escalations",
+      "participant_ids": [
+        "#vip-escalations"
+      ],
+      "subject": "Clearwater Medical is a board-visibility account. They want an ETA in 20 minu...",
+      "normalized_subject": "clearwater medical is a board-visibility account. they want an eta in 20 minu...",
+      "snippet": "Clearwater Medical is a board-visibility account. They want an ETA in 20 minutes.",
+      "search_terms": [
+        "clearwater",
+        "medical",
+        "board-visibility",
+        "account.",
+        "they",
+        "want",
+        "eta",
+        "minu...",
+        "minutes.",
+        "#vip-escalations",
+        "1712000180.000400",
+        "account"
+      ],
+      "provider_object_refs": [
+        "#vip-escalations",
+        "1712000180.000400"
+      ],
+      "stitch_confidence": 0.4,
+      "stitch_basis": "thread_ref",
+      "internal_external": "internal",
+      "metadata": {
+        "channel": "#vip-escalations"
+      }
+    },
+    {
+      "event_id": "history_abac82460fd70a36",
+      "timestamp": "1970-01-01T00:00:02.001000Z",
+      "ts_ms": 2001,
+      "timestamp_quality": "derived",
+      "surface": "slack",
+      "provider": "slack",
+      "kind": "message",
+      "domain": "comm_graph",
+      "case_id": "thread:slack:#vip-escalations:1712000240.000500",
+      "thread_ref": "slack:#vip-escalations:1712000240.000500",
+      "conversation_anchor": "1712000240.000500",
+      "actor_id": "maya",
+      "target_id": "#vip-escalations",
+      "participant_ids": [
+        "#vip-escalations"
+      ],
+      "subject": "One clean manager touch only. Route approvals once, not five times.",
+      "normalized_subject": "one clean manager touch only. route approvals once, not five times.",
+      "snippet": "One clean manager touch only. Route approvals once, not five times.",
+      "search_terms": [
+        "one",
+        "clean",
+        "manager",
+        "touch",
+        "only.",
+        "route",
+        "approvals",
+        "once,",
+        "not",
+        "five",
+        "times.",
+        "#vip-escalations",
+        "1712000240.000500",
+        "maya"
+      ],
+      "provider_object_refs": [
+        "#vip-escalations",
+        "1712000240.000500"
+      ],
+      "stitch_confidence": 0.4,
+      "stitch_basis": "thread_ref",
+      "internal_external": "internal",
+      "metadata": {
+        "channel": "#vip-escalations"
+      }
+    },
+    {
+      "event_id": "history_ebabaa43f2176083",
+      "timestamp": "1970-01-01T00:00:02.002000Z",
+      "ts_ms": 2002,
+      "timestamp_quality": "derived",
+      "surface": "slack",
+      "provider": "slack",
+      "kind": "message",
+      "domain": "comm_graph",
+      "case_id": "case:CFS-101",
+      "thread_ref": "slack:#vip-escalations:1776571922.127000",
+      "conversation_anchor": "1776571922.127000",
+      "actor_id": "workflow",
+      "target_id": "#vip-escalations",
+      "participant_ids": [
+        "#vip-escalations"
+      ],
+      "subject": "EXC-CFS-101 cleared. Billing remains stable while dispatch recovers the techn...",
+      "normalized_subject": "exc-cfs-101 cleared. billing remains stable while dispatch recovers the techn...",
+      "snippet": "EXC-CFS-101 cleared. Billing remains stable while dispatch recovers the technician gap.",
+      "search_terms": [
+        "CFS-101",
+        "exc-cfs-101",
+        "cleared.",
+        "billing",
+        "remains",
+        "stable",
+        "while",
+        "dispatch",
+        "recovers",
+        "the",
+        "techn...",
+        "technician",
+        "gap.",
+        "#vip-escalations",
+        "1776571922.127000",
+        "workflow"
+      ],
+      "provider_object_refs": [
+        "#vip-escalations",
+        "1776571922.127000"
+      ],
+      "stitch_confidence": 0.98,
+      "stitch_basis": "explicit_token",
+      "internal_external": "internal",
+      "metadata": {
+        "channel": "#vip-escalations"
+      }
+    },
+    {
+      "event_id": "history_293348c71604ee5e",
+      "timestamp": "1970-01-01T00:00:03Z",
+      "ts_ms": 3000,
+      "timestamp_quality": "derived",
+      "surface": "slack",
+      "provider": "slack",
+      "kind": "message",
+      "domain": "comm_graph",
+      "case_id": "case:CFS-402",
+      "thread_ref": "slack:#billing-ops:1712000300.000600",
+      "conversation_anchor": "1712000300.000600",
+      "actor_id": "billing",
+      "target_id": "#billing-ops",
+      "participant_ids": [
+        "#billing-ops"
+      ],
+      "subject": "Invoice INV-CFS-402 is still disputed and the account is tagged hold-until-re...",
+      "normalized_subject": "invoice inv-cfs-402 is still disputed and the account is tagged hold-until-re...",
+      "snippet": "Invoice INV-CFS-402 is still disputed and the account is tagged hold-until-reviewed.",
+      "search_terms": [
+        "CFS-402",
+        "invoice",
+        "inv-cfs-402",
+        "still",
+        "disputed",
+        "and",
+        "the",
+        "account",
+        "tagged",
+        "hold-until-re...",
+        "hold-until-reviewed.",
+        "#billing-ops",
+        "1712000300.000600",
+        "billing"
+      ],
+      "provider_object_refs": [
+        "#billing-ops",
+        "1712000300.000600"
+      ],
+      "stitch_confidence": 0.98,
+      "stitch_basis": "explicit_token",
+      "internal_external": "internal",
+      "metadata": {
+        "channel": "#billing-ops"
+      }
+    },
+    {
+      "event_id": "history_83800e941b414bfe",
+      "timestamp": "1970-01-01T00:00:03.001000Z",
+      "ts_ms": 3001,
+      "timestamp_quality": "derived",
+      "surface": "slack",
+      "provider": "slack",
+      "kind": "message",
+      "domain": "comm_graph",
+      "case_id": "thread:slack:#billing-ops:1712000360.000700",
+      "thread_ref": "slack:#billing-ops:1712000360.000700",
+      "conversation_anchor": "1712000360.000700",
+      "actor_id": "collections",
+      "target_id": "#billing-ops",
+      "participant_ids": [
+        "#billing-ops"
+      ],
+      "subject": "Auto-follow-up email is queued for 9:00 unless we stop it.",
+      "normalized_subject": "auto-follow-up email is queued for 9:00 unless we stop it.",
+      "snippet": "Auto-follow-up email is queued for 9:00 unless we stop it.",
+      "search_terms": [
+        "auto-follow-up",
+        "email",
+        "queued",
+        "for",
+        "9:00",
+        "unless",
+        "stop",
+        "it.",
+        "#billing-ops",
+        "1712000360.000700",
+        "collections"
+      ],
+      "provider_object_refs": [
+        "#billing-ops",
+        "1712000360.000700"
+      ],
+      "stitch_confidence": 0.4,
+      "stitch_basis": "thread_ref",
+      "internal_external": "internal",
+      "metadata": {
+        "channel": "#billing-ops"
+      }
+    },
+    {
+      "event_id": "history_ea9d878530e8e84c",
+      "timestamp": "1970-01-01T00:00:03.002000Z",
+      "ts_ms": 3002,
+      "timestamp_quality": "derived",
+      "surface": "slack",
+      "provider": "slack",
+      "kind": "reply",
+      "domain": "comm_graph",
+      "case_id": "case:CFS-402",
+      "thread_ref": "slack:#billing-ops:1712000300.000600",
+      "conversation_anchor": "1712000300.000600",
+      "actor_id": "billing",
+      "target_id": "#billing-ops",
+      "participant_ids": [
+        "#billing-ops"
+      ],
+      "subject": "Please link the field response to the dispute note so finance sees the same s...",
+      "normalized_subject": "please link the field response to the dispute note so finance sees the same s...",
+      "snippet": "Please link the field response to the dispute note so finance sees the same story as dispatch.",
+      "search_terms": [
+        "please",
+        "link",
+        "the",
+        "field",
+        "response",
+        "dispute",
+        "note",
+        "finance",
+        "sees",
+        "same",
+        "s...",
+        "story",
+        "dispatch.",
+        "#billing-ops",
+        "1712000300.000600",
+        "billing"
+      ],
+      "provider_object_refs": [
+        "#billing-ops",
+        "1712000300.000600"
+      ],
+      "stitch_confidence": 0.72,
+      "stitch_basis": "thread_token",
+      "internal_external": "internal",
+      "metadata": {
+        "channel": "#billing-ops"
+      }
+    },
+    {
+      "event_id": "history_ff37c647b1ae05d7",
+      "timestamp": "1970-01-01T00:00:03.003000Z",
+      "ts_ms": 3003,
+      "timestamp_quality": "derived",
+      "surface": "slack",
+      "provider": "slack",
+      "kind": "message",
+      "domain": "comm_graph",
+      "case_id": "case:CFS-100",
+      "thread_ref": "slack:#billing-ops:1776571921.111000",
+      "conversation_anchor": "1776571921.111000",
+      "actor_id": "workflow",
+      "target_id": "#billing-ops",
+      "participant_ids": [
+        "#billing-ops"
+      ],
+      "subject": "BILL-CFS-100 placed on billing hold. Billing remains stable while dispatch re...",
+      "normalized_subject": "bill-cfs-100 placed on billing hold. billing remains stable while dispatch re...",
+      "snippet": "BILL-CFS-100 placed on billing hold. Billing remains stable while dispatch recovers the technician gap.",
+      "search_terms": [
+        "CFS-100",
+        "bill-cfs-100",
+        "placed",
+        "billing",
+        "hold.",
+        "remains",
+        "stable",
+        "while",
+        "dispatch",
+        "re...",
+        "recovers",
+        "the",
+        "technician",
+        "gap.",
+        "#billing-ops",
+        "1776571921.111000",
+        "workflow"
+      ],
+      "provider_object_refs": [
+        "#billing-ops",
+        "1776571921.111000"
+      ],
+      "stitch_confidence": 0.98,
+      "stitch_basis": "explicit_token",
+      "internal_external": "internal",
+      "metadata": {
+        "channel": "#billing-ops"
+      }
+    },
+    {
+      "event_id": "history_8427068109beb867",
+      "timestamp": "1970-01-01T00:00:04Z",
+      "ts_ms": 4000,
+      "timestamp_quality": "derived",
+      "surface": "slack",
+      "provider": "slack",
+      "kind": "message",
+      "domain": "comm_graph",
+      "case_id": "case:CFS-100",
+      "thread_ref": "slack:#field-techs:1712000480.000900",
+      "conversation_anchor": "1712000480.000900",
+      "actor_id": "troy",
+      "target_id": "#field-techs",
+      "participant_ids": [
+        "#field-techs"
+      ],
+      "subject": "Calling out sick. I can't take WO-CFS-100 this morning.",
+      "normalized_subject": "calling out sick. i can't take wo-cfs-100 this morning.",
+      "snippet": "Calling out sick. I can't take WO-CFS-100 this morning.",
+      "search_terms": [
+        "CFS-100",
+        "calling",
+        "out",
+        "sick.",
+        "can't",
+        "take",
+        "wo-cfs-100",
+        "this",
+        "morning.",
+        "#field-techs",
+        "1712000480.000900",
+        "troy"
+      ],
+      "provider_object_refs": [
+        "#field-techs",
+        "1712000480.000900"
+      ],
+      "stitch_confidence": 0.98,
+      "stitch_basis": "explicit_token",
+      "internal_external": "internal",
+      "metadata": {
+        "channel": "#field-techs"
+      }
+    },
+    {
+      "event_id": "history_51cfaf03ac3d816f",
+      "timestamp": "1970-01-01T00:00:04.001000Z",
+      "ts_ms": 4001,
+      "timestamp_quality": "derived",
+      "surface": "slack",
+      "provider": "slack",
+      "kind": "reply",
+      "domain": "comm_graph",
+      "case_id": "case:CFS-100",
+      "thread_ref": "slack:#field-techs:1712000480.000900",
+      "conversation_anchor": "1712000480.000900",
+      "actor_id": "dispatch",
+      "target_id": "#field-techs",
+      "participant_ids": [
+        "#field-techs"
+      ],
+      "subject": "Copy. Looking for backup with rooftop controls certification now.",
+      "normalized_subject": "copy. looking for backup with rooftop controls certification now.",
+      "snippet": "Copy. Looking for backup with rooftop controls certification now.",
+      "search_terms": [
+        "copy.",
+        "looking",
+        "for",
+        "backup",
+        "with",
+        "rooftop",
+        "controls",
+        "certification",
+        "now.",
+        "#field-techs",
+        "1712000480.000900",
+        "dispatch"
+      ],
+      "provider_object_refs": [
+        "#field-techs",
+        "1712000480.000900"
+      ],
+      "stitch_confidence": 0.72,
+      "stitch_basis": "thread_token",
+      "internal_external": "internal",
+      "metadata": {
+        "channel": "#field-techs"
+      }
+    },
+    {
+      "event_id": "history_7bb4199842ef3113",
+      "timestamp": "1970-01-01T00:00:05Z",
+      "ts_ms": 5000,
+      "timestamp_quality": "derived",
+      "surface": "slack",
+      "provider": "slack",
+      "kind": "message",
+      "domain": "comm_graph",
+      "case_id": "thread:slack:#exec-brief:1712000600.001100",
+      "thread_ref": "slack:#exec-brief:1712000600.001100",
+      "conversation_anchor": "1712000600.001100",
+      "actor_id": "coo",
+      "target_id": "#exec-brief",
+      "participant_ids": [
+        "#exec-brief"
+      ],
+      "subject": "I want the same-day view: customer risk, dispatch status, and whether billing...",
+      "normalized_subject": "i want the same-day view: customer risk, dispatch status, and whether billing...",
+      "snippet": "I want the same-day view: customer risk, dispatch status, and whether billing is safely contained.",
+      "search_terms": [
+        "want",
+        "the",
+        "same-day",
+        "view:",
+        "customer",
+        "risk,",
+        "dispatch",
+        "status,",
+        "and",
+        "whether",
+        "billing...",
+        "billing",
+        "safely",
+        "contained.",
+        "#exec-brief",
+        "1712000600.001100",
+        "coo"
+      ],
+      "provider_object_refs": [
+        "#exec-brief",
+        "1712000600.001100"
+      ],
+      "stitch_confidence": 0.4,
+      "stitch_basis": "thread_ref",
+      "internal_external": "internal",
+      "metadata": {
+        "channel": "#exec-brief"
+      }
+    },
+    {
+      "event_id": "history_83b9bd5be29f9a2b",
+      "timestamp": "1970-01-01T00:00:05.001000Z",
+      "ts_ms": 5001,
+      "timestamp_quality": "derived",
+      "surface": "slack",
+      "provider": "slack",
+      "kind": "message",
+      "domain": "comm_graph",
+      "case_id": "thread:slack:#exec-brief:1712000660.001150",
+      "thread_ref": "slack:#exec-brief:1712000660.001150",
+      "conversation_anchor": "1712000660.001150",
+      "actor_id": "cfo",
+      "target_id": "#exec-brief",
+      "participant_ids": [
+        "#exec-brief"
+      ],
+      "subject": "If finance touches this account, I need the dispute posture reflected before...",
+      "normalized_subject": "if finance touches this account, i need the dispute posture reflected before...",
+      "snippet": "If finance touches this account, I need the dispute posture reflected before any outbound billing note lands.",
+      "search_terms": [
+        "finance",
+        "touches",
+        "this",
+        "account,",
+        "need",
+        "the",
+        "dispute",
+        "posture",
+        "reflected",
+        "before...",
+        "before",
+        "any",
+        "outbound",
+        "billing",
+        "note",
+        "lands.",
+        "#exec-brief",
+        "1712000660.001150",
+        "cfo"
+      ],
+      "provider_object_refs": [
+        "#exec-brief",
+        "1712000660.001150"
+      ],
+      "stitch_confidence": 0.4,
+      "stitch_basis": "thread_ref",
+      "internal_external": "internal",
+      "metadata": {
+        "channel": "#exec-brief"
+      }
+    },
+    {
+      "event_id": "history_deb890ff55de25fa",
+      "timestamp": "1970-01-01T00:00:05.002000Z",
+      "ts_ms": 5002,
+      "timestamp_quality": "derived",
+      "surface": "slack",
+      "provider": "slack",
+      "kind": "message",
+      "domain": "comm_graph",
+      "case_id": "case:DOC-CFS-HANDOFF",
+      "thread_ref": "slack:#exec-brief:1776571923.164000",
+      "conversation_anchor": "1776571923.164000",
+      "actor_id": "workflow",
+      "target_id": "#exec-brief",
+      "participant_ids": [
+        "#exec-brief"
+      ],
+      "subject": "DOC-CFS-HANDOFF updated. Backup dispatch assigned, billing hold linked to the...",
+      "normalized_subject": "doc-cfs-handoff updated. backup dispatch assigned, billing hold linked to the...",
+      "snippet": "DOC-CFS-HANDOFF updated. Backup dispatch assigned, billing hold linked to the dispute, and field-to-billing handoff aligned.",
+      "search_terms": [
+        "DOC-CFS-HANDOFF",
+        "doc-cfs-handoff",
+        "updated.",
+        "backup",
+        "dispatch",
+        "assigned,",
+        "billing",
+        "hold",
+        "linked",
+        "the...",
+        "the",
+        "dispute,",
+        "and",
+        "field-to-billing",
+        "handoff",
+        "aligned.",
+        "#exec-brief",
+        "1776571923.164000",
+        "workflow"
+      ],
+      "provider_object_refs": [
+        "#exec-brief",
+        "1776571923.164000"
+      ],
+      "stitch_confidence": 0.98,
+      "stitch_basis": "explicit_token",
+      "internal_external": "internal",
+      "metadata": {
+        "channel": "#exec-brief"
+      }
+    },
+    {
+      "event_id": "history_949242f7e80397ee",
+      "timestamp": "2024-04-01T19:48:20Z",
+      "ts_ms": 1712000900000,
+      "timestamp_quality": "exact",
+      "surface": "mail",
+      "provider": "mail_archive",
+      "kind": "message",
+      "domain": "comm_graph",
+      "case_id": "thread:mail:MAIL-CFS-VIP",
+      "thread_ref": "mail:MAIL-CFS-VIP",
+      "conversation_anchor": "MAIL-CFS-VIP",
+      "actor_id": "facilities@clearwatermedical.example.com",
+      "target_id": "dispatch@cfs.example.com",
+      "participant_ids": [
+        "dispatch@cfs.example.com"
+      ],
+      "subject": "Urgent rooftop unit failure",
+      "normalized_subject": "urgent rooftop unit failure",
+      "snippet": "Our main rooftop unit failed before clinic open. We need a qualified technician onsite immediately.",
+      "search_terms": [
+        "urgent",
+        "rooftop",
+        "unit",
+        "failure",
+        "our",
+        "main",
+        "failed",
+        "before",
+        "clinic",
+        "open.",
+        "need",
+        "qualified",
+        "technician",
+        "onsite",
+        "immediately.",
+        "mail-cfs-vip",
+        "dispatch@cfs.example.com",
+        "facilities@clearwatermedical.example.com"
+      ],
+      "provider_object_refs": [
+        "MAIL-CFS-VIP",
+        "dispatch@cfs.example.com"
+      ],
+      "stitch_confidence": 0.4,
+      "stitch_basis": "thread_ref",
+      "internal_external": "internal",
+      "metadata": {
+        "provider_message_id": "",
+        "thread_id": "MAIL-CFS-VIP",
+        "cc_recipients": []
+      }
+    },
+    {
+      "event_id": "history_605a9aa64e66d37a",
+      "timestamp": "2024-04-01T19:51:20Z",
+      "ts_ms": 1712001080000,
+      "timestamp_quality": "exact",
+      "surface": "mail",
+      "provider": "mail_archive",
+      "kind": "reply",
+      "domain": "comm_graph",
+      "case_id": "thread:mail:MAIL-CFS-VIP",
+      "thread_ref": "mail:MAIL-CFS-VIP",
+      "conversation_anchor": "MAIL-CFS-VIP",
+      "actor_id": "maya.ops@cfs.example.com",
+      "target_id": "facilities@clearwatermedical.example.com",
+      "participant_ids": [
+        "facilities@clearwatermedical.example.com"
+      ],
+      "subject": "Re: Urgent rooftop unit failure",
+      "normalized_subject": "re: urgent rooftop unit failure",
+      "snippet": "We are re-routing a certified technician now and will send a confirmed ETA shortly.",
+      "search_terms": [
+        "re:",
+        "urgent",
+        "rooftop",
+        "unit",
+        "failure",
+        "are",
+        "re-routing",
+        "certified",
+        "technician",
+        "now",
+        "and",
+        "will",
+        "send",
+        "confirmed",
+        "eta",
+        "shortly.",
+        "mail-cfs-vip",
+        "facilities@clearwatermedical.example.com",
+        "maya.ops@cfs.example.com"
+      ],
+      "provider_object_refs": [
+        "MAIL-CFS-VIP",
+        "facilities@clearwatermedical.example.com"
+      ],
+      "stitch_confidence": 0.4,
+      "stitch_basis": "thread_ref",
+      "internal_external": "external",
+      "metadata": {
+        "provider_message_id": "",
+        "thread_id": "MAIL-CFS-VIP",
+        "cc_recipients": []
+      }
+    },
+    {
+      "event_id": "history_cc13b9efd9fa0abd",
+      "timestamp": "2024-04-01T19:53:20Z",
+      "ts_ms": 1712001200000,
+      "timestamp_quality": "exact",
+      "surface": "mail",
+      "provider": "mail_archive",
+      "kind": "message",
+      "domain": "comm_graph",
+      "case_id": "thread:mail:MAIL-CFS-BILLING",
+      "thread_ref": "mail:MAIL-CFS-BILLING",
+      "conversation_anchor": "MAIL-CFS-BILLING",
+      "actor_id": "ap@clearwatermedical.example.com",
+      "target_id": "billing@cfs.example.com",
+      "participant_ids": [
+        "billing@cfs.example.com"
+      ],
+      "subject": "Open dispute on January service charge",
+      "normalized_subject": "open dispute on january service charge",
+      "snippet": "We still need clarification on the January controls charge. Please pause additional collection notices until resolved.",
+      "search_terms": [
+        "open",
+        "dispute",
+        "january",
+        "service",
+        "charge",
+        "still",
+        "need",
+        "clarification",
+        "the",
+        "controls",
+        "charge.",
+        "please",
+        "pause",
+        "additional",
+        "collection",
+        "notices",
+        "until",
+        "resolved.",
+        "mail-cfs-billing",
+        "billing@cfs.example.com",
+        "ap@clearwatermedical.example.com"
+      ],
+      "provider_object_refs": [
+        "MAIL-CFS-BILLING",
+        "billing@cfs.example.com"
+      ],
+      "stitch_confidence": 0.4,
+      "stitch_basis": "thread_ref",
+      "internal_external": "internal",
+      "metadata": {
+        "provider_message_id": "",
+        "thread_id": "MAIL-CFS-BILLING",
+        "cc_recipients": []
+      }
+    },
+    {
+      "event_id": "history_e532687837964101",
+      "timestamp": "2024-04-01T19:55:20Z",
+      "ts_ms": 1712001320000,
+      "timestamp_quality": "exact",
+      "surface": "mail",
+      "provider": "mail_archive",
+      "kind": "message",
+      "domain": "comm_graph",
+      "case_id": "thread:mail:MAIL-CFS-SICK",
+      "thread_ref": "mail:MAIL-CFS-SICK",
+      "conversation_anchor": "MAIL-CFS-SICK",
+      "actor_id": "troy.tech@cfs.example.com",
+      "target_id": "dispatch@cfs.example.com",
+      "participant_ids": [
+        "dispatch@cfs.example.com"
+      ],
+      "subject": "Unable to cover morning route",
+      "normalized_subject": "unable to cover morning route",
+      "snippet": "Running a fever and cannot take Clearwater Medical or the south loop route today.",
+      "search_terms": [
+        "unable",
+        "cover",
+        "morning",
+        "route",
+        "running",
+        "fever",
+        "and",
+        "cannot",
+        "take",
+        "clearwater",
+        "medical",
+        "the",
+        "south",
+        "loop",
+        "today.",
+        "mail-cfs-sick",
+        "dispatch@cfs.example.com",
+        "troy.tech@cfs.example.com"
+      ],
+      "provider_object_refs": [
+        "MAIL-CFS-SICK",
+        "dispatch@cfs.example.com"
+      ],
+      "stitch_confidence": 0.4,
+      "stitch_basis": "thread_ref",
+      "internal_external": "internal",
+      "metadata": {
+        "provider_message_id": "",
+        "thread_id": "MAIL-CFS-SICK",
+        "cc_recipients": []
+      }
+    },
+    {
+      "event_id": "history_44a18de86b8843b0",
+      "timestamp": "2024-04-01T19:57:20Z",
+      "ts_ms": 1712001440000,
+      "timestamp_quality": "exact",
+      "surface": "mail",
+      "provider": "mail_archive",
+      "kind": "message",
+      "domain": "comm_graph",
+      "case_id": "thread:mail:MAIL-CFS-MANAGER",
+      "thread_ref": "mail:MAIL-CFS-MANAGER",
+      "conversation_anchor": "MAIL-CFS-MANAGER",
+      "actor_id": "maya.ops@cfs.example.com",
+      "target_id": "coo@cfs.example.com",
+      "participant_ids": [
+        "coo@cfs.example.com"
+      ],
+      "subject": "Morning flashpoint",
+      "normalized_subject": "morning flashpoint",
+      "snippet": "VIP outage, technician no-show, and unresolved billing dispute are colliding on the same customer account.",
+      "search_terms": [
+        "morning",
+        "flashpoint",
+        "vip",
+        "outage,",
+        "technician",
+        "no-show,",
+        "and",
+        "unresolved",
+        "billing",
+        "dispute",
+        "are",
+        "colliding",
+        "the",
+        "same",
+        "customer",
+        "account.",
+        "mail-cfs-manager",
+        "coo@cfs.example.com",
+        "maya.ops@cfs.example.com"
+      ],
+      "provider_object_refs": [
+        "MAIL-CFS-MANAGER",
+        "coo@cfs.example.com"
+      ],
+      "stitch_confidence": 0.4,
+      "stitch_basis": "thread_ref",
+      "internal_external": "internal",
+      "metadata": {
+        "provider_message_id": "",
+        "thread_id": "MAIL-CFS-MANAGER",
+        "cc_recipients": []
+      }
+    },
+    {
+      "event_id": "history_dd1fae1387dcf016",
+      "timestamp": "2026-04-19T04:11:59Z",
+      "ts_ms": 1776571919000,
+      "timestamp_quality": "exact",
+      "surface": "docs",
+      "provider": "google",
+      "kind": "document",
+      "domain": "doc_graph",
+      "case_id": "case:DOC-CFS-RUNBOOK",
+      "thread_ref": "docs:DOC-CFS-RUNBOOK",
+      "conversation_anchor": "DOC-CFS-RUNBOOK",
+      "actor_id": "",
+      "target_id": "DOC-CFS-RUNBOOK",
+      "participant_ids": [
+        "DOC-CFS-RUNBOOK"
+      ],
+      "subject": "Clearwater Medical Response Runbook",
+      "normalized_subject": "clearwater medical response runbook",
+      "snippet": "Service-day runbook.\n\nIf the account is VIP and billing is disputed, pause collection follow-ups before dispatch confirmation goes out.",
+      "search_terms": [
+        "DOC-CFS-RUNBOOK",
+        "clearwater",
+        "medical",
+        "response",
+        "runbook",
+        "service-day",
+        "runbook.",
+        "the",
+        "account",
+        "vip",
+        "and",
+        "billing",
+        "disputed,",
+        "pause",
+        "collection",
+        "follow-ups",
+        "before",
+        "dispatch",
+        "confirmation",
+        "goes",
+        "out.",
+        "doc-cfs-runbook"
+      ],
+      "provider_object_refs": [
+        "DOC-CFS-RUNBOOK"
+      ],
+      "stitch_confidence": 0.98,
+      "stitch_basis": "explicit_token",
+      "internal_external": "internal",
+      "metadata": {
+        "mime_type": ""
+      }
+    },
+    {
+      "event_id": "history_90e797e63d8cb914",
+      "timestamp": "2026-04-19T04:11:59Z",
+      "ts_ms": 1776571919000,
+      "timestamp_quality": "exact",
+      "surface": "docs",
+      "provider": "google",
+      "kind": "comment",
+      "domain": "doc_graph",
+      "case_id": "case:CFS-100",
+      "thread_ref": "docs:DOC-CFS-RUNBOOK",
+      "conversation_anchor": "DOC-CFS-RUNBOOK",
+      "actor_id": "workflow.workflow-baseline",
+      "target_id": "DOC-CFS-RUNBOOK",
+      "participant_ids": [
+        "DOC-CFS-RUNBOOK"
+      ],
+      "subject": "Clearwater Medical Response Runbook",
+      "normalized_subject": "clearwater medical response runbook",
+      "snippet": "SR-CFS-100 dispatch approval updated. Status: pending_approval. Emergency dispatch reroute approved for Clearwater Medical.",
+      "search_terms": [
+        "CFS-100",
+        "DOC-CFS-RUNBOOK",
+        "clearwater",
+        "medical",
+        "response",
+        "runbook",
+        "sr-cfs-100",
+        "dispatch",
+        "approval",
+        "updated.",
+        "status:",
+        "pending_approval.",
+        "emergency",
+        "reroute",
+        "approved",
+        "for",
+        "medical.",
+        "doc-cfs-runbook",
+        "workflow_baseline-call-1",
+        "workflow.workflow-baseline"
+      ],
+      "provider_object_refs": [
+        "DOC-CFS-RUNBOOK",
+        "workflow_baseline-call-1"
+      ],
+      "stitch_confidence": 0.98,
+      "stitch_basis": "explicit_token",
+      "internal_external": "internal",
+      "metadata": {
+        "comment_id": "workflow_baseline-call-1"
+      }
+    },
+    {
+      "event_id": "history_71dda0d9623ad292",
+      "timestamp": "2026-04-19T04:11:59Z",
+      "ts_ms": 1776571919000,
+      "timestamp_quality": "exact",
+      "surface": "tickets",
+      "provider": "jira",
+      "kind": "comment",
+      "domain": "work_graph",
+      "case_id": "case:CFS-10",
+      "thread_ref": "tickets:JRA-CFS-10",
+      "conversation_anchor": "JRA-CFS-10",
+      "actor_id": "workflow.workflow-baseline",
+      "target_id": "JRA-CFS-10",
+      "participant_ids": [
+        "JRA-CFS-10"
+      ],
+      "subject": "VIP outage command thread",
+      "normalized_subject": "vip outage command thread",
+      "snippet": "SR-CFS-100 dispatch approval updated. Status: pending_approval. Emergency dispatch reroute approved for Clearwater Medical.",
+      "search_terms": [
+        "CFS-100",
+        "CFS-10",
+        "vip",
+        "outage",
+        "command",
+        "thread",
+        "sr-cfs-100",
+        "dispatch",
+        "approval",
+        "updated.",
+        "status:",
+        "pending_approval.",
+        "emergency",
+        "reroute",
+        "approved",
+        "for",
+        "clearwater",
+        "medical.",
+        "jra-cfs-10",
+        "workflow_baseline-call-1",
+        "workflow.workflow-baseline"
+      ],
+      "provider_object_refs": [
+        "JRA-CFS-10",
+        "workflow_baseline-call-1"
+      ],
+      "stitch_confidence": 0.98,
+      "stitch_basis": "explicit_token",
+      "internal_external": "internal",
+      "metadata": {
+        "comment_id": "workflow_baseline-call-1"
+      }
+    },
+    {
+      "event_id": "history_4933377963cb1ca1",
+      "timestamp": "2026-04-19T04:12:00.079000Z",
+      "ts_ms": 1776571920079,
+      "timestamp_quality": "exact",
+      "surface": "docs",
+      "provider": "google",
+      "kind": "document",
+      "domain": "doc_graph",
+      "case_id": "case:CFS-100",
+      "thread_ref": "docs:DOC-CFS-DISPATCH",
+      "conversation_anchor": "DOC-CFS-DISPATCH",
+      "actor_id": "",
+      "target_id": "DOC-CFS-DISPATCH",
+      "participant_ids": [
+        "DOC-CFS-DISPATCH"
+      ],
+      "subject": "Morning Dispatch Board",
+      "normalized_subject": "morning dispatch board",
+      "snippet": "WO-CFS-100 currently unassigned after technician sick call.\nNeed controls-certified backup tech in the south zone.",
+      "search_terms": [
+        "CFS-100",
+        "DOC-CFS-DISPATCH",
+        "morning",
+        "dispatch",
+        "board",
+        "wo-cfs-100",
+        "currently",
+        "unassigned",
+        "after",
+        "technician",
+        "sick",
+        "call.",
+        "need",
+        "controls-certified",
+        "backup",
+        "tech",
+        "the",
+        "south",
+        "zone.",
+        "doc-cfs-dispatch"
+      ],
+      "provider_object_refs": [
+        "DOC-CFS-DISPATCH"
+      ],
+      "stitch_confidence": 0.98,
+      "stitch_basis": "explicit_token",
+      "internal_external": "internal",
+      "metadata": {
+        "mime_type": ""
+      }
+    },
+    {
+      "event_id": "history_ca21c8335107b252",
+      "timestamp": "2026-04-19T04:12:00.079000Z",
+      "ts_ms": 1776571920079,
+      "timestamp_quality": "exact",
+      "surface": "docs",
+      "provider": "google",
+      "kind": "comment",
+      "domain": "doc_graph",
+      "case_id": "case:CFS-100",
+      "thread_ref": "docs:DOC-CFS-DISPATCH",
+      "conversation_anchor": "DOC-CFS-DISPATCH",
+      "actor_id": "workflow.workflow-baseline",
+      "target_id": "DOC-CFS-DISPATCH",
+      "participant_ids": [
+        "DOC-CFS-DISPATCH"
+      ],
+      "subject": "Morning Dispatch Board",
+      "normalized_subject": "morning dispatch board",
+      "snippet": "WO-CFS-100 reassigned. Technician: TECH-CFS-02. Backup controls technician assigned and VIP appointment stabilized.",
+      "search_terms": [
+        "CFS-100",
+        "CFS-02",
+        "DOC-CFS-DISPATCH",
+        "morning",
+        "dispatch",
+        "board",
+        "wo-cfs-100",
+        "reassigned.",
+        "technician:",
+        "tech-cfs-02.",
+        "backup",
+        "controls",
+        "technician",
+        "assigned",
+        "and",
+        "vip",
+        "appointment",
+        "stabilized.",
+        "doc-cfs-dispatch",
+        "workflow_baseline-call-2",
+        "workflow.workflow-baseline"
+      ],
+      "provider_object_refs": [
+        "DOC-CFS-DISPATCH",
+        "workflow_baseline-call-2"
+      ],
+      "stitch_confidence": 0.98,
+      "stitch_basis": "explicit_token",
+      "internal_external": "internal",
+      "metadata": {
+        "comment_id": "workflow_baseline-call-2"
+      }
+    },
+    {
+      "event_id": "history_dd90fc6e8d1fa5b8",
+      "timestamp": "2026-04-19T04:12:00.079000Z",
+      "ts_ms": 1776571920079,
+      "timestamp_quality": "exact",
+      "surface": "tickets",
+      "provider": "jira",
+      "kind": "in_progress",
+      "domain": "work_graph",
+      "case_id": "case:CFS-11",
+      "thread_ref": "tickets:JRA-CFS-11",
+      "conversation_anchor": "JRA-CFS-11",
+      "actor_id": "dispatch.lead",
+      "target_id": "JRA-CFS-11",
+      "participant_ids": [
+        "JRA-CFS-11"
+      ],
+      "subject": "Backup dispatch routing",
+      "normalized_subject": "backup dispatch routing",
+      "snippet": "Backup dispatch routing",
+      "search_terms": [
+        "CFS-11",
+        "backup",
+        "dispatch",
+        "routing",
+        "jra-cfs-11",
+        "dispatch.lead"
+      ],
+      "provider_object_refs": [
+        "JRA-CFS-11"
+      ],
+      "stitch_confidence": 0.98,
+      "stitch_basis": "explicit_token",
+      "internal_external": "internal",
+      "metadata": {
+        "status": "in_progress"
+      }
+    },
+    {
+      "event_id": "history_c7699aaa5c60e318",
+      "timestamp": "2026-04-19T04:12:00.079000Z",
+      "ts_ms": 1776571920079,
+      "timestamp_quality": "exact",
+      "surface": "tickets",
+      "provider": "jira",
+      "kind": "comment",
+      "domain": "work_graph",
+      "case_id": "case:CFS-11",
+      "thread_ref": "tickets:JRA-CFS-11",
+      "conversation_anchor": "JRA-CFS-11",
+      "actor_id": "workflow.workflow-baseline",
+      "target_id": "JRA-CFS-11",
+      "participant_ids": [
+        "JRA-CFS-11"
+      ],
+      "subject": "Backup dispatch routing",
+      "normalized_subject": "backup dispatch routing",
+      "snippet": "WO-CFS-100 reassigned. Technician: TECH-CFS-02. Backup controls technician assigned and VIP appointment stabilized.",
+      "search_terms": [
+        "CFS-100",
+        "CFS-02",
+        "CFS-11",
+        "backup",
+        "dispatch",
+        "routing",
+        "wo-cfs-100",
+        "reassigned.",
+        "technician:",
+        "tech-cfs-02.",
+        "controls",
+        "technician",
+        "assigned",
+        "and",
+        "vip",
+        "appointment",
+        "stabilized.",
+        "jra-cfs-11",
+        "workflow_baseline-call-2",
+        "workflow.workflow-baseline"
+      ],
+      "provider_object_refs": [
+        "JRA-CFS-11",
+        "workflow_baseline-call-2"
+      ],
+      "stitch_confidence": 0.98,
+      "stitch_basis": "explicit_token",
+      "internal_external": "internal",
+      "metadata": {
+        "comment_id": "workflow_baseline-call-2"
+      }
+    },
+    {
+      "event_id": "history_1314cd63cbdf9bc9",
+      "timestamp": "2026-04-19T04:12:00.086850Z",
+      "ts_ms": 1776571920086,
+      "timestamp_quality": "exact",
+      "surface": "docs",
+      "provider": "google",
+      "kind": "document",
+      "domain": "doc_graph",
+      "case_id": "case:DOC-CFS-VIP",
+      "thread_ref": "docs:DOC-CFS-VIP",
+      "conversation_anchor": "DOC-CFS-VIP",
+      "actor_id": "",
+      "target_id": "DOC-CFS-VIP",
+      "participant_ids": [
+        "DOC-CFS-VIP"
+      ],
+      "subject": "VIP Account Brief",
+      "normalized_subject": "vip account brief",
+      "snippet": "Clearwater Medical Plaza is a high-retention account with escalation coverage and executive visibility.",
+      "search_terms": [
+        "DOC-CFS-VIP",
+        "vip",
+        "account",
+        "brief",
+        "clearwater",
+        "medical",
+        "plaza",
+        "high-retention",
+        "with",
+        "escalation",
+        "coverage",
+        "and",
+        "executive",
+        "visibility.",
+        "doc-cfs-vip"
+      ],
+      "provider_object_refs": [
+        "DOC-CFS-VIP"
+      ],
+      "stitch_confidence": 0.98,
+      "stitch_basis": "explicit_token",
+      "internal_external": "internal",
+      "metadata": {
+        "mime_type": ""
+      }
+    },
+    {
+      "event_id": "history_8ff985dfd19ddca3",
+      "timestamp": "2026-04-19T04:12:00.086850Z",
+      "ts_ms": 1776571920086,
+      "timestamp_quality": "exact",
+      "surface": "tickets",
+      "provider": "jira",
+      "kind": "open",
+      "domain": "work_graph",
+      "case_id": "case:CFS-13",
+      "thread_ref": "tickets:JRA-CFS-13",
+      "conversation_anchor": "JRA-CFS-13",
+      "actor_id": "field.manager",
+      "target_id": "JRA-CFS-13",
+      "participant_ids": [
+        "JRA-CFS-13"
+      ],
+      "subject": "Tech roster refresh",
+      "normalized_subject": "tech roster refresh",
+      "snippet": "Tech roster refresh",
+      "search_terms": [
+        "CFS-13",
+        "tech",
+        "roster",
+        "refresh",
+        "jra-cfs-13",
+        "field.manager"
+      ],
+      "provider_object_refs": [
+        "JRA-CFS-13"
+      ],
+      "stitch_confidence": 0.98,
+      "stitch_basis": "explicit_token",
+      "internal_external": "internal",
+      "metadata": {
+        "status": "open"
+      }
+    },
+    {
+      "event_id": "history_c0b502ce3364712d",
+      "timestamp": "2026-04-19T04:12:00.086850Z",
+      "ts_ms": 1776571920086,
+      "timestamp_quality": "exact",
+      "surface": "tickets",
+      "provider": "jira",
+      "kind": "closed",
+      "domain": "work_graph",
+      "case_id": "case:CFS-14",
+      "thread_ref": "tickets:JRA-CFS-14",
+      "conversation_anchor": "JRA-CFS-14",
+      "actor_id": "dispatch.coordinator",
+      "target_id": "JRA-CFS-14",
+      "participant_ids": [
+        "JRA-CFS-14"
+      ],
+      "subject": "Routine PM follow-up",
+      "normalized_subject": "routine pm follow-up",
+      "snippet": "Routine PM follow-up",
+      "search_terms": [
+        "CFS-14",
+        "routine",
+        "follow-up",
+        "jra-cfs-14",
+        "dispatch.coordinator"
+      ],
+      "provider_object_refs": [
+        "JRA-CFS-14"
+      ],
+      "stitch_confidence": 0.98,
+      "stitch_basis": "explicit_token",
+      "internal_external": "internal",
+      "metadata": {
+        "status": "closed"
+      }
+    },
+    {
+      "event_id": "history_59dd2f73ca68b598",
+      "timestamp": "2026-04-19T04:12:01.111000Z",
+      "ts_ms": 1776571921111,
+      "timestamp_quality": "exact",
+      "surface": "docs",
+      "provider": "google",
+      "kind": "document",
+      "domain": "doc_graph",
+      "case_id": "case:CFS-402",
+      "thread_ref": "docs:DOC-CFS-BILLING",
+      "conversation_anchor": "DOC-CFS-BILLING",
+      "actor_id": "",
+      "target_id": "DOC-CFS-BILLING",
+      "participant_ids": [
+        "DOC-CFS-BILLING"
+      ],
+      "subject": "Clearwater Billing Notes",
+      "normalized_subject": "clearwater billing notes",
+      "snippet": "INV-CFS-402 dispute remains open.\nCollections notice should be held until finance review is complete.",
+      "search_terms": [
+        "CFS-402",
+        "DOC-CFS-BILLING",
+        "clearwater",
+        "billing",
+        "notes",
+        "inv-cfs-402",
+        "dispute",
+        "remains",
+        "open.",
+        "collections",
+        "notice",
+        "should",
+        "held",
+        "until",
+        "finance",
+        "review",
+        "complete.",
+        "doc-cfs-billing"
+      ],
+      "provider_object_refs": [
+        "DOC-CFS-BILLING"
+      ],
+      "stitch_confidence": 0.98,
+      "stitch_basis": "explicit_token",
+      "internal_external": "internal",
+      "metadata": {
+        "mime_type": ""
+      }
+    },
+    {
+      "event_id": "history_f651c2064b27680c",
+      "timestamp": "2026-04-19T04:12:01.111000Z",
+      "ts_ms": 1776571921111,
+      "timestamp_quality": "exact",
+      "surface": "docs",
+      "provider": "google",
+      "kind": "comment",
+      "domain": "doc_graph",
+      "case_id": "case:CFS-100",
+      "thread_ref": "docs:DOC-CFS-BILLING",
+      "conversation_anchor": "DOC-CFS-BILLING",
+      "actor_id": "workflow.workflow-baseline",
+      "target_id": "DOC-CFS-BILLING",
+      "participant_ids": [
+        "DOC-CFS-BILLING"
+      ],
+      "subject": "Clearwater Billing Notes",
+      "normalized_subject": "clearwater billing notes",
+      "snippet": "BILL-CFS-100 placed on billing hold. Billing remains stable while dispatch recovers the technician gap.",
+      "search_terms": [
+        "CFS-100",
+        "DOC-CFS-BILLING",
+        "clearwater",
+        "billing",
+        "notes",
+        "bill-cfs-100",
+        "placed",
+        "hold.",
+        "remains",
+        "stable",
+        "while",
+        "dispatch",
+        "recovers",
+        "the",
+        "technician",
+        "gap.",
+        "doc-cfs-billing",
+        "workflow_baseline-call-3",
+        "workflow.workflow-baseline"
+      ],
+      "provider_object_refs": [
+        "DOC-CFS-BILLING",
+        "workflow_baseline-call-3"
+      ],
+      "stitch_confidence": 0.98,
+      "stitch_basis": "explicit_token",
+      "internal_external": "internal",
+      "metadata": {
+        "comment_id": "workflow_baseline-call-3"
+      }
+    },
+    {
+      "event_id": "history_86e03b1baacf5814",
+      "timestamp": "2026-04-19T04:12:01.111000Z",
+      "ts_ms": 1776571921111,
+      "timestamp_quality": "exact",
+      "surface": "tickets",
+      "provider": "jira",
+      "kind": "review",
+      "domain": "work_graph",
+      "case_id": "case:CFS-12",
+      "thread_ref": "tickets:JRA-CFS-12",
+      "conversation_anchor": "JRA-CFS-12",
+      "actor_id": "billing.lead",
+      "target_id": "JRA-CFS-12",
+      "participant_ids": [
+        "JRA-CFS-12"
+      ],
+      "subject": "Billing dispute follow-through",
+      "normalized_subject": "billing dispute follow-through",
+      "snippet": "Billing dispute follow-through",
+      "search_terms": [
+        "CFS-12",
+        "billing",
+        "dispute",
+        "follow-through",
+        "jra-cfs-12",
+        "billing.lead"
+      ],
+      "provider_object_refs": [
+        "JRA-CFS-12"
+      ],
+      "stitch_confidence": 0.98,
+      "stitch_basis": "explicit_token",
+      "internal_external": "internal",
+      "metadata": {
+        "status": "review"
+      }
+    },
+    {
+      "event_id": "history_d9163b0ad3c9509a",
+      "timestamp": "2026-04-19T04:12:01.111000Z",
+      "ts_ms": 1776571921111,
+      "timestamp_quality": "exact",
+      "surface": "tickets",
+      "provider": "jira",
+      "kind": "comment",
+      "domain": "work_graph",
+      "case_id": "case:CFS-12",
+      "thread_ref": "tickets:JRA-CFS-12",
+      "conversation_anchor": "JRA-CFS-12",
+      "actor_id": "workflow.workflow-baseline",
+      "target_id": "JRA-CFS-12",
+      "participant_ids": [
+        "JRA-CFS-12"
+      ],
+      "subject": "Billing dispute follow-through",
+      "normalized_subject": "billing dispute follow-through",
+      "snippet": "BILL-CFS-100 placed on billing hold. Billing remains stable while dispatch recovers the technician gap.",
+      "search_terms": [
+        "CFS-100",
+        "CFS-12",
+        "billing",
+        "dispute",
+        "follow-through",
+        "bill-cfs-100",
+        "placed",
+        "hold.",
+        "remains",
+        "stable",
+        "while",
+        "dispatch",
+        "recovers",
+        "the",
+        "technician",
+        "gap.",
+        "jra-cfs-12",
+        "workflow_baseline-call-3",
+        "workflow.workflow-baseline"
+      ],
+      "provider_object_refs": [
+        "JRA-CFS-12",
+        "workflow_baseline-call-3"
+      ],
+      "stitch_confidence": 0.98,
+      "stitch_basis": "explicit_token",
+      "internal_external": "internal",
+      "metadata": {
+        "comment_id": "workflow_baseline-call-3"
+      }
+    },
+    {
+      "event_id": "history_3b5d782eb5e6a87c",
+      "timestamp": "2026-04-19T04:12:02.127000Z",
+      "ts_ms": 1776571922127,
+      "timestamp_quality": "exact",
+      "surface": "docs",
+      "provider": "google",
+      "kind": "comment",
+      "domain": "doc_graph",
+      "case_id": "case:CFS-101",
+      "thread_ref": "docs:DOC-CFS-HANDOFF",
+      "conversation_anchor": "DOC-CFS-HANDOFF",
+      "actor_id": "workflow.workflow-baseline",
+      "target_id": "DOC-CFS-HANDOFF",
+      "participant_ids": [
+        "DOC-CFS-HANDOFF"
+      ],
+      "subject": "Field-To-Billing Handoff Note",
+      "normalized_subject": "field-to-billing handoff note",
+      "snippet": "EXC-CFS-101 cleared. Billing remains stable while dispatch recovers the technician gap.",
+      "search_terms": [
+        "CFS-101",
+        "DOC-CFS-HANDOFF",
+        "field-to-billing",
+        "handoff",
+        "note",
+        "exc-cfs-101",
+        "cleared.",
+        "billing",
+        "remains",
+        "stable",
+        "while",
+        "dispatch",
+        "recovers",
+        "the",
+        "technician",
+        "gap.",
+        "doc-cfs-handoff",
+        "workflow_baseline-call-4",
+        "workflow.workflow-baseline"
+      ],
+      "provider_object_refs": [
+        "DOC-CFS-HANDOFF",
+        "workflow_baseline-call-4"
+      ],
+      "stitch_confidence": 0.98,
+      "stitch_basis": "explicit_token",
+      "internal_external": "internal",
+      "metadata": {
+        "comment_id": "workflow_baseline-call-4"
+      }
+    },
+    {
+      "event_id": "history_f698bb083356fa0e",
+      "timestamp": "2026-04-19T04:12:02.127000Z",
+      "ts_ms": 1776571922127,
+      "timestamp_quality": "exact",
+      "surface": "tickets",
+      "provider": "jira",
+      "kind": "comment",
+      "domain": "work_graph",
+      "case_id": "case:CFS-10",
+      "thread_ref": "tickets:JRA-CFS-10",
+      "conversation_anchor": "JRA-CFS-10",
+      "actor_id": "workflow.workflow-baseline",
+      "target_id": "JRA-CFS-10",
+      "participant_ids": [
+        "JRA-CFS-10"
+      ],
+      "subject": "VIP outage command thread",
+      "normalized_subject": "vip outage command thread",
+      "snippet": "EXC-CFS-101 cleared. Billing remains stable while dispatch recovers the technician gap.",
+      "search_terms": [
+        "CFS-101",
+        "CFS-10",
+        "vip",
+        "outage",
+        "command",
+        "thread",
+        "exc-cfs-101",
+        "cleared.",
+        "billing",
+        "remains",
+        "stable",
+        "while",
+        "dispatch",
+        "recovers",
+        "the",
+        "technician",
+        "gap.",
+        "jra-cfs-10",
+        "workflow_baseline-call-4",
+        "workflow.workflow-baseline"
+      ],
+      "provider_object_refs": [
+        "JRA-CFS-10",
+        "workflow_baseline-call-4"
+      ],
+      "stitch_confidence": 0.98,
+      "stitch_basis": "explicit_token",
+      "internal_external": "internal",
+      "metadata": {
+        "comment_id": "workflow_baseline-call-4"
+      }
+    },
+    {
+      "event_id": "history_52dbc9989f6e625b",
+      "timestamp": "2026-04-19T04:12:03.164000Z",
+      "ts_ms": 1776571923164,
+      "timestamp_quality": "exact",
+      "surface": "docs",
+      "provider": "google",
+      "kind": "document",
+      "domain": "doc_graph",
+      "case_id": "case:DOC-CFS-HANDOFF",
+      "thread_ref": "docs:DOC-CFS-HANDOFF",
+      "conversation_anchor": "DOC-CFS-HANDOFF",
+      "actor_id": "",
+      "target_id": "DOC-CFS-HANDOFF",
+      "participant_ids": [
+        "DOC-CFS-HANDOFF"
+      ],
+      "subject": "Field-To-Billing Handoff Note",
+      "normalized_subject": "field-to-billing handoff note",
+      "snippet": "Update after dispatch is confirmed so billing and account teams see the same timeline.",
+      "search_terms": [
+        "DOC-CFS-HANDOFF",
+        "field-to-billing",
+        "handoff",
+        "note",
+        "update",
+        "after",
+        "dispatch",
+        "confirmed",
+        "billing",
+        "and",
+        "account",
+        "teams",
+        "see",
+        "the",
+        "same",
+        "timeline.",
+        "doc-cfs-handoff"
+      ],
+      "provider_object_refs": [
+        "DOC-CFS-HANDOFF"
+      ],
+      "stitch_confidence": 0.98,
+      "stitch_basis": "explicit_token",
+      "internal_external": "internal",
+      "metadata": {
+        "mime_type": ""
+      }
+    },
+    {
+      "event_id": "history_b6949848a557287d",
+      "timestamp": "2026-04-19T04:12:03.164000Z",
+      "ts_ms": 1776571923164,
+      "timestamp_quality": "exact",
+      "surface": "docs",
+      "provider": "google",
+      "kind": "comment",
+      "domain": "doc_graph",
+      "case_id": "case:DOC-CFS-HANDOFF",
+      "thread_ref": "docs:DOC-CFS-HANDOFF",
+      "conversation_anchor": "DOC-CFS-HANDOFF",
+      "actor_id": "workflow.workflow-baseline",
+      "target_id": "DOC-CFS-HANDOFF",
+      "participant_ids": [
+        "DOC-CFS-HANDOFF"
+      ],
+      "subject": "Field-To-Billing Handoff Note",
+      "normalized_subject": "field-to-billing handoff note",
+      "snippet": "DOC-CFS-HANDOFF updated. Backup dispatch assigned, billing hold linked to the dispute, and field-to-billing handoff aligned.",
+      "search_terms": [
+        "DOC-CFS-HANDOFF",
+        "field-to-billing",
+        "handoff",
+        "note",
+        "doc-cfs-handoff",
+        "updated.",
+        "backup",
+        "dispatch",
+        "assigned,",
+        "billing",
+        "hold",
+        "linked",
+        "the",
+        "dispute,",
+        "and",
+        "aligned.",
+        "workflow_baseline-call-5",
+        "workflow.workflow-baseline"
+      ],
+      "provider_object_refs": [
+        "DOC-CFS-HANDOFF",
+        "workflow_baseline-call-5"
+      ],
+      "stitch_confidence": 0.98,
+      "stitch_basis": "explicit_token",
+      "internal_external": "internal",
+      "metadata": {
+        "comment_id": "workflow_baseline-call-5"
+      }
+    },
+    {
+      "event_id": "history_58959d30385f33ae",
+      "timestamp": "2026-04-19T04:12:03.164000Z",
+      "ts_ms": 1776571923164,
+      "timestamp_quality": "exact",
+      "surface": "tickets",
+      "provider": "jira",
+      "kind": "open",
+      "domain": "work_graph",
+      "case_id": "case:CFS-10",
+      "thread_ref": "tickets:JRA-CFS-10",
+      "conversation_anchor": "JRA-CFS-10",
+      "actor_id": "maya.ops",
+      "target_id": "JRA-CFS-10",
+      "participant_ids": [
+        "JRA-CFS-10"
+      ],
+      "subject": "VIP outage command thread",
+      "normalized_subject": "vip outage command thread",
+      "snippet": "VIP outage command thread",
+      "search_terms": [
+        "CFS-10",
+        "vip",
+        "outage",
+        "command",
+        "thread",
+        "jra-cfs-10",
+        "maya.ops"
+      ],
+      "provider_object_refs": [
+        "JRA-CFS-10"
+      ],
+      "stitch_confidence": 0.98,
+      "stitch_basis": "explicit_token",
+      "internal_external": "internal",
+      "metadata": {
+        "status": "open"
+      }
+    },
+    {
+      "event_id": "history_2c78d2a365fae82f",
+      "timestamp": "2026-04-19T04:12:03.164000Z",
+      "ts_ms": 1776571923164,
+      "timestamp_quality": "exact",
+      "surface": "tickets",
+      "provider": "jira",
+      "kind": "comment",
+      "domain": "work_graph",
+      "case_id": "case:CFS-10",
+      "thread_ref": "tickets:JRA-CFS-10",
+      "conversation_anchor": "JRA-CFS-10",
+      "actor_id": "workflow.workflow-baseline",
+      "target_id": "JRA-CFS-10",
+      "participant_ids": [
+        "JRA-CFS-10"
+      ],
+      "subject": "VIP outage command thread",
+      "normalized_subject": "vip outage command thread",
+      "snippet": "DOC-CFS-HANDOFF updated. Backup dispatch assigned, billing hold linked to the dispute, and field-to-billing handoff aligned.",
+      "search_terms": [
+        "CFS-10",
+        "DOC-CFS-HANDOFF",
+        "vip",
+        "outage",
+        "command",
+        "thread",
+        "doc-cfs-handoff",
+        "updated.",
+        "backup",
+        "dispatch",
+        "assigned,",
+        "billing",
+        "hold",
+        "linked",
+        "the",
+        "dispute,",
+        "and",
+        "field-to-billing",
+        "handoff",
+        "aligned.",
+        "jra-cfs-10",
+        "workflow_baseline-call-5",
+        "workflow.workflow-baseline"
+      ],
+      "provider_object_refs": [
+        "JRA-CFS-10",
+        "workflow_baseline-call-5"
+      ],
+      "stitch_confidence": 0.98,
+      "stitch_basis": "explicit_token",
+      "internal_external": "internal",
+      "metadata": {
+        "comment_id": "workflow_baseline-call-5"
+      }
+    }
+  ]
+}

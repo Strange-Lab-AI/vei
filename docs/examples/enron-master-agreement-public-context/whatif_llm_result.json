@@ -3,43 +3,43 @@
   "provider": "openai",
   "model": "gpt-5-mini",
   "prompt": "Keep the draft inside Enron, ask Gerald Nemec and Sara Shackleton for review, and hold the outside send.",
-  "summary": "Instead of sending the draft Master Firm Purchase/Sale Agreement to Cargill, Debra retains the draft inside Enron and requests internal review by Gerald Nemec and Sara Shackleton, instructing that no external transmission be made until internal comments are consolidated.",
+  "summary": "Debra Perlingiere withholds the draft Master Firm Purchase/Sale Agreement from external distribution and routes it internally for review by Gerald Nemec and Sara Shackleton, asking both to hold any external send to Cargill until internal comments are resolved.",
   "messages": [
     {
       "actor_id": "debra.perlingiere@enron.com",
       "surface": "mail",
       "to": "gerald.nemec@enron.com",
-      "subject": "Master Agreement — draft for internal review (hold external send)",
-      "body_text": "Gerald — Attached is a draft Master Firm Purchase/Sale Agreement intended for Cargill. I'm keeping the draft inside Enron for now. Please review the commercial terms, assignment/termination language, and any operational or tax concerns and provide comments or redlines. Do not send this externally; I will consolidate internal comments. Please reply by end of week. Thanks, Debra",
-      "delay_ms": 120000,
+      "subject": "Master Agreement — internal review (do not send outside)",
+      "body_text": "Gerald,\n\nAttached is a draft Master Firm Purchase/Sale Agreement between Enron North America and Cargill. Please review for legal and commercial issues and send me any comments. IMPORTANT: do not forward this to Cargill or any outside party yet — I'm holding external distribution until we resolve internal issues (including credit).\n\nPlease let me know if you want to discuss by phone. Target for initial comments: three business days.\n\nRegards,\nDebra Perlingiere\nEnron Legal",
+      "delay_ms": 60000,
       "conversation_anchor": "",
-      "rationale": "Diverted from sending to the external counterparty; solicit Gerald's commercial/operational review and hold any outside transmission."
+      "rationale": "Keep the draft internal for Enron legal/commercial review and prevent premature external transmission."
     },
     {
       "actor_id": "debra.perlingiere@enron.com",
       "surface": "mail",
       "to": "sara.shackleton@enron.com",
-      "subject": "Master Agreement — draft for internal legal/credit review (hold send)",
-      "body_text": "Sara — Attached is the draft Master Firm Purchase/Sale Agreement (Cargill). Please review the credit provisions, indemnities, bankruptcy and liability language, and advise on any revisions needed. I'm holding the outside send to Cargill until we've consolidated internal legal comments. Target return: end of week. Thanks, Debra",
-      "delay_ms": 240000,
+      "subject": "Master Agreement — internal review (do not send outside)",
+      "body_text": "Sara,\n\nPlease review the attached Master Firm Purchase/Sale Agreement (Enron NA — Cargill) for regulatory/compliance concerns and any wording you think needs attention. I am holding off sending this to the counterparty until we complete internal review. Please provide any edits or clearance notes; call me if needed. Target: three business days for initial feedback.\n\nThanks,\nDebra",
+      "delay_ms": 120000,
       "conversation_anchor": "",
-      "rationale": "Request Sara's legal and credit-focused review while withholding the draft from the external recipient until internal clearance is obtained."
+      "rationale": "Obtain Sara's regulatory and compliance review and explicitly hold external distribution until internal clearance is complete."
     }
   ],
   "usage": {
     "provider": "openai",
     "model": "gpt-5-mini",
-    "prompt_tokens": 2127,
-    "completion_tokens": 4526,
-    "total_tokens": 6653,
-    "estimated_cost_usd": 0.00958375
+    "prompt_tokens": 2323,
+    "completion_tokens": 4206,
+    "total_tokens": 6529,
+    "estimated_cost_usd": 0.00899275
   },
   "scheduled_event_count": 2,
   "delivered_event_count": 2,
   "inbox_count": 4,
   "top_subjects": [
-    "Master Agreement — draft for internal legal/credit review (hold send)",
-    "Master Agreement — draft for internal review (hold external send)",
+    "Master Agreement — internal review (do not send outside)",
+    "Master Agreement — internal review (do not send outside)",
     "Master Agreement",
     "Master Agreement"
   ],

@@ -1,0 +1,36 @@
+{
+  "manifest_version": 1,
+  "bundle_slug": "enron-master-agreement-public-context",
+  "title": "Enron Master Agreement Example",
+  "organization_name": "Enron Corporation",
+  "source_mode": "real_history",
+  "benchmark_role": "headline",
+  "lead": "This example keeps the original Master Agreement branch point in the repo, now with the wider Enron macro context and the newer stock, credit, and regulatory fixtures attached.",
+  "branch_point": "Debra Perlingiere is about to send the Master Agreement draft to Cargill on September 27, 2000.",
+  "branch_timestamp": "2000-09-27",
+  "history_event_count": 30,
+  "future_event_count": 84,
+  "source_families": [
+    "disclosure",
+    "filing",
+    "financial",
+    "mail",
+    "market",
+    "news"
+  ],
+  "domains": [
+    "governance",
+    "internal",
+    "obs_graph"
+  ],
+  "forecast_file": "whatif_reference_result.json",
+  "top_candidate": "Hold for internal review",
+  "workspace_root": "/Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/docs/examples/enron-master-agreement-public-context/workspace",
+  "ui_command": "vei ui serve \\\n  --root /Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/docs/examples/enron-master-agreement-public-context/workspace \\\n  --host 127.0.0.1 \\\n  --port 3055",
+  "files": {
+    "overview": "enron_story_overview.md",
+    "exports_preview": "enron_exports_preview.json",
+    "presentation_manifest": "enron_presentation_manifest.json",
+    "presentation_guide": "enron_presentation_guide.md"
+  }
+}

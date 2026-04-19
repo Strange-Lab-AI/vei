@@ -1,0 +1,77 @@
+{
+  "opening_hook": "Open a real Enron branch with the mail thread, the dated public-company timeline, and the learned reference forecast already lined up.",
+  "demo_goal": "Show that the Enron flagship is a real-history, multi-source what-if bundle on the shared canonical timeline.",
+  "presenter_setup": {
+    "organization_name": "Enron Corporation",
+    "bundle_slug": "enron-pge-power-deal",
+    "workspace_root": "/Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/docs/examples/enron-pge-power-deal/workspace",
+    "ui_command": "vei ui serve \\\n  --root /Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/docs/examples/enron-pge-power-deal/workspace \\\n  --host 127.0.0.1 \\\n  --port 3055"
+  },
+  "primitives": [
+    {
+      "name": "Historical Branch",
+      "current_value": "Sara Shackleton is moving a PG&E financial power deal while the counterparty's macro-credit picture is deteriorating.",
+      "what_it_means": "One real dated branch point from the Enron archive."
+    },
+    {
+      "name": "Timeline",
+      "current_value": "disclosure, financial, market",
+      "what_it_means": "Mail plus dated public-company context on one shared chronology."
+    },
+    {
+      "name": "Forecast",
+      "current_value": "whatif_reference_result.json",
+      "what_it_means": "Repo-owned learned reference result that ships with the bundle."
+    }
+  ],
+  "beats": [
+    {
+      "title": "Open the saved bundle",
+      "studio_view": "whatif",
+      "operator_action": "Start in Studio with the saved Enron workspace open.",
+      "read_it_as": "This is a repo-owned real-history branch, not a synthetic script."
+    },
+    {
+      "title": "Show the mixed timeline",
+      "studio_view": "timeline",
+      "operator_action": "Filter the Company Timeline and point out mail plus public-context rows before the branch.",
+      "read_it_as": "The branch lives inside one shared chronology rather than beside detached side panels."
+    },
+    {
+      "title": "Anchor the real decision",
+      "studio_view": "whatif",
+      "operator_action": "Read the branch point and why this thread matters.",
+      "read_it_as": "The choice is concrete and dated, and the saved bundle keeps the real lead-up in view."
+    },
+    {
+      "title": "Show the candidate ranking",
+      "studio_view": "whatif",
+      "operator_action": "Open the ranked comparison and call out the current top candidate.",
+      "read_it_as": "The current saved winner is Hold for credit re-check."
+    },
+    {
+      "title": "Show the learned forecast",
+      "studio_view": "whatif",
+      "operator_action": "Open the saved forecast panel and keep the reference backend visible.",
+      "read_it_as": "The shipped learned path is the default saved result for this bundle."
+    },
+    {
+      "title": "Keep the macro claims narrow",
+      "studio_view": "whatif",
+      "operator_action": "Point at the public-company slice and note the current calibration caveat.",
+      "read_it_as": "The macro fields stay advisory context beside the real thread evidence."
+    },
+    {
+      "title": "Close on the shared product surface",
+      "studio_view": "whatif",
+      "operator_action": "End on the bundle files and export preview.",
+      "read_it_as": "The same saved bundle now carries the branch, the chronology, the forecast, and the demo guide in one place."
+    }
+  ],
+  "closing_argument": "Enron is the real-history flagship because the bundle now opens as one coherent branch scene with the chronology, the learned forecast, and the dated public context already attached.",
+  "operator_commands": [
+    "vei ui serve \\\n  --root /Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/docs/examples/enron-pge-power-deal/workspace \\\n  --host 127.0.0.1 \\\n  --port 3055",
+    "python scripts/build_enron_example_bundles.py --bundle enron-pge-power-deal",
+    "python scripts/validate_enron_example_bundles.py --root /Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/docs/examples"
+  ]
+}

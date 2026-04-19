@@ -1,0 +1,16 @@
+{
+  "version": "1",
+  "pack_name": "cfs_example_com_public_context",
+  "organization_name": "Clearwater Field Services",
+  "organization_domain": "cfs.example.com",
+  "prepared_at": "",
+  "integration_hint": "",
+  "window_start": "",
+  "window_end": "",
+  "branch_timestamp": "2026-04-19T04:11:46.111000Z",
+  "financial_snapshots": [],
+  "public_news_events": [],
+  "stock_history": [],
+  "credit_history": [],
+  "ferc_history": []
+}

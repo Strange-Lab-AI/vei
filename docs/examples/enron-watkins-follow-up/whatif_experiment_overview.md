@@ -25,32 +25,32 @@ Prompt: Escalate the follow-up note to Ken Lay, the audit committee, and interna
 
 ## LLM Actor
 - Status: ok
-- Summary: Sherron Watkins escalates the Aug 22 questions to Ken Lay, the audit committee, and internal legal, instructing preservation of the written record and pausing any broad reassurance until accounting and legal have reviewed.
+- Summary: Sherron escalates her Aug 22 follow-up to internal legal and requests immediate notification of Ken Lay and the Audit Committee; legal/audit instruct management to preserve all related records and to pause any broad reassurance or public statements until the accounting questions are reviewed.
 - Delivered actions: 2
 - Inbox count: 3
-- `mail` `sherron.watkins@enron.com` -> `.schuler@enron.com` after 60000 ms: The key questions I asked Lay on Aug 22 — escalation
-- `mail` `sherron.watkins@enron.com` -> `e..haedicke@enron.com` after 120000 ms: The key questions I asked Lay on Aug 22 — legal preservation and communications
+- `mail` `sherron.watkins@enron.com` -> `e..haedicke@enron.com` after 1000 ms: Escalation: Follow-up on questions I raised to Ken Lay (Aug 22) — preserve record; hold public reassurance
+- `mail` `group:6e7dcb485343bd1d` -> `.schuler@enron.com` after 60000 ms: Re: Escalation re Aug 22 questions — hold on public statements; preserve records
 
 ## Forecast
 - Status: ok
-- Backend: heuristic_baseline
-- Summary: Predicted risk moves down by 0.020, with escalation delta 0 and external-send delta 0.
+- Backend: reference
+- Summary: reference forecast completed.
 - Baseline risk: 0.02
-- Predicted risk: 0.0
-- External-send delta: 0
+- Predicted risk: 0.75
+- External-send delta: 1
 - Escalation delta: 0
 
 ## Business State Change
-- Summary: Much higher approval and escalation pressure.
+- Summary: Much higher exposure risk.
 - Confidence: medium
-- Net effect score: -0.102
-- Much higher approval and escalation pressure.
-- Much higher internal handling load.
-- Much higher execution delay.
-- Moderately weaker relationship stability.
-- Containment stays close to the historical path.
-- Internal handling looks much heavier.
-- Near-term execution looks slower.
+- Net effect score: -0.255
+- Much higher exposure risk.
+- Much weaker commercial position.
+- Much weaker relationship stability.
+- Execution delay stays close to the historical path.
+- The thread looks easier to leak or widen.
+- Handling burden stays close to the historical path.
+- Execution pace stays close to the historical path.
 
 ## Macro Outcomes
 - Stock return (5d): -0.1912 -> -0.2012 (delta -0.01)

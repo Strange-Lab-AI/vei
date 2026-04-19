@@ -1,0 +1,36 @@
+{
+  "manifest_version": 1,
+  "bundle_slug": "enron-watkins-follow-up",
+  "title": "Enron Watkins Follow-up Example",
+  "organization_name": "Enron Corporation",
+  "source_mode": "real_history",
+  "benchmark_role": "headline",
+  "lead": "This example uses the October 30 follow-up note that is actually in the archive. The original August 22 Watkins memo is not present in this Rosetta cut, so the saved branch starts from the later note that restates the questions she says she raised to Ken Lay.",
+  "branch_point": "Sherron Watkins is writing a follow-up note that preserves her account of the questions she says she raised to Ken Lay on August 22, while the company is already in the public disclosure spiral.",
+  "branch_timestamp": "2001-10-30",
+  "history_event_count": 36,
+  "future_event_count": 1,
+  "source_families": [
+    "credit",
+    "disclosure",
+    "filing",
+    "financial",
+    "governance",
+    "news",
+    "regulatory"
+  ],
+  "domains": [
+    "governance",
+    "obs_graph"
+  ],
+  "forecast_file": "whatif_reference_result.json",
+  "top_candidate": "Send the warning anonymously",
+  "workspace_root": "/Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/docs/examples/enron-watkins-follow-up/workspace",
+  "ui_command": "vei ui serve \\\n  --root /Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/docs/examples/enron-watkins-follow-up/workspace \\\n  --host 127.0.0.1 \\\n  --port 3055",
+  "files": {
+    "overview": "enron_story_overview.md",
+    "exports_preview": "enron_exports_preview.json",
+    "presentation_manifest": "enron_presentation_manifest.json",
+    "presentation_guide": "enron_presentation_guide.md"
+  }
+}

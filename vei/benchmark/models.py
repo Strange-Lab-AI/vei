@@ -39,6 +39,8 @@ class BenchmarkFamilyManifest(BaseModel):
     name: str
     title: str
     description: str
+    benchmark_role: Literal["headline", "smoke"] = "headline"
+    include_in_default_suite: bool = True
     workflow_name: Optional[str] = None
     primary_workflow_variant: Optional[str] = None
     workflow_variants: List[str] = Field(default_factory=list)

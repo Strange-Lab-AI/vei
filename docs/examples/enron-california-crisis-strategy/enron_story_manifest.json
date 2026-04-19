@@ -1,0 +1,36 @@
+{
+  "manifest_version": 1,
+  "bundle_slug": "enron-california-crisis-strategy",
+  "title": "Enron California Crisis Strategy Example",
+  "organization_name": "Enron Corporation",
+  "source_mode": "real_history",
+  "benchmark_role": "headline",
+  "lead": "This example moves the branch point into the California power-crisis conduct and lets the saved comparison sit inside the FERC and refund timeline that now ships with the repo.",
+  "branch_point": "Tim Belden's desk receives a preservation order tied to the California crisis while the trading strategy is still active.",
+  "branch_timestamp": "2000-12-15",
+  "history_event_count": 30,
+  "future_event_count": 4,
+  "source_families": [
+    "disclosure",
+    "filing",
+    "financial",
+    "mail",
+    "market",
+    "news"
+  ],
+  "domains": [
+    "governance",
+    "internal",
+    "obs_graph"
+  ],
+  "forecast_file": "whatif_reference_result.json",
+  "top_candidate": "Seek Skilling sign-off",
+  "workspace_root": "/Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/docs/examples/enron-california-crisis-strategy/workspace",
+  "ui_command": "vei ui serve \\\n  --root /Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/docs/examples/enron-california-crisis-strategy/workspace \\\n  --host 127.0.0.1 \\\n  --port 3055",
+  "files": {
+    "overview": "enron_story_overview.md",
+    "exports_preview": "enron_exports_preview.json",
+    "presentation_manifest": "enron_presentation_manifest.json",
+    "presentation_guide": "enron_presentation_guide.md"
+  }
+}

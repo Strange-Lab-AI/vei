@@ -7,6 +7,7 @@ from vei.benchmark.dimensions import score_enterprise_dimensions
 from vei.benchmark.families import (
     BenchmarkFamilyManifest,
     get_benchmark_family_manifest,
+    list_default_benchmark_family_manifest,
     list_benchmark_family_manifest,
 )
 from vei.benchmark.models import (
@@ -62,6 +63,7 @@ __all__ = [
     "BenchmarkShowcaseResult",
     "BenchmarkWorkflowVariantManifest",
     "get_benchmark_family_manifest",
+    "list_default_benchmark_family_manifest",
     "get_benchmark_family_workflow_spec",
     "get_benchmark_family_workflow_variant",
     "get_showcase_example",

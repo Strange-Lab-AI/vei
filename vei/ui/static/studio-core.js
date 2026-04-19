@@ -515,7 +515,7 @@ function currentFailureImpact() {
     if (!historical) {
       return "";
     }
-    return `${historical.history_message_count || 0} messages before the branch point and ${historical.future_event_count || 0} recorded future events after it.`;
+    return `${historical.history_message_count || 0} events before the branch point and ${historical.future_event_count || 0} recorded future events after it.`;
   }
   if (hasExerciseMode()) {
     const scenarioVariant = activeScenarioVariant();
@@ -1267,7 +1267,7 @@ function renderMissionSummary() {
         <h3>${escapeHtml(currentCrisisTitle())}</h3>
         <p class="metric-detail">${escapeHtml(currentCrisisSummary())}</p>
         <div class="chip-row">
-          ${chip(`${historical?.history_message_count || 0} prior messages`)}
+          ${chip(`${historical?.history_message_count || 0} prior events`)}
           ${chip(`${historical?.future_event_count || 0} future events`)}
           ${chip(branch.event_type || "branch event")}
         </div>

@@ -1,0 +1,130 @@
+{
+  "version": "1",
+  "pack_name": "enron_record_history",
+  "organization_name": "Enron Corporation",
+  "organization_domain": "enron.com",
+  "prepared_at": "2026-04-18T00:00:00Z",
+  "records": [
+    {
+      "record_id": "enron_1998_full_year_results",
+      "timestamp": "1998-01-20T00:00:00Z",
+      "source_family": "disclosure",
+      "surface": "governance",
+      "category": "earnings_release",
+      "headline": "Enron reports recurring earnings growth in 1997 and sets up 1998 growth platform",
+      "summary": "Archived year-end earnings release describing 1997 results and the company's 1998 growth posture.",
+      "source_url": "https://enroncorp.com/corp/pressroom/releases/1998/ene/ene4q97t.html",
+      "source_label": "Enron press release"
+    },
+    {
+      "record_id": "enron_1998_q2_results",
+      "timestamp": "1998-07-14T00:00:00Z",
+      "source_family": "disclosure",
+      "surface": "governance",
+      "category": "earnings_release",
+      "headline": "Enron reports second quarter 1998 earnings of $0.42 per share",
+      "summary": "Archived second-quarter 1998 earnings release describing continued wholesale growth and contract execution.",
+      "source_url": "https://enroncorp.com/corp/pressroom/releases/1998/ene/ene2q98t",
+      "source_label": "Enron press release"
+    },
+    {
+      "record_id": "enron_1998_q3_results",
+      "timestamp": "1998-10-13T00:00:00Z",
+      "source_family": "disclosure",
+      "surface": "governance",
+      "category": "earnings_release",
+      "headline": "Enron reports third quarter 1998 earnings and raises the annual dividend",
+      "summary": "Archived third-quarter 1998 earnings release covering wholesale growth, retail expansion, and dividend increase.",
+      "source_url": "https://enroncorp.com/corp/pressroom/releases/1998/ene/ene3q98t",
+      "source_label": "Enron press release"
+    },
+    {
+      "record_id": "enron_1999_q1_results",
+      "timestamp": "1999-04-13T00:00:00Z",
+      "source_family": "disclosure",
+      "surface": "governance",
+      "category": "earnings_release",
+      "headline": "Enron reports increased earnings results for the first quarter of 1999",
+      "summary": "Archived first-quarter 1999 earnings release describing wholesale strength, retail contracting, and growing credit-market exposure.",
+      "source_url": "https://enroncorp.com/corp/pressroom/releases/1999/ene/1q99ene",
+      "source_label": "Enron press release"
+    },
+    {
+      "record_id": "enron_2000_form_10k",
+      "timestamp": "2000-04-02T00:00:00Z",
+      "source_family": "filing",
+      "surface": "governance",
+      "category": "sec_filing",
+      "headline": "Enron files its Form 10-K for fiscal year 1999",
+      "summary": "Annual report and Form 10-K filing covering the fiscal year ended December 31, 1999.",
+      "source_url": "https://enroncorp.com/src/doc/investors/2001-04-02-10-k.pdf",
+      "source_label": "Enron Form 10-K"
+    },
+    {
+      "record_id": "enron_2001_pge_chapter11",
+      "timestamp": "2001-04-06T00:00:00Z",
+      "source_family": "filing",
+      "surface": "governance",
+      "category": "counterparty_bankruptcy",
+      "headline": "PG&E files for Chapter 11 protection",
+      "summary": "SEC filing record documenting PG&E's April 6, 2001 bankruptcy filing.",
+      "source_url": "https://www.sec.gov/Archives/edgar/data/1004980/000095014904000430/f95893ae10vk.htm",
+      "source_label": "SEC filing"
+    },
+    {
+      "record_id": "enron_2001_skilling_resignation",
+      "timestamp": "2001-08-14T00:00:00Z",
+      "source_family": "governance",
+      "surface": "governance",
+      "category": "executive_resignation",
+      "headline": "Jeffrey Skilling resigns as chief executive officer",
+      "summary": "Public resignation record that marks the executive transition during Enron's disclosure spiral.",
+      "source_url": "https://enroncorp.com/corp/pressroom/releases/2001/ene/skillingresign",
+      "source_label": "Enron press release"
+    },
+    {
+      "record_id": "enron_2001_california_refund_hearing",
+      "timestamp": "2001-11-19T00:00:00Z",
+      "source_family": "hearing",
+      "surface": "governance",
+      "category": "refund_hearing",
+      "headline": "FERC refund hearing record enters the California crisis timeline",
+      "summary": "Public hearing record covering the California refund dispute and Enron-era power-market conduct.",
+      "source_url": "https://www.ferc.gov/sites/default/files/2020-05/el00-95.pdf",
+      "source_label": "FERC hearing record"
+    },
+    {
+      "record_id": "enron_2001_chapter11",
+      "timestamp": "2001-12-02T00:00:00Z",
+      "source_family": "filing",
+      "surface": "governance",
+      "category": "bankruptcy_filing",
+      "headline": "Enron files for Chapter 11 bankruptcy protection",
+      "summary": "Public bankruptcy filing that anchors the collapse phase of the Enron timeline.",
+      "source_url": "https://www.sec.gov/Archives/edgar/data/1024401/000102440101500024/form8k.htm",
+      "source_label": "SEC filing"
+    },
+    {
+      "record_id": "enron_2002_watkins_memo_release",
+      "timestamp": "2002-01-30T00:00:00Z",
+      "source_family": "exhibit",
+      "surface": "docs",
+      "category": "memo_release",
+      "headline": "Congress releases the Watkins memo and related oversight material",
+      "summary": "Public release of the Watkins memo and related committee material during the collapse investigation.",
+      "source_url": "https://www.govinfo.gov/content/pkg/CHRG-107shrg85903/html/CHRG-107shrg85903.htm",
+      "source_label": "Congressional hearing record"
+    },
+    {
+      "record_id": "enron_2002_arthur_andersen_indictment",
+      "timestamp": "2002-03-14T00:00:00Z",
+      "source_family": "exhibit",
+      "surface": "governance",
+      "category": "indictment",
+      "headline": "Arthur Andersen is indicted over Enron-related document destruction",
+      "summary": "Public indictment record tied to the document-retention and destruction story around Enron.",
+      "source_url": "https://www.justice.gov/archive/opa/pr/2002/March/02_crm_169.htm",
+      "source_label": "Department of Justice press release"
+    }
+  ]
+}

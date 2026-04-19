@@ -1,0 +1,12 @@
+{
+  "name": "enron_record_history",
+  "version": "1",
+  "description": "Curated public Enron record history used to widen saved branch-local timelines with dated disclosure, hearing, and exhibit events.",
+  "artifacts": [
+    {
+      "artifact_id": "enron_record_history_v1",
+      "relative_path": "enron_record_history_v1.json",
+      "type": "dataset"
+    }
+  ]
+}

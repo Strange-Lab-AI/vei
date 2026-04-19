@@ -6,7 +6,7 @@ This example keeps the original Master Agreement branch point in the repo, now w
 
 ```bash
 vei ui serve \
-  --root docs/examples/enron-master-agreement-public-context/workspace \
+  --root /Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/docs/examples/enron-master-agreement-public-context/workspace \
   --host 127.0.0.1 \
   --port 3055
 ```
@@ -26,11 +26,13 @@ The wider public-company panel puts that narrow legal choice inside the larger E
 ## What This Example Covers
 
 - Historical branch point: Debra Perlingiere is about to send the Master Agreement draft to Cargill on September 27, 2000.
-- Saved branch scene: 6 prior messages and 84 recorded future events
+- Saved branch scene: 30 prior events and 84 recorded future events
 - Public-company slice at 2000-09-27: 5 financial checkpoints, 6 public news items, 679 market checkpoints, 0 credit checkpoints, and 0 regulatory checkpoints
+- Prior timeline source families: disclosure, filing, financial, mail, market, news
+- Prior timeline domains: governance, internal, obs_graph
 - Saved LLM path: Keep the draft inside Enron, ask Gerald Nemec and Sara Shackleton for review, and hold the outside send.
-- Saved forecast file: `whatif_heuristic_baseline_result.json`
-- Business-state readout: Much lower outside spread risk. Trade-off: Slightly higher internal handling load.
+- Saved forecast file: `whatif_reference_result.json`
+- Business-state readout: Slightly lower internal handling load. Trade-off: Slightly higher outside spread risk.
 - Top ranked candidate: Hold for internal review
 
 ## Saved Files
@@ -39,9 +41,14 @@ The wider public-company panel puts that narrow legal choice inside the larger E
 - `whatif_experiment_overview.md`: short human-readable run summary
 - `whatif_experiment_result.json`: saved combined result for the example bundle
 - `whatif_llm_result.json`: bounded message-path result
-- `whatif_heuristic_baseline_result.json`: saved forecast result
+- `whatif_reference_result.json`: saved forecast result
 - `whatif_business_state_comparison.md`: ranked comparison in business language
 - `whatif_business_state_comparison.json`: structured comparison payload
+- `enron_story_overview.md`: presenter-facing branch summary
+- `enron_story_manifest.json`: structured demo manifest
+- `enron_exports_preview.json`: export preview for timeline and forecast artifacts
+- `enron_presentation_manifest.json`: presentation beat manifest
+- `enron_presentation_guide.md`: operator guide for bundle demos
 
 ## Other Enron Examples
 

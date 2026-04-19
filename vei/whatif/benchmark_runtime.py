@@ -98,7 +98,7 @@ def run_branch_point_benchmark_prediction(
     request_output_root = (
         Path(output_root).expanduser().resolve()
         if output_root is not None
-        else checkpoint.parent
+        else _default_prediction_runtime_root(checkpoint)
     )
     request = {
         "checkpoint_path": str(checkpoint),
@@ -114,6 +114,15 @@ def run_branch_point_benchmark_prediction(
     return json.loads(response_path.read_text(encoding="utf-8"))
 
 
+def _default_prediction_runtime_root(checkpoint: Path) -> Path:
+    return (
+        Path.cwd().resolve()
+        / "_vei_out"
+        / "reference_backend_runtime"
+        / checkpoint.parent.name
+    )
+
+
 def _run_bridge_command(
     *,
     command_name: str,
@@ -124,7 +133,7 @@ def _run_bridge_command(
     runtime = resolve_ejepa_runtime(runtime_root)
     if runtime is None:
         raise RuntimeError(
-            "No torch runtime was found. Set VEI_EJEPA_ROOT or place ARP_Jepa_exp next to digital-enterprise-twin."
+            "No torch runtime was found. Install `.[jepa]`, set VEI_EJEPA_ROOT, or place ARP_Jepa_exp next to digital-enterprise-twin."
         )
     runtime_dir, python_path = runtime
     request_root = output_root / ".benchmark_runtime"
@@ -134,10 +143,10 @@ def _run_bridge_command(
     request_path.write_text(json.dumps(request, indent=2), encoding="utf-8")
 
     env = os.environ.copy()
-    pythonpath_entries = [
-        str(Path(__file__).resolve().parents[2]),
-        str(runtime_dir / "src"),
-    ]
+    pythonpath_entries = [str(Path(__file__).resolve().parents[2])]
+    runtime_src = runtime_dir / "src"
+    if runtime_src.exists():
+        pythonpath_entries.append(str(runtime_src))
     pythonpath_entries.extend(_current_site_package_entries())
     existing_pythonpath = env.get("PYTHONPATH", "")
     if existing_pythonpath:

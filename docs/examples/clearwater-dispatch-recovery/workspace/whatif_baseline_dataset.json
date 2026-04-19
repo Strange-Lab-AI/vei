@@ -1,0 +1,27 @@
+{
+  "metadata": {
+    "name": "whatif-baseline-tickets:JRA-CFS-10",
+    "description": "Historical future events scheduled after the branch point.",
+    "tags": [
+      "whatif",
+      "baseline",
+      "historical"
+    ],
+    "source": "historical_company_history",
+    "transform_hash": null
+  },
+  "events": [
+    {
+      "time_ms": 1,
+      "actor_id": "workflow.workflow-baseline",
+      "channel": "tickets",
+      "type": "reply",
+      "correlation_id": "tickets:JRA-CFS-10",
+      "payload": {
+        "ticket_id": "JRA-CFS-10",
+        "comment": "DOC-CFS-HANDOFF updated. Backup dispatch assigned, billing hold linked to the dispute, and field-to-billing handoff aligned.",
+        "author": "workflow.workflow-baseline"
+      }
+    }
+  ]
+}

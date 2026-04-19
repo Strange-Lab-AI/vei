@@ -3,43 +3,43 @@
   "provider": "openai",
   "model": "gpt-5-mini",
   "prompt": "Escalate the follow-up note to Ken Lay, the audit committee, and internal legal, preserve the written record, and pause any broad reassurance until the accounting questions are reviewed.",
-  "summary": "Sherron Watkins escalates the Aug 22 questions to Ken Lay, the audit committee, and internal legal, instructing preservation of the written record and pausing any broad reassurance until accounting and legal have reviewed.",
+  "summary": "Sherron escalates her Aug 22 follow-up to internal legal and requests immediate notification of Ken Lay and the Audit Committee; legal/audit instruct management to preserve all related records and to pause any broad reassurance or public statements until the accounting questions are reviewed.",
   "messages": [
     {
       "actor_id": "sherron.watkins@enron.com",
       "surface": "mail",
-      "to": ".schuler@enron.com",
-      "subject": "The key questions I asked Lay on Aug 22 — escalation",
-      "body_text": "Steve — Following up on the questions I raised with Ken on Aug 22. Please escalate this matter immediately to Ken Lay, the Audit Committee, and internal legal. Preserve this email and any attachments as part of the written record. Do not issue any broad reassurances or external statements until accounting and legal have completed their review and advised on the communications posture. When you forward, include me and Ed Haedicke and mark the message 'Confidential — Accounting/Legal Review.' Confirm when the escalation has been sent.",
-      "delay_ms": 60000,
+      "to": "e..haedicke@enron.com",
+      "subject": "Escalation: Follow-up on questions I raised to Ken Lay (Aug 22) — preserve record; hold public reassurance",
+      "body_text": "Evelyn —\n\nI'm escalating the follow-up note regarding the questions I raised with Ken Lay on Aug 22. Please:\n\n- Notify Ken Lay and the Audit Committee immediately and include internal legal counsel.\n- Preserve all documents, emails, backups, and related materials connected to these accounting questions (initiate a document hold).\n- Pause any broad reassurances or public statements to employees, investors, analysts, or the press until the Audit Committee and legal have reviewed and cleared the accounting issues.\n\nI am preserving my original note in this thread. Please confirm by return email whom you notify and the preservation steps you implement.\n\nSherron S. Watkins",
+      "delay_ms": 1000,
       "conversation_anchor": "",
-      "rationale": "Prompt executive and governance oversight, preserve documentary evidence, and pause public reassurance until expert review."
+      "rationale": "Escalates per instruction to involve Ken Lay, the Audit Committee, and internal legal; requests preservation of the written record and a pause on any broad reassurance pending review."
     },
     {
-      "actor_id": "sherron.watkins@enron.com",
+      "actor_id": "group:6e7dcb485343bd1d",
       "surface": "mail",
-      "to": "e..haedicke@enron.com",
-      "subject": "The key questions I asked Lay on Aug 22 — legal preservation and communications",
-      "body_text": "Ed — I'm escalating the attached questions I raised with Ken on Aug 22 and have asked Steve to forward to Ken and the Audit Committee. Please confirm that legal will preserve the written record and advise immediately whether we should pause any general reassurances or statements pending your and accounting's review. If privilege should be asserted, advise the steps to do so. Reply to me and confirm you are on any distribution to Ken and the Audit Committee.",
-      "delay_ms": 120000,
+      "to": ".schuler@enron.com",
+      "subject": "Re: Escalation re Aug 22 questions — hold on public statements; preserve records",
+      "body_text": ".schuler —\n\nWe have received Sherron's escalation regarding the questions she raised with Ken Lay on Aug 22. Internal legal has been asked to notify Ken Lay and the Audit Committee.\n\nImmediate instructions:\n\n- Do not issue any broad reassurances or public statements about these accounting matters. Direct all external inquiries to internal legal.\n- Preserve all relevant records (emails, files, backups). Confirm that a legal hold is in place and identify custodians.\n- Await direction from the Audit Committee before responding to investors, analysts, or the press.\n\nPlease confirm compliance and provide a list of any communications you have had on this topic.",
+      "delay_ms": 60000,
       "conversation_anchor": "",
-      "rationale": "Secure legal oversight, confirm preservation and guidance on communications, and ensure privilege is asserted if appropriate."
+      "rationale": "Audit/legal confirmation of escalation; instructs management to implement preservation measures and to pause any broad reassurance while accounting questions are reviewed by the Audit Committee and counsel."
     }
   ],
   "usage": {
     "provider": "openai",
     "model": "gpt-5-mini",
     "prompt_tokens": 1085,
-    "completion_tokens": 4254,
-    "total_tokens": 5339,
-    "estimated_cost_usd": 0.00877925
+    "completion_tokens": 5900,
+    "total_tokens": 6985,
+    "estimated_cost_usd": 0.01207125
   },
   "scheduled_event_count": 2,
   "delivered_event_count": 2,
   "inbox_count": 3,
   "top_subjects": [
-    "The key questions I asked Lay on Aug 22 — legal preservation and communications",
-    "The key questions I asked Lay on Aug 22 — escalation",
+    "Re: Escalation re Aug 22 questions — hold on public statements; preserve records",
+    "Escalation: Follow-up on questions I raised to Ken Lay (Aug 22) — preserve record; hold public reassurance",
     "The key questions I asked Lay on Aug 22"
   ],
   "notes": [

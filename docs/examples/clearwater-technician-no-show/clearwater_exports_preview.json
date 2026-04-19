@@ -1,0 +1,58 @@
+[
+  {
+    "name": "rl_episode_export",
+    "title": "RL Episode Export",
+    "summary": "One world state plus one event spine already yields state transitions, graph-native actions, contract-shaped rewards, and branch boundaries that can later become trainable RL episodes.",
+    "payload": {
+      "scenario_variant": "technician_no_show",
+      "contract_variant": "protect_customer_trust",
+      "workflow_run_id": "workflow_baseline",
+      "event_count": 20,
+      "graph_action_count": 7,
+      "snapshot_count": 5,
+      "branch_labels": [
+        "Recover the route with the right backup technician",
+        "Keep the work unassigned and let the SLA slip"
+      ]
+    }
+  },
+  {
+    "name": "continuous_eval_export",
+    "title": "Continuous Eval Export",
+    "summary": "The same company world, situation, and objective can be replayed as a baseline/comparison pair, which makes VEI naturally usable as a continuous eval harness later.",
+    "payload": {
+      "workflow_run_id": "workflow_baseline",
+      "comparison_run_id": "scripted_comparison",
+      "workflow_contract_ok": true,
+      "comparison_contract_ok": false,
+      "workflow_issue_count": 0,
+      "comparison_issue_count": 6
+    }
+  },
+  {
+    "name": "agent_ops_export",
+    "title": "Agent Ops Export",
+    "summary": "Playback, resolved tools, graph domains, receipts, and contract findings already form an agent-observability bundle that can later become an operations and governance surface.",
+    "payload": {
+      "comparison_runner": "scripted",
+      "resolved_tools": [
+        "servicedesk.update_request",
+        "service_ops.assign_dispatch",
+        "service_ops.hold_billing",
+        "service_ops.clear_exception",
+        "docs.update",
+        "jira.add_comment",
+        "slack.send_message"
+      ],
+      "comparison_resolved_tools": [],
+      "graph_domains": [
+        "work_graph",
+        "ops_graph",
+        "doc_graph",
+        "comm_graph"
+      ],
+      "comparison_graph_domains": [],
+      "contract_issue_count": 6
+    }
+  }
+]

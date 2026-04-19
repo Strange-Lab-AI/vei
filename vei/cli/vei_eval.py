@@ -13,7 +13,7 @@ import typer
 from vei.benchmark.api import (
     FRONTIER_SCENARIO_SETS,
     get_benchmark_family_manifest,
-    list_benchmark_family_manifest,
+    list_default_benchmark_family_manifest,
     resolve_benchmark_workflow_name,
     resolve_scenarios,
     run_benchmark_batch,
@@ -280,7 +280,7 @@ def run_benchmark_suite(spec: BenchmarkSuiteSpec) -> BenchmarkSuiteResult:
     selected_manifests = (
         [get_benchmark_family_manifest(name) for name in spec.family_names]
         if spec.family_names
-        else list_benchmark_family_manifest()
+        else list_default_benchmark_family_manifest()
     )
     if not selected_manifests:
         raise ValueError("benchmark suite requires at least one family")
@@ -426,7 +426,9 @@ def benchmark(
         selected = scenario
     elif normalized_runner == "workflow":
         selected = []
-        selected_families = [item.name for item in list_benchmark_family_manifest()]
+        selected_families = [
+            item.name for item in list_default_benchmark_family_manifest()
+        ]
     else:
         selected = (
             FRONTIER_SCENARIO_SETS["all_frontier"] if frontier else ["multi_channel"]
@@ -608,7 +610,7 @@ def suite(
         "Starting canonical benchmark-family suite for "
         + ", ".join(
             selected_families
-            or [item.name for item in list_benchmark_family_manifest()]
+            or [item.name for item in list_default_benchmark_family_manifest()]
         )
     )
     result = run_benchmark_suite(

@@ -1,0 +1,449 @@
+{
+  "manifest": {
+    "name": "service_ops",
+    "title": "Service Operations",
+    "description": "Dispatch, billing, and exception collision for a VIP service account under morning pressure.",
+    "company_name": "Clearwater Field Services",
+    "company_briefing": "Clearwater Field Services coordinates field dispatch, account handling, billing follow-through, and exception management across a high-volume service business.",
+    "failure_impact": "If this scenario fails, Clearwater misses a VIP SLA, aggravates an open billing dispute, and turns one bad morning into churn and manual cleanup.",
+    "objective_focus": "Protect the service loop end to end: route the right technician, keep billing safe, and resolve the morning with a credible cross-team trail.",
+    "scenario_name": "service_day_collision",
+    "workflow_name": "service_ops",
+    "workflow_variant": "service_day_collision",
+    "runtime_component": "service_ops",
+    "runtime_family": "service_ops",
+    "key_surfaces": [
+      "ops_graph",
+      "docs",
+      "slack",
+      "mail",
+      "jira",
+      "servicedesk"
+    ],
+    "proves": [
+      "dispatch recovery",
+      "billing safety",
+      "policy-shaped service operations"
+    ],
+    "what_if_branches": [
+      "Leave billing live while the dispute is still open",
+      "Change one policy threshold and rerun the same morning"
+    ]
+  },
+  "available_worlds": [
+    {
+      "name": "b2b_saas",
+      "title": "B2B SaaS",
+      "description": "Enterprise renewal at risk with integration failure, champion departure, and competitive pressure.",
+      "company_name": "Pinnacle Analytics",
+      "company_briefing": "Pinnacle Analytics is a B2B analytics SaaS company. Their largest customer, Apex Financial ($480K ARR), is 6 weeks from renewal with a broken integration, a departed champion, and a competitor circling.",
+      "failure_impact": "If this scenario fails, Pinnacle loses a $480K renewal, the Q3 expansion target collapses, and the competitor gains a reference customer in financial services.",
+      "objective_focus": "Save the renewal: fix the integration, rebuild stakeholder trust, neutralize the competitive threat, and get the proposal in front of the new decision-maker before she signs with DataVault.",
+      "scenario_name": "enterprise_renewal_risk",
+      "workflow_name": "b2b_saas",
+      "workflow_variant": "enterprise_renewal_risk",
+      "runtime_component": "crm",
+      "runtime_family": "revenue",
+      "key_surfaces": [
+        "revenue_graph",
+        "docs",
+        "slack",
+        "mail",
+        "jira",
+        "servicedesk"
+      ],
+      "proves": [
+        "cross-functional renewal coordination",
+        "competitive displacement defense",
+        "product-to-CS handoff under pressure"
+      ],
+      "what_if_branches": [
+        "Fix the integration first and rebuild trust before the renewal conversation",
+        "Lead with the discount and hope the product issues don't kill the deal"
+      ]
+    },
+    {
+      "name": "digital_marketing_agency",
+      "title": "Digital Marketing Agency",
+      "description": "Launch guardrail workflow for a campaign with approval, pacing, and reporting risk.",
+      "company_name": "Northstar Growth",
+      "company_briefing": "Northstar Growth runs client campaigns across channels, creative approvals, reporting, budgets, and account communication, with launch integrity depending on multiple teams staying aligned.",
+      "failure_impact": "If this scenario breaks, the agency can launch unapproved creative, overspend budget, and erode client trust with stale reporting and confused communication.",
+      "objective_focus": "Protect launch integrity: approvals, pacing, reporting, and client-facing artifacts should all be trustworthy before spend is allowed to keep flowing.",
+      "scenario_name": "campaign_launch_guardrail",
+      "workflow_name": "digital_marketing_agency",
+      "workflow_variant": "campaign_launch_guardrail",
+      "runtime_component": "campaign_ops",
+      "runtime_family": "campaign",
+      "key_surfaces": [
+        "campaign_graph",
+        "docs",
+        "slack",
+        "mail",
+        "jira",
+        "crm"
+      ],
+      "proves": [
+        "launch safety",
+        "budget control",
+        "client artifact hygiene"
+      ],
+      "what_if_branches": [
+        "Pause the launch and protect spend",
+        "Push through with stale reporting and approval drift"
+      ]
+    },
+    {
+      "name": "real_estate_management",
+      "title": "Real Estate Management",
+      "description": "Lease, vendor, and property-readiness conflict for a high-stakes tenant opening.",
+      "company_name": "Harbor Point Management",
+      "company_briefing": "Harbor Point Management operates retail and mixed-use properties, coordinating leasing, property operations, vendors, tenant readiness, and customer-facing artifacts.",
+      "failure_impact": "If this scenario goes badly, Harbor Point misses a flagship tenant opening, loses tenant trust, and creates an expensive operational scramble across leasing, facilities, and vendors.",
+      "objective_focus": "Keep the opening valid and business-real: lease state, unit readiness, vendor work, and tenant-facing artifacts all need to line up before Monday morning.",
+      "scenario_name": "tenant_opening_conflict",
+      "workflow_name": "real_estate_management",
+      "workflow_variant": "tenant_opening_conflict",
+      "runtime_component": "property_ops",
+      "runtime_family": "property",
+      "key_surfaces": [
+        "property_graph",
+        "docs",
+        "slack",
+        "mail",
+        "jira",
+        "servicedesk"
+      ],
+      "proves": [
+        "branchable opening readiness",
+        "vendor/lease coordination",
+        "artifact follow-through"
+      ],
+      "what_if_branches": [
+        "Delay vendor assignment and miss opening",
+        "Execute amendment but leave the unit unreserved"
+      ]
+    },
+    {
+      "name": "service_ops",
+      "title": "Service Operations",
+      "description": "Dispatch, billing, and exception collision for a VIP service account under morning pressure.",
+      "company_name": "Clearwater Field Services",
+      "company_briefing": "Clearwater Field Services coordinates field dispatch, account handling, billing follow-through, and exception management across a high-volume service business.",
+      "failure_impact": "If this scenario fails, Clearwater misses a VIP SLA, aggravates an open billing dispute, and turns one bad morning into churn and manual cleanup.",
+      "objective_focus": "Protect the service loop end to end: route the right technician, keep billing safe, and resolve the morning with a credible cross-team trail.",
+      "scenario_name": "service_day_collision",
+      "workflow_name": "service_ops",
+      "workflow_variant": "service_day_collision",
+      "runtime_component": "service_ops",
+      "runtime_family": "service_ops",
+      "key_surfaces": [
+        "ops_graph",
+        "docs",
+        "slack",
+        "mail",
+        "jira",
+        "servicedesk"
+      ],
+      "proves": [
+        "dispatch recovery",
+        "billing safety",
+        "policy-shaped service operations"
+      ],
+      "what_if_branches": [
+        "Leave billing live while the dispute is still open",
+        "Change one policy threshold and rerun the same morning"
+      ]
+    },
+    {
+      "name": "storage_solutions",
+      "title": "Storage Solutions",
+      "description": "Strategic customer quote with fragmented capacity and fulfillment coordination pressure.",
+      "company_name": "Atlas Storage Systems",
+      "company_briefing": "Atlas Storage Systems designs and fulfills large-scale storage rollouts, coordinating quotes, capacity, site allocation, vendors, fulfillment planning, and customer commitments.",
+      "failure_impact": "If this scenario fails, Atlas can overcommit capacity, send an impossible quote, and create downstream fulfillment failures for a strategic customer rollout.",
+      "objective_focus": "Keep the commercial promise feasible: capacity allocation, ops planning, vendor follow-through, and customer-facing artifacts must remain internally consistent.",
+      "scenario_name": "capacity_quote_commitment",
+      "workflow_name": "storage_solutions",
+      "workflow_variant": "capacity_quote_commitment",
+      "runtime_component": "inventory_ops",
+      "runtime_family": "inventory",
+      "key_surfaces": [
+        "inventory_graph",
+        "docs",
+        "slack",
+        "mail",
+        "jira",
+        "crm"
+      ],
+      "proves": [
+        "capacity feasibility",
+        "quote accuracy",
+        "ops follow-through"
+      ],
+      "what_if_branches": [
+        "Reserve fragmented capacity and keep the customer timeline",
+        "Overcommit the quote and create a downstream fulfillment failure"
+      ]
+    }
+  ],
+  "workspace_root": "/Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/_vei_out/service_ops_story_sources/clearwater-billing-dispute-reopened",
+  "scenario_name": "default",
+  "scenario_variant": "billing_dispute_reopened",
+  "contract_variant": "protect_revenue",
+  "compare_runner": "scripted",
+  "workflow_run_id": "workflow_baseline",
+  "comparison_run_id": "scripted_comparison",
+  "kernel_thesis": "VEI is the shared world kernel underneath every company world we open: the company-specific part is just the capability graph and contract, while the runtime, event spine, branching, replay, and inspection surfaces stay the same.",
+  "platform_uses": [
+    "RL environment: deterministic world state, snapshots, and contract-shaped outcomes become trainable episodes later.",
+    "Continuous eval system: the workflow baseline and freer comparison runs already share the same scenario, contract, and event spine.",
+    "AI agent management platform: live playback, resolved tools, provenance, and branch diffs make agent behavior inspectable and governable."
+  ],
+  "company_briefing": "Clearwater Field Services coordinates field dispatch, account handling, billing follow-through, and exception management across a high-volume service business.",
+  "situation_briefing": "Dispatch has a plausible recovery path, but finance reopens the account dispute and the customer trust problem gets worse. Why this matters: Shows the same company world bending toward trust and revenue preservation instead of dispatch only.",
+  "failure_impact": "If this scenario fails, Clearwater misses a VIP SLA, aggravates an open billing dispute, and turns one bad morning into churn and manual cleanup.",
+  "objective_briefing": "Prefer actions that prevent billing damage and preserve the customer relationship while the field response unfolds. Why it exists: Useful when the same service day should optimize for revenue preservation instead of raw dispatch speed.",
+  "branch_labels": [
+    "Contain finance risk before the customer relationship degrades",
+    "Focus only on field completion and let billing damage keep spreading"
+  ],
+  "outcome": {
+    "base_world": "Clearwater Field Services coordinates field dispatch, account handling, billing follow-through, and exception management across a high-volume service business.",
+    "chosen_situation": "Dispatch has a plausible recovery path, but finance reopens the account dispute and the customer trust problem gets worse.",
+    "chosen_objective": "Prefer actions that prevent billing damage and preserve the customer relationship while the field response unfolds.",
+    "baseline_branch": "Contain finance risk before the customer relationship degrades",
+    "comparison_branch": "Focus only on field completion and let billing damage keep spreading",
+    "what_changed": [
+      "The same Clearwater Field Services world stayed fixed while the `billing_dispute_reopened` situation overlay and `protect_revenue` objective overlay defined this run.",
+      "The workflow baseline resolved the world in `20` events and `7` graph actions; the comparison run took `8` events and `0` graph actions.",
+      "Both runs used the same kernel surfaces, but the alternate path touched different tools and ended with `7` contract issue(s) instead of `1`."
+    ],
+    "why_it_matters": [
+      "The baseline passes because the company world, situation, and objective all stay aligned: `Protect Revenue` rewards the right business behavior for `Billing Dispute Reopened`.",
+      "The comparison path fails meaningfully, which is the point of the kernel: same company, different decisions, different outcome.",
+      "If this scenario fails, Clearwater misses a VIP SLA, aggravates an open billing dispute, and turns one bad morning into churn and manual cleanup."
+    ]
+  },
+  "exports_preview": [
+    {
+      "name": "rl_episode_export",
+      "title": "RL Episode Export",
+      "summary": "One world state plus one event spine already yields state transitions, graph-native actions, contract-shaped rewards, and branch boundaries that can later become trainable RL episodes.",
+      "payload": {
+        "scenario_variant": "billing_dispute_reopened",
+        "contract_variant": "protect_revenue",
+        "workflow_run_id": "workflow_baseline",
+        "event_count": 20,
+        "graph_action_count": 7,
+        "snapshot_count": 5,
+        "branch_labels": [
+          "Contain finance risk before the customer relationship degrades",
+          "Focus only on field completion and let billing damage keep spreading"
+        ]
+      }
+    },
+    {
+      "name": "continuous_eval_export",
+      "title": "Continuous Eval Export",
+      "summary": "The same company world, situation, and objective can be replayed as a baseline/comparison pair, which makes VEI naturally usable as a continuous eval harness later.",
+      "payload": {
+        "workflow_run_id": "workflow_baseline",
+        "comparison_run_id": "scripted_comparison",
+        "workflow_contract_ok": false,
+        "comparison_contract_ok": false,
+        "workflow_issue_count": 1,
+        "comparison_issue_count": 7
+      }
+    },
+    {
+      "name": "agent_ops_export",
+      "title": "Agent Ops Export",
+      "summary": "Playback, resolved tools, graph domains, receipts, and contract findings already form an agent-observability bundle that can later become an operations and governance surface.",
+      "payload": {
+        "comparison_runner": "scripted",
+        "resolved_tools": [
+          "servicedesk.update_request",
+          "service_ops.assign_dispatch",
+          "service_ops.hold_billing",
+          "service_ops.clear_exception",
+          "docs.update",
+          "jira.add_comment",
+          "slack.send_message"
+        ],
+        "comparison_resolved_tools": [],
+        "graph_domains": [
+          "work_graph",
+          "ops_graph",
+          "doc_graph",
+          "comm_graph"
+        ],
+        "comparison_graph_domains": [],
+        "contract_issue_count": 7
+      }
+    }
+  ],
+  "overview_path": "/Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/_vei_out/service_ops_story_sources/clearwater-billing-dispute-reopened/story_overview.md",
+  "story_manifest_path": "/Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/_vei_out/service_ops_story_sources/clearwater-billing-dispute-reopened/story_manifest.json",
+  "exports_preview_path": "/Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/_vei_out/service_ops_story_sources/clearwater-billing-dispute-reopened/exports_preview.json",
+  "presentation": {
+    "opening_hook": "VEI is one enterprise world kernel. This world shows that the same runtime can instantiate different companies, vary the situation, vary the objective, and still produce inspectable runs, branches, and exportable artifacts.",
+    "demo_goal": "Start from Clearwater Field Services as a stable company world, then watch how `Billing Dispute Reopened` changes the situation, how `Protect Revenue` changes the definition of success, and how the same kernel turns both runs into playback, branching, and future RL/eval/agent-ops outputs.",
+    "presenter_setup": [
+      "Open Studio on the Briefing view, then move into Living Company before you touch anything else.",
+      "Frame the product as a world studio for enterprises, not a static workflow viewer.",
+      "Keep the language anchored in the company world: Company, Situation, and Objective are the stable user-facing primitives.",
+      "Use `Contain finance risk before the customer relationship degrades` versus `Focus only on field completion and let billing damage keep spreading` to explain branching."
+    ],
+    "primitives": [
+      {
+        "name": "company",
+        "title": "Company",
+        "current_value": "Clearwater Field Services",
+        "summary": "Start with one stable business world. The company stays fixed while the situation and the objective move around it.",
+        "kernel_mapping": "Workspace + blueprint + capability graphs"
+      },
+      {
+        "name": "situation",
+        "title": "Situation",
+        "current_value": "Billing Dispute Reopened",
+        "summary": "Situations are overlays on the base world. They add deadline pressure, faults, and branch-worthy tradeoffs without rebuilding the company.",
+        "kernel_mapping": "Scenario variant overlay on the world state"
+      },
+      {
+        "name": "objective",
+        "title": "Objective",
+        "current_value": "Protect Revenue",
+        "summary": "Objectives change what counts as good behavior. The same company and same situation can be judged under different business preferences.",
+        "kernel_mapping": "Contract variant overlay on the shared contract engine"
+      },
+      {
+        "name": "run",
+        "title": "Run",
+        "current_value": "workflow_baseline vs scripted_comparison",
+        "summary": "Runs are attempts to solve the same world under the same event spine. Workflow, scripted, and LLM agents all land in one runtime model.",
+        "kernel_mapping": "Canonical run/event spine + snapshots + playback"
+      },
+      {
+        "name": "branch",
+        "title": "Branch",
+        "current_value": "Baseline branch and agent branch",
+        "summary": "Branching shows alternate futures from one company world. That is the most intuitive proof that this is an engine, not a static benchmark.",
+        "kernel_mapping": "Snapshots + branch labels + diff and replay surfaces"
+      },
+      {
+        "name": "exports",
+        "title": "Exports",
+        "current_value": "RL / eval / agent ops preview",
+        "summary": "The same run artifacts later become RL episodes, continuous eval cases, and agent observability bundles.",
+        "kernel_mapping": "Derived artifacts from the same run and contract outputs"
+      }
+    ],
+    "beats": [
+      {
+        "step": 1,
+        "title": "Open with the kernel thesis",
+        "studio_view": "presentation",
+        "operator_action": "Start on Briefing, then move into Living Company once the software wall is visible.",
+        "presenter_note": "Say that VEI is one enterprise world kernel. We are about to show different companies, different situations, and different objectives on top of the same runtime.",
+        "proof_point": "The world opens with the engine, not with a single handcrafted scenario.",
+        "audience_takeaway": "This is a reusable platform layer, not a one-off workflow viewer."
+      },
+      {
+        "step": 2,
+        "title": "Choose the company world",
+        "studio_view": "worlds",
+        "operator_action": "Click Company and show that this world is one stable business with its own graphs and operating surfaces.",
+        "presenter_note": "Introduce Clearwater Field Services in plain language, explain what the company does, and why failure in this world has real business consequences.",
+        "proof_point": "Different companies can live on the same kernel without changing the runtime model.",
+        "audience_takeaway": "The kernel is flexible enough to instantiate very different enterprise environments."
+      },
+      {
+        "step": 3,
+        "title": "Show the situation overlay",
+        "studio_view": "situations",
+        "operator_action": "Click Situation, highlight the active scenario variant, and call out what changed from the base world.",
+        "presenter_note": "Explain that `Billing Dispute Reopened` is not a different company. It is one alternate future layered on top of the same company world.",
+        "proof_point": "Problem setup is a first-class overlay, not a rewritten environment.",
+        "audience_takeaway": "The same company can generate many meaningful simulations."
+      },
+      {
+        "step": 4,
+        "title": "Show the objective overlay",
+        "studio_view": "objectives",
+        "operator_action": "Click Objective and compare the active contract with the other objective variants.",
+        "presenter_note": "Explain that `Protect Revenue` tells VEI what good looks like in this situation, and that different objectives can produce different preferred behavior on the same world.",
+        "proof_point": "Success criteria are separate from both the world and the situation.",
+        "audience_takeaway": "This same kernel can later support eval, policy testing, and reward shaping."
+      },
+      {
+        "step": 5,
+        "title": "Run the baseline and the agent path",
+        "studio_view": "runs",
+        "operator_action": "Launch or open the workflow baseline, then the comparison run, and play the timeline for a few events.",
+        "presenter_note": "Point out that every action lands in one event spine with graph intent, resolved tools, and snapshots. That is what makes the world inspectable instead of magical.",
+        "proof_point": "Same runtime model for deterministic baseline and freer agent behavior.",
+        "audience_takeaway": "This is already a serious observability surface, not just a benchmark harness."
+      },
+      {
+        "step": 6,
+        "title": "Explain the branch and outcome",
+        "studio_view": "runs",
+        "operator_action": "Scroll to Branch + Outcome and contrast the baseline branch with the agent branch.",
+        "presenter_note": "Use the branch story to explain that the company world stayed the same, but the decisions changed, so the business result changed.",
+        "proof_point": "Branching makes alternate futures legible on top of one shared world state.",
+        "audience_takeaway": "This is why VEI can later serve as a simulation engine, recovery lab, and decision-testing system."
+      },
+      {
+        "step": 7,
+        "title": "Close on the platform bridge",
+        "studio_view": "runs",
+        "operator_action": "Finish on Exports and tie the run outputs to RL episodes, continuous eval, and agent operations.",
+        "presenter_note": "Close by saying that this world already emits the ingredients for the next products: RL transitions, eval comparisons, and agent observability.",
+        "proof_point": "The future-platform story is a direct extension of the current artifacts, not a speculative rewrite.",
+        "audience_takeaway": "The upside is a family of products built on one world kernel."
+      }
+    ],
+    "closing_argument": "The core claim is simple: VEI already behaves like a world studio for enterprises. These worlds are different instantiations of one kernel, and the same kernel is what later becomes an RL environment, a continuous eval harness, and an agent management platform.",
+    "operator_commands": [
+      "python -m vei.cli.vei project init --vertical service_ops --root /Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/_vei_out/service_ops_story_sources/clearwater-billing-dispute-reopened",
+      "python -m vei.cli.vei scenario activate --root /Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/_vei_out/service_ops_story_sources/clearwater-billing-dispute-reopened --variant billing_dispute_reopened --bootstrap-contract",
+      "python -m vei.cli.vei contract activate --root /Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/_vei_out/service_ops_story_sources/clearwater-billing-dispute-reopened --variant protect_revenue",
+      "python -m vei.cli.vei ui serve --root /Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/_vei_out/service_ops_story_sources/clearwater-billing-dispute-reopened --host 127.0.0.1 --port 3011"
+    ]
+  },
+  "presentation_manifest_path": "/Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/_vei_out/service_ops_story_sources/clearwater-billing-dispute-reopened/presentation_manifest.json",
+  "presentation_guide_path": "/Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/_vei_out/service_ops_story_sources/clearwater-billing-dispute-reopened/presentation_guide.md",
+  "ui_command": "python -m vei.cli.vei ui serve --root /Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/_vei_out/service_ops_story_sources/clearwater-billing-dispute-reopened --host 127.0.0.1 --port 3011",
+  "workflow_contract_ok": false,
+  "comparison_contract_ok": false,
+  "kernel_proof": {
+    "baseline": {
+      "events": 20,
+      "graph_actions": 7,
+      "snapshots": 5,
+      "domains": [
+        "work_graph",
+        "ops_graph",
+        "doc_graph",
+        "comm_graph"
+      ],
+      "resolved_tools": [
+        "servicedesk.update_request",
+        "service_ops.assign_dispatch",
+        "service_ops.hold_billing",
+        "service_ops.clear_exception",
+        "docs.update",
+        "jira.add_comment",
+        "slack.send_message"
+      ]
+    },
+    "comparison": {
+      "events": 8,
+      "graph_actions": 0,
+      "snapshots": 6,
+      "domains": [],
+      "resolved_tools": []
+    }
+  }
+}

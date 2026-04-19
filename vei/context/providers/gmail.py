@@ -2,6 +2,9 @@ from __future__ import annotations
 
 import logging
 import mailbox
+import tempfile
+import zipfile
+from email.utils import parsedate_to_datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
@@ -16,6 +19,10 @@ class GmailContextProvider:
     name = "gmail"
 
     def capture(self, config: ContextProviderConfig) -> ContextSourceResult:
+        local_export = _resolve_local_export(config.base_url)
+        if local_export is not None:
+            return capture_from_export(local_export, message_limit=config.limit)
+
         token = resolve_token(config)
         headers = {
             "Authorization": f"Bearer {token}",
@@ -176,6 +183,47 @@ def _extract_messages(
 # ---------------------------------------------------------------------------
 
 
+def capture_from_export(
+    export_path: Union[str, Path],
+    *,
+    message_limit: int = 200,
+) -> ContextSourceResult:
+    """Parse a Gmail export directory, zip, or MBOX file."""
+    path = Path(export_path).expanduser().resolve()
+    if not path.exists():
+        return ContextSourceResult(
+            provider="gmail",
+            captured_at=iso_now(),
+            status="error",
+            error=f"gmail export not found: {path}",
+        )
+
+    if path.is_file() and path.suffix.lower() in {".mbox", ".mbx"}:
+        return capture_from_mbox(path, message_limit=message_limit)
+
+    if path.is_dir():
+        mbox_paths = _gmail_export_mbox_paths(path)
+        return _capture_from_mbox_paths(
+            mbox_paths,
+            message_limit=message_limit,
+            source_label=str(path),
+        )
+
+    if path.is_file() and path.suffix.lower() == ".zip":
+        with tempfile.TemporaryDirectory(prefix="vei_gmail_export_") as temp_dir:
+            temp_root = Path(temp_dir)
+            with zipfile.ZipFile(path) as archive:
+                archive.extractall(temp_root)
+            return capture_from_export(temp_root, message_limit=message_limit)
+
+    return ContextSourceResult(
+        provider="gmail",
+        captured_at=iso_now(),
+        status="error",
+        error=f"unsupported gmail export path: {path}",
+    )
+
+
 def capture_from_mbox(
     mbox_path: Union[str, Path],
     *,
@@ -265,6 +313,100 @@ def capture_from_mbox(
             "profile": {},
         },
     )
+
+
+def _resolve_local_export(raw: str | None) -> Path | None:
+    if not raw:
+        return None
+    path = Path(raw).expanduser()
+    if not path.exists():
+        return None
+    return path.resolve()
+
+
+def _gmail_export_mbox_paths(root: Path) -> list[Path]:
+    return sorted(root.rglob("*.mbox")) + sorted(root.rglob("*.mbx"))
+
+
+def _capture_from_mbox_paths(
+    paths: list[Path],
+    *,
+    message_limit: int,
+    source_label: str,
+) -> ContextSourceResult:
+    if not paths:
+        return ContextSourceResult(
+            provider="gmail",
+            captured_at=iso_now(),
+            status="empty",
+            error=f"no Gmail MBOX files found in {source_label}",
+        )
+
+    remaining = max(1, message_limit)
+    thread_map: dict[str, list[dict[str, Any]]] = {}
+    message_count = 0
+
+    for path in paths:
+        if remaining <= 0:
+            break
+        result = capture_from_mbox(path, message_limit=remaining)
+        if result.status not in {"ok", "partial"}:
+            continue
+        for thread in result.data["threads"]:
+            thread_id = str(thread.get("thread_id", "")).strip()
+            if not thread_id:
+                continue
+            messages = thread.get("messages") or []
+            if not isinstance(messages, list):
+                continue
+            thread_map.setdefault(thread_id, []).extend(
+                message for message in messages if isinstance(message, dict)
+            )
+            message_count += len(messages)
+            remaining -= len(messages)
+
+    threads: list[dict[str, Any]] = []
+    for thread_id, messages in thread_map.items():
+        sorted_messages = sorted(messages, key=_message_sort_key)
+        subject = ""
+        for message in sorted_messages:
+            subject = str(message.get("subject") or "").strip()
+            if subject:
+                break
+        threads.append(
+            {
+                "thread_id": thread_id,
+                "subject": subject,
+                "messages": sorted_messages,
+            }
+        )
+
+    status = "ok" if threads else "empty"
+    return ContextSourceResult(
+        provider="gmail",
+        captured_at=iso_now(),
+        status=status,
+        record_counts={
+            "threads": len(threads),
+            "messages": message_count,
+        },
+        data={
+            "threads": threads,
+            "profile": {},
+        },
+        error=None if threads else f"no Gmail messages found in {source_label}",
+    )
+
+
+def _message_sort_key(message: dict[str, Any]) -> tuple[int, str]:
+    raw_date = str(message.get("date") or "").strip()
+    if raw_date:
+        try:
+            dt = parsedate_to_datetime(raw_date)
+            return (int(dt.timestamp()), str(message.get("message_id") or ""))
+        except (TypeError, ValueError, IndexError, OverflowError):
+            pass
+    return (0, str(message.get("message_id") or ""))
 
 
 def _parse_mbox_message(msg: mailbox.mboxMessage) -> Optional[Dict[str, Any]]:

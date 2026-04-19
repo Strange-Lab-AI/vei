@@ -25,7 +25,11 @@ from vei.blueprint.api import (
     BlueprintTicketAsset,
     BlueprintWorkGraphAsset,
 )
-from vei.context.api import capture_context, hydrate_blueprint
+from vei.context.api import (
+    capture_context,
+    hydrate_blueprint,
+    write_canonical_history_sidecars,
+)
 from vei.context.api import ContextProviderConfig, ContextSnapshot
 from vei.governor import (
     GovernorWorkspaceConfig,
@@ -154,6 +158,7 @@ def build_customer_twin(
         normalized_snapshot.model_dump_json(indent=2),
         encoding="utf-8",
     )
+    write_canonical_history_sidecars(normalized_snapshot, snapshot_path)
 
     bundle = CustomerTwinBundle(
         workspace_root=workspace_root,

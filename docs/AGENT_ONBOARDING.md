@@ -47,6 +47,18 @@ VEI_LLM_LIVE_BYPASS=1 make llm-live
 make deps-audit
 ```
 
+Learned Enron path from a fresh clone:
+
+```bash
+pip install -e ".[worldmodel,llm,ui,browser]"
+```
+
+Optional JEPA path from the same clone:
+
+```bash
+pip install -e ".[jepa]"
+```
+
 Product orientation:
 
 ```bash
@@ -67,7 +79,12 @@ vei ui serve --root docs/examples/enron-master-agreement-public-context/workspac
 The supported forecast filenames are:
 
 - `whatif_ejepa_result.json`
+- `whatif_reference_result.json`
 - `whatif_heuristic_baseline_result.json`
+
+Use `whatif_reference_result.json` as the main saved forecast artifact for the repo-owned Enron bundles. Keep `whatif_heuristic_baseline_result.json` for debug and baseline comparisons.
+
+The saved Enron workspaces now also carry `workspace/canonical_events.jsonl` and `workspace/canonical_event_index.json`. Treat those files as the branch-local chronology source for the saved timeline.
 
 Import these constants from `vei.whatif.filenames` or `vei.whatif.api`.
 

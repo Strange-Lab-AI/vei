@@ -43,12 +43,14 @@ The first version of that flow is mail-first:
 - that workspace replays real past messages up to just before the chosen event and schedules the chosen event plus the later historical messages as the baseline future
 - only after that branch point does VEI run counterfactual continuation logic
 
+The company-history path now writes a shared canonical timeline beside each normalized snapshot. `context_snapshot.json` stays as the portable interchange bundle. `canonical_events.jsonl` and `canonical_event_index.json` now carry the actual chronology that the company-history loader and Studio timeline panel read first.
+
 For Enron, that mail-first branch point can also carry a packaged public-company backdrop. VEI now ships 11 dated public financial checkpoints, 21 dated public news events, 986 daily stock rows, 7 credit events, and 1 FERC timeline event from 24 archived public source files. VEI filters those rows to the loaded Enron email window, then filters them again to the branch date. The same pre-branch slice flows into the saved episode manifest, Studio decision scene, bounded LLM prompt, and benchmark dossiers.
 
 Two compare paths exist today:
 
 - **LLM actor continuation** — bounded multi-channel continuation on the affected thread, supporting mail, chat (Slack/Teams-style), and Jira-style ticket adapters
-- **Dynamics forecast** — a pluggable forecast backend registered through `vei.dynamics.api`; the default is `heuristic_baseline` with optional learned backends (E-JEPA, reference transformer) when a trained checkpoint is available
+- **Dynamics forecast** — a pluggable forecast backend registered through `vei.dynamics.api`; VEI now prefers a repo-local reference checkpoint when one is present, then the JEPA runtime, then the heuristic baseline. The reference checkpoint is the flagship learned path. The heuristic path stays as a baseline and debug path.
 
 ## The Five Layers
 
@@ -64,7 +66,7 @@ The snapshot gets hydrated into a `BlueprintAsset` — VEI's portable, declarati
 - **Harbor Point Management** (Real Estate) — Tenant openings, vendor no-shows, lease revisions, double-booked units
 - **Northstar Growth** (Marketing Agency) — Campaign launch guardrails, creative approvals, budget runaways
 - **Atlas Storage Systems** (Storage/Logistics) — Capacity quotes, vendor dispatch gaps, fragmented inventory
-- **Clearwater Field Services** (Service Operations) — VIP outage, technician no-show, and billing dispute colliding on the same account
+- **Clearwater Field Services** (Service Operations) — VIP outage, technician no-show, and billing dispute colliding on the same account; this is the built-in synthetic rig, not the flagship real-data proof
 
 Two authoring tools lower the barrier to creating new verticals:
 

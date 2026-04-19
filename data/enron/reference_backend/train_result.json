@@ -1,0 +1,23 @@
+{
+  "version": "1",
+  "model_id": "full_context_transformer",
+  "dataset_root": "/Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/_vei_out/reference_backend_enron_benchmark/enron_reference_backend_v1/dataset",
+  "train_loss": 1.275517,
+  "validation_loss": 1.659805,
+  "epoch_count": 1,
+  "train_row_count": 7613,
+  "validation_row_count": 1631,
+  "notes": [
+    "device=cpu",
+    "seed=42042",
+    "summary_features=17",
+    "action_tags=55",
+    "event_types=32"
+  ],
+  "artifacts": {
+    "root": "/Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/data/enron/reference_backend",
+    "model_path": "/Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/data/enron/reference_backend/model.pt",
+    "metadata_path": "/Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/data/enron/reference_backend/metadata.json",
+    "train_result_path": "/Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/data/enron/reference_backend/train_result.json"
+  }
+}

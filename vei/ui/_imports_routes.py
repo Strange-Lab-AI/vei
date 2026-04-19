@@ -208,6 +208,7 @@ def register_imports_routes(app: FastAPI, root: Path) -> None:
 
         from vei.context.api import capture_context
         from vei.context.api import ContextProviderConfig
+        from vei.context.api import write_canonical_history_sidecars
 
         configs = []
         for name in req.providers:
@@ -244,6 +245,7 @@ def register_imports_routes(app: FastAPI, root: Path) -> None:
             snapshot.model_dump_json(indent=2),
             encoding="utf-8",
         )
+        write_canonical_history_sidecars(snapshot, out_path)
 
         ok_count = sum(1 for source in snapshot.sources if source.status == "ok")
         err_count = sum(1 for source in snapshot.sources if source.status == "error")

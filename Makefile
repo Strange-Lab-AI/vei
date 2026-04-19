@@ -7,11 +7,11 @@ SETUP_STAMP := $(VENV)/.setup-complete
 SETUP_FULL_STAMP := $(VENV)/.setup-full-complete
 VENV_BIN := $(VENV)/bin
 SETUP_EXTRAS := dev,sse,ui
-SETUP_FULL_EXTRAS := dev,llm,sse,ui,test,rl,browser
+SETUP_FULL_EXTRAS := dev,llm,sse,ui,test,rl,browser,worldmodel,jepa
 COVERAGE_FAIL_UNDER ?= $(or $(shell awk 'BEGIN { section = 0 } $$1 == "coverage:" { section = 1; next } section && $$1 == "global:" { print int($$2 * 100); exit }' $(AGENTS_FILE) 2>/dev/null),80)
 PIPAPI_PYTHON := $(abspath $(VENV_BIN)/python)
 
-.PHONY: setup bootstrap setup-full check check-full test test-full dynamics-eval llm-live deps-audit enron-example enron-screens all clean clean-workspace clean-workspace-dry-run
+.PHONY: setup bootstrap setup-full check check-full test test-full dynamics-eval llm-live deps-audit enron-example service-ops-example dispatch-local-example enron-screens all clean clean-workspace clean-workspace-dry-run
 
 $(VENV)/bin/activate:
 	$(PYTHON) -m venv $(VENV)
@@ -113,6 +113,13 @@ dynamics-eval: $(SETUP_FULL_STAMP)
 enron-example: $(SETUP_FULL_STAMP)
 	$(VENV_BIN)/python scripts/build_enron_example_bundles.py
 	$(VENV_BIN)/python scripts/validate_enron_example_bundles.py
+
+service-ops-example: $(SETUP_FULL_STAMP)
+	$(VENV_BIN)/python scripts/build_service_ops_example_bundles.py
+	$(VENV_BIN)/python scripts/validate_service_ops_example_bundles.py
+
+dispatch-local-example: $(SETUP_FULL_STAMP)
+	$(VENV_BIN)/python scripts/build_dispatch_local_example.py
 
 enron-screens: $(SETUP_FULL_STAMP)
 	$(VENV_BIN)/python -m playwright install chromium

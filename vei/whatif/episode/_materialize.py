@@ -14,6 +14,7 @@ from vei.whatif.filenames import (
 )
 
 from .._branch_context import build_branch_context
+from .._enron_history import build_enron_branch_history
 from ..models import (
     WhatIfCaseContext,
     WhatIfEpisodeManifest,
@@ -62,9 +63,14 @@ def materialize_episode(
         event_id=event_id,
         organization_domain=resolved_organization_domain,
     )
-    history_preview = [
-        event_reference(event) for event in branch_context.past_events[-12:]
-    ]
+    history_events = list(branch_context.past_events)
+    if world.source == "enron":
+        history_events = build_enron_branch_history(
+            public_context=world.public_context,
+            branch_event=branch_context.branch_event,
+            past_events=branch_context.past_events,
+        )
+    history_preview = [event_reference(event) for event in history_events]
     snapshot = _episode_context_snapshot(
         thread_history=branch_context.thread_history,
         past_events=branch_context.past_events,
@@ -134,7 +140,7 @@ def materialize_episode(
         branch_event_id=branch_context.branch_event.event_id,
         branch_timestamp=branch_context.branch_event.timestamp,
         branch_event=branch_context.branch_reference,
-        history_message_count=len(branch_context.past_events),
+        history_message_count=len(history_events),
         future_event_count=len(branch_context.future_events),
         baseline_dataset_path=str(baseline_dataset_path.relative_to(workspace_root)),
         content_notice=str(world.metadata.get("content_notice", CONTENT_NOTICE)),
@@ -175,7 +181,7 @@ def materialize_episode(
         surface=branch_context.branch_event.surface,
         branch_event_id=branch_context.branch_event.event_id,
         branch_event=manifest.branch_event,
-        history_message_count=len(branch_context.past_events),
+        history_message_count=len(history_events),
         future_event_count=len(branch_context.future_events),
         history_preview=history_preview,
         baseline_future_preview=list(manifest.baseline_future_preview),

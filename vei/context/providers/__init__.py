@@ -17,8 +17,11 @@ def list_providers() -> list[str]:
 
 
 def _build_registry() -> Dict[str, ContextProvider]:
+    from .clickup import ClickUpContextProvider
     from .gmail import GmailContextProvider
+    from .github import GitHubContextProvider
     from .granola import GranolaContextProvider
+    from .gitlab import GitLabContextProvider
     from .google import GoogleContextProvider
     from .jira import JiraContextProvider
     from .linear import LinearContextProvider
@@ -37,4 +40,7 @@ def _build_registry() -> Dict[str, ContextProvider]:
         "notion": NotionContextProvider(),
         "linear": LinearContextProvider(),
         "granola": GranolaContextProvider(),
+        "github": GitHubContextProvider(),
+        "gitlab": GitLabContextProvider(),
+        "clickup": ClickUpContextProvider(),
     }

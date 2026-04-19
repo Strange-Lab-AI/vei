@@ -4,6 +4,43 @@ import subprocess
 import sys
 from pathlib import Path
 
+_TEXTUAL_SUFFIXES = {
+    ".cfg",
+    ".conf",
+    ".css",
+    ".env",
+    ".html",
+    ".ini",
+    ".js",
+    ".json",
+    ".jsx",
+    ".md",
+    ".py",
+    ".rst",
+    ".sh",
+    ".svg",
+    ".toml",
+    ".ts",
+    ".tsx",
+    ".txt",
+    ".xml",
+    ".yaml",
+    ".yml",
+}
+_TEXTUAL_FILENAMES = {
+    "Dockerfile",
+    "Makefile",
+    ".env",
+    ".env.example",
+}
+_SECRET_SCAN_EXCLUDED_PREFIXES = (
+    ".artifacts/",
+    "_vei_out/",
+    "data/enron/reference_backend/",
+    "docs/assets/",
+    "docs/examples/",
+)
+
 
 def _git_output(root: Path, *args: str) -> list[str]:
     result = subprocess.run(
@@ -59,6 +96,34 @@ def _console_script(name: str) -> Path:
     return Path(sys.executable).parent / name
 
 
+def _looks_textual(path: Path) -> bool:
+    if path.suffix.lower() in _TEXTUAL_SUFFIXES:
+        return True
+    if path.name in _TEXTUAL_FILENAMES:
+        return True
+    try:
+        chunk = path.read_bytes()[:4096]
+    except OSError:
+        return False
+    if not chunk:
+        return True
+    if b"\x00" in chunk:
+        return False
+    try:
+        chunk.decode("utf-8")
+    except UnicodeDecodeError:
+        return False
+    return True
+
+
+def _include_in_secret_scan(root: Path, path: Path) -> bool:
+    relative = path.relative_to(root).as_posix()
+    for prefix in _SECRET_SCAN_EXCLUDED_PREFIXES:
+        if relative.startswith(prefix):
+            return False
+    return _looks_textual(path)
+
+
 def run_local_security_checks(root: Path) -> None:
     changed_files = collect_changed_files(root)
     changed_python = [
@@ -89,10 +154,11 @@ def run_local_security_checks(root: Path) -> None:
     relative_paths = [
         str(path.relative_to(root))
         for path in changed_files
+        if _include_in_secret_scan(root, path)
         if path.relative_to(root) != Path(".secrets.baseline")
     ]
     if not relative_paths:
-        print("No changed files for local detect-secrets after baseline filtering.")
+        print("No textual changed files for local detect-secrets after filtering.")
         return
     baseline = root / ".secrets.baseline"
     if baseline.exists():

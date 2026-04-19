@@ -11,6 +11,7 @@ from vei.whatif.filenames import (
     EXPERIMENT_RESULT_FILE,
     HEURISTIC_FORECAST_FILE,
     LLM_RESULT_FILE,
+    REFERENCE_FORECAST_FILE,
     RANKED_OVERVIEW_FILE,
     RANKED_RESULT_FILE,
     WORKSPACE_DIRECTORY,
@@ -456,6 +457,8 @@ def _normalize_candidate_interventions(
 def _forecast_result_filename(backend: str) -> str:
     if backend == "e_jepa":
         return EJEPA_RESULT_FILE
+    if backend == "reference":
+        return REFERENCE_FORECAST_FILE
     return HEURISTIC_FORECAST_FILE
 
 

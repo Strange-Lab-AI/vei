@@ -44,6 +44,13 @@ from vei.whatif.api import (
 from vei.whatif.api import run_branch_point_benchmark_prediction
 
 logger = logging.getLogger(__name__)
+_DEFAULT_REFERENCE_CHECKPOINT = (
+    Path(__file__).resolve().parents[3]
+    / "data"
+    / "enron"
+    / "reference_backend"
+    / "model.pt"
+)
 
 
 class ReferenceBackend:
@@ -59,6 +66,8 @@ class ReferenceBackend:
         del kwargs
         env_checkpoint = os.environ.get("VEI_REFERENCE_BACKEND_CHECKPOINT", "")
         resolved_checkpoint = checkpoint_path or env_checkpoint
+        if not resolved_checkpoint and _DEFAULT_REFERENCE_CHECKPOINT.exists():
+            resolved_checkpoint = str(_DEFAULT_REFERENCE_CHECKPOINT)
         self._checkpoint_path = (
             Path(resolved_checkpoint).expanduser().resolve()
             if resolved_checkpoint

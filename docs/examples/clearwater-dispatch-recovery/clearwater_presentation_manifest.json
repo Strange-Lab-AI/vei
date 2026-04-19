@@ -1,0 +1,126 @@
+{
+  "opening_hook": "VEI is one enterprise world kernel. This world shows that the same runtime can instantiate different companies, vary the situation, vary the objective, and still produce inspectable runs, branches, and exportable artifacts.",
+  "demo_goal": "Start from Clearwater Field Services as a stable company world, then watch how `Service Day Collision` changes the situation, how `Protect SLA` changes the definition of success, and how the same kernel turns both runs into playback, branching, and future RL/eval/agent-ops outputs.",
+  "presenter_setup": [
+    "Open Studio on the Briefing view, then move into Living Company before you touch anything else.",
+    "Frame the product as a world studio for enterprises, not a static workflow viewer.",
+    "Keep the language anchored in the company world: Company, Situation, and Objective are the stable user-facing primitives.",
+    "Use `Reassign dispatch, hold billing, and keep the customer whole` versus `Let the morning fragment into dispatch drift and billing mistakes` to explain branching."
+  ],
+  "primitives": [
+    {
+      "name": "company",
+      "title": "Company",
+      "current_value": "Clearwater Field Services",
+      "summary": "Start with one stable business world. The company stays fixed while the situation and the objective move around it.",
+      "kernel_mapping": "Workspace + blueprint + capability graphs"
+    },
+    {
+      "name": "situation",
+      "title": "Situation",
+      "current_value": "Service Day Collision",
+      "summary": "Situations are overlays on the base world. They add deadline pressure, faults, and branch-worthy tradeoffs without rebuilding the company.",
+      "kernel_mapping": "Scenario variant overlay on the world state"
+    },
+    {
+      "name": "objective",
+      "title": "Objective",
+      "current_value": "Protect SLA",
+      "summary": "Objectives change what counts as good behavior. The same company and same situation can be judged under different business preferences.",
+      "kernel_mapping": "Contract variant overlay on the shared contract engine"
+    },
+    {
+      "name": "run",
+      "title": "Run",
+      "current_value": "workflow_baseline vs scripted_comparison",
+      "summary": "Runs are attempts to solve the same world under the same event spine. Workflow, scripted, and LLM agents all land in one runtime model.",
+      "kernel_mapping": "Canonical run/event spine + snapshots + playback"
+    },
+    {
+      "name": "branch",
+      "title": "Branch",
+      "current_value": "Baseline branch and agent branch",
+      "summary": "Branching shows alternate futures from one company world. That is the most intuitive proof that this is an engine, not a static benchmark.",
+      "kernel_mapping": "Snapshots + branch labels + diff and replay surfaces"
+    },
+    {
+      "name": "exports",
+      "title": "Exports",
+      "current_value": "RL / eval / agent ops preview",
+      "summary": "The same run artifacts later become RL episodes, continuous eval cases, and agent observability bundles.",
+      "kernel_mapping": "Derived artifacts from the same run and contract outputs"
+    }
+  ],
+  "beats": [
+    {
+      "step": 1,
+      "title": "Open with the kernel thesis",
+      "studio_view": "presentation",
+      "operator_action": "Start on Briefing, then move into Living Company once the software wall is visible.",
+      "presenter_note": "Say that VEI is one enterprise world kernel. We are about to show different companies, different situations, and different objectives on top of the same runtime.",
+      "proof_point": "The world opens with the engine, not with a single handcrafted scenario.",
+      "audience_takeaway": "This is a reusable platform layer, not a one-off workflow viewer."
+    },
+    {
+      "step": 2,
+      "title": "Choose the company world",
+      "studio_view": "worlds",
+      "operator_action": "Click Company and show that this world is one stable business with its own graphs and operating surfaces.",
+      "presenter_note": "Introduce Clearwater Field Services in plain language, explain what the company does, and why failure in this world has real business consequences.",
+      "proof_point": "Different companies can live on the same kernel without changing the runtime model.",
+      "audience_takeaway": "The kernel is flexible enough to instantiate very different enterprise environments."
+    },
+    {
+      "step": 3,
+      "title": "Show the situation overlay",
+      "studio_view": "situations",
+      "operator_action": "Click Situation, highlight the active scenario variant, and call out what changed from the base world.",
+      "presenter_note": "Explain that `Service Day Collision` is not a different company. It is one alternate future layered on top of the same company world.",
+      "proof_point": "Problem setup is a first-class overlay, not a rewritten environment.",
+      "audience_takeaway": "The same company can generate many meaningful simulations."
+    },
+    {
+      "step": 4,
+      "title": "Show the objective overlay",
+      "studio_view": "objectives",
+      "operator_action": "Click Objective and compare the active contract with the other objective variants.",
+      "presenter_note": "Explain that `Protect SLA` tells VEI what good looks like in this situation, and that different objectives can produce different preferred behavior on the same world.",
+      "proof_point": "Success criteria are separate from both the world and the situation.",
+      "audience_takeaway": "This same kernel can later support eval, policy testing, and reward shaping."
+    },
+    {
+      "step": 5,
+      "title": "Run the baseline and the agent path",
+      "studio_view": "runs",
+      "operator_action": "Launch or open the workflow baseline, then the comparison run, and play the timeline for a few events.",
+      "presenter_note": "Point out that every action lands in one event spine with graph intent, resolved tools, and snapshots. That is what makes the world inspectable instead of magical.",
+      "proof_point": "Same runtime model for deterministic baseline and freer agent behavior.",
+      "audience_takeaway": "This is already a serious observability surface, not just a benchmark harness."
+    },
+    {
+      "step": 6,
+      "title": "Explain the branch and outcome",
+      "studio_view": "runs",
+      "operator_action": "Scroll to Branch + Outcome and contrast the baseline branch with the agent branch.",
+      "presenter_note": "Use the branch story to explain that the company world stayed the same, but the decisions changed, so the business result changed.",
+      "proof_point": "Branching makes alternate futures legible on top of one shared world state.",
+      "audience_takeaway": "This is why VEI can later serve as a simulation engine, recovery lab, and decision-testing system."
+    },
+    {
+      "step": 7,
+      "title": "Close on the platform bridge",
+      "studio_view": "runs",
+      "operator_action": "Finish on Exports and tie the run outputs to RL episodes, continuous eval, and agent operations.",
+      "presenter_note": "Close by saying that this world already emits the ingredients for the next products: RL transitions, eval comparisons, and agent observability.",
+      "proof_point": "The future-platform story is a direct extension of the current artifacts, not a speculative rewrite.",
+      "audience_takeaway": "The upside is a family of products built on one world kernel."
+    }
+  ],
+  "closing_argument": "The core claim is simple: VEI already behaves like a world studio for enterprises. These worlds are different instantiations of one kernel, and the same kernel is what later becomes an RL environment, a continuous eval harness, and an agent management platform.",
+  "operator_commands": [
+    "python -m vei.cli.vei project init --vertical service_ops --root /Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/_vei_out/service_ops_story_sources/clearwater-dispatch-recovery",
+    "python -m vei.cli.vei scenario activate --root /Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/_vei_out/service_ops_story_sources/clearwater-dispatch-recovery --variant service_day_collision --bootstrap-contract",
+    "python -m vei.cli.vei contract activate --root /Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/_vei_out/service_ops_story_sources/clearwater-dispatch-recovery --variant protect_sla",
+    "python -m vei.cli.vei ui serve --root /Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/_vei_out/service_ops_story_sources/clearwater-dispatch-recovery --host 127.0.0.1 --port 3011"
+  ]
+}

@@ -6,7 +6,11 @@ from pathlib import Path
 import pytest
 import typer.testing
 
-from vei.benchmark.api import list_benchmark_family_manifest, run_benchmark_case
+from vei.benchmark.api import (
+    list_benchmark_family_manifest,
+    list_default_benchmark_family_manifest,
+    run_benchmark_case,
+)
 from vei.benchmark.models import BenchmarkCaseSpec
 from vei.cli.vei_eval import app as eval_app
 from vei.cli.vei_train import bc as train_bc
@@ -136,7 +140,7 @@ def test_vei_eval_suite_cli_creates_canonical_suite_artifacts(tmp_path: Path) ->
     suite_result = json.loads(
         (suite_dir / "suite_result.json").read_text(encoding="utf-8")
     )
-    expected_families = {item.name for item in list_benchmark_family_manifest()}
+    expected_families = {item.name for item in list_default_benchmark_family_manifest()}
     assert set(suite_result["family_names"]) == expected_families
     assert suite_result["summary"]["total_runs"] == len(expected_families)
     assert set(suite_result["scenario_names"]) == expected_families
@@ -144,6 +148,14 @@ def test_vei_eval_suite_cli_creates_canonical_suite_artifacts(tmp_path: Path) ->
     assert set(suite_result["blueprint_asset_paths"]) == expected_families
     assert set(suite_result["blueprint_paths"]) == expected_families
     assert set(suite_result["contract_paths"]) == expected_families
+    assert "service_ops" not in expected_families
+
+
+def test_benchmark_family_catalog_marks_clearwater_as_smoke_path() -> None:
+    families = {item.name: item for item in list_benchmark_family_manifest()}
+
+    assert families["service_ops"].benchmark_role == "smoke"
+    assert families["service_ops"].include_in_default_suite is False
 
 
 def test_vei_eval_showcase_cli_creates_multi_example_bundle(tmp_path: Path) -> None:

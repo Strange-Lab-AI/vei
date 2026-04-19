@@ -1,0 +1,27 @@
+{
+  "metadata": {
+    "name": "whatif-baseline-tickets:JRA-CFS-11",
+    "description": "Historical future events scheduled after the branch point.",
+    "tags": [
+      "whatif",
+      "baseline",
+      "historical"
+    ],
+    "source": "historical_company_history",
+    "transform_hash": null
+  },
+  "events": [
+    {
+      "time_ms": 1,
+      "actor_id": "dispatch.lead",
+      "channel": "tickets",
+      "type": "in_progress",
+      "correlation_id": "tickets:JRA-CFS-11",
+      "payload": {
+        "ticket_id": "JRA-CFS-11",
+        "comment": "Backup dispatch routing",
+        "author": "dispatch.lead"
+      }
+    }
+  ]
+}

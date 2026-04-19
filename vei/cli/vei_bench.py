@@ -80,6 +80,7 @@ def list_benchmarks(
         table = Table(title="Benchmark Families", show_lines=False)
         table.add_column("Name", style="cyan", min_width=25)
         table.add_column("Title", style="green")
+        table.add_column("Role")
         table.add_column("Workflow")
         table.add_column("Scenarios", justify="right")
         table.add_column("Tags")
@@ -87,6 +88,7 @@ def list_benchmarks(
             table.add_row(
                 family.name,
                 family.title,
+                family.benchmark_role,
                 family.workflow_name or "-",
                 str(len(family.scenario_names)),
                 ", ".join(family.tags[:3]) or "-",

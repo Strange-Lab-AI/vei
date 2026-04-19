@@ -1,0 +1,27 @@
+{
+  "metadata": {
+    "name": "whatif-baseline-tickets:JRA-CFS-12",
+    "description": "Historical future events scheduled after the branch point.",
+    "tags": [
+      "whatif",
+      "baseline",
+      "historical"
+    ],
+    "source": "historical_company_history",
+    "transform_hash": null
+  },
+  "events": [
+    {
+      "time_ms": 1,
+      "actor_id": "billing.lead",
+      "channel": "tickets",
+      "type": "review",
+      "correlation_id": "tickets:JRA-CFS-12",
+      "payload": {
+        "ticket_id": "JRA-CFS-12",
+        "comment": "Billing dispute follow-through",
+        "author": "billing.lead"
+      }
+    }
+  ]
+}

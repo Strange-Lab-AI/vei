@@ -1,8 +1,8 @@
 # VEI Service Operations Pack — Control Plane and What-If Walkthrough
 
-**Clearwater Field Services** is the strongest built-in demo for VEI's current product story: a VIP outage, technician no-show, and billing dispute all collide before 9 AM, while governed agents and a human operator respond through the same control surface.
+**Clearwater Field Services** is the built-in synthetic rig for VEI's control-room story: a VIP outage, technician no-show, and billing dispute all collide before 9 AM, while governed agents and a human operator respond through the same control surface.
 
-This walkthrough describes the current Studio experience for the `service_ops` pack with governor mode enabled. It focuses on the two demo moments the product now supports well:
+This walkthrough describes the current Studio experience for the `service_ops` pack with governor mode enabled. Use Enron for the flagship real-history example. Use Clearwater when you want the built-in synthetic kernel and governor path.
 
 1. **Control plane** — governed agent activity with visible denials, approval holds, connector status, and operator controls.
 2. **What-if replay** — change a small set of service-ops policy knobs, replay from the same starting point, and compare the new outcome side by side.
@@ -16,7 +16,7 @@ vei quickstart run --world service_ops --governor-demo --no-serve
 
 This launches the Clearwater Field Services world with governor mode and opens Studio. No API keys required for the built-in deterministic demo.
 
-### What-if from a Dispatch workspace
+### What-if from the Clearwater workspace
 
 The quickstart workspace stores its company graph inside the blueprint asset, not as a `context_snapshot.json`. To branch a historical what-if from it, first export a snapshot:
 
@@ -46,7 +46,32 @@ vei whatif experiment --source company_history \
   --mode heuristic_baseline
 ```
 
+That export now writes `canonical_events.jsonl` and `canonical_event_index.json` beside the snapshot, so the Company Timeline view and the readiness commands can read the same file-backed history immediately.
+
 No API keys required for `heuristic_baseline` mode. Add `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`, or `OPENROUTER_API_KEY` to `.env` and use `--mode both` for LLM-driven counterfactual continuations alongside the forecast.
+
+### Repo-owned synthetic bundles
+
+The repo now includes three saved Clearwater bundles under `docs/examples/`:
+
+- `clearwater-dispatch-recovery`
+- `clearwater-billing-dispute-reopened`
+- `clearwater-technician-no-show`
+
+Open one directly in Studio:
+
+```bash
+vei ui serve \
+  --root docs/examples/clearwater-dispatch-recovery/workspace \
+  --host 127.0.0.1 \
+  --port 3056
+```
+
+Rebuild the tracked synthetic bundles:
+
+```bash
+make service-ops-example
+```
 
 ---
 

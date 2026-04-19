@@ -295,7 +295,7 @@ def render_episode(materialization: WhatIfEpisodeMaterialization) -> str:
         f"- Branch event: `{materialization.branch_event_id}`",
         f"- Branch actor: `{materialization.branch_event.actor_id}`",
         f"- Branch type: {materialization.branch_event.event_type}",
-        f"- Seeded historical messages: {materialization.history_message_count}",
+        f"- Seeded historical events: {materialization.history_message_count}",
         f"- Scheduled future events: {materialization.future_event_count}",
         f"- Forecast risk score: {materialization.forecast.risk_score}",
     ]
@@ -901,7 +901,7 @@ def render_decision_scene(scene: WhatIfDecisionScene) -> str:
         f"- Surface: {scene.surface}",
         f"- Thread: `{scene.thread_id}`",
         f"- Branch event: `{scene.branch_event_id}`",
-        f"- History messages: {scene.history_message_count}",
+        f"- History events: {scene.history_message_count}",
         f"- Future events: {scene.future_event_count}",
     ]
     if scene.content_notice:

@@ -35,24 +35,24 @@ Prompt: Hold the deal until PG&E credit is rechecked, ask for collateral, and ke
 
 ## Forecast
 - Status: ok
-- Backend: heuristic_baseline
-- Summary: Predicted risk moves down by 0.380, with escalation delta -2 and external-send delta 0.
+- Backend: reference
+- Summary: reference forecast completed.
 - Baseline risk: 1.0
-- Predicted risk: 0.62
-- External-send delta: 0
-- Escalation delta: -2
+- Predicted risk: 1.0
+- External-send delta: 1
+- Escalation delta: 0
 
 ## Business State Change
-- Summary: Much lower exposure risk. Trade-off: Moderately higher internal handling load.
+- Summary: Moderately lower approval and escalation pressure.
 - Confidence: medium
-- Net effect score: 0.063
-- Much lower exposure risk.
-- Moderately higher internal handling load.
-- Slightly higher execution delay.
-- Slightly stronger relationship stability.
-- The thread looks much safer to contain.
-- Internal handling looks heavier.
-- Near-term execution looks slower.
+- Net effect score: 0.019
+- Moderately lower approval and escalation pressure.
+- Slightly lower internal handling load.
+- Slightly lower execution delay.
+- Exposure risk stays close to the historical path.
+- Containment stays close to the historical path.
+- Internal handling looks lighter.
+- Near-term execution looks faster.
 
 ## Macro Outcomes
 - Stock return (5d): -0.0343 -> 0.0257 (delta 0.06)

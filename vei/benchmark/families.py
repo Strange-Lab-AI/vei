@@ -203,9 +203,12 @@ _FAMILY_CATALOG: Dict[str, BenchmarkFamilyManifest] = {
         name="service_ops",
         title="Service Operations",
         description=(
-            "Recover a bad service morning by coordinating dispatch, billing safety, "
-            "and exception follow-through from one shared operating loop."
+            "Exercise the synthetic Clearwater service-ops rig through the same "
+            "workflow harness used elsewhere. Keep this family around as a kernel "
+            "and workflow regression path, not as the headline learned benchmark."
         ),
+        benchmark_role="smoke",
+        include_in_default_suite=False,
         workflow_name="service_ops",
         primary_workflow_variant="service_day_collision",
         workflow_variants=[
@@ -223,7 +226,7 @@ _FAMILY_CATALOG: Dict[str, BenchmarkFamilyManifest] = {
             "billing_safety",
             "artifact_follow_through",
         ],
-        tags=["vertical", "service", "dispatch", "billing"],
+        tags=["vertical", "service", "dispatch", "billing", "synthetic", "smoke"],
     ),
     "knowledge_authoring": BenchmarkFamilyManifest(
         name="knowledge_authoring",
@@ -256,6 +259,14 @@ def list_benchmark_family_manifest() -> List[BenchmarkFamilyManifest]:
     return sorted(_FAMILY_CATALOG.values(), key=lambda item: item.name)
 
 
+def list_default_benchmark_family_manifest() -> List[BenchmarkFamilyManifest]:
+    return [
+        manifest
+        for manifest in list_benchmark_family_manifest()
+        if manifest.include_in_default_suite
+    ]
+
+
 def resolve_family_scenarios(family_names: Sequence[str]) -> List[str]:
     resolved: List[str] = []
     seen: set[str] = set()
@@ -272,6 +283,7 @@ def resolve_family_scenarios(family_names: Sequence[str]) -> List[str]:
 __all__ = [
     "BenchmarkFamilyManifest",
     "get_benchmark_family_manifest",
+    "list_default_benchmark_family_manifest",
     "list_benchmark_family_manifest",
     "resolve_family_scenarios",
 ]

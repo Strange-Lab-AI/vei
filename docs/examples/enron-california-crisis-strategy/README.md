@@ -6,7 +6,7 @@ This example moves the branch point into the California power-crisis conduct and
 
 ```bash
 vei ui serve \
-  --root docs/examples/enron-california-crisis-strategy/workspace \
+  --root /Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/docs/examples/enron-california-crisis-strategy/workspace \
   --host 127.0.0.1 \
   --port 3055
 ```
@@ -26,11 +26,13 @@ The FERC and refund timeline gives the branch a wider public frame, but the macr
 ## What This Example Covers
 
 - Historical branch point: Tim Belden's desk receives a preservation order tied to the California crisis while the trading strategy is still active.
-- Saved branch scene: 2 prior messages and 4 recorded future events
+- Saved branch scene: 30 prior events and 4 recorded future events
 - Public-company slice at 2000-12-15: 6 financial checkpoints, 6 public news items, 733 market checkpoints, 0 credit checkpoints, and 0 regulatory checkpoints
+- Prior timeline source families: disclosure, filing, financial, mail, market, news
+- Prior timeline domains: governance, internal, obs_graph
 - Saved LLM path: Pause the strategy, preserve the record, alert legal and compliance, and prepare a self-report path instead of continuing the trading play.
-- Saved forecast file: `whatif_heuristic_baseline_result.json`
-- Business-state readout: Slightly lower exposure risk. Trade-off: Moderately higher approval and escalation pressure.
+- Saved forecast file: `whatif_reference_result.json`
+- Business-state readout: Much higher exposure risk.
 - Top ranked candidate: Seek Skilling sign-off
 
 ## Saved Files
@@ -39,9 +41,14 @@ The FERC and refund timeline gives the branch a wider public frame, but the macr
 - `whatif_experiment_overview.md`: short human-readable run summary
 - `whatif_experiment_result.json`: saved combined result for the example bundle
 - `whatif_llm_result.json`: bounded message-path result
-- `whatif_heuristic_baseline_result.json`: saved forecast result
+- `whatif_reference_result.json`: saved forecast result
 - `whatif_business_state_comparison.md`: ranked comparison in business language
 - `whatif_business_state_comparison.json`: structured comparison payload
+- `enron_story_overview.md`: presenter-facing branch summary
+- `enron_story_manifest.json`: structured demo manifest
+- `enron_exports_preview.json`: export preview for timeline and forecast artifacts
+- `enron_presentation_manifest.json`: presentation beat manifest
+- `enron_presentation_guide.md`: operator guide for bundle demos
 
 ## Other Enron Examples
 

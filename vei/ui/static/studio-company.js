@@ -1664,7 +1664,7 @@ function renderScenarioBriefing() {
         <p class="metric-detail">${escapeHtml(currentCrisisSummary())}</p>
         <div class="chip-row">
           ${chip(escapeHtml(historical.branch_event_id || "branch event"))}
-          ${chip(`${historical.history_message_count || 0} prior messages`)}
+          ${chip(`${historical.history_message_count || 0} prior events`)}
           ${chip(`${historical.future_event_count || 0} future events`)}
         </div>
       </div>
@@ -1811,7 +1811,7 @@ function renderObjectiveBriefing(contractVariants = [], activeContractVariant = 
           <h3>${escapeHtml(historical?.thread_subject || "Historical replay")}</h3>
           <p class="metric-detail">${escapeHtml(currentObjectiveSummary())}</p>
           <div class="chip-row">
-            ${chip(`${historical?.history_message_count || 0} prior messages`)}
+            ${chip(`${historical?.history_message_count || 0} prior events`)}
             ${chip(`${historical?.future_event_count || 0} future events`)}
           </div>
         </div>
