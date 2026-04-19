@@ -411,6 +411,14 @@ def _preferred_recipient_fallback(
     organization_domain: str,
     default: str,
 ) -> str:
+    normalized_default = default.strip()
+    if (
+        normalized_default
+        and organization_domain
+        and normalized_default.lower().endswith(f"@{organization_domain.lower()}")
+        and not normalized_default.lower().startswith("group:")
+    ):
+        return normalized_default
     for recipient in recipients:
         if (
             recipient
@@ -433,18 +441,25 @@ def _resolve_allowed_identity(
         if normalized == allowed.lower():
             return allowed
 
-    wanted_tokens = _identity_tokens(normalized)
+    token_source = normalized.split("@", 1)[0] if "@" in normalized else normalized
+    wanted_tokens = _identity_tokens(token_source)
     if not wanted_tokens:
         return None
 
     best_match: str | None = None
     best_score = 0
     for allowed in allowed_values:
-        candidate_tokens = _identity_tokens(allowed.lower())
+        allowed_normalized = allowed.lower()
+        candidate_source = (
+            allowed_normalized.split("@", 1)[0]
+            if "@" in normalized and "@" in allowed_normalized
+            else allowed_normalized
+        )
+        candidate_tokens = _identity_tokens(candidate_source)
         overlap = len(wanted_tokens & candidate_tokens)
         if overlap == 0:
             continue
-        if normalized in allowed.lower() or allowed.lower() in normalized:
+        if normalized in allowed_normalized or allowed_normalized in normalized:
             overlap += 2
         if overlap > best_score:
             best_match = allowed
