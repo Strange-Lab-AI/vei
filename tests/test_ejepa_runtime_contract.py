@@ -5,6 +5,8 @@ from pathlib import Path
 
 import pytest
 
+import vei.whatif.ejepa as ejepa_module
+
 from vei.whatif.benchmark_runtime import (
     _default_prediction_runtime_root,
     _run_bridge_command,
@@ -68,7 +70,8 @@ def test_resolve_ejepa_runtime_prefers_vendored_package(
     resolved = resolve_ejepa_runtime()
 
     assert resolved is not None
-    assert resolved[0].name == "digital-enterprise-twin"
+    assert resolved[0] == Path(ejepa_module.__file__).resolve().parents[2]
+    assert (resolved[0] / "structured_jepa").exists()
     assert resolved[1] == Path(sys.executable).resolve()
 
 
@@ -81,7 +84,8 @@ def test_resolve_ejepa_runtime_prefers_vendored_root_without_importable_package(
     resolved = resolve_ejepa_runtime()
 
     assert resolved is not None
-    assert resolved[0].name == "digital-enterprise-twin"
+    assert resolved[0] == Path(ejepa_module.__file__).resolve().parents[2]
+    assert (resolved[0] / "structured_jepa").exists()
     assert resolved[1] == Path(sys.executable).resolve()
 
 

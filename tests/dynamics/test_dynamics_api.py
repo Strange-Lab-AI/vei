@@ -24,6 +24,39 @@ from vei.events.models import ActorRef, EventDomain
 GOLDENS_DIR = Path(__file__).parent / "goldens"
 
 
+def _reference_prediction_stub(**_kwargs: object) -> dict[str, object]:
+    return {
+        "model_id": "ft_transformer",
+        "binary_probability": 0.73,
+        "regression_values": [0.0] * 22,
+        "evidence_heads": {
+            "any_external_spread": True,
+            "outside_recipient_count": 2,
+            "outside_forward_count": 1,
+            "outside_attachment_spread_count": 0,
+            "legal_follow_up_count": 1,
+            "review_loop_count": 1,
+            "markup_loop_count": 0,
+            "executive_escalation_count": 0,
+            "executive_mention_count": 0,
+            "urgency_spike_count": 0,
+            "participant_fanout": 3,
+            "cc_expansion_count": 0,
+            "cross_functional_loop_count": 0,
+            "time_to_first_follow_up_ms": 2000,
+            "time_to_thread_end_ms": 4000,
+            "review_delay_burden_ms": 2000,
+            "reassurance_count": 0,
+            "apology_repair_count": 0,
+            "commitment_clarity_count": 1,
+            "blame_pressure_count": 0,
+            "internal_disagreement_count": 0,
+            "attachment_recirculation_count": 0,
+            "version_turn_count": 0,
+        },
+    }
+
+
 @pytest.fixture(autouse=True)
 def _clean_registry():
     reset_registry()
@@ -123,17 +156,50 @@ class TestRegistry:
 
 
 class TestReferenceBackend:
-    def test_returns_explicit_error_without_checkpoint(self) -> None:
+    def test_uses_repo_checkpoint_when_available(
+        self, tmp_path: Path, monkeypatch
+    ) -> None:
+        checkpoint_path = tmp_path / "reference-model.pt"
+        checkpoint_path.write_bytes(b"placeholder")
+        monkeypatch.delenv("VEI_REFERENCE_BACKEND_CHECKPOINT", raising=False)
+        monkeypatch.setattr(
+            "vei.dynamics.backends.reference._DEFAULT_REFERENCE_CHECKPOINT",
+            checkpoint_path,
+        )
+        monkeypatch.setattr(
+            "vei.dynamics.backends.reference.run_branch_point_benchmark_prediction",
+            _reference_prediction_stub,
+        )
         backend = ReferenceBackend()
+
+        response = backend.forecast(DynamicsRequest(seed=42042))
+
+        assert response.backend_id == "reference"
+        assert response.state_delta_summary["checkpoint_path"] == str(
+            checkpoint_path.resolve()
+        )
+
+    def test_returns_explicit_error_without_checkpoint(self, tmp_path: Path) -> None:
+        missing_path = tmp_path / "missing-model.pt"
+        backend = ReferenceBackend(checkpoint_path=str(missing_path))
 
         response = backend.forecast(DynamicsRequest(seed=42042))
 
         assert response.backend_id == "reference"
         assert "checkpoint" in response.state_delta_summary["error"]
 
-    def test_returns_checkpoint_error_before_torch_error(self, monkeypatch) -> None:
+    def test_returns_checkpoint_error_before_torch_error(
+        self, tmp_path: Path, monkeypatch
+    ) -> None:
         monkeypatch.delenv("VEI_REFERENCE_BACKEND_CHECKPOINT", raising=False)
-        backend = ReferenceBackend()
+        missing_path = tmp_path / "missing-model.pt"
+        monkeypatch.setattr(
+            "vei.dynamics.backends.reference.run_branch_point_benchmark_prediction",
+            lambda **_kwargs: (_ for _ in ()).throw(
+                AssertionError("bridge should not run")
+            ),
+        )
+        backend = ReferenceBackend(checkpoint_path=str(missing_path))
 
         response = backend.forecast(DynamicsRequest(seed=42042))
 
@@ -165,36 +231,7 @@ class TestReferenceBackend:
         checkpoint_path.write_bytes(b"placeholder")
         monkeypatch.setattr(
             "vei.dynamics.backends.reference.run_branch_point_benchmark_prediction",
-            lambda **_kwargs: {
-                "model_id": "ft_transformer",
-                "binary_probability": 0.73,
-                "regression_values": [0.0] * 22,
-                "evidence_heads": {
-                    "any_external_spread": True,
-                    "outside_recipient_count": 2,
-                    "outside_forward_count": 1,
-                    "outside_attachment_spread_count": 0,
-                    "legal_follow_up_count": 1,
-                    "review_loop_count": 1,
-                    "markup_loop_count": 0,
-                    "executive_escalation_count": 0,
-                    "executive_mention_count": 0,
-                    "urgency_spike_count": 0,
-                    "participant_fanout": 3,
-                    "cc_expansion_count": 0,
-                    "cross_functional_loop_count": 0,
-                    "time_to_first_follow_up_ms": 2000,
-                    "time_to_thread_end_ms": 4000,
-                    "review_delay_burden_ms": 2000,
-                    "reassurance_count": 0,
-                    "apology_repair_count": 0,
-                    "commitment_clarity_count": 1,
-                    "blame_pressure_count": 0,
-                    "internal_disagreement_count": 0,
-                    "attachment_recirculation_count": 0,
-                    "version_turn_count": 0,
-                },
-            },
+            _reference_prediction_stub,
         )
         backend = ReferenceBackend(checkpoint_path=str(checkpoint_path))
         request = DynamicsRequest(
