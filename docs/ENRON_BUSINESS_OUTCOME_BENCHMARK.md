@@ -246,6 +246,32 @@ The current shipped metrics card reports:
 
 Use those numbers as the main factual forecasting headline for the repo-owned Enron path. They are weaker than the earlier mail-heavier checkpoint, and that gap is the current cost of moving the shipped Enron path onto the thicker canonical timeline.
 
+## Flagship proof pass
+
+The repo now also carries a smaller judged proof pass focused on the four flagship Enron cases:
+
+- `master_agreement`
+- `watkins_followup_questions`
+- `california_crisis_order`
+- `pg_e_power_deal`
+
+Run it with:
+
+```bash
+set -a; source .env; set +a
+.venv/bin/python scripts/run_enron_flagship_proof_pass.py
+```
+
+The current checked-in summary lives under `studies/enron_flagship_proof_pass_v1/` and reports:
+
+- judged rankings: `20`
+- judge top-1 agreement: `0.15`
+- judge pairwise accuracy: `0.667`
+- judge Kendall tau: `0.333`
+- dominance checks: `66/155` (`0.426`)
+
+Treat that proof pass as stronger evidence than the saved screenshots alone, but still weaker than a full judged benchmark sweep over the whole held-out pack.
+
 ## Optional matched-input study
 
 The matched-input multi-seed rerun remains available as a research comparison over one saved Enron public-context build produced from the vendored Rosetta archive. That rerun compares the three aligned models that all read the same pre-branch contract: `jepa_latent`, `full_context_transformer`, and `treatment_transformer`.
@@ -260,7 +286,7 @@ The current saved 5-seed, 2-epoch matched-input study produced these held-out de
 
 On the simpler factual task of predicting whether anything goes outside after the branch point, all three models stayed tightly grouped around `0.98` AUROC: `0.981` for `jepa_latent`, `0.982` for `full_context_transformer`, and `0.980` for `treatment_transformer`.
 
-The repo now also carries macro outcome side data for stock, credit, and FERC events. Those heads are available in the replay and saved bundle path, but the current Enron calibration stays weak: stock Spearman `0.041`, credit AUROC `0.370`, and FERC AUROC `0.568`. Treat the macro heads as advisory context beside the email-path evidence until those numbers improve.
+The repo now also carries macro outcome side data for stock, credit, and FERC events. Those heads are available in the replay and saved bundle path, but the current Enron calibration stays weak: stock Spearman `0.035`, credit AUROC `0.370`, and FERC AUROC `0.568`. Treat the macro heads as advisory context beside the email-path evidence until those numbers improve.
 
 The main point is that the optional matched-input rerun still keeps the JEPA-style path in front on the business decision checks once the models read the same pre-branch contract. The full-context transformer stays close. The treatment transformer varies much more from seed to seed.
 

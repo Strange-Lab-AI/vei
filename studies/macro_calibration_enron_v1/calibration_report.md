@@ -11,7 +11,7 @@ This study checks whether the tracked email-path risk proxy moves with the repo-
 
 ## Results
 
-- Stock return (5d) Spearman: 0.041
+- Stock return (5d) Spearman: 0.035
 - Credit action (30d) AUROC: 0.37
 - Credit action (30d) Brier: 0.516
 - FERC action (180d) AUROC: 0.568
