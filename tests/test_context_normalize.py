@@ -179,6 +179,92 @@ def test_context_cli_normalize_verify_and_public(tmp_path: Path) -> None:
     assert template.organization_domain == "acme.example.com"
 
 
+def test_context_cli_timeline_and_readiness_use_canonical_sidecars(
+    tmp_path: Path,
+) -> None:
+    runner = CliRunner()
+    source_dir = tmp_path / "exports"
+    _write_slack_export(source_dir)
+    (source_dir / "jira.json").write_text(
+        json.dumps(
+            {
+                "issues": [
+                    {
+                        "ticket_id": "ACME-101",
+                        "title": "ACME-101 legal review",
+                        "status": "open",
+                        "assignee": "maya@acme.example.com",
+                        "updated_at": "2026-03-01T10:30:00Z",
+                        "comments": [
+                            {
+                                "author": "maya@acme.example.com",
+                                "body": "ACME-101 is waiting on legal signoff.",
+                                "created_at": "2026-03-01T10:35:00Z",
+                            }
+                        ],
+                    }
+                ]
+            },
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+
+    snapshot_path = tmp_path / "context_snapshot.json"
+    normalize_result = runner.invoke(
+        app,
+        [
+            "context",
+            "normalize",
+            "--source-dir",
+            str(source_dir),
+            "--org",
+            "Acme Cloud",
+            "--domain",
+            "acme.example.com",
+            "--output",
+            str(snapshot_path),
+        ],
+    )
+    assert normalize_result.exit_code == 0, normalize_result.output
+    assert (tmp_path / "canonical_events.jsonl").exists()
+    assert (tmp_path / "canonical_event_index.json").exists()
+
+    timeline_result = runner.invoke(
+        app,
+        [
+            "context",
+            "timeline",
+            "--root",
+            str(snapshot_path),
+            "--surface",
+            "tickets",
+            "--limit",
+            "10",
+        ],
+    )
+    assert timeline_result.exit_code == 0, timeline_result.output
+    timeline_payload = json.loads(timeline_result.output)
+    assert timeline_payload["available"] is True
+    assert timeline_payload["matching_event_count"] >= 1
+    assert all(row["surface"] == "tickets" for row in timeline_payload["rows"])
+
+    readiness_result = runner.invoke(
+        app,
+        [
+            "context",
+            "readiness",
+            "--root",
+            str(snapshot_path),
+            "--format",
+            "plain",
+        ],
+    )
+    assert readiness_result.exit_code == 0, readiness_result.output
+    assert "Readiness:" in readiness_result.output
+    assert "Stitched events:" in readiness_result.output
+
+
 def test_normalize_raw_exports_wraps_legacy_archive_json(tmp_path: Path) -> None:
     legacy_path = tmp_path / "legacy_archive.json"
     legacy_path.write_text(

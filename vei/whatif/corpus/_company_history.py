@@ -5,7 +5,11 @@ from collections import Counter
 from pathlib import Path
 from typing import Any, Sequence
 
-from vei.context.api import ContextSnapshot
+from vei.context.api import (
+    ContextSnapshot,
+    load_canonical_history_bundle,
+    resolve_world_public_context,
+)
 
 from ..cases import assign_case_ids, build_case_summaries
 from ..models import (
@@ -15,7 +19,6 @@ from ..models import (
     WhatIfWorld,
     WhatIfWorldSummary,
 )
-from vei.context.api import resolve_world_public_context
 from ..situations import build_situation_graph
 from ._aggregation import build_actor_profiles, build_thread_summaries
 from ._mail_archive import (
@@ -49,8 +52,8 @@ COMPANY_HISTORY_CONTENT_NOTICE = (
     "They reflect the available source text for each recorded surface."
 )
 CHAT_SOURCE_PROVIDERS = {"slack", "teams"}
-WORK_SOURCE_PROVIDERS = {"jira"}
-DOC_SOURCE_PROVIDERS = {"google"}
+WORK_SOURCE_PROVIDERS = {"jira", "linear", "github", "gitlab", "clickup"}
+DOC_SOURCE_PROVIDERS = {"google", "notion", "granola"}
 CRM_SOURCE_PROVIDERS = {"crm", "salesforce"}
 STATE_CONTEXT_PROVIDERS = {"google", "crm", "salesforce"}
 EVENT_HISTORY_PROVIDERS = (
@@ -72,6 +75,15 @@ def load_company_history_world(
     include_content: bool = False,
 ) -> WhatIfWorld:
     resolved_source_dir = Path(source_dir).expanduser().resolve()
+    canonical_world = load_company_history_world_from_canonical(
+        source_dir=resolved_source_dir,
+        scenarios=scenarios,
+        time_window=time_window,
+        max_events=max_events,
+        include_content=include_content,
+    )
+    if canonical_world is not None:
+        return canonical_world
     snapshot = load_history_snapshot(resolved_source_dir)
     provider_names = _supported_history_provider_names(snapshot)
     event_provider_names = _event_history_provider_names(snapshot)
@@ -155,6 +167,97 @@ def load_company_history_world(
     )
 
 
+def load_company_history_world_from_canonical(
+    *,
+    source_dir: str | Path,
+    scenarios: Sequence[WhatIfScenario] | None = None,
+    time_window: tuple[str, str] | None = None,
+    max_events: int | None = None,
+    include_content: bool = False,
+) -> WhatIfWorld | None:
+    resolved_source_dir = Path(source_dir).expanduser().resolve()
+    bundle = load_canonical_history_bundle(resolved_source_dir)
+    if bundle is None:
+        return None
+
+    snapshot = _load_history_snapshot_if_present(resolved_source_dir)
+    time_bounds = resolve_time_window(time_window)
+    events = [
+        _canonical_row_to_whatif_event(row, include_content=include_content)
+        for row in bundle.index.rows
+    ]
+    if time_bounds is not None:
+        events = [
+            event
+            for event in events
+            if time_bounds[0] <= event.timestamp_ms <= time_bounds[1]
+        ]
+    events.sort(key=lambda item: (item.timestamp_ms, item.event_id))
+    if max_events is not None:
+        events = events[: max(0, int(max_events))]
+
+    organization_name = bundle.index.organization_name or "Historical Archive"
+    organization_domain = bundle.index.organization_domain or "archive.local"
+    actors = build_actor_profiles(events, organization_domain=organization_domain)
+    if snapshot is not None:
+        actors = _override_actor_profiles(
+            actors,
+            actor_payload=_history_actor_payload(
+                snapshot,
+                organization_domain=organization_domain,
+            ),
+        )
+    threads = build_thread_summaries(
+        events,
+        organization_domain=organization_domain,
+    )
+    cases = build_case_summaries(events)
+    situation_graph = build_situation_graph(
+        threads=threads,
+        cases=cases,
+        events=events,
+    )
+    summary = WhatIfWorldSummary(
+        source="company_history",
+        organization_name=organization_name,
+        organization_domain=organization_domain,
+        event_count=len(events),
+        thread_count=len(threads),
+        actor_count=len(actors),
+        custodian_count=0,
+        first_timestamp=events[0].timestamp if events else "",
+        last_timestamp=events[-1].timestamp if events else "",
+        event_type_counts=dict(Counter(event.event_type for event in events)),
+        key_actor_ids=[actor.actor_id for actor in actors[:5]],
+    )
+    public_context = resolve_world_public_context(
+        source="company_history",
+        source_dir=resolved_source_dir,
+        organization_name=summary.organization_name,
+        organization_domain=summary.organization_domain,
+        window_start=summary.first_timestamp,
+        window_end=summary.last_timestamp,
+        metadata=snapshot.metadata if snapshot is not None else {},
+    )
+    return WhatIfWorld(
+        source="company_history",
+        source_dir=resolved_source_dir,
+        summary=summary,
+        scenarios=list(scenarios or []),
+        actors=actors,
+        threads=threads,
+        cases=cases,
+        events=events,
+        situation_graph=situation_graph,
+        metadata={
+            "content_notice": COMPANY_HISTORY_CONTENT_NOTICE,
+            "source_providers": ",".join(bundle.index.source_providers),
+            "timeline_source": "canonical_history_sidecar",
+        },
+        public_context=public_context,
+    )
+
+
 def _build_company_history_events(
     *,
     snapshot: ContextSnapshot,
@@ -167,6 +270,54 @@ def _build_company_history_events(
         snapshot=snapshot,
         organization_domain=organization_domain,
         include_content=include_content,
+    )
+
+
+def _load_history_snapshot_if_present(path: Path) -> ContextSnapshot | None:
+    try:
+        return load_history_snapshot(path)
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def _canonical_row_to_whatif_event(
+    row,
+    *,
+    include_content: bool,
+) -> WhatIfEvent:
+    snippet = row.snippet if include_content else _truncate_snippet(row.snippet)
+    surface = row.surface
+    if surface == "crm" and row.kind == "deal_change":
+        event_type = "assignment" if row.metadata.get("field") == "owner" else "deal"
+    elif surface == "crm":
+        event_type = "deal"
+    elif row.kind in {"comment", "reply"}:
+        event_type = "reply"
+    elif row.kind in {"merge_request", "issue", "task"}:
+        event_type = "assignment"
+    else:
+        event_type = row.kind
+    return WhatIfEvent(
+        event_id=row.event_id,
+        timestamp=row.timestamp,
+        timestamp_ms=row.ts_ms,
+        actor_id=row.actor_id or f"{row.provider}-actor",
+        target_id=row.target_id,
+        event_type=event_type,
+        thread_id=row.thread_ref or f"{surface}:{row.event_id}",
+        case_id=row.case_id,
+        surface=surface,
+        conversation_anchor=row.conversation_anchor,
+        subject=row.subject or row.thread_ref,
+        snippet=snippet,
+        flags=WhatIfArtifactFlags(
+            is_reply=event_type == "reply",
+            to_count=len(row.participant_ids),
+            to_recipients=list(row.participant_ids),
+            subject=row.subject or row.thread_ref,
+            norm_subject=row.normalized_subject,
+            source=row.provider,
+        ),
     )
 
 

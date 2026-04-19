@@ -24,9 +24,11 @@ from vei.world.models import (
 )
 from vei.world.scenario import CalendarEvent, Document, Scenario, Ticket
 from vei.world.session import WorldSession
+from vei.world.state import Event
 
 _BOUNDARY_EXPORTS = (
     ActorState,
+    Event,
     WorldSnapshot,
     WorldState,
 )
@@ -208,6 +210,7 @@ __all__ = [
     "ActorState",
     "CalendarEvent",
     "Document",
+    "Event",
     "Scenario",
     "CapabilityGraphActionInput",
     "CapabilityGraphActionResult",

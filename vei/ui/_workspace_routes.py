@@ -134,6 +134,11 @@ def register_workspace_routes(app: FastAPI, root: Path, *, deps: Any) -> None:
 
     @app.get("/api/workspace/whatif")
     def api_workspace_whatif_status() -> JSONResponse:
+        from vei.context.api import (
+            build_canonical_history_readiness,
+            canonical_history_sidecars_exist,
+        )
+
         resolved = resolve_whatif_source_path(root)
         source = resolved[0] if resolved is not None else "auto"
         source_dir = str(resolved[1]) if resolved is not None else None
@@ -155,11 +160,20 @@ def register_workspace_routes(app: FastAPI, root: Path, *, deps: Any) -> None:
             validation_issues = _saved_workspace_validation_issues(root)
         available_providers = _available_providers()
         default_provider = available_providers[0] if available_providers else None
+        readiness = None
+        if source == "company_history" and source_dir:
+            readiness = build_canonical_history_readiness(Path(source_dir)).model_dump(
+                mode="json"
+            )
         return JSONResponse(
             {
                 "available": source_dir is not None,
                 "source": source,
                 "source_dir": source_dir,
+                "timeline_available": (
+                    bool(source_dir)
+                    and canonical_history_sidecars_exist(Path(source_dir))
+                ),
                 "saved_bundle_active": saved_bundle_active,
                 "llm_available": bool(available_providers),
                 "available_providers": available_providers,
@@ -169,12 +183,56 @@ def register_workspace_routes(app: FastAPI, root: Path, *, deps: Any) -> None:
                     if default_provider
                     else None
                 ),
+                "timeline_readiness": readiness,
                 "validation_issues": validation_issues,
                 "objective_packs": [
                     pack.model_dump(mode="json") for pack in list_objective_packs()
                 ],
             }
         )
+
+    @app.get("/api/workspace/whatif/timeline")
+    def api_workspace_whatif_timeline(
+        source: str = "auto",
+        surface: str | None = None,
+        actor: str | None = None,
+        case_id: str | None = None,
+        start: str | None = None,
+        end: str | None = None,
+        confidence_min: float | None = None,
+        limit: int = 40,
+    ) -> JSONResponse:
+        from vei.context.api import query_canonical_history
+
+        resolved = resolve_whatif_source_path(
+            root,
+            requested_source=source,
+        )
+        if resolved is None:
+            return JSONResponse({"available": False, "rows": []})
+        source_name, source_path = resolved
+        if source_name != "company_history":
+            return JSONResponse(
+                {
+                    "available": False,
+                    "source": source_name,
+                    "rows": [],
+                }
+            )
+        timeline = query_canonical_history(
+            source_path,
+            surface=surface,
+            actor=actor,
+            case_id=case_id,
+            start=start,
+            end=end,
+            confidence_min=confidence_min,
+            limit=limit,
+        )
+        payload = timeline.model_dump(mode="json")
+        payload["source"] = source_name
+        payload["source_dir"] = str(source_path)
+        return JSONResponse(payload)
 
     @app.post("/api/workspace/whatif/search")
     def api_workspace_whatif_search(request: WhatIfSearchRequest) -> JSONResponse:

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import List
 
@@ -8,6 +9,37 @@ import typer
 from vei.whatif.filenames import CONTEXT_SNAPSHOT_FILE, PUBLIC_CONTEXT_FILE
 
 app = typer.Typer(add_completion=False)
+
+
+def _write_snapshot_bundle(output: str, snapshot) -> Path:
+    path = Path(output)
+    path.write_text(snapshot.model_dump_json(indent=2), encoding="utf-8")
+    from vei.context.api import write_canonical_history_sidecars
+
+    write_canonical_history_sidecars(snapshot, path)
+    return path
+
+
+def _require_history_root(root: str) -> Path:
+    path = Path(root).expanduser().resolve()
+    if path.exists():
+        return path
+    raise typer.BadParameter(f"path not found: {root}")
+
+
+def _require_canonical_history(root: str) -> Path:
+    from vei.context.api import canonical_history_paths
+    from vei.context.api import canonical_history_sidecars_exist
+
+    path = _require_history_root(root)
+    if canonical_history_sidecars_exist(path):
+        return path
+    paths = canonical_history_paths(path)
+    raise typer.BadParameter(
+        "canonical history sidecars not found next to "
+        f"{paths.snapshot_path}. Expected {paths.events_path.name} and "
+        f"{paths.index_path.name}."
+    )
 
 
 @app.command()
@@ -29,7 +61,7 @@ def normalize(
         organization_name=org,
         organization_domain=domain,
     )
-    Path(output).write_text(snapshot.model_dump_json(indent=2), encoding="utf-8")
+    _write_snapshot_bundle(output, snapshot)
 
     ok_count = sum(1 for source in snapshot.sources if source.status == "ok")
     partial_count = sum(1 for source in snapshot.sources if source.status == "partial")
@@ -165,8 +197,7 @@ def capture(
         snapshot = do_anonymize(snapshot)
         typer.echo("Anonymization applied.")
 
-    text = snapshot.model_dump_json(indent=2)
-    Path(output).write_text(text, encoding="utf-8")
+    _write_snapshot_bundle(output, snapshot)
 
     ok_count = sum(1 for s in snapshot.sources if s.status == "ok")
     err_count = sum(1 for s in snapshot.sources if s.status == "error")
@@ -202,8 +233,7 @@ def ingest_slack(
         organization_domain=domain,
         message_limit=message_limit,
     )
-    text = snapshot.model_dump_json(indent=2)
-    Path(output).write_text(text, encoding="utf-8")
+    _write_snapshot_bundle(output, snapshot)
 
     source = snapshot.source_for("slack")
     counts = source.record_counts if source else {}
@@ -239,8 +269,7 @@ def ingest_gmail(
         organization_domain=domain,
         message_limit=message_limit,
     )
-    text = snapshot.model_dump_json(indent=2)
-    Path(output).write_text(text, encoding="utf-8")
+    _write_snapshot_bundle(output, snapshot)
 
     source = snapshot.source_for("gmail")
     counts = source.record_counts if source else {}
@@ -248,6 +277,108 @@ def ingest_gmail(
         f"Ingested {counts.get('threads', 0)} threads, "
         f"{counts.get('messages', 0)} messages -> {output}"
     )
+
+
+@app.command()
+def timeline(
+    root: str = typer.Option(
+        ...,
+        "--root",
+        help="Workspace root or context snapshot path with canonical history sidecars",
+    ),
+    surface: str = typer.Option("", "--surface", help="Filter by surface"),
+    actor: str = typer.Option("", "--actor", help="Filter by actor id"),
+    case: str = typer.Option("", "--case", help="Filter by case id"),
+    start: str = typer.Option(
+        "", "--start", help="Inclusive ISO timestamp lower bound"
+    ),
+    end: str = typer.Option("", "--end", help="Inclusive ISO timestamp upper bound"),
+    confidence_min: float = typer.Option(
+        0.0,
+        "--confidence-min",
+        min=0.0,
+        max=1.0,
+        help="Only include rows at or above this stitch confidence",
+    ),
+    limit: int = typer.Option(50, "--limit", min=1, help="Maximum rows to print"),
+    format: str = typer.Option("json", help="Output format: json | plain"),
+) -> None:
+    """Read the file-backed canonical company timeline."""
+    from vei.context.api import query_canonical_history
+
+    history_root = _require_canonical_history(root)
+    result = query_canonical_history(
+        history_root,
+        surface=surface or None,
+        actor=actor or None,
+        case_id=case or None,
+        start=start or None,
+        end=end or None,
+        confidence_min=confidence_min if confidence_min > 0 else None,
+        limit=limit,
+    )
+    if not result.available:
+        raise typer.BadParameter(f"canonical history not available for: {root}")
+    if format == "json":
+        typer.echo(result.model_dump_json(indent=2))
+        return
+    if format != "plain":
+        raise typer.BadParameter("format must be json or plain")
+
+    typer.echo(f"Organization: {result.organization_name}")
+    typer.echo(f"Domain:       {result.organization_domain or '(missing)'}")
+    typer.echo(
+        f"Events:       {result.matching_event_count} matching / "
+        f"{result.total_event_count} total"
+    )
+    typer.echo(f"Cases:        {result.case_count}")
+    typer.echo(f"Providers:    {', '.join(result.source_providers) or '(none)'}")
+    typer.echo(f"Rows shown:   {len(result.rows)}")
+    for row in result.rows:
+        subject = row.subject or row.snippet or row.kind
+        typer.echo(
+            f"{row.timestamp} | {row.surface:7s} | "
+            f"{row.actor_id or '(unknown)'} | "
+            f"{row.case_id or '(uncased)'} | "
+            f"{subject}"
+        )
+
+
+@app.command()
+def readiness(
+    root: str = typer.Option(
+        ...,
+        "--root",
+        help="Workspace root or context snapshot path with canonical history sidecars",
+    ),
+    format: str = typer.Option("json", help="Output format: json | plain"),
+) -> None:
+    """Summarize whether a company-history bundle is rich enough for world-model work."""
+    from vei.context.api import build_canonical_history_readiness
+
+    history_root = _require_canonical_history(root)
+    report = build_canonical_history_readiness(history_root)
+    if not report.available:
+        raise typer.BadParameter(f"canonical history not available for: {root}")
+    if format == "json":
+        typer.echo(report.model_dump_json(indent=2))
+        return
+    if format != "plain":
+        raise typer.BadParameter("format must be json or plain")
+
+    typer.echo(f"Organization:    {report.organization_name}")
+    typer.echo(f"Domain:          {report.organization_domain or '(missing)'}")
+    typer.echo(f"Providers:       {', '.join(report.source_providers) or '(none)'}")
+    typer.echo(f"Events:          {report.event_count}")
+    typer.echo(f"Cases:           {report.case_count}")
+    typer.echo(f"Surfaces:        {report.surface_count}")
+    typer.echo(f"Exact timestamps:{report.exact_timestamp_count}")
+    typer.echo(f"Stitched events: {report.stitched_event_count}")
+    typer.echo(f"High confidence: {report.high_confidence_stitch_count}")
+    typer.echo(f"Readiness:       {report.readiness_label}")
+    typer.echo(f"World model:     {json.dumps(report.ready_for_world_modeling)}")
+    for note in report.notes:
+        typer.echo(f"- {note}")
 
 
 @app.command()

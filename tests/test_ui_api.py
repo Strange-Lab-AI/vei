@@ -9,6 +9,7 @@ from fastapi.testclient import TestClient
 import pyarrow as pa
 import pyarrow.parquet as pq
 
+from vei.context.api import ContextSnapshot, write_canonical_history_sidecars
 from vei.dataset.models import DatasetBuildSpec, DatasetBundle, DatasetSplitManifest
 from vei.pilot import api as pilot_api
 from vei.pilot.exercise_models import (
@@ -392,6 +393,10 @@ def _write_company_history_fixture(root: Path) -> Path:
         ),
         encoding="utf-8",
     )
+    snapshot = ContextSnapshot.model_validate_json(
+        snapshot_path.read_text(encoding="utf-8")
+    )
+    write_canonical_history_sidecars(snapshot, snapshot_path)
     return snapshot_path
 
 
@@ -837,6 +842,44 @@ def test_ui_api_whatif_routes_support_company_history_bundle(
     assert auto_scene_response.status_code == 200
     auto_scene_payload = auto_scene_response.json()
     assert auto_scene_payload["thread_id"] == slack_thread_id
+
+
+def test_ui_api_whatif_timeline_supports_company_history_filters(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    root = tmp_path / "workspace"
+    create_workspace_from_template(
+        root=root,
+        source_kind="example",
+        source_ref="acquired_user_cutover",
+    )
+    snapshot_path = _write_company_history_fixture(tmp_path / "company_history")
+    monkeypatch.setenv("VEI_WHATIF_SOURCE_DIR", str(snapshot_path))
+
+    client = TestClient(ui_api.create_ui_app(root))
+
+    response = client.get(
+        "/api/workspace/whatif/timeline",
+        params={
+            "source": "auto",
+            "surface": "tickets",
+            "case_id": "case:LEGAL-7",
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["available"] is True
+    assert payload["source"] == "company_history"
+    assert payload["matching_event_count"] >= 1
+    assert all(row["surface"] == "tickets" for row in payload["rows"])
+    assert all(row["case_id"] == "case:LEGAL-7" for row in payload["rows"])
+
+    status_payload = client.get("/api/workspace/whatif").json()
+    assert status_payload["timeline_available"] is True
+    assert status_payload["timeline_readiness"]["available"] is True
+    assert status_payload["timeline_readiness"]["surface_count"] >= 4
 
 
 def test_ui_api_whatif_scene_route_returns_playable_enron_decision(
@@ -2796,6 +2839,8 @@ def test_ui_api_live_source_ignores_malformed_manifest_without_saved_bundle(
     assert payload["source"] == "company_history"
     assert payload["source_dir"] == str(snapshot_path.resolve())
     assert payload["saved_bundle_active"] is False
+    assert payload["timeline_available"] is True
+    assert payload["timeline_readiness"]["available"] is True
 
 
 def test_ui_api_supports_benchmark_audit_root(tmp_path: Path) -> None:

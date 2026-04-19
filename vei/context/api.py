@@ -7,6 +7,7 @@ from typing import Any, List, Optional, Union
 from vei.blueprint.api import BlueprintAsset
 
 from ._legacy_archive_snapshot import legacy_threads_payload_to_snapshot
+from . import canonical_history as _canonical_history
 from .models import (
     ContextDiff,
     ContextProviderStatusSummary,
@@ -30,7 +31,31 @@ from . import public_context as _public_context
 from .providers import get_provider
 from .providers.base import iso_now
 
+CanonicalHistoryBundle = _canonical_history.CanonicalHistoryBundle
+CanonicalHistoryIndex = _canonical_history.CanonicalHistoryIndex
+CanonicalHistoryIndexRow = _canonical_history.CanonicalHistoryIndexRow
+CanonicalHistoryPaths = _canonical_history.CanonicalHistoryPaths
+CanonicalHistoryReadinessReport = _canonical_history.CanonicalHistoryReadinessReport
+CanonicalHistoryTimelineResult = _canonical_history.CanonicalHistoryTimelineResult
+build_canonical_history_readiness = _canonical_history.build_canonical_history_readiness
+build_canonical_history_bundle = _canonical_history.build_canonical_history_bundle
+build_canonical_history_bundle_from_rows = (
+    _canonical_history.build_canonical_history_bundle_from_rows
+)
+canonical_history_paths = _canonical_history.canonical_history_paths
+canonical_history_sidecars_exist = _canonical_history.canonical_history_sidecars_exist
+load_canonical_history_bundle = _canonical_history.load_canonical_history_bundle
+query_canonical_history = _canonical_history.query_canonical_history
+write_canonical_history_bundle = _canonical_history.write_canonical_history_bundle
+write_canonical_history_sidecars = _canonical_history.write_canonical_history_sidecars
+
 _BOUNDARY_EXPORTS = (
+    CanonicalHistoryBundle,
+    CanonicalHistoryIndex,
+    CanonicalHistoryIndexRow,
+    CanonicalHistoryPaths,
+    CanonicalHistoryReadinessReport,
+    CanonicalHistoryTimelineResult,
     ContextProviderConfig,
     ContextSnapshot,
     ContextSourceResult,
@@ -64,6 +89,12 @@ slice_public_context_to_branch = _public_context.slice_public_context_to_branch
 slice_public_context_to_window = _public_context.slice_public_context_to_window
 
 __all__ = [
+    "CanonicalHistoryBundle",
+    "CanonicalHistoryIndex",
+    "CanonicalHistoryIndexRow",
+    "CanonicalHistoryPaths",
+    "CanonicalHistoryReadinessReport",
+    "CanonicalHistoryTimelineResult",
     "ContextProviderConfig",
     "ContextProviderStatusSummary",
     "ContextSnapshot",
@@ -79,7 +110,12 @@ __all__ = [
     "ContextSourceResult",
     "CrmSourceData",
     "GoogleSourceData",
+    "build_canonical_history_readiness",
+    "build_canonical_history_bundle",
+    "build_canonical_history_bundle_from_rows",
     "build_public_context",
+    "canonical_history_paths",
+    "canonical_history_sidecars_exist",
     "capture_context",
     "diff_snapshots",
     "discover_public_context_path",
@@ -89,17 +125,21 @@ __all__ = [
     "ingest_gmail_export",
     "ingest_mail_archive_threads",
     "ingest_slack_export",
+    "load_canonical_history_bundle",
     "load_enron_public_context",
     "load_public_context",
     "legacy_threads_payload_to_snapshot",
     "public_context_has_items",
     "public_context_prompt_lines",
+    "query_canonical_history",
     "resolve_world_public_context",
     "snapshot_role",
     "slice_public_context_to_branch",
     "slice_public_context_to_window",
     "source_payload",
     "with_snapshot_role",
+    "write_canonical_history_bundle",
+    "write_canonical_history_sidecars",
 ]
 
 

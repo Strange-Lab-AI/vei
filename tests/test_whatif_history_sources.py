@@ -6,6 +6,7 @@ from pathlib import Path
 
 from typer.testing import CliRunner
 
+from vei.context.api import ContextSnapshot, write_canonical_history_sidecars
 from vei.cli.vei import app
 from vei.whatif import load_world, search_events
 from vei.whatif.benchmark import choose_branch_event as benchmark_choose_branch_event
@@ -276,4 +277,8 @@ def _write_snapshot(root: Path, *, sources: list[dict[str, object]]) -> Path:
         ),
         encoding="utf-8",
     )
+    snapshot = ContextSnapshot.model_validate_json(
+        snapshot_path.read_text(encoding="utf-8")
+    )
+    write_canonical_history_sidecars(snapshot, snapshot_path)
     return snapshot_path

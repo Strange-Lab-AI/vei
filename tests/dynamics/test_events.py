@@ -10,6 +10,12 @@ from vei.events.api import (
     emit_event,
     spine_snapshot,
 )
+from vei.events.conversions import (
+    canonical_event_to_run_timeline_event,
+    canonical_event_to_world_state_event,
+    run_timeline_event_to_canonical_event,
+    world_state_event_to_canonical_event,
+)
 from vei.events.governance import (
     emit_approval_denied,
     emit_approval_granted,
@@ -26,6 +32,8 @@ from vei.events.models import (
     ObjectRef,
     TextHandle,
 )
+from vei.run.models import RunTimelineEvent
+from vei.world.state import Event as WorldStateEvent
 
 
 class TestCanonicalEvent:
@@ -156,3 +164,97 @@ class TestLegacyAdapter:
         }
         canonical = legacy_event_to_canonical(raw)
         assert canonical.domain == EventDomain.WORK_GRAPH
+
+
+class TestDerivedViewConversions:
+    def test_world_state_event_to_canonical_event(self) -> None:
+        world_event = WorldStateEvent.create(
+            index=7,
+            kind="mail_delivered",
+            payload={
+                "target": "mail",
+                "thread_id": "thread-7",
+                "actor_id": "jeff.skilling@enron.com",
+            },
+            clock_ms=1234,
+            event_id="world-evt-7",
+        )
+
+        canonical = world_state_event_to_canonical_event(
+            world_event,
+            tenant_id="enron",
+        )
+
+        assert canonical.event_id == "world-evt-7"
+        assert canonical.tenant_id == "enron"
+        assert canonical.domain == EventDomain.COMM_GRAPH
+        assert canonical.case_id == "thread-7"
+        assert canonical.actor_ref is not None
+        assert canonical.actor_ref.actor_id == "jeff.skilling@enron.com"
+        assert canonical.object_refs[0].object_id == "thread-7"
+
+    def test_canonical_event_to_world_state_event(self) -> None:
+        canonical = build_event(
+            domain=EventDomain.WORK_GRAPH,
+            kind="work_graph.ticket.updated",
+            tenant_id="acme",
+            case_id="case-9",
+            ts_ms=2222,
+            actor_ref=ActorRef(actor_id="owner@acme.test"),
+            object_refs=[ObjectRef(object_id="TKT-9", kind="ticket")],
+            delta_data={"target": "tickets", "status": "open"},
+        )
+
+        world_event = canonical_event_to_world_state_event(canonical, index=4)
+
+        assert world_event.index == 4
+        assert world_event.event_id == canonical.event_id
+        assert world_event.kind == "work_graph.ticket.updated"
+        assert world_event.clock_ms == 2222
+        assert world_event.payload["case_id"] == "case-9"
+        assert world_event.payload["actor_id"] == "owner@acme.test"
+
+    def test_run_timeline_event_to_canonical_event(self) -> None:
+        timeline_event = RunTimelineEvent(
+            index=3,
+            kind="trace_call",
+            label="mail.send",
+            channel="Mail",
+            time_ms=5678,
+            runner="llm",
+            tool="mail.send",
+            object_refs=["thread-3"],
+            payload={"status": "ok"},
+        )
+
+        canonical = run_timeline_event_to_canonical_event(
+            timeline_event,
+            tenant_id="acme",
+            case_id="case-3",
+        )
+
+        assert canonical.tenant_id == "acme"
+        assert canonical.case_id == "case-3"
+        assert canonical.domain == EventDomain.COMM_GRAPH
+        assert canonical.actor_ref is not None
+        assert canonical.actor_ref.actor_id == "llm"
+        assert canonical.object_refs[0].object_id == "thread-3"
+
+    def test_canonical_event_to_run_timeline_event(self) -> None:
+        canonical = build_event(
+            domain=EventDomain.REVENUE_GRAPH,
+            kind="revenue_graph.deal.updated",
+            ts_ms=4321,
+            actor_ref=ActorRef(actor_id="seller@acme.test"),
+            object_refs=[ObjectRef(object_id="deal-22", kind="deal")],
+            delta_data={"stage": "legal"},
+        )
+
+        timeline_event = canonical_event_to_run_timeline_event(canonical)
+
+        assert timeline_event.kind == "trace_event"
+        assert timeline_event.label == "revenue_graph.deal.updated"
+        assert timeline_event.channel == "Revenue"
+        assert timeline_event.time_ms == 4321
+        assert timeline_event.runner == "seller@acme.test"
+        assert timeline_event.object_refs == ["deal-22"]

@@ -14,6 +14,9 @@ ContextLiveProviderName = Literal[
     "notion",
     "linear",
     "granola",
+    "github",
+    "gitlab",
+    "clickup",
 ]
 ContextProviderName = Literal[
     "slack",
@@ -28,6 +31,9 @@ ContextProviderName = Literal[
     "notion",
     "linear",
     "granola",
+    "github",
+    "gitlab",
+    "clickup",
 ]
 ContextSnapshotRole = Literal["company_history_bundle", "workspace_seed"]
 
@@ -123,6 +129,23 @@ class GranolaSourceData(ContextSourcePayload):
     transcripts: List[Dict[str, Any]] = Field(default_factory=list)
 
 
+class GitHubSourceData(ContextSourcePayload):
+    repositories: List[Dict[str, Any]] = Field(default_factory=list)
+    issues: List[Dict[str, Any]] = Field(default_factory=list)
+    pull_requests: List[Dict[str, Any]] = Field(default_factory=list)
+
+
+class GitLabSourceData(ContextSourcePayload):
+    projects: List[Dict[str, Any]] = Field(default_factory=list)
+    issues: List[Dict[str, Any]] = Field(default_factory=list)
+    merge_requests: List[Dict[str, Any]] = Field(default_factory=list)
+
+
+class ClickUpSourceData(ContextSourcePayload):
+    lists: List[Dict[str, Any]] = Field(default_factory=list)
+    tasks: List[Dict[str, Any]] = Field(default_factory=list)
+
+
 ContextSourceData: TypeAlias = (
     SlackSourceData
     | GmailSourceData
@@ -135,6 +158,9 @@ ContextSourceData: TypeAlias = (
     | NotionSourceData
     | LinearSourceData
     | GranolaSourceData
+    | GitHubSourceData
+    | GitLabSourceData
+    | ClickUpSourceData
     | GenericSourceData
 )
 
@@ -151,6 +177,9 @@ _SOURCE_DATA_MODEL_MAP: Dict[str, type[BaseModel]] = {
     "notion": NotionSourceData,
     "linear": LinearSourceData,
     "granola": GranolaSourceData,
+    "github": GitHubSourceData,
+    "gitlab": GitLabSourceData,
+    "clickup": ClickUpSourceData,
 }
 
 _PayloadT = TypeVar("_PayloadT", bound=ContextSourcePayload)

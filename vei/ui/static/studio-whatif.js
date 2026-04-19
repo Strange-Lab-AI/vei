@@ -11,6 +11,16 @@ function whatIfCurrentScene() {
   return state.whatIfScene;
 }
 
+function whatIfTimelineFilters() {
+  return state.whatIfTimelineFilters || {
+    surface: "",
+    actor: "",
+    caseId: "",
+    start: "",
+    end: "",
+  };
+}
+
 function whatIfRecipients(event) {
   const recipients = Array.isArray(event?.to_recipients)
     ? event.to_recipients.filter(Boolean)
@@ -429,6 +439,105 @@ function renderWhatIfCaseContext(caseContext) {
                   )
                   .join("")
               : `<div class="whatif-empty">No linked document or CRM records matched this case in the saved bundle.</div>`
+          }
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderWhatIfTimeline(timeline) {
+  if (!state.whatIfStatus?.timeline_available) {
+    return "";
+  }
+  const filters = whatIfTimelineFilters();
+  const readiness = state.whatIfStatus?.timeline_readiness || null;
+  const rows = Array.isArray(timeline?.rows) ? timeline.rows : [];
+  const available = Boolean(timeline?.available);
+  const loading = Boolean(state.whatIfTimelinePending);
+  const error = state.whatIfTimelineError || "";
+  return `
+    <div class="whatif-scene-panel">
+      <div class="whatif-thread-head">
+        <div>
+          <p class="eyebrow">Company Timeline</p>
+          <strong>Chronological company history across captured systems</strong>
+        </div>
+        <div class="whatif-chip-row">
+          ${
+            readiness
+              ? `<span class="whatif-chip">${escapeHtml(readiness.readiness_label || "unknown")} readiness</span>`
+              : ""
+          }
+          <span class="whatif-chip">${escapeHtml(timeline?.matching_event_count || 0)} shown</span>
+          <span class="whatif-chip">${escapeHtml(timeline?.total_event_count || 0)} total</span>
+          <span class="whatif-chip">${escapeHtml(timeline?.case_count || 0)} stitched cases</span>
+        </div>
+      </div>
+      <div class="whatif-public-grid">
+        <div class="whatif-public-list">
+          <strong>Filters</strong>
+          ${
+            readiness
+              ? `
+                <div class="whatif-result-caption">
+                  ${escapeHtml(readiness.event_count || 0)} events ·
+                  ${escapeHtml(readiness.surface_count || 0)} surfaces ·
+                  ${escapeHtml(readiness.high_confidence_stitch_count || 0)} high-confidence links
+                </div>
+              `
+              : ""
+          }
+          <label class="whatif-field">
+            <span>Surface</span>
+            <input id="whatif-timeline-surface" value="${escapeHtml(filters.surface)}" placeholder="mail, slack, tickets, docs, crm" />
+          </label>
+          <label class="whatif-field">
+            <span>Actor</span>
+            <input id="whatif-timeline-actor" value="${escapeHtml(filters.actor)}" placeholder="emma@company.com" />
+          </label>
+          <label class="whatif-field">
+            <span>Case</span>
+            <input id="whatif-timeline-case" value="${escapeHtml(filters.caseId)}" placeholder="case:LEGAL-7" />
+          </label>
+          <label class="whatif-field">
+            <span>Start date</span>
+            <input id="whatif-timeline-start" type="date" value="${escapeHtml(filters.start)}" />
+          </label>
+          <label class="whatif-field">
+            <span>End date</span>
+            <input id="whatif-timeline-end" type="date" value="${escapeHtml(filters.end)}" />
+          </label>
+          <div class="whatif-custom-actions">
+            <button type="button" id="whatif-timeline-apply-btn">${loading ? "Loading..." : "Apply filters"}</button>
+            <button type="button" id="whatif-timeline-reset-btn">Reset</button>
+          </div>
+          ${
+            error
+              ? `<div class="whatif-empty">${escapeHtml(error)}</div>`
+              : !available && !loading
+                ? `<div class="whatif-empty">No canonical company timeline is available for this workspace yet.</div>`
+                : ""
+          }
+        </div>
+        <div class="whatif-public-list">
+          <strong>Timeline</strong>
+          ${
+            rows.length
+              ? rows
+                  .map(
+                    (row) => `
+                      <div class="whatif-public-item">
+                        <span class="whatif-result-meta">${escapeHtml((row.timestamp || "").slice(0, 19).replace("T", " "))} · ${escapeHtml(row.surface || "")} · ${escapeHtml(row.stitch_basis || "")}</span>
+                        <strong>${escapeHtml(row.subject || row.thread_ref || row.event_id || "Timeline event")}</strong>
+                        <span class="whatif-result-caption">${escapeHtml(row.actor_id || "")}</span>
+                        <span class="whatif-result-caption">${escapeHtml(row.case_id || "")}</span>
+                        <span class="whatif-result-caption">${escapeHtml(row.snippet || "")}</span>
+                      </div>
+                    `,
+                  )
+                  .join("")
+              : `<div class="whatif-empty">${loading ? "Loading the company timeline." : "No timeline events match the current filters."}</div>`
           }
         </div>
       </div>
@@ -929,6 +1038,7 @@ function renderWhatIfScene(scene) {
       </div>
       ${renderWhatIfPublicContext(scene.public_context)}
       ${renderWhatIfCaseContext(scene.case_context)}
+      ${renderWhatIfTimeline(state.whatIfTimeline)}
       ${renderWhatIfBusinessAssessment(scene.historical_business_state)}
       <div class="whatif-scene-panel whatif-thread-panel">
         <div class="whatif-thread-head">
@@ -1190,6 +1300,34 @@ function renderWhatIfStudio() {
     document
       .getElementById("whatif-custom-move-btn")
       ?.addEventListener("click", useWhatIfCustomMove);
+    document
+      .getElementById("whatif-timeline-apply-btn")
+      ?.addEventListener("click", () => {
+        state.whatIfTimelineFilters = {
+          surface:
+            document.getElementById("whatif-timeline-surface")?.value?.trim() || "",
+          actor:
+            document.getElementById("whatif-timeline-actor")?.value?.trim() || "",
+          caseId:
+            document.getElementById("whatif-timeline-case")?.value?.trim() || "",
+          start:
+            document.getElementById("whatif-timeline-start")?.value?.trim() || "",
+          end: document.getElementById("whatif-timeline-end")?.value?.trim() || "",
+        };
+        void loadWhatIfTimeline({ force: true });
+      });
+    document
+      .getElementById("whatif-timeline-reset-btn")
+      ?.addEventListener("click", () => {
+        state.whatIfTimelineFilters = {
+          surface: "",
+          actor: "",
+          caseId: "",
+          start: "",
+          end: "",
+        };
+        void loadWhatIfTimeline({ force: true });
+      });
   } else if (!whatIfSelectedEventPayload()) {
     selectionNode.innerHTML = `<div class="whatif-empty">Choose one of the matching events to inspect the exact branch point.</div>`;
   } else {
@@ -1226,7 +1364,7 @@ function renderWhatIfStudio() {
       <div class="whatif-open-card">
         <strong>Baseline materialized</strong>
         <span>${escapeHtml(openResult.episode_root || "")}</span>
-        <span>${escapeHtml(materialization.history_message_count || 0)} prior messages · ${escapeHtml(materialization.future_event_count || 0)} future events</span>
+        <span>${escapeHtml(materialization.history_message_count || 0)} prior events · ${escapeHtml(materialization.future_event_count || 0)} future events</span>
       </div>
     `;
   }
@@ -1404,6 +1542,44 @@ async function searchWhatIfEvents() {
   renderWhatIfStudio();
 }
 
+async function loadWhatIfTimeline({ force = false } = {}) {
+  if (!state.whatIfStatus?.timeline_available) {
+    state.whatIfTimeline = { available: false, rows: [] };
+    state.whatIfTimelineError = "";
+    return;
+  }
+  if (state.whatIfTimelinePending) {
+    return;
+  }
+  if (!force && state.whatIfTimeline?.available) {
+    return;
+  }
+  const filters = whatIfTimelineFilters();
+  state.whatIfTimelinePending = true;
+  state.whatIfTimelineError = "";
+  renderWhatIfStudio();
+  try {
+    const params = new URLSearchParams({
+      source: whatIfSourceId(),
+      limit: "40",
+    });
+    if (filters.surface) params.set("surface", filters.surface);
+    if (filters.actor) params.set("actor", filters.actor);
+    if (filters.caseId) params.set("case_id", filters.caseId);
+    if (filters.start) params.set("start", `${filters.start}T00:00:00Z`);
+    if (filters.end) params.set("end", `${filters.end}T23:59:59Z`);
+    state.whatIfTimeline = await getJson(
+      `/api/workspace/whatif/timeline?${params.toString()}`,
+    );
+  } catch (error) {
+    state.whatIfTimeline = { available: false, rows: [] };
+    state.whatIfTimelineError = error?.message || String(error);
+  } finally {
+    state.whatIfTimelinePending = false;
+  }
+  renderWhatIfStudio();
+}
+
 async function loadWhatIfDecisionScene({ eventId = null, threadId = null } = {}) {
   if (whatIfHasPendingRequest()) {
     return;
@@ -1425,6 +1601,7 @@ async function loadWhatIfDecisionScene({ eventId = null, threadId = null } = {})
       }),
     });
     applyWhatIfScene(scene);
+    await loadWhatIfTimeline({ force: true });
   } catch (error) {
     state.whatIfSceneLoading = false;
     state.whatIfScene = {
