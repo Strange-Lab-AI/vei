@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import json
 from datetime import UTC, date, datetime, timedelta
+from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from vei.context.api import load_enron_public_context
@@ -44,14 +46,41 @@ _REGULATORY_RISK_TERMS = ("death star", "get shorty", "fat boy", "ricochet", "pr
 MACRO_CALIBRATION_REPORT_PATH = (
     "studies/macro_calibration_enron_v1/calibration_report.md"
 )
-MACRO_CALIBRATION_METRICS = {
-    "stock_spearman": 0.041,
+_MACRO_CALIBRATION_METRICS_PATH = Path(
+    "studies/macro_calibration_enron_v1/metrics.json"
+)
+_DEFAULT_MACRO_CALIBRATION_METRICS = {
+    "stock_spearman": 0.035,
     "credit_auroc": 0.37,
     "credit_brier": 0.516,
     "ferc_auroc": 0.568,
     "ferc_brier": 0.425,
 }
 _NYSE_TIMEZONE = ZoneInfo("America/New_York")
+
+
+def _load_macro_calibration_metrics() -> dict[str, float]:
+    if not _MACRO_CALIBRATION_METRICS_PATH.exists():
+        return dict(_DEFAULT_MACRO_CALIBRATION_METRICS)
+
+    try:
+        payload = json.loads(
+            _MACRO_CALIBRATION_METRICS_PATH.read_text(encoding="utf-8")
+        )
+    except (OSError, json.JSONDecodeError):
+        return dict(_DEFAULT_MACRO_CALIBRATION_METRICS)
+
+    resolved: dict[str, float] = {}
+    for key, default in _DEFAULT_MACRO_CALIBRATION_METRICS.items():
+        value = payload.get(key)
+        if not isinstance(value, (int, float)):
+            resolved[key] = default
+            continue
+        resolved[key] = float(value)
+    return resolved
+
+
+MACRO_CALIBRATION_METRICS = _load_macro_calibration_metrics()
 
 
 def attach_macro_outcomes_to_historical_score(

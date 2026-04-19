@@ -374,7 +374,7 @@ function renderWhatIfMacroOutcomes(forecast) {
       </div>
       <div class="whatif-business-list">
         <span class="whatif-result-caption">Calibration report: <code>studies/macro_calibration_enron_v1/calibration_report.md</code></span>
-        <span class="whatif-result-caption">Current calibration is weak: stock Spearman 0.041, credit AUROC 0.370, FERC AUROC 0.568.</span>
+        <span class="whatif-result-caption">Current calibration is weak. Use the linked report for the latest stock, credit, and FERC numbers.</span>
         <span class="whatif-result-caption">Treat these macro heads as advisory context beside the email-path evidence, not as a standalone decision rule.</span>
       </div>
     </div>
