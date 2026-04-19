@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import importlib.util
 import json
 import os
 import subprocess
+import sys
 from hashlib import sha256
 from pathlib import Path
 from typing import Sequence
@@ -14,13 +16,36 @@ from .models import (
 )
 
 _DEFAULT_SIBLING_ROOT = Path(__file__).resolve().parents[3] / "ARP_Jepa_exp"
+_DEFAULT_REFERENCE_CHECKPOINT = (
+    Path(__file__).resolve().parents[2]
+    / "data"
+    / "enron"
+    / "reference_backend"
+    / "model.pt"
+)
+_REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
 def default_forecast_backend() -> WhatIfForecastBackend:
+    if resolve_reference_backend_checkpoint() is not None:
+        return "reference"
     runtime = resolve_ejepa_runtime()
     if runtime is not None:
         return "e_jepa"
     return "heuristic_baseline"
+
+
+def resolve_reference_backend_checkpoint(
+    checkpoint_path: str | Path | None = None,
+) -> Path | None:
+    root = checkpoint_path
+    if root is None:
+        root = os.environ.get("VEI_REFERENCE_BACKEND_CHECKPOINT")
+    if root:
+        candidate = Path(root).expanduser().resolve()
+        return candidate if candidate.exists() else None
+    candidate = _DEFAULT_REFERENCE_CHECKPOINT.expanduser().resolve()
+    return candidate if candidate.exists() else None
 
 
 def resolve_ejepa_runtime(
@@ -29,6 +54,14 @@ def resolve_ejepa_runtime(
     root = runtime_root
     if root is None:
         root = os.environ.get("VEI_EJEPA_ROOT")
+    if root is None:
+        vendored_root = _REPO_ROOT / "structured_jepa"
+        if vendored_root.exists():
+            return _REPO_ROOT, Path(sys.executable).expanduser().resolve()
+        vendored_spec = importlib.util.find_spec("structured_jepa")
+        if vendored_spec is not None:
+            return _REPO_ROOT, Path(sys.executable).expanduser().resolve()
+
     candidate_root = (
         Path(root).expanduser().resolve()
         if root is not None
@@ -65,7 +98,7 @@ def run_ejepa_counterfactual(
             prompt=prompt,
             summary="No local E-JEPA runtime was found.",
             notes=[
-                "Set VEI_EJEPA_ROOT or place the ARP_Jepa_exp repo next to digital-enterprise-twin."
+                "Install `.[jepa]`, set `VEI_EJEPA_ROOT`, or place the ARP_Jepa_exp repo next to digital-enterprise-twin."
             ],
             error="E-JEPA runtime unavailable",
         )
@@ -102,10 +135,10 @@ def run_ejepa_counterfactual(
     }
     request_path.write_text(json.dumps(request, indent=2), encoding="utf-8")
     env = os.environ.copy()
-    pythonpath_entries = [
-        str(Path(__file__).resolve().parents[2]),
-        str(runtime_dir / "src"),
-    ]
+    pythonpath_entries = [str(_REPO_ROOT)]
+    runtime_src = runtime_dir / "src"
+    if runtime_src.exists():
+        pythonpath_entries.append(str(runtime_src))
     existing_pythonpath = env.get("PYTHONPATH", "")
     if existing_pythonpath:
         pythonpath_entries.append(existing_pythonpath)

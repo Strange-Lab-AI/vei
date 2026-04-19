@@ -11,7 +11,7 @@ import pytest
 from vei.dynamics.models import DynamicsResponse
 from vei.llm.providers import PlanResult, PlanUsage
 from vei.project_settings import default_model_for_provider
-from vei.whatif.filenames import HEURISTIC_FORECAST_FILE
+from vei.whatif.filenames import HEURISTIC_FORECAST_FILE, REFERENCE_FORECAST_FILE
 from vei.whatif import (
     estimate_counterfactual_delta,
     load_experiment_result,
@@ -837,6 +837,93 @@ def test_counterfactual_experiment_can_use_ejepa_backend(
     assert experiment.forecast_result.backend == "e_jepa"
     assert experiment.artifacts.forecast_json_path is not None
     assert experiment.artifacts.forecast_json_path.name == "whatif_ejepa_result.json"
+
+
+def test_counterfactual_experiment_can_use_reference_backend(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    rosetta_dir = tmp_path / "rosetta"
+    _write_rosetta_fixture(rosetta_dir)
+    world = load_world(source="enron", rosetta_dir=rosetta_dir)
+
+    async def fake_plan_once_with_usage(**_: object) -> PlanResult:
+        return PlanResult(
+            plan={
+                "tool": "emit_counterfactual",
+                "args": {
+                    "summary": "Hold the outside send and keep the thread internal.",
+                    "messages": [
+                        {
+                            "actor_id": "jeff.skilling@enron.com",
+                            "to": "jeff.skilling@enron.com",
+                            "subject": "Re: Draft term sheet",
+                            "body_text": "Keep this inside until legal clears it.",
+                            "delay_ms": 1000,
+                        }
+                    ],
+                },
+            },
+            usage=PlanUsage(provider="openai", model="gpt-5"),
+        )
+
+    monkeypatch.setattr(
+        "vei.whatif.api.providers.plan_once_with_usage",
+        fake_plan_once_with_usage,
+    )
+
+    def fake_reference_result(_request) -> WhatIfCounterfactualEstimateResult:
+        return WhatIfCounterfactualEstimateResult(
+            status="ok",
+            backend="reference",
+            prompt="Keep this internal.",
+            summary="Reference forecast completed.",
+            baseline=WhatIfHistoricalScore(
+                backend="historical",
+                future_event_count=1,
+                future_external_event_count=1,
+                risk_score=0.5,
+            ),
+            predicted=WhatIfHistoricalScore(
+                backend="reference",
+                future_event_count=1,
+                future_external_event_count=0,
+                risk_score=0.2,
+            ),
+            delta=WhatIfCounterfactualEstimateDelta(
+                risk_score_delta=-0.3,
+                external_event_delta=-1,
+            ),
+            branch_event=WhatIfEventReference(
+                event_id="evt-005",
+                timestamp="2001-05-01T10:00:04Z",
+                actor_id="jeff.skilling@enron.com",
+                event_type="message",
+                thread_id="thr-external",
+                subject="Draft term sheet",
+            ),
+            notes=["Used the repo-local reference backend."],
+        )
+
+    monkeypatch.setattr(
+        "vei.whatif.dynamics_bridge.get_backend",
+        lambda name: _stub_backend_from_result(name, fake_reference_result),
+    )
+
+    experiment = run_counterfactual_experiment(
+        world,
+        artifacts_root=tmp_path / "artifacts",
+        label="reference_hold",
+        counterfactual_prompt="Keep this internal.",
+        event_id="evt-005",
+        mode="both",
+        forecast_backend="reference",
+    )
+
+    assert experiment.forecast_result is not None
+    assert experiment.forecast_result.backend == "reference"
+    assert experiment.artifacts.forecast_json_path is not None
+    assert experiment.artifacts.forecast_json_path.name == REFERENCE_FORECAST_FILE
 
 
 def test_counterfactual_experiment_can_use_ejepa_backend_for_generic_archive(

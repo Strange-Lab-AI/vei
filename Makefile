@@ -7,7 +7,7 @@ SETUP_STAMP := $(VENV)/.setup-complete
 SETUP_FULL_STAMP := $(VENV)/.setup-full-complete
 VENV_BIN := $(VENV)/bin
 SETUP_EXTRAS := dev,sse,ui
-SETUP_FULL_EXTRAS := dev,llm,sse,ui,test,rl,browser
+SETUP_FULL_EXTRAS := dev,llm,sse,ui,test,rl,browser,worldmodel,jepa
 COVERAGE_FAIL_UNDER ?= $(or $(shell awk 'BEGIN { section = 0 } $$1 == "coverage:" { section = 1; next } section && $$1 == "global:" { print int($$2 * 100); exit }' $(AGENTS_FILE) 2>/dev/null),80)
 PIPAPI_PYTHON := $(abspath $(VENV_BIN)/python)
 

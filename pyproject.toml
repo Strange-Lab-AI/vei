@@ -60,6 +60,16 @@ llm = [
 rl = [
   "gymnasium>=0.29.0"
 ]
+worldmodel = [
+  "numpy>=1.26.0",
+  "pandas>=2.2.3",
+  "torch>=2.4.0",
+]
+jepa = [
+  "numpy>=1.26.0",
+  "pandas>=2.2.3",
+  "torch>=2.4.0",
+]
 test = [
   "anyio>=4.0",
   "hypothesis==6.151.14",
@@ -97,7 +107,7 @@ markers = [
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["vei*"]
+include = ["vei*", "structured_jepa*"]
 exclude = []
 
 [tool.setuptools.package-data]

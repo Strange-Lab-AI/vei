@@ -27,32 +27,32 @@ Prompt: Pause the strategy, preserve the record, alert legal and compliance, and
 
 ## LLM Actor
 - Status: ok
-- Summary: Tim Belden orders an immediate pause to the California trading strategy, directs preservation of all records, and instructs notification of Legal and Compliance with preparation of a self-report; the Portland desk acknowledges and executes preservation and notification actions.
+- Summary: After receiving the California AG hold notice, the Portland desk halts the trading play, directs immediate preservation of all records and backups, alerts Legal and Compliance, and initiates a formal self-report path. Tim Belden acknowledges, confirms preservation actions, and commits to compiling and delivering a packet of trades, P&L, communications, logs, and personnel details within a short timeframe.
 - Delivered actions: 2
 - Inbox count: 5
-- `mail` `tim.belden@enron.com` -> `portland.desk@enron.com` after 60000 ms: URGENT — Pause CA trading; preserve records and notify Legal/Compliance
-- `mail` `portland.desk@enron.com` -> `tim.belden@enron.com` after 180000 ms: Re: URGENT — Pause CA trading; preservation and Legal/Compliance notified
+- `mail` `portland.desk@enron.com` -> `tim.belden@enron.com` after 60000 ms: RE: IMPORTANT - READ IMMEDIATELY — HOLD & ESCALATE
+- `mail` `tim.belden@enron.com` -> `portland.desk@enron.com` after 180000 ms: RE: IMPORTANT - READ IMMEDIATELY — HOLD & ESCALATE
 
 ## Forecast
 - Status: ok
-- Backend: heuristic_baseline
-- Summary: Predicted risk moves down by 0.080, with escalation delta 0 and external-send delta 0.
+- Backend: reference
+- Summary: reference forecast completed.
 - Baseline risk: 0.08
-- Predicted risk: 0.0
-- External-send delta: 0
+- Predicted risk: 0.81
+- External-send delta: 1
 - Escalation delta: 0
 
 ## Business State Change
-- Summary: Slightly lower exposure risk. Trade-off: Moderately higher approval and escalation pressure.
+- Summary: Much higher exposure risk.
 - Confidence: medium
-- Net effect score: -0.013
-- Moderately higher approval and escalation pressure.
-- Slightly higher internal handling load.
-- Slightly higher execution delay.
-- Slightly lower exposure risk.
-- The thread looks safer to contain.
-- Internal handling looks heavier.
-- Near-term execution looks slower.
+- Net effect score: -0.215
+- Much higher exposure risk.
+- Much weaker commercial position.
+- Much weaker relationship stability.
+- Execution delay stays close to the historical path.
+- The thread looks easier to leak or widen.
+- Handling burden stays close to the historical path.
+- Execution pace stays close to the historical path.
 
 ## Macro Outcomes
 - Stock return (5d): 0.0646 -> 0.1046 (delta 0.04)

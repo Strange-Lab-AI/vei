@@ -27,32 +27,32 @@ Prompt: Keep the draft inside Enron, ask Gerald Nemec and Sara Shackleton for re
 
 ## LLM Actor
 - Status: ok
-- Summary: Instead of sending the draft Master Firm Purchase/Sale Agreement to Cargill, Debra retains the draft inside Enron and requests internal review by Gerald Nemec and Sara Shackleton, instructing that no external transmission be made until internal comments are consolidated.
+- Summary: Debra Perlingiere withholds the draft Master Firm Purchase/Sale Agreement from external distribution and routes it internally for review by Gerald Nemec and Sara Shackleton, asking both to hold any external send to Cargill until internal comments are resolved.
 - Delivered actions: 2
 - Inbox count: 4
-- `mail` `debra.perlingiere@enron.com` -> `gerald.nemec@enron.com` after 120000 ms: Master Agreement — draft for internal review (hold external send)
-- `mail` `debra.perlingiere@enron.com` -> `sara.shackleton@enron.com` after 240000 ms: Master Agreement — draft for internal legal/credit review (hold send)
+- `mail` `debra.perlingiere@enron.com` -> `gerald.nemec@enron.com` after 60000 ms: Master Agreement — internal review (do not send outside)
+- `mail` `debra.perlingiere@enron.com` -> `sara.shackleton@enron.com` after 120000 ms: Master Agreement — internal review (do not send outside)
 
 ## Forecast
 - Status: ok
-- Backend: heuristic_baseline
-- Summary: Predicted risk moves down by 0.440, with escalation delta 0 and external-send delta -64.
+- Backend: reference
+- Summary: reference forecast completed.
 - Baseline risk: 1.0
-- Predicted risk: 0.56
-- External-send delta: -64
+- Predicted risk: 1.0
+- External-send delta: 64
 - Escalation delta: 0
 
 ## Business State Change
-- Summary: Much lower outside spread risk. Trade-off: Slightly higher internal handling load.
+- Summary: Slightly lower internal handling load. Trade-off: Slightly higher outside spread risk.
 - Confidence: medium
-- Net effect score: 0.209
-- Much lower outside spread risk.
-- Much stronger commercial position.
-- Much stronger relationship stability.
-- Slightly higher internal handling load.
-- The thread looks much safer to contain.
-- Internal handling looks heavier.
-- Near-term execution looks faster.
+- Net effect score: 0.001
+- Slightly lower internal handling load.
+- Slightly lower approval and escalation pressure.
+- Slightly higher outside spread risk.
+- Execution delay stays close to the historical path.
+- The thread carries slightly more exposure.
+- Internal handling looks lighter.
+- Execution pace stays close to the historical path.
 
 ## Macro Outcomes
 - Stock return (5d): 0.0007 -> 0.0407 (delta 0.04)

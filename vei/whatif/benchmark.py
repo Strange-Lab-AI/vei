@@ -24,6 +24,7 @@ from ._benchmark_case_packs import (
     DEFAULT_BENCHMARK_PACK_ID as _DEFAULT_BENCHMARK_PACK_ID,
 )
 from ._benchmark_dossiers import build_dossier_files as _write_case_dossiers
+from ._enron_history import build_enron_branch_history
 from ._benchmark_utils import (
     clamp as _clamp,
     coordination_breadth_for_event as _coordination_breadth_for_event,
@@ -176,6 +177,12 @@ def build_branch_point_benchmark(
         )
         if not history_events or not future_events:
             continue
+        if world.source == "enron":
+            history_events = build_enron_branch_history(
+                public_context=world.public_context,
+                branch_event=branch_event,
+                past_events=history_events,
+            )
         contract = _build_pre_branch_contract(
             case_id=thread.thread_id,
             thread_id=thread.thread_id,
@@ -2000,6 +2007,12 @@ def _build_benchmark_cases(
             timeline=timeline,
             branch_event_id=branch_event.event_id,
         )
+        if world.source == "enron":
+            history_events = build_enron_branch_history(
+                public_context=world.public_context,
+                branch_event=branch_event,
+                past_events=history_events,
+            )
         historical_action = _action_schema_from_event(
             branch_event,
             organization_domain=world.summary.organization_domain,
@@ -2025,7 +2038,7 @@ def _build_benchmark_cases(
             summary=case.summary,
             case_family=case.case_family,
             branch_event=event_reference(branch_event),
-            history_preview=[event_reference(event) for event in history_events[-6:]],
+            history_preview=[event_reference(event) for event in history_events],
             candidates=case.candidates,
             public_context=branch_public_context,
         )

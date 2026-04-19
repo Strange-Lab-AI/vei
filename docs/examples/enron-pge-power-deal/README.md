@@ -26,11 +26,13 @@ The stock, credit, and bankruptcy fixtures add context around the deal date. The
 ## What This Example Covers
 
 - Historical branch point: Sara Shackleton is moving a PG&E financial power deal while the counterparty's macro-credit picture is deteriorating.
-- Saved branch scene: 0 prior messages and 6 recorded future events
+- Saved branch scene: 30 prior events and 6 recorded future events
 - Public-company slice at 1999-05-12: 1 financial checkpoints, 0 public news items, 335 market checkpoints, 0 credit checkpoints, and 0 regulatory checkpoints
+- Prior timeline source families: disclosure, financial, market
+- Prior timeline domains: governance, obs_graph
 - Saved LLM path: Hold the deal until PG&E credit is rechecked, ask for collateral, and keep legal and credit on one internal review loop.
-- Saved forecast file: `whatif_heuristic_baseline_result.json`
-- Business-state readout: Much lower exposure risk. Trade-off: Moderately higher internal handling load.
+- Saved forecast file: `whatif_reference_result.json`
+- Business-state readout: Moderately lower approval and escalation pressure.
 - Top ranked candidate: Hold for credit re-check
 
 ## Saved Files
@@ -39,7 +41,7 @@ The stock, credit, and bankruptcy fixtures add context around the deal date. The
 - `whatif_experiment_overview.md`: short human-readable run summary
 - `whatif_experiment_result.json`: saved combined result for the example bundle
 - `whatif_llm_result.json`: bounded message-path result
-- `whatif_heuristic_baseline_result.json`: saved forecast result
+- `whatif_reference_result.json`: saved forecast result
 - `whatif_business_state_comparison.md`: ranked comparison in business language
 - `whatif_business_state_comparison.json`: structured comparison payload
 

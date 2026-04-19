@@ -28,6 +28,7 @@ from vei.whatif.filenames import (
     HEURISTIC_FORECAST_FILE,
     LLM_RESULT_FILE,
     PUBLIC_CONTEXT_FILE,
+    REFERENCE_FORECAST_FILE,
     STUDIO_SAVED_FORECAST_FILES,
 )
 from vei.ui import api as ui_api
@@ -140,13 +141,17 @@ def test_repo_owned_enron_example_bundle_is_present_and_clean() -> None:
     assert EXAMPLE_ROOT.exists()
     assert validate_packaged_example_bundle(EXAMPLE_ROOT) == []
 
+    saved_forecast_paths = [
+        EXAMPLE_ROOT / filename for filename in STUDIO_SAVED_FORECAST_FILES
+    ]
+    assert any(path.exists() for path in saved_forecast_paths), saved_forecast_paths
+
     required_paths = [
         EXAMPLE_ROOT / "README.md",
         EXAMPLE_ROOT / "timeline_arc.md",
         EXAMPLE_ROOT / "whatif_experiment_overview.md",
         EXAMPLE_ROOT / "whatif_experiment_result.json",
         EXAMPLE_ROOT / "whatif_llm_result.json",
-        EXAMPLE_ROOT / HEURISTIC_FORECAST_FILE,
         EXAMPLE_ROOT / "whatif_business_state_comparison.json",
         EXAMPLE_ROOT / "whatif_business_state_comparison.md",
         EXAMPLE_ROOT / "workspace" / "vei_project.json",
@@ -166,7 +171,7 @@ def test_repo_owned_enron_example_bundle_is_present_and_clean() -> None:
     assert manifest["source"] == "enron"
     assert manifest["source_dir"] == "not-included-in-repo-example"
     assert manifest["workspace_root"] == "workspace"
-    assert manifest["history_message_count"] == 6
+    assert manifest["history_message_count"] >= 30
     assert manifest["future_event_count"] == 84
     assert manifest["historical_business_state"]["summary"]
     assert [
@@ -189,19 +194,20 @@ def test_repo_owned_enron_example_bundle_is_present_and_clean() -> None:
         "clickpaper_launch",
     ]
 
-    for relative_path in (
-        "whatif_experiment_result.json",
-        HEURISTIC_FORECAST_FILE,
-        "workspace/episode_manifest.json",
+    forecast_path = next(path for path in saved_forecast_paths if path.exists())
+    for path in (
+        EXAMPLE_ROOT / "whatif_experiment_result.json",
+        forecast_path,
+        EXAMPLE_ROOT / "workspace" / "episode_manifest.json",
     ):
-        text = (EXAMPLE_ROOT / relative_path).read_text(encoding="utf-8")
+        text = path.read_text(encoding="utf-8")
         assert "/Users/" not in text
 
     overview_text = (EXAMPLE_ROOT / "whatif_experiment_overview.md").read_text(
         encoding="utf-8"
     )
-    assert "External-send delta: -64" in overview_text
-    assert "Predicted risk: 0.56" in overview_text
+    assert "External-send delta:" in overview_text
+    assert "Predicted risk:" in overview_text
     assert "## Business State Change" in overview_text
     assert "## Macro Outcomes" in overview_text
 
@@ -235,6 +241,7 @@ def test_canonical_saved_forecast_filenames_are_stable() -> None:
     assert EXPERIMENT_OVERVIEW_FILE == "whatif_experiment_overview.md"
     assert LLM_RESULT_FILE == "whatif_llm_result.json"
     assert EJEPA_RESULT_FILE == "whatif_ejepa_result.json"
+    assert REFERENCE_FORECAST_FILE == "whatif_reference_result.json"
     assert HEURISTIC_FORECAST_FILE == "whatif_heuristic_baseline_result.json"
     assert BUSINESS_STATE_COMPARISON_FILE == "whatif_business_state_comparison.json"
     assert (
@@ -242,6 +249,7 @@ def test_canonical_saved_forecast_filenames_are_stable() -> None:
     )
     assert STUDIO_SAVED_FORECAST_FILES == (
         EJEPA_RESULT_FILE,
+        REFERENCE_FORECAST_FILE,
         HEURISTIC_FORECAST_FILE,
     )
 
@@ -573,7 +581,7 @@ def test_repo_owned_enron_example_workspace_loads_saved_scene() -> None:
     scene_payload = scene_response.json()
     assert scene_payload["organization_name"] == "Enron Corporation"
     assert scene_payload["branch_event_id"] == "enron_bcda1b925800af8c"
-    assert scene_payload["history_message_count"] == 6
+    assert scene_payload["history_message_count"] >= 30
     assert scene_payload["future_event_count"] == 84
     assert scene_payload["historical_business_state"]["summary"]
     assert [

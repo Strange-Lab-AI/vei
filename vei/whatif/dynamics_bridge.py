@@ -443,6 +443,10 @@ def _domain_for_surface(surface: str) -> EventDomain:
         return EventDomain.WORK_GRAPH
     if surface == "docs":
         return EventDomain.DOC_GRAPH
+    if surface == "governance":
+        return EventDomain.GOVERNANCE
+    if surface == "market":
+        return EventDomain.OBS_GRAPH
     return EventDomain.INTERNAL
 
 

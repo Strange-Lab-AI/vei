@@ -6,7 +6,9 @@ Use `docs/ENRON_BUSINESS_OUTCOME_BENCHMARK.md` for the specific Enron benchmark 
 
 ## What Is and Isn't Learned
 
-VEI today is a deterministic enterprise simulator, governed twin, and replay platform with a reference learned path. It is not a finished learned world model. The reference backend (`vei.dynamics.backends.reference`) is a real PyTorch model trained on canonical event sequences. The heuristic baseline is a tag-driven heuristic, not a learned model. See `docs/ARCHITECTURE.md` for the full breakdown.
+VEI today is a deterministic enterprise simulator, governed twin, and replay platform with a reference learned path. It is not a finished learned world model. The reference backend (`vei.dynamics.backends.reference`) is a real PyTorch model trained on canonical event sequences. The heuristic baseline is a tag-driven heuristic, not a learned model. The repo-owned Enron benchmark is the flagship learned path. Clearwater workflow families stay in the repo as kernel and workflow smoke tests. See `docs/ARCHITECTURE.md` for the full breakdown.
+
+The shipped Enron reference checkpoint currently reports factual next-event AUROC `0.787817`, Brier `0.332025`, and calibration ECE `0.373951`. Use those numbers when you need the fresh-clone learned headline for the thicker Enron timeline.
 
 ## Layer 1: Factual forecast metrics
 

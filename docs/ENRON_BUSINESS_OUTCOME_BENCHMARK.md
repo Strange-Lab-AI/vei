@@ -8,19 +8,20 @@ From one real Enron decision point, does a candidate action make the later busin
 
 Each model sees only:
 
-- the email history before the branch point
+- the canonical event history before the branch point
 - a structured action description for the candidate move
 
 The benchmark does not give the model generated rollout messages or any post-branch summary fields.
 
-The held-out Enron dossiers can include a separate public-company context section with dated financial checkpoints and public news items. VEI filters that section to facts already known by the branch date. That public context is for dossier-based judging and audit review. It does not change the model input schema or the training rows in this pass.
+The held-out Enron dossiers can include a separate public-company context section with dated financial checkpoints, public news items, and curated public-record events. VEI filters that section to facts already known by the branch date. That richer branch-local history now also feeds the Enron training rows and the saved replay bundles.
 
 ## Combined source data
 
-The current Enron benchmark build joins two repo-owned inputs:
+The current Enron benchmark build joins three repo-owned inputs:
 
 - the Enron Rosetta email archive for branch history and observed futures
 - the packaged public-company context fixture under `vei/whatif/fixtures/enron_public_context`
+- the curated public-record fixture under `vei/whatif/fixtures/enron_record_history`
 
 The benchmark reads the vendored Rosetta archive under `data/enron/rosetta` by default. `VEI_WHATIF_ROSETTA_DIR` still overrides that path when you want to point at a different archive.
 
@@ -35,7 +36,7 @@ That public-context fixture currently contains:
 
 Its public dates span December 31, 1998 through December 2, 2001.
 
-That thicker fixture gives the earlier 2000 Enron branch dates much better public-company coverage than the older pack did.
+That thicker fixture gives the earlier 2000 Enron branch dates much better company-history coverage than the older pack did.
 
 ## What comes out
 
@@ -232,9 +233,22 @@ Study runs write:
 - `studies/<label>/benchmark_study_overview.md`
 - `studies/<label>/runs/<model_id>/seed_<seed>/...`
 
-## Current comparison result
+## Shipped reference backend
 
-The current headline result is the matched-input multi-seed rerun over one saved Enron public-context build that was produced from the vendored Rosetta archive. A fresh clone can read these numbers and rebuild the same benchmark without reaching outside the repo. That rerun compares the three aligned models that all read the same pre-branch contract: `jepa_latent`, `full_context_transformer`, and `treatment_transformer`.
+The current fresh-clone headline path is the shipped `full_context_transformer` reference backend under `data/enron/reference_backend/`. A fresh clone can open the repo-owned Enron bundles and use that checkpoint without setting an external path.
+
+The current shipped metrics card reports:
+
+- factual next-event AUROC `0.787817`
+- factual next-event Brier `0.332025`
+- calibration ECE `0.373951`
+- 7,613 train rows and 1,631 validation rows
+
+Use those numbers as the main factual forecasting headline for the repo-owned Enron path. They are weaker than the earlier mail-heavier checkpoint, and that gap is the current cost of moving the shipped Enron path onto the thicker canonical timeline.
+
+## Optional matched-input study
+
+The matched-input multi-seed rerun remains available as a research comparison over one saved Enron public-context build produced from the vendored Rosetta archive. That rerun compares the three aligned models that all read the same pre-branch contract: `jepa_latent`, `full_context_transformer`, and `treatment_transformer`.
 
 The current saved 5-seed, 2-epoch matched-input study produced these held-out decision scores:
 
@@ -248,6 +262,6 @@ On the simpler factual task of predicting whether anything goes outside after th
 
 The repo now also carries macro outcome side data for stock, credit, and FERC events. Those heads are available in the replay and saved bundle path, but the current Enron calibration stays weak: stock Spearman `0.041`, credit AUROC `0.370`, and FERC AUROC `0.568`. Treat the macro heads as advisory context beside the email-path evidence until those numbers improve.
 
-The main point is that the fair rerun keeps the JEPA-style path in front on the business decision checks even after the held-out dossiers picked up the dated Enron public-company context. The full-context transformer stays close. The treatment transformer varies much more from seed to seed.
+The main point is that the optional matched-input rerun still keeps the JEPA-style path in front on the business decision checks once the models read the same pre-branch contract. The full-context transformer stays close. The treatment transformer varies much more from seed to seed.
 
 An earlier single-run reference comparison is still useful as a historical checkpoint, but it should not be treated as the headline result because it mixed narrower and richer model inputs. Use `vei whatif benchmark study` for the clean comparison path, then look under `studies/` for the aggregate report.
