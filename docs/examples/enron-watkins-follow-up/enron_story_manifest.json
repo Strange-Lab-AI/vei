@@ -27,8 +27,8 @@
   "forecast_file": "whatif_reference_result.json",
   "public_objective_pack_id": "protect_company_default",
   "top_candidate": "Suppress and monitor",
-  "workspace_root": "/Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/docs/examples/enron-watkins-follow-up/workspace",
-  "ui_command": "vei ui serve \\\n  --root /Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/docs/examples/enron-watkins-follow-up/workspace \\\n  --host 127.0.0.1 \\\n  --port 3055",
+  "workspace_root": "docs/examples/enron-watkins-follow-up/workspace",
+  "ui_command": "vei ui serve \\\n  --root docs/examples/enron-watkins-follow-up/workspace \\\n  --host 127.0.0.1 \\\n  --port 3055",
   "files": {
     "overview": "enron_story_overview.md",
     "exports_preview": "enron_exports_preview.json",

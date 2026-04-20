@@ -27,7 +27,7 @@ It also sits closer to public disclosure mechanics than Watkins does.
 
 ```bash
 vei ui serve \
-  --root /Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/docs/examples/enron-q3-disclosure-review/workspace \
+  --root docs/examples/enron-q3-disclosure-review/workspace \
   --host 127.0.0.1 \
   --port 3055
 ```

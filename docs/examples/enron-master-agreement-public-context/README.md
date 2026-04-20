@@ -6,7 +6,7 @@ This is the default long-tail technical proof case. It keeps the visible downstr
 
 ```bash
 vei ui serve \
-  --root /Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/docs/examples/enron-master-agreement-public-context/workspace \
+  --root docs/examples/enron-master-agreement-public-context/workspace \
   --host 127.0.0.1 \
   --port 3055
 ```

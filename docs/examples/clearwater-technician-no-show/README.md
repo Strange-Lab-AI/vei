@@ -26,7 +26,7 @@ Synthetic Clearwater branch on the backup dispatch routing thread after the tech
 
 ## Open in Studio
 ```bash
-vei ui serve --root /Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/docs/examples/clearwater-technician-no-show/workspace --host 127.0.0.1 --port 3056
+vei ui serve --root docs/examples/clearwater-technician-no-show/workspace --host 127.0.0.1 --port 3056
 ```
 
 ## Bundle files
@@ -36,4 +36,4 @@ vei ui serve --root /Users/rohit/Documents/Workspace/Coding/digital-enterprise-t
 - `whatif_experiment_overview.md`: saved what-if summary
 - `whatif_reference_result.json`: saved learned forecast
 - `whatif_business_state_comparison.md`: saved candidate comparison
-- `clearwater_story_overview.md`: source synthetic story walkthrough
+- `clearwater_story_overview.md`: bundle-local story walkthrough

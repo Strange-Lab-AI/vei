@@ -191,11 +191,16 @@ def validate_packaged_example_bundle(root: str | Path) -> list[str]:
         if not candidate.exists():
             continue
         text = candidate.read_text(encoding="utf-8")
-        if "/Users/" in text:
-            issues.append(f"unscrubbed absolute path in {candidate}")
+        _check_for_unscrubbed_absolute_paths(issues, candidate, text)
         if relative_path == EJEPA_RESULT_FILE:
             if SCRUBBED_PATH_PLACEHOLDER not in text:
                 issues.append(f"missing scrubbed-path placeholder in {candidate}")
+    for relative_path in _public_bundle_doc_paths(bundle_root):
+        candidate = bundle_root / relative_path
+        if not candidate.exists():
+            continue
+        text = candidate.read_text(encoding="utf-8")
+        _check_for_unscrubbed_absolute_paths(issues, candidate, text)
     return issues
 
 
@@ -384,3 +389,35 @@ def _scrubbed_bundle_paths(bundle_root: Path) -> list[str]:
         for relative_path in candidates
         if (bundle_root / relative_path).exists()
     ]
+
+
+def _public_bundle_doc_paths(bundle_root: Path) -> list[str]:
+    patterns = (
+        "README.md",
+        "*_story_overview.md",
+        "*_story_manifest.json",
+        "*_exports_preview.json",
+        "*_presentation_manifest.json",
+        "*_presentation_guide.md",
+    )
+    paths: list[str] = []
+    seen: set[str] = set()
+    for pattern in patterns:
+        for candidate in sorted(bundle_root.glob(pattern)):
+            if not candidate.is_file():
+                continue
+            relative_path = candidate.relative_to(bundle_root).as_posix()
+            if relative_path in seen:
+                continue
+            seen.add(relative_path)
+            paths.append(relative_path)
+    return paths
+
+
+def _check_for_unscrubbed_absolute_paths(
+    issues: list[str],
+    path: Path,
+    text: str,
+) -> None:
+    if "/Users/" in text:
+        issues.append(f"unscrubbed absolute path in {path}")

@@ -27,7 +27,7 @@ The company timeline around it is thicker now, so the branch reads as a company 
 
 ```bash
 vei ui serve \
-  --root /Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/docs/examples/enron-master-agreement-public-context/workspace \
+  --root docs/examples/enron-master-agreement-public-context/workspace \
   --host 127.0.0.1 \
   --port 3055
 ```

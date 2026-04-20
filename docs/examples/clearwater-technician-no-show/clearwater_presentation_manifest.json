@@ -118,9 +118,8 @@
   ],
   "closing_argument": "The core claim is simple: VEI already behaves like a world studio for enterprises. These worlds are different instantiations of one kernel, and the same kernel is what later becomes an RL environment, a continuous eval harness, and an agent management platform.",
   "operator_commands": [
-    "python -m vei.cli.vei project init --vertical service_ops --root /Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/_vei_out/service_ops_story_sources/clearwater-technician-no-show",
-    "python -m vei.cli.vei scenario activate --root /Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/_vei_out/service_ops_story_sources/clearwater-technician-no-show --variant technician_no_show --bootstrap-contract",
-    "python -m vei.cli.vei contract activate --root /Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/_vei_out/service_ops_story_sources/clearwater-technician-no-show --variant protect_customer_trust",
-    "python -m vei.cli.vei ui serve --root /Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/_vei_out/service_ops_story_sources/clearwater-technician-no-show --host 127.0.0.1 --port 3011"
+    "vei ui serve --root docs/examples/clearwater-technician-no-show/workspace --host 127.0.0.1 --port 3056",
+    "python scripts/build_service_ops_example_bundles.py --bundle clearwater-technician-no-show",
+    "python scripts/validate_service_ops_example_bundles.py --root docs/examples"
   ]
 }

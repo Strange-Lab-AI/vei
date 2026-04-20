@@ -19,8 +19,8 @@ VEI is the shared world kernel underneath every company world we open: the compa
 
 - Contract variant: `protect_revenue`
 - Objective briefing: Prefer actions that prevent billing damage and preserve the customer relationship while the field response unfolds. Why it exists: Useful when the same service day should optimize for revenue preservation instead of raw dispatch speed.
-- Presentation manifest: `/Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/_vei_out/service_ops_story_sources/clearwater-billing-dispute-reopened/presentation_manifest.json`
-- Presentation guide: `/Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/_vei_out/service_ops_story_sources/clearwater-billing-dispute-reopened/presentation_guide.md`
+- Presentation manifest: `clearwater_presentation_manifest.json`
+- Presentation guide: `clearwater_presentation_guide.md`
 
 ## Runs
 
@@ -28,7 +28,7 @@ VEI is the shared world kernel underneath every company world we open: the compa
 - Comparison (scripted): `scripted_comparison`
 - Workflow contract ok: `False`
 - Comparison contract ok: `False`
-- UI: `python -m vei.cli.vei ui serve --root /Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/_vei_out/service_ops_story_sources/clearwater-billing-dispute-reopened --host 127.0.0.1 --port 3011`
+- UI: `vei ui serve --root docs/examples/clearwater-billing-dispute-reopened/workspace --host 127.0.0.1 --port 3056`
 
 ## Branch Story
 

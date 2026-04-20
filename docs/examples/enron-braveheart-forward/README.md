@@ -6,7 +6,7 @@ This is the accounting-structure proof case. It is denser than the others, but i
 
 ```bash
 vei ui serve \
-  --root /Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/docs/examples/enron-braveheart-forward/workspace \
+  --root docs/examples/enron-braveheart-forward/workspace \
   --host 127.0.0.1 \
   --port 3055
 ```

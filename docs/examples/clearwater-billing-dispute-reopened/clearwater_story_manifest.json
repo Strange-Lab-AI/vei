@@ -187,7 +187,7 @@
       ]
     }
   ],
-  "workspace_root": "/Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/_vei_out/service_ops_story_sources/clearwater-billing-dispute-reopened",
+  "workspace_root": "docs/examples/clearwater-billing-dispute-reopened/workspace",
   "scenario_name": "default",
   "scenario_variant": "billing_dispute_reopened",
   "contract_variant": "protect_revenue",
@@ -283,9 +283,9 @@
       }
     }
   ],
-  "overview_path": "/Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/_vei_out/service_ops_story_sources/clearwater-billing-dispute-reopened/story_overview.md",
-  "story_manifest_path": "/Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/_vei_out/service_ops_story_sources/clearwater-billing-dispute-reopened/story_manifest.json",
-  "exports_preview_path": "/Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/_vei_out/service_ops_story_sources/clearwater-billing-dispute-reopened/exports_preview.json",
+  "overview_path": "clearwater_story_overview.md",
+  "story_manifest_path": "clearwater_story_manifest.json",
+  "exports_preview_path": "clearwater_exports_preview.json",
   "presentation": {
     "opening_hook": "VEI is one enterprise world kernel. This world shows that the same runtime can instantiate different companies, vary the situation, vary the objective, and still produce inspectable runs, branches, and exportable artifacts.",
     "demo_goal": "Start from Clearwater Field Services as a stable company world, then watch how `Billing Dispute Reopened` changes the situation, how `Protect Revenue` changes the definition of success, and how the same kernel turns both runs into playback, branching, and future RL/eval/agent-ops outputs.",
@@ -406,15 +406,14 @@
     ],
     "closing_argument": "The core claim is simple: VEI already behaves like a world studio for enterprises. These worlds are different instantiations of one kernel, and the same kernel is what later becomes an RL environment, a continuous eval harness, and an agent management platform.",
     "operator_commands": [
-      "python -m vei.cli.vei project init --vertical service_ops --root /Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/_vei_out/service_ops_story_sources/clearwater-billing-dispute-reopened",
-      "python -m vei.cli.vei scenario activate --root /Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/_vei_out/service_ops_story_sources/clearwater-billing-dispute-reopened --variant billing_dispute_reopened --bootstrap-contract",
-      "python -m vei.cli.vei contract activate --root /Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/_vei_out/service_ops_story_sources/clearwater-billing-dispute-reopened --variant protect_revenue",
-      "python -m vei.cli.vei ui serve --root /Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/_vei_out/service_ops_story_sources/clearwater-billing-dispute-reopened --host 127.0.0.1 --port 3011"
+      "vei ui serve --root docs/examples/clearwater-billing-dispute-reopened/workspace --host 127.0.0.1 --port 3056",
+      "python scripts/build_service_ops_example_bundles.py --bundle clearwater-billing-dispute-reopened",
+      "python scripts/validate_service_ops_example_bundles.py --root docs/examples"
     ]
   },
-  "presentation_manifest_path": "/Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/_vei_out/service_ops_story_sources/clearwater-billing-dispute-reopened/presentation_manifest.json",
-  "presentation_guide_path": "/Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/_vei_out/service_ops_story_sources/clearwater-billing-dispute-reopened/presentation_guide.md",
-  "ui_command": "python -m vei.cli.vei ui serve --root /Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/_vei_out/service_ops_story_sources/clearwater-billing-dispute-reopened --host 127.0.0.1 --port 3011",
+  "presentation_manifest_path": "clearwater_presentation_manifest.json",
+  "presentation_guide_path": "clearwater_presentation_guide.md",
+  "ui_command": "vei ui serve --root docs/examples/clearwater-billing-dispute-reopened/workspace --host 127.0.0.1 --port 3056",
   "workflow_contract_ok": false,
   "comparison_contract_ok": false,
   "kernel_proof": {

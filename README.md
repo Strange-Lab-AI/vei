@@ -193,7 +193,7 @@ vei twin onboard \
   --base-url notion=/path/to/notion-export.zip
 ```
 
-For the real Dispatch startup data kept on your machine, run:
+For a local Dispatch export stored outside the repo, run:
 
 ```bash
 python scripts/build_dispatch_local_example.py

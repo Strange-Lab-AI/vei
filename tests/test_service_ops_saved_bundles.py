@@ -42,6 +42,13 @@ def test_all_repo_owned_service_ops_bundles_use_reference_forecast_and_sidecars(
     None
 ):
     for bundle_root in _bundle_roots():
+        assert (bundle_root / "README.md").exists(), bundle_root
+        assert (bundle_root / "clearwater_story_manifest.json").exists(), bundle_root
+        assert (bundle_root / "clearwater_story_overview.md").exists(), bundle_root
+        assert (
+            bundle_root / "clearwater_presentation_manifest.json"
+        ).exists(), bundle_root
+        assert (bundle_root / "clearwater_presentation_guide.md").exists(), bundle_root
         experiment_payload = json.loads(
             (bundle_root / "whatif_experiment_result.json").read_text(encoding="utf-8")
         )

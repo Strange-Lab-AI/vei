@@ -29,8 +29,8 @@
   "forecast_file": "whatif_reference_result.json",
   "public_objective_pack_id": "protect_company_default",
   "top_candidate": "Narrow internal-only draft",
-  "workspace_root": "/Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/docs/examples/enron-skilling-resignation-materials/workspace",
-  "ui_command": "vei ui serve \\\n  --root /Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/docs/examples/enron-skilling-resignation-materials/workspace \\\n  --host 127.0.0.1 \\\n  --port 3055",
+  "workspace_root": "docs/examples/enron-skilling-resignation-materials/workspace",
+  "ui_command": "vei ui serve \\\n  --root docs/examples/enron-skilling-resignation-materials/workspace \\\n  --host 127.0.0.1 \\\n  --port 3055",
   "files": {
     "overview": "enron_story_overview.md",
     "exports_preview": "enron_exports_preview.json",

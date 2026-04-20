@@ -6,7 +6,7 @@ This is the executive-transition narrative case. It shows the same saved bundle 
 
 ```bash
 vei ui serve \
-  --root /Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/docs/examples/enron-skilling-resignation-materials/workspace \
+  --root docs/examples/enron-skilling-resignation-materials/workspace \
   --host 127.0.0.1 \
   --port 3055
 ```
