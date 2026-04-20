@@ -6,7 +6,7 @@ This is the clean commercial judgment case. It puts a real counterparty decision
 
 ```bash
 vei ui serve \
-  --root /Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/docs/examples/enron-pge-power-deal/workspace \
+  --root docs/examples/enron-pge-power-deal/workspace \
   --host 127.0.0.1 \
   --port 3055
 ```

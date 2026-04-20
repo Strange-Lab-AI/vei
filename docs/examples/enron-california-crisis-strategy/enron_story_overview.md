@@ -27,7 +27,7 @@ It gives the proof set the cleanest legal and operational branch.
 
 ```bash
 vei ui serve \
-  --root /Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/docs/examples/enron-california-crisis-strategy/workspace \
+  --root docs/examples/enron-california-crisis-strategy/workspace \
   --host 127.0.0.1 \
   --port 3055
 ```

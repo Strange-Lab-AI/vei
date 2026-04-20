@@ -19,8 +19,8 @@ VEI is the shared world kernel underneath every company world we open: the compa
 
 - Contract variant: `protect_sla`
 - Objective briefing: Prioritize rapid, valid dispatch recovery so the service request reaches a credible field response on time. Why it exists: This is the default Clearwater business objective and the clearest service-ops baseline.
-- Presentation manifest: `/Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/_vei_out/service_ops_story_sources/clearwater-dispatch-recovery/presentation_manifest.json`
-- Presentation guide: `/Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/_vei_out/service_ops_story_sources/clearwater-dispatch-recovery/presentation_guide.md`
+- Presentation manifest: `clearwater_presentation_manifest.json`
+- Presentation guide: `clearwater_presentation_guide.md`
 
 ## Runs
 
@@ -28,7 +28,7 @@ VEI is the shared world kernel underneath every company world we open: the compa
 - Comparison (scripted): `scripted_comparison`
 - Workflow contract ok: `True`
 - Comparison contract ok: `False`
-- UI: `python -m vei.cli.vei ui serve --root /Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/_vei_out/service_ops_story_sources/clearwater-dispatch-recovery --host 127.0.0.1 --port 3011`
+- UI: `vei ui serve --root docs/examples/clearwater-dispatch-recovery/workspace --host 127.0.0.1 --port 3056`
 
 ## Branch Story
 

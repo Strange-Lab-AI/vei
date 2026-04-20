@@ -16,6 +16,7 @@ from vei.whatif.api import (
 
 DEFAULT_OUTPUT_ROOT = Path("data/enron/reference_backend")
 DEFAULT_BENCHMARK_ROOT = Path("_vei_out/reference_backend_enron_benchmark")
+REPO_ROOT = Path(__file__).resolve().parents[1]
 SHIPPED_REFERENCE_FILES = {
     "model.pt",
     "metadata.json",
@@ -65,6 +66,33 @@ def _run_bridge_command(
         check=True,
     )
     return json.loads(output_path.read_text(encoding="utf-8"))
+
+
+def _rewrite_json(path: Path, payload: dict[str, Any]) -> None:
+    path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+
+
+def _scrub_repo_local_paths(payload: Any) -> Any:
+    if isinstance(payload, dict):
+        return {key: _scrub_repo_local_paths(value) for key, value in payload.items()}
+    if isinstance(payload, list):
+        return [_scrub_repo_local_paths(item) for item in payload]
+    if isinstance(payload, str):
+        repo_prefix = f"{REPO_ROOT}/"
+        if payload == str(REPO_ROOT):
+            return "."
+        if payload.startswith(repo_prefix):
+            return payload.removeprefix(repo_prefix)
+    return payload
+
+
+def sanitize_shipped_reference_outputs(output_root: Path) -> None:
+    for filename in ("train_result.json", "eval_result.json"):
+        candidate = output_root / filename
+        if not candidate.exists():
+            continue
+        payload = json.loads(candidate.read_text(encoding="utf-8"))
+        _rewrite_json(candidate, _scrub_repo_local_paths(payload))
 
 
 def _write_metrics_card(
@@ -207,9 +235,13 @@ def main() -> None:
         output_path=output_root / "eval_result.json",
     )
     eval_result = _prune_output_root(output_root, eval_result)
-    (output_root / "eval_result.json").write_text(
-        json.dumps(eval_result, indent=2),
-        encoding="utf-8",
+    _rewrite_json(output_root / "eval_result.json", eval_result)
+    sanitize_shipped_reference_outputs(output_root)
+    train_result = json.loads(
+        (output_root / "train_result.json").read_text(encoding="utf-8")
+    )
+    eval_result = json.loads(
+        (output_root / "eval_result.json").read_text(encoding="utf-8")
     )
     _write_metrics_card(
         output_root=output_root,

@@ -16,3 +16,11 @@ def test_reference_backend_directory_contains_only_shipped_files() -> None:
     assert root.exists()
     files = {path.name for path in root.iterdir() if path.is_file()}
     assert files == shipped
+
+
+def test_reference_backend_shipped_files_do_not_embed_local_paths() -> None:
+    root = Path("data/enron/reference_backend")
+
+    for filename in ("train_result.json", "eval_result.json", "metrics_card.md"):
+        text = (root / filename).read_text(encoding="utf-8")
+        assert "/Users/" not in text

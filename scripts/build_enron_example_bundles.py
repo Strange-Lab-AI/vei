@@ -87,6 +87,7 @@ except ModuleNotFoundError:
 
 
 DEFAULT_ARTIFACTS_ROOT = Path("_vei_out/whatif_repo_examples")
+REPO_ROOT = Path(__file__).resolve().parents[1]
 MASTER_EVENT_ID = "enron_bcda1b925800af8c"
 MASTER_THREAD_ID = "thr_e565b47423d035c9"
 ENRON_FIXTURE_WINDOW = (
@@ -241,11 +242,20 @@ def _context_counts(
     )
 
 
+def _repo_relative_path(path: Path) -> str:
+    resolved = path.expanduser().resolve()
+    try:
+        return str(resolved.relative_to(REPO_ROOT))
+    except ValueError:
+        return str(path)
+
+
 def _bundle_ui_command(bundle_root: Path) -> str:
+    workspace_root = _repo_relative_path(bundle_root / WORKSPACE_DIRECTORY)
     return "\n".join(
         [
             "vei ui serve \\",
-            f"  --root {bundle_root / WORKSPACE_DIRECTORY} \\",
+            f"  --root {workspace_root} \\",
             "  --host 127.0.0.1 \\",
             "  --port 3055",
         ]
@@ -556,7 +566,7 @@ def _bundle_story_manifest(
         "forecast_file": context["forecast_filename"],
         "public_objective_pack_id": spec.public_objective_pack_id,
         "top_candidate": dict(context["top_candidate"]).get("label") or "",
-        "workspace_root": str((bundle_root / WORKSPACE_DIRECTORY).resolve()),
+        "workspace_root": _repo_relative_path(bundle_root / WORKSPACE_DIRECTORY),
         "ui_command": str(context["ui_command"]),
         "files": {
             "overview": ENRON_STORY_OVERVIEW_FILE,
@@ -588,7 +598,7 @@ def _bundle_presentation_manifest(
             "organization_name": "Enron Corporation",
             "bundle_slug": spec.bundle_slug,
             "bundle_role": spec.role,
-            "workspace_root": str((bundle_root / WORKSPACE_DIRECTORY).resolve()),
+            "workspace_root": _repo_relative_path(bundle_root / WORKSPACE_DIRECTORY),
             "ui_command": str(context["ui_command"]),
         },
         "primitives": [
@@ -660,7 +670,10 @@ def _bundle_presentation_manifest(
         "operator_commands": [
             str(context["ui_command"]),
             f"python scripts/build_enron_example_bundles.py --bundle {spec.bundle_slug}",
-            f"python scripts/validate_enron_example_bundles.py --root {bundle_root.parent}",
+            (
+                "python scripts/validate_enron_example_bundles.py "
+                f"--root {_repo_relative_path(bundle_root.parent)}"
+            ),
         ],
     }
 

@@ -6,7 +6,7 @@ This is the regulatory conduct case. It puts a preservation order, an active tra
 
 ```bash
 vei ui serve \
-  --root /Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/docs/examples/enron-california-crisis-strategy/workspace \
+  --root docs/examples/enron-california-crisis-strategy/workspace \
   --host 127.0.0.1 \
   --port 3055
 ```

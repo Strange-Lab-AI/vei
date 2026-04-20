@@ -27,7 +27,7 @@ It gives the proof set a hard accounting and disclosure branch that is not just 
 
 ```bash
 vei ui serve \
-  --root /Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/docs/examples/enron-braveheart-forward/workspace \
+  --root docs/examples/enron-braveheart-forward/workspace \
   --host 127.0.0.1 \
   --port 3055
 ```

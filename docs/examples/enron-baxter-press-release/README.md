@@ -6,7 +6,7 @@ This is the crisis-communications proof case. It shows a real public-facing bran
 
 ```bash
 vei ui serve \
-  --root /Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/docs/examples/enron-baxter-press-release/workspace \
+  --root docs/examples/enron-baxter-press-release/workspace \
   --host 127.0.0.1 \
   --port 3055
 ```

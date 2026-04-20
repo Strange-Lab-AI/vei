@@ -34,6 +34,13 @@ def test_docs_show_clean_optional_jepa_install_path() -> None:
         assert 'pip install -e ".[jepa]"' in text
 
 
+def test_readme_stays_repo_safe_for_public_examples() -> None:
+    text = Path("README.md").read_text(encoding="utf-8")
+
+    assert "/Users/" not in text
+    assert "kept on your machine" not in text
+
+
 def test_evals_doc_positions_clearwater_as_smoke_path() -> None:
     text = Path("docs/EVALS.md").read_text(encoding="utf-8")
 

@@ -43,6 +43,12 @@ except ModuleNotFoundError:
 EXAMPLES_ROOT = Path("docs/examples")
 DEFAULT_SOURCE_ROOT = Path("_vei_out/service_ops_story_sources")
 DEFAULT_BUILD_ROOT = Path("_vei_out/service_ops_bundle_builds")
+REPO_ROOT = Path(__file__).resolve().parents[1]
+SERVICE_OPS_STORY_OVERVIEW_FILE = "clearwater_story_overview.md"
+SERVICE_OPS_STORY_MANIFEST_FILE = "clearwater_story_manifest.json"
+SERVICE_OPS_EXPORTS_PREVIEW_FILE = "clearwater_exports_preview.json"
+SERVICE_OPS_PRESENTATION_MANIFEST_FILE = "clearwater_presentation_manifest.json"
+SERVICE_OPS_PRESENTATION_GUIDE_FILE = "clearwater_presentation_guide.md"
 
 
 @dataclass(frozen=True)
@@ -201,6 +207,40 @@ def spec_by_bundle_slug(bundle_slug: str) -> ServiceOpsBundleSpec:
     raise KeyError(f"unknown service-ops bundle slug: {bundle_slug}")
 
 
+def _repo_relative_path(path: Path) -> str:
+    resolved = path.expanduser().resolve()
+    try:
+        return str(resolved.relative_to(REPO_ROOT))
+    except ValueError:
+        return str(path)
+
+
+def _bundle_workspace_cli_path(output_root: Path) -> str:
+    return _repo_relative_path(output_root / WORKSPACE_DIRECTORY)
+
+
+def _bundle_ui_command(output_root: Path) -> str:
+    return (
+        "vei ui serve "
+        f"--root {_bundle_workspace_cli_path(output_root)} "
+        "--host 127.0.0.1 --port 3056"
+    )
+
+
+def _bundle_operator_commands(
+    spec: ServiceOpsBundleSpec,
+    output_root: Path,
+) -> list[str]:
+    return [
+        _bundle_ui_command(output_root),
+        f"python scripts/build_service_ops_example_bundles.py --bundle {spec.bundle_slug}",
+        (
+            "python scripts/validate_service_ops_example_bundles.py "
+            f"--root {_repo_relative_path(EXAMPLES_ROOT.resolve())}"
+        ),
+    ]
+
+
 def build_bundle(spec: ServiceOpsBundleSpec, *, source_root: Path) -> Path:
     story_workspace_root = source_root.expanduser().resolve() / spec.bundle_slug
     if story_workspace_root.exists():
@@ -253,6 +293,7 @@ def build_bundle(spec: ServiceOpsBundleSpec, *, source_root: Path) -> Path:
         ],
     )
     _copy_story_files(story.workspace_root, output_root)
+    rewrite_public_story_files(spec, output_root)
     _write_bundle_readme(spec, output_root, result.materialization.branch_event_id)
     issues = validate_bundle(output_root)
     if issues:
@@ -275,17 +316,111 @@ def _latest_thread_event_id(world, thread_id: str) -> str:
 
 def _copy_story_files(source_workspace_root: Path, output_root: Path) -> None:
     copies = {
-        "story_overview.md": "clearwater_story_overview.md",
-        "story_manifest.json": "clearwater_story_manifest.json",
-        "exports_preview.json": "clearwater_exports_preview.json",
-        "presentation_manifest.json": "clearwater_presentation_manifest.json",
-        "presentation_guide.md": "clearwater_presentation_guide.md",
+        "story_overview.md": SERVICE_OPS_STORY_OVERVIEW_FILE,
+        "story_manifest.json": SERVICE_OPS_STORY_MANIFEST_FILE,
+        "exports_preview.json": SERVICE_OPS_EXPORTS_PREVIEW_FILE,
+        "presentation_manifest.json": SERVICE_OPS_PRESENTATION_MANIFEST_FILE,
+        "presentation_guide.md": SERVICE_OPS_PRESENTATION_GUIDE_FILE,
     }
     for source_name, dest_name in copies.items():
         source_path = source_workspace_root / source_name
         if not source_path.exists():
             continue
         shutil.copy2(source_path, output_root / dest_name)
+
+
+def _replace_markdown_line(text: str, *, prefix: str, replacement: str) -> str:
+    lines = text.splitlines()
+    for index, line in enumerate(lines):
+        if line.startswith(prefix):
+            lines[index] = replacement
+            break
+    return "\n".join(lines).rstrip() + "\n"
+
+
+def _rewrite_operator_commands_section(text: str, commands: list[str]) -> str:
+    lines = text.splitlines()
+    try:
+        start = lines.index("## Operator Commands")
+    except ValueError:
+        return text
+
+    updated = lines[: start + 1]
+    updated.append("")
+    updated.extend(f"- `{command}`" for command in commands)
+    return "\n".join(updated).rstrip() + "\n"
+
+
+def rewrite_public_story_files(
+    spec: ServiceOpsBundleSpec,
+    output_root: Path,
+) -> None:
+    public_ui_command = _bundle_ui_command(output_root)
+    public_commands = _bundle_operator_commands(spec, output_root)
+    public_workspace_root = _bundle_workspace_cli_path(output_root)
+
+    story_manifest_path = output_root / SERVICE_OPS_STORY_MANIFEST_FILE
+    if story_manifest_path.exists():
+        story_manifest = _read_json(story_manifest_path)
+        story_manifest["workspace_root"] = public_workspace_root
+        story_manifest["overview_path"] = SERVICE_OPS_STORY_OVERVIEW_FILE
+        story_manifest["story_manifest_path"] = SERVICE_OPS_STORY_MANIFEST_FILE
+        story_manifest["exports_preview_path"] = SERVICE_OPS_EXPORTS_PREVIEW_FILE
+        story_manifest["presentation_manifest_path"] = (
+            SERVICE_OPS_PRESENTATION_MANIFEST_FILE
+        )
+        story_manifest["presentation_guide_path"] = SERVICE_OPS_PRESENTATION_GUIDE_FILE
+        story_manifest["ui_command"] = public_ui_command
+
+        presentation = dict(story_manifest.get("presentation") or {})
+        if presentation:
+            presentation["operator_commands"] = public_commands
+            story_manifest["presentation"] = presentation
+        _write_json(story_manifest_path, story_manifest)
+
+    presentation_manifest_path = output_root / SERVICE_OPS_PRESENTATION_MANIFEST_FILE
+    if presentation_manifest_path.exists():
+        presentation_manifest = _read_json(presentation_manifest_path)
+        presentation_manifest["operator_commands"] = public_commands
+        _write_json(presentation_manifest_path, presentation_manifest)
+
+    story_overview_path = output_root / SERVICE_OPS_STORY_OVERVIEW_FILE
+    if story_overview_path.exists():
+        story_overview = story_overview_path.read_text(encoding="utf-8")
+        story_overview = _replace_markdown_line(
+            story_overview,
+            prefix="- Presentation manifest:",
+            replacement=(
+                "- Presentation manifest: "
+                f"`{SERVICE_OPS_PRESENTATION_MANIFEST_FILE}`"
+            ),
+        )
+        story_overview = _replace_markdown_line(
+            story_overview,
+            prefix="- Presentation guide:",
+            replacement=(
+                "- Presentation guide: "
+                f"`{SERVICE_OPS_PRESENTATION_GUIDE_FILE}`"
+            ),
+        )
+        story_overview = _replace_markdown_line(
+            story_overview,
+            prefix="- UI:",
+            replacement=f"- UI: `{public_ui_command}`",
+        )
+        story_overview_path.write_text(story_overview, encoding="utf-8")
+
+    presentation_guide_path = output_root / SERVICE_OPS_PRESENTATION_GUIDE_FILE
+    if presentation_guide_path.exists():
+        presentation_guide = presentation_guide_path.read_text(encoding="utf-8")
+        presentation_guide = _rewrite_operator_commands_section(
+            presentation_guide,
+            public_commands,
+        )
+        presentation_guide_path.write_text(
+            presentation_guide,
+            encoding="utf-8",
+        )
 
 
 def _read_json(path: Path) -> dict[str, object]:
@@ -454,6 +589,7 @@ def _write_bundle_readme(
     branch_event_id: str,
 ) -> None:
     workspace_root = output_root / WORKSPACE_DIRECTORY
+    workspace_cli_path = _bundle_workspace_cli_path(output_root)
     manifest_payload = json.loads(
         (workspace_root / EPISODE_MANIFEST_FILE).read_text(encoding="utf-8")
     )
@@ -535,7 +671,7 @@ def _write_bundle_readme(
         "",
         "## Open in Studio",
         "```bash",
-        f"vei ui serve --root {workspace_root} --host 127.0.0.1 --port 3056",
+        f"vei ui serve --root {workspace_cli_path} --host 127.0.0.1 --port 3056",
         "```",
         "",
         "## Bundle files",
@@ -545,7 +681,7 @@ def _write_bundle_readme(
         "- `whatif_experiment_overview.md`: saved what-if summary",
         "- `whatif_reference_result.json`: saved learned forecast",
         "- `whatif_business_state_comparison.md`: saved candidate comparison",
-        "- `clearwater_story_overview.md`: source synthetic story walkthrough",
+        "- `clearwater_story_overview.md`: bundle-local story walkthrough",
         "",
     ]
     (output_root / "README.md").write_text("\n".join(lines), encoding="utf-8")

@@ -61,8 +61,8 @@ This bundle works as a complete Enron branch case because the branch, the lead-u
 ## Operator Commands
 
 - `vei ui serve \
-  --root /Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/docs/examples/enron-pge-power-deal/workspace \
+  --root docs/examples/enron-pge-power-deal/workspace \
   --host 127.0.0.1 \
   --port 3055`
 - `python scripts/build_enron_example_bundles.py --bundle enron-pge-power-deal`
-- `python scripts/validate_enron_example_bundles.py --root /Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/docs/examples`
+- `python scripts/validate_enron_example_bundles.py --root docs/examples`

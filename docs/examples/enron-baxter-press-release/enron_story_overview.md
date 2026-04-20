@@ -27,7 +27,7 @@ It gives the proof set a crisis-communications case that is about more than pure
 
 ```bash
 vei ui serve \
-  --root /Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/docs/examples/enron-baxter-press-release/workspace \
+  --root docs/examples/enron-baxter-press-release/workspace \
   --host 127.0.0.1 \
   --port 3055
 ```

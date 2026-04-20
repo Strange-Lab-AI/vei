@@ -6,7 +6,7 @@ This is the main narrative governance case. It is the strongest moral fork in th
 
 ```bash
 vei ui serve \
-  --root /Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/docs/examples/enron-watkins-follow-up/workspace \
+  --root docs/examples/enron-watkins-follow-up/workspace \
   --host 127.0.0.1 \
   --port 3055
 ```

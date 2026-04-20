@@ -6,7 +6,7 @@ This is the disclosure narrative case. It makes the October 2001 review path leg
 
 ```bash
 vei ui serve \
-  --root /Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/docs/examples/enron-q3-disclosure-review/workspace \
+  --root docs/examples/enron-q3-disclosure-review/workspace \
   --host 127.0.0.1 \
   --port 3055
 ```
