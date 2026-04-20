@@ -1,5 +1,5 @@
 ## VEI
-[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/strangeloopcanon/vei)
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/Strange-Lab-AI/vei)
 
 VEI turns built-in scenarios or real company records into a runnable company world. You can use it to test an agent before it touches a real company, watch an outside agent through a governed twin, branch from a real historical decision and compare a different move, or draft grounded knowledge artifacts from the same company state.
 
@@ -19,7 +19,7 @@ The same engine powers every path: one world state, one event history, one repla
 ## Quick Start
 
 ```bash
-git clone https://github.com/strangeloopcanon/vei.git
+git clone https://github.com/Strange-Lab-AI/vei.git
 cd vei
 make setup
 vei doctor

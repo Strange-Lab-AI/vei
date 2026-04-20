@@ -17,7 +17,7 @@ from vei.whatif._enron_dataset import (
     load_enron_full_dataset_release,
 )
 
-DEFAULT_REPOSITORY = "strangeloopcanon/vei"
+DEFAULT_REPOSITORY = "Strange-Lab-AI/vei"
 ALLOWED_URL_SCHEMES = {"https", "file"}
 
 
@@ -89,7 +89,10 @@ def _validated_download_url(url: str) -> str:
 def _download_asset(*, url: str, target_path: Path) -> None:
     target_path.parent.mkdir(parents=True, exist_ok=True)
     safe_url = _validated_download_url(url)
-    with urllib.request.urlopen(safe_url) as response, target_path.open("wb") as handle:  # nosec B310
+    with (
+        urllib.request.urlopen(safe_url) as response,
+        target_path.open("wb") as handle,
+    ):  # nosec B310
         shutil.copyfileobj(response, handle)
 
 

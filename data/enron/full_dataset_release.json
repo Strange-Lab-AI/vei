@@ -2,7 +2,7 @@
   "version": "v1",
   "release_tag": "enron-dataset-v1",
   "asset_name": "vei-enron-full-dataset-v1.tar.gz",
-  "asset_url": "https://github.com/strangeloopcanon/vei/releases/download/enron-dataset-v1/vei-enron-full-dataset-v1.tar.gz",
+  "asset_url": "https://github.com/Strange-Lab-AI/vei/releases/download/enron-dataset-v1/vei-enron-full-dataset-v1.tar.gz",
   "sha256": "e5393a088baa7c430024e799dba8b83e98d8c54c1efadc8cc0785bd9c0dc641e",
   "cache_root": "~/.cache/vei/enron/full",
   "extract_root": "v1",

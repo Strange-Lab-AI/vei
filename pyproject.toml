@@ -24,8 +24,8 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/strangeloopcanon/vei"
-Repository = "https://github.com/strangeloopcanon/vei"
+Homepage = "https://github.com/Strange-Lab-AI/vei"
+Repository = "https://github.com/Strange-Lab-AI/vei"
 
 [project.optional-dependencies]
 browser = [
