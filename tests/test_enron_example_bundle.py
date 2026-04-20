@@ -217,9 +217,10 @@ def test_repo_owned_enron_example_bundle_is_present_and_clean() -> None:
         )
     )
     assert [item["label"] for item in comparison_payload["candidates"]] == [
-        "Hold for internal review",
-        "Send a narrow status note",
-        "Push for fast turnaround",
+        "Internal legal review",
+        "Narrow status note",
+        "Controlled external send",
+        "Fast outside circulation",
     ]
     assert (
         comparison_payload["candidates"][0]["business_state_change"]["net_effect_score"]
@@ -264,7 +265,7 @@ def test_repo_owned_enron_example_bundle_exposes_generic_saved_bundle_loader() -
     ranked_payload = build_saved_ranked_result_payload(bundle)
 
     assert ranked_payload is not None
-    assert ranked_payload["objective_pack"]["pack_id"] == "contain_exposure"
+    assert ranked_payload["objective_pack"]["pack_id"] == "protect_company_default"
     assert ranked_payload["candidates"][0]["saved_result"] is True
 
 
@@ -630,7 +631,7 @@ def test_repo_owned_enron_example_workspace_uses_saved_experiment_without_rosett
 
     assert response.status_code == 200
     payload = response.json()
-    assert payload["label"] == "master_agreement_saved_bundle_20260417"
+    assert payload["label"] == "master_agreement_saved_bundle_20260419"
     assert payload["saved_result"] is True
     assert "saved reference result" in payload["saved_bundle_notice"]
     assert payload["materialization"]["branch_event_id"] == "enron_bcda1b925800af8c"
@@ -667,14 +668,12 @@ def test_repo_owned_enron_example_workspace_uses_saved_ranked_result_without_ros
 
     assert response.status_code == 200
     payload = response.json()
-    assert payload["recommended_candidate_label"] == "Hold for internal review"
-    assert payload["objective_pack"]["pack_id"] == "contain_exposure"
+    assert payload["recommended_candidate_label"] == "Internal legal review"
+    assert payload["objective_pack"]["pack_id"] == "protect_company_default"
     assert payload["candidates"][0]["outcome_score"]["objective_pack_id"] == (
-        "contain_exposure"
+        "protect_company_default"
     )
-    assert (
-        payload["candidates"][0]["intervention"]["label"] == "Hold for internal review"
-    )
+    assert payload["candidates"][0]["intervention"]["label"] == "Internal legal review"
     assert payload["saved_result"] is True
     assert "saved reference ranking" in payload["saved_bundle_notice"]
     assert payload["candidates"][0]["saved_result"] is True

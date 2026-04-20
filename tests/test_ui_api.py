@@ -1116,7 +1116,12 @@ def test_ui_api_historical_workspace_prefers_manifest_rosetta_dir(
 
 def test_ui_api_saved_enron_workspace_without_rosetta_uses_saved_context_snapshot(
     tmp_path: Path,
+    monkeypatch,
 ) -> None:
+    monkeypatch.setenv("HOME", str((tmp_path / "home").resolve()))
+    monkeypatch.delenv("VEI_WHATIF_ROSETTA_DIR", raising=False)
+    monkeypatch.delenv("VEI_WHATIF_SOURCE", raising=False)
+    monkeypatch.delenv("VEI_WHATIF_SOURCE_DIR", raising=False)
     workspace_root = tmp_path / "saved_enron_workspace"
     create_workspace_from_template(
         root=workspace_root,
@@ -1202,6 +1207,7 @@ def test_ui_api_saved_bundle_routes_recheck_bundle_after_app_start(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
+    monkeypatch.setenv("HOME", str((tmp_path / "home").resolve()))
     monkeypatch.delenv("VEI_WHATIF_ROSETTA_DIR", raising=False)
     monkeypatch.delenv("VEI_WHATIF_SOURCE", raising=False)
     monkeypatch.delenv("VEI_WHATIF_SOURCE_DIR", raising=False)
