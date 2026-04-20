@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import List, Optional
 
 from pydantic import BaseModel, Field
+from vei.structure.api import DerivedCase, DerivedEntity, DerivedHypothesis
 
 
 class OrientationObject(BaseModel):
@@ -31,8 +32,12 @@ class WorldOrientation(BaseModel):
     available_surfaces: List[str] = Field(default_factory=list)
     active_policies: List[OrientationPolicyHint] = Field(default_factory=list)
     key_objects: List[OrientationObject] = Field(default_factory=list)
+    inferred_cases: List[DerivedCase] = Field(default_factory=list)
+    inferred_entities: List[DerivedEntity] = Field(default_factory=list)
+    open_ambiguities: List[DerivedHypothesis] = Field(default_factory=list)
     suggested_focuses: List[str] = Field(default_factory=list)
     next_questions: List[str] = Field(default_factory=list)
+    suggested_investigations: List[str] = Field(default_factory=list)
     summary: str
 
 

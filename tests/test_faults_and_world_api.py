@@ -223,6 +223,12 @@ def test_world_api_wrappers_delegate_and_attach_sessions(
         def orientation(self):
             return {"organization_name": "Acme"}
 
+        def structure_view(self):
+            return {"cases": True}
+
+        def compare_structure_to_truth(self):
+            return {"mirror": True}
+
         def snapshot(self, label=None):
             return {"snapshot": label}
 
@@ -271,6 +277,8 @@ def test_world_api_wrappers_delegate_and_attach_sessions(
         "action": {"kind": "noop"}
     }
     assert world_api.orientation(dummy_session) == {"organization_name": "Acme"}
+    assert world_api.structure_view(dummy_session) == {"cases": True}
+    assert world_api.compare_structure_to_truth(dummy_session) == {"mirror": True}
     assert world_api.snapshot(dummy_session, "start") == {"snapshot": "start"}
     assert world_api.restore(dummy_session, 1) == {"restored": 1}
     assert world_api.branch(dummy_session, 1, "demo") == {

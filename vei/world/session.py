@@ -26,6 +26,12 @@ from vei.connectors.api import ConnectorReceipt
 from vei.monitors.api import MonitorFinding
 from vei.orientation.api import build_world_orientation
 from vei.orientation.api import WorldOrientation
+from vei.structure.api import (
+    StructureTruthComparison,
+    StructureView,
+    build_structure_view_from_world_state,
+    compare_structure_to_truth as compare_structure_view_to_truth,
+)
 from vei.world.scenario import Scenario
 from vei.world.models import (
     ActorState,
@@ -268,6 +274,7 @@ def serialize_router_state(router: "Router") -> WorldState:
         seed=int(getattr(router, "seed", 0)),
         scenario=_jsonable(getattr(router, "scenario", None)),
         pending_events=pending_events,
+        event_log=[item.to_dict() for item in router.state_store.events],
         components=_component_state(router),
         trace_entries=_jsonable(router.trace.entries),
         receipts=_jsonable(router._receipts),
@@ -353,21 +360,30 @@ def restore_router_state(router: "Router", state: WorldState) -> None:
     router.state_store._state = (
         restored_audit_state if isinstance(restored_audit_state, dict) else {}
     )
-    restored_state_head = int(state.audit_state.get("state_head", -1))
-    if restored_state_head >= 0:
+    if state.event_log:
         from vei.world.state import Event as StateStoreEvent
 
         router.state_store._events = [
-            StateStoreEvent.create(
-                restored_state_head,
-                kind="state.restore",
-                payload={},
-                clock_ms=int(state.clock_ms),
-                event_id=f"state.restore.{restored_state_head}",
-            )
+            StateStoreEvent.from_dict(item)
+            for item in state.event_log
+            if isinstance(item, dict)
         ]
     else:
-        router.state_store._events = []
+        restored_state_head = int(state.audit_state.get("state_head", -1))
+        if restored_state_head >= 0:
+            from vei.world.state import Event as StateStoreEvent
+
+            router.state_store._events = [
+                StateStoreEvent.create(
+                    restored_state_head,
+                    kind="state.restore",
+                    payload={},
+                    clock_ms=int(state.clock_ms),
+                    event_id=f"state.restore.{restored_state_head}",
+                )
+            ]
+        else:
+            router.state_store._events = []
     router._policy_findings = _jsonable(state.audit_state.get("policy_findings", []))
     router.monitor_manager._findings = [
         MonitorFinding(**payload)
@@ -606,6 +622,15 @@ class WorldSession:
     def orientation(self) -> WorldOrientation:
         state = serialize_router_state(self.router)
         return build_world_orientation(state)
+
+    def structure_view(self) -> StructureView:
+        state = serialize_router_state(self.router)
+        return build_structure_view_from_world_state(state)
+
+    def compare_structure_to_truth(self) -> StructureTruthComparison:
+        state = serialize_router_state(self.router)
+        structure_view = build_structure_view_from_world_state(state)
+        return compare_structure_view_to_truth(structure_view, state)
 
     def current_state(self) -> WorldState:
         return serialize_router_state(self.router)

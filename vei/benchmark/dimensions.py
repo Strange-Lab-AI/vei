@@ -12,6 +12,11 @@ from vei.knowledge.api import (
     resolve_knowledge_now_ms,
     validate_composed_asset,
 )
+from vei.structure.api import (
+    build_structure_view_from_world_state,
+    compare_structure_to_truth,
+    structure_signal_payload,
+)
 from vei.world import get_scenario
 
 if TYPE_CHECKING:
@@ -71,9 +76,27 @@ def score_enterprise_dimensions(
         for key, value in dimensions.items()
         if key in set(manifest.primary_dimensions)
     }
+    structure_comparison = None
+    if state is not None:
+        structure_view = build_structure_view_from_world_state(state)
+        structure_comparison = compare_structure_to_truth(structure_view, state)
+        dimensions.update(
+            {
+                key: value
+                for key, value in structure_signal_payload(structure_comparison).items()
+                if key
+                in {
+                    "hidden_case_discovery",
+                    "entity_link_quality",
+                    "relation_recovery",
+                    "action_choice_under_uncertainty",
+                    "event_ordering",
+                }
+            }
+        )
     composite = mean(primary.values()) if primary else 0.0
     success = bool(primary) and min(primary.values()) >= 0.6
-    return {
+    payload = {
         "success": success,
         "composite_score": composite,
         "dimensions": dimensions,
@@ -88,6 +111,12 @@ def score_enterprise_dimensions(
         "legacy": False,
         "raw_score": raw_score,
     }
+    if structure_comparison is not None:
+        payload["structure_comparison"] = {
+            **structure_comparison.model_dump(mode="json"),
+            "metrics": structure_signal_payload(structure_comparison),
+        }
+    return payload
 
 
 def _score_security_containment(

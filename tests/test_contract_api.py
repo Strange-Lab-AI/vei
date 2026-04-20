@@ -225,3 +225,65 @@ def test_service_ops_policy_invariant_failure_affects_contract_result() -> None:
     assert validation.success_predicates_failed == 0
     assert validation.policy_invariants_failed == 1
     assert validation.metadata["failed_policy_invariants"] == ["billing_safety_first"]
+
+
+def test_evaluate_contract_includes_structure_signals_when_event_log_is_present() -> (
+    None
+):
+    workflow = compile_workflow(
+        {
+            "name": "contract-structure-signals",
+            "objective": {
+                "statement": "Capture structure metrics from the event log.",
+                "success": ["structure signals included"],
+            },
+            "world": {"catalog": "multi_channel"},
+            "steps": [],
+            "success_assertions": [],
+        },
+        seed=45,
+    )
+    contract = build_contract_from_workflow(workflow)
+    oracle_state = {
+        "branch": "main",
+        "clock_ms": 1,
+        "rng_state": 1,
+        "queue_seq": 0,
+        "seed": 45,
+        "scenario": {"name": "multi_channel"},
+        "pending_events": [],
+        "event_log": [
+            {
+                "index": 0,
+                "event_id": "evt-1",
+                "kind": "tool.call",
+                "payload": {"tool": "mail.reply", "thread_id": "THREAD-1"},
+                "clock_ms": 1,
+            }
+        ],
+        "components": {},
+        "trace_entries": [],
+        "receipts": [],
+        "connector_runtime": {},
+        "actor_states": {},
+        "audit_state": {},
+        "replay": {},
+    }
+
+    validation = evaluate_contract(
+        contract,
+        oracle_state=oracle_state,
+        visible_observation={},
+        time_ms=1,
+    )
+
+    assert "structure_signals" in validation.metadata
+    assert validation.metadata["structure_signals"] == {
+        "entity_link_precision": 1.0,
+        "entity_link_recall": 1.0,
+        "entity_link_quality": 1.0,
+        "relation_precision": 1.0,
+        "relation_recall": 1.0,
+        "relation_recovery": 1.0,
+    }
+    assert validation.metadata["structure_summary"]["event_count"] == 1

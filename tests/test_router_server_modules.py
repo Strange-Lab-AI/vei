@@ -167,6 +167,9 @@ def test_fastmcp_server_registers_wrappers_and_special_tools(
         def orientation(self) -> _DumpModel:
             return _DumpModel({"organization_name": "Acme"})
 
+        def structure_view(self) -> _DumpModel:
+            return _DumpModel({"source_mode": "world_state_event_log", "cases": []})
+
         def capability_graphs(self) -> _DumpModel:
             return _DumpModel(
                 {
@@ -195,6 +198,7 @@ def test_fastmcp_server_registers_wrappers_and_special_tools(
     tool_names = set(server._tool_manager._tools)
 
     assert "vei.help" in tool_names
+    assert "vei.structure_view" in tool_names
     assert "xero.create_purchase_order" in tool_names
     assert "salesforce.account.list" in tool_names
     assert "google_admin.list_oauth_apps" in tool_names
@@ -221,6 +225,10 @@ def test_fastmcp_server_registers_wrappers_and_special_tools(
     }
     assert server._tool_manager.get_tool("vei.orientation").fn() == {
         "organization_name": "Acme"
+    }
+    assert server._tool_manager.get_tool("vei.structure_view").fn() == {
+        "source_mode": "world_state_event_log",
+        "cases": [],
     }
     assert server._tool_manager.get_tool("vei.capability_graphs").fn() == {
         "branch": "main",

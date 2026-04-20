@@ -46,6 +46,7 @@ async def _exercise_mcp_discovery_tools() -> None:
             tools_info = await session.list_tools()
             tool_names = {tool.name for tool in getattr(tools_info, "tools", []) or []}
             assert "vei.orientation" in tool_names
+            assert "vei.structure_view" in tool_names
             assert "vei.capability_graphs" in tool_names
             assert "vei.graph_plan" in tool_names
             assert "vei.graph_action" in tool_names
@@ -65,6 +66,11 @@ async def _exercise_mcp_discovery_tools() -> None:
             )
             assert graphs["domain"] == "identity_graph"
             assert graphs["graph"] is not None
+
+            structure_view = _normalize_result(
+                await session.call_tool("vei.structure_view", {})
+            )
+            assert structure_view["source_mode"] == "world_state_event_log"
 
             graph_plan = _normalize_result(
                 await session.call_tool("vei.graph_plan", {"domain": "ops_graph"})

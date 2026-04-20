@@ -285,6 +285,8 @@ def test_sdk_blueprint_builder_helpers_compile_and_open_world() -> None:
     graphs = session.capability_graphs()
     plan = session.graph_plan(limit=6)
     orientation = session.orientation()
+    structure_view = session.structure_view()
+    structure_compare = session.compare_structure_to_truth()
     assert slack["focus"] == "slack"
     assert "#sales-cutover" in slack["summary"]
     assert graphs.identity_graph is not None
@@ -292,6 +294,8 @@ def test_sdk_blueprint_builder_helpers_compile_and_open_world() -> None:
     assert any(step.action == "assign_application" for step in plan.suggested_steps)
     assert orientation.organization_name == "MacroCompute"
     assert orientation.active_policies[0].policy_id == "POL-WAVE2"
+    assert structure_view.source_mode == "world_state_event_log"
+    assert structure_compare.metrics.entity_link_quality >= 0.0
 
 
 def test_sdk_grounding_bundle_helpers_round_trip_to_blueprint() -> None:

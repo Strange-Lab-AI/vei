@@ -41,6 +41,7 @@ class WorldState(BaseModel):
     seed: int
     scenario: Dict[str, Any] = Field(default_factory=dict)
     pending_events: List[ScheduledEvent] = Field(default_factory=list)
+    event_log: List[Dict[str, Any]] = Field(default_factory=list)
     components: Dict[str, Dict[str, Any]] = Field(default_factory=dict)
     trace_entries: List[Dict[str, Any]] = Field(default_factory=list)
     receipts: List[Dict[str, Any]] = Field(default_factory=list)

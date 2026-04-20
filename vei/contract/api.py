@@ -4,6 +4,11 @@ from typing import Any, Iterable, List
 
 from vei.scenario_engine.api import CompiledWorkflow
 from vei.scenario_engine.api import AssertionSpec, WorkflowScenarioSpec
+from vei.structure.api import (
+    build_structure_view_from_state_payload,
+    compare_structure_to_truth_from_state_payload,
+    structure_signal_payload,
+)
 
 from .assertions import evaluate_assertion_specs, infer_assertion_source
 from .models import (
@@ -287,6 +292,7 @@ def evaluate_contract(
         predicate_categories[pred.name] = pred.metadata.get("category", "general")
 
     category_weights = dict(contract.metadata.get("category_weights") or {})
+    structure_metadata = _structure_metadata_from_oracle_state(oracle_state)
 
     return ContractEvaluationResult(
         ok=static_report.ok and dynamic_report.ok,
@@ -320,8 +326,34 @@ def evaluate_contract(
                 if issue.predicate_name
             ),
             "category_weights": category_weights,
+            **structure_metadata,
         },
     )
+
+
+def _structure_metadata_from_oracle_state(
+    oracle_state: dict[str, Any],
+) -> dict[str, Any]:
+    if "event_log" not in oracle_state and "trace_entries" not in oracle_state:
+        return {}
+    try:
+        structure_view = build_structure_view_from_state_payload(oracle_state)
+        comparison = compare_structure_to_truth_from_state_payload(
+            structure_view,
+            oracle_state,
+        )
+    except Exception:
+        return {}
+    signal_payload = structure_signal_payload(comparison)
+    return {
+        "structure_summary": {
+            "event_count": structure_view.total_event_count,
+            "entity_count": len(structure_view.entities),
+            "case_count": len(structure_view.cases),
+            "hypothesis_count": len(structure_view.hypotheses),
+        },
+        **({"structure_signals": signal_payload} if signal_payload else {}),
+    }
 
 
 def _evaluate_policy_invariants(

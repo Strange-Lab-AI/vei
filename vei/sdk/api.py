@@ -15,6 +15,7 @@ from vei.fidelity import (
     get_or_build_workspace_fidelity_report as _get_or_build_workspace_fidelity_report,
 )
 from vei.orientation.api import WorldOrientation
+from vei.structure.api import StructureTruthComparison, StructureView
 from vei.playable import (
     MissionCatalog,
     MissionSessionState,
@@ -293,6 +294,12 @@ class EnterpriseSession:
 
     def orientation(self) -> WorldOrientation:
         return self._world.orientation()
+
+    def structure_view(self) -> StructureView:
+        return self._world.structure_view()
+
+    def compare_structure_to_truth(self) -> StructureTruthComparison:
+        return self._world.compare_structure_to_truth()
 
     def register_tool_provider(self, provider: RouterToolProvider) -> None:
         self.router.register_tool_provider(provider)

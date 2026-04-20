@@ -11,6 +11,7 @@ from vei.run.api import (
     generate_run_id,
     get_run_capability_graphs,
     get_run_orientation,
+    get_run_structure_view,
     launch_workspace_run,
     list_run_snapshots,
     load_run_events_for_run,
@@ -45,6 +46,7 @@ def test_workspace_run_launches_and_writes_timeline(tmp_path: Path) -> None:
     snapshots = list_run_snapshots(root, manifest.run_id)
     orientation = get_run_orientation(root, manifest.run_id)
     graphs = get_run_capability_graphs(root, manifest.run_id)
+    structure_view = get_run_structure_view(root, manifest.run_id)
 
     assert manifest.status == "ok"
     assert manifest.success is True
@@ -63,6 +65,7 @@ def test_workspace_run_launches_and_writes_timeline(tmp_path: Path) -> None:
     assert snapshots
     assert orientation["organization_name"] == "MacroCompute"
     assert graphs["identity_graph"]["policies"][0]["policy_id"] == "POL-WAVE2"
+    assert structure_view["source_mode"] == "world_state_event_log"
 
 
 def test_run_ids_are_unique_and_existing_run_id_is_rejected(tmp_path: Path) -> None:
