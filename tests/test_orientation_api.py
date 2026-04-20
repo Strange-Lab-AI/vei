@@ -36,3 +36,22 @@ def test_world_orientation_prioritizes_revenue_ops_questions() -> None:
     assert orientation.scenario_name == "checkout_spike_mitigation"
     assert "rollout control" in orientation.next_questions[0]
     assert "revenue object" in orientation.next_questions[1]
+
+
+def test_world_orientation_exposes_inferred_structure_summary() -> None:
+    asset = build_blueprint_asset_for_example("acquired_user_cutover")
+    session = create_world_session_from_blueprint(asset, seed=29)
+
+    session.call_tool(
+        "google_admin.restrict_drive_share",
+        {
+            "doc_id": "GDRIVE-2201",
+            "visibility": "internal",
+            "note": "Lock sharing before cutover.",
+        },
+    )
+    orientation = session.orientation()
+
+    assert orientation.inferred_entities
+    assert orientation.inferred_cases
+    assert orientation.suggested_investigations

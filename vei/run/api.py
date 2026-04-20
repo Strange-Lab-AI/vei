@@ -13,6 +13,7 @@ from vei.benchmark.api import BenchmarkCaseSpec, BenchmarkRunner
 from vei.capability_graph.api import build_runtime_capability_graphs
 from vei.contract.api import ContractEvaluationResult
 from vei.orientation.api import build_world_orientation
+from vei.structure.api import build_structure_view_from_world_state
 from vei.visualization.api import (
     flow_channel_from_focus,
     flow_channel_from_tool,
@@ -1184,6 +1185,11 @@ def get_run_capability_graphs(root: str | Path, run_id: str) -> Dict[str, Any]:
     return build_runtime_capability_graphs(state).model_dump(mode="json")
 
 
+def get_run_structure_view(root: str | Path, run_id: str) -> Dict[str, Any]:
+    state = _latest_run_state(root, run_id)
+    return build_structure_view_from_world_state(state).model_dump(mode="json")
+
+
 def get_run_surface_state(root: str | Path, run_id: str) -> LivingSurfaceState:
     from ._surfaces import build_surface_state
 
@@ -1387,6 +1393,7 @@ def _remove_cross_run_metadata(payload: Dict[str, Any]) -> None:
         if key in {
             "branch",
             "clock_ms",
+            "event_log",
             "rng_state",
             "receipts",
             "trace_entries",

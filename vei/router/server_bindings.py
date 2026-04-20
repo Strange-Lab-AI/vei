@@ -110,6 +110,13 @@ def register_vei_tools(
         return get_session().orientation().model_dump(mode="json")
 
     @srv.tool(
+        name="vei.structure_view",
+        description="Inspect the event-derived understanding layer with inferred entities, cases, relations, and ambiguities",
+    )
+    def vei_structure_view() -> dict[str, Any]:
+        return get_session().structure_view().model_dump(mode="json")
+
+    @srv.tool(
         name="vei.capability_graphs",
         description="Inspect runtime capability graphs for shared identity, doc, work, comm, and revenue state",
     )

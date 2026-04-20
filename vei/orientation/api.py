@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, Dict, List
 
 from vei.capability_graph.api import build_runtime_capability_graphs
+from vei.structure.api import build_structure_view_from_world_state
 
 from .models import (
     OrientationObject,
@@ -18,6 +19,7 @@ _BOUNDARY_EXPORTS = (WorldOrientation,)
 
 def build_world_orientation(state: WorldState) -> WorldOrientation:
     graphs = build_runtime_capability_graphs(state)
+    structure_view = build_structure_view_from_world_state(state)
     metadata = _scenario_metadata(state)
     hint_block = metadata.get("builder_blueprint_orientation")
     hint_map = hint_block if isinstance(hint_block, dict) else {}
@@ -40,6 +42,20 @@ def build_world_orientation(state: WorldState) -> WorldOrientation:
         available_surfaces,
         active_policies,
         key_objects,
+    )
+    next_questions.extend(
+        _structure_questions(
+            inferred_case_count=len(structure_view.cases),
+            hypothesis_count=len(structure_view.hypotheses),
+            top_case_title=(
+                structure_view.cases[0].title if structure_view.cases else None
+            ),
+            top_hypothesis_title=(
+                structure_view.hypotheses[0].title
+                if structure_view.hypotheses
+                else None
+            ),
+        )
     )
 
     scenario_template_name = _optional_str(metadata.get("scenario_template_name"))
@@ -71,6 +87,11 @@ def build_world_orientation(state: WorldState) -> WorldOrientation:
             f"and {len(active_policies)} active policy constraint"
             + ("s" if len(active_policies) != 1 else "")
         )
+    if structure_view.cases:
+        summary_parts.append(
+            f"plus {len(structure_view.cases)} inferred case cluster"
+            + ("s" if len(structure_view.cases) != 1 else "")
+        )
 
     return WorldOrientation(
         scenario_name=scenario_name,
@@ -83,8 +104,12 @@ def build_world_orientation(state: WorldState) -> WorldOrientation:
         available_surfaces=available_surfaces,
         active_policies=active_policies,
         key_objects=key_objects,
+        inferred_cases=structure_view.cases[:4],
+        inferred_entities=structure_view.entities[:6],
+        open_ambiguities=structure_view.hypotheses[:4],
         suggested_focuses=suggested_focuses,
-        next_questions=next_questions,
+        next_questions=list(dict.fromkeys(next_questions))[:10],
+        suggested_investigations=structure_view.suggested_investigations[:6],
         summary=" ".join(summary_parts) + ".",
     )
 
@@ -418,6 +443,21 @@ def _next_questions(
     if not questions:
         questions.append("Which domain should the agent inspect first?")
     return questions[:5]
+
+
+def _structure_questions(
+    *,
+    inferred_case_count: int,
+    hypothesis_count: int,
+    top_case_title: str | None,
+    top_hypothesis_title: str | None,
+) -> List[str]:
+    questions: List[str] = []
+    if inferred_case_count > 0 and top_case_title:
+        questions.append(f"Which events actually belong to {top_case_title}?")
+    if hypothesis_count > 0 and top_hypothesis_title:
+        questions.append(f"What evidence resolves {top_hypothesis_title.lower()}?")
+    return questions
 
 
 def _scenario_metadata(state: WorldState) -> Dict[str, Any]:

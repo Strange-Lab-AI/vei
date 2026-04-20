@@ -10,6 +10,7 @@ from vei.capability_graph.api import (
     RuntimeCapabilityGraphs,
 )
 from vei.orientation.api import WorldOrientation
+from vei.structure.api import StructureTruthComparison, StructureView
 from vei.world.manifest import (
     ScenarioManifest,
     get_scenario_manifest,
@@ -66,6 +67,10 @@ class WorldSessionAPI(Protocol):
     ) -> CapabilityGraphActionResult: ...
 
     def orientation(self) -> WorldOrientation: ...
+
+    def structure_view(self) -> StructureView: ...
+
+    def compare_structure_to_truth(self) -> StructureTruthComparison: ...
 
     def snapshot(self, label: Optional[str] = None) -> WorldSnapshot: ...
 
@@ -146,6 +151,14 @@ def orientation(session: WorldSessionAPI) -> WorldOrientation:
     return session.orientation()
 
 
+def structure_view(session: WorldSessionAPI) -> StructureView:
+    return session.structure_view()
+
+
+def compare_structure_to_truth(session: WorldSessionAPI) -> StructureTruthComparison:
+    return session.compare_structure_to_truth()
+
+
 def snapshot(session: WorldSessionAPI, label: Optional[str] = None) -> WorldSnapshot:
     return session.snapshot(label=label)
 
@@ -216,6 +229,8 @@ __all__ = [
     "CapabilityGraphActionResult",
     "CapabilityGraphPlan",
     "InjectedEvent",
+    "StructureTruthComparison",
+    "StructureView",
     "WorldOrientation",
     "ScheduledEvent",
     "RuntimeCapabilityGraphs",
@@ -239,6 +254,8 @@ __all__ = [
     "list_events",
     "observe",
     "orientation",
+    "structure_view",
+    "compare_structure_to_truth",
     "replay",
     "restore_router_state",
     "restore",
