@@ -79,6 +79,8 @@ Blueprints support **progressive disclosure** via per-surface fidelity levels: L
 
 The blueprint compiles into a live `WorldSession` — a deterministic, branchable, replayable discrete-event simulation. The router provides 50+ MCP tools spanning every enterprise surface: `slack.send_message`, `mail.compose`, `browser.navigate`, `docs.create`, `tickets.update`, `crm.log_activity`, `okta.suspend_user`, `erp.check_inventory`, `servicedesk.resolve`, `knowledge.compose_artifact`, and many more. Time advances. Events fire. State changes propagate across surfaces. You can snapshot, branch, restore, replay, and diff any point in the world's history.
 
+The same world now exposes a separate event-derived read layer for understanding what is happening before the agent acts. The agent-facing ladder is `vei.orientation` for a concise visible summary, `vei.structure_view` for inferred entities, case clusters, timelines, and open ambiguities, then `vei.capability_graphs`, `vei.graph_plan`, and `vei.graph_action` for graph-native inspection and mutation. Mirror-mode comparison against hidden world truth still exists for scoring and debugging, but it stays off the agent-facing MCP surface.
+
 The connector layer routes each tool call through one of three adapters — simulated (default), replay (from recorded traces), or live (real API calls) — with policy gates classifying operations as READ, WRITE_SAFE, or WRITE_RISKY.
 
 For archive-backed historical episodes, the simulation stays deliberately narrow. If the source data only supports mail and identity, VEI exposes a mail-first workspace instead of inventing unrelated surfaces. Historical message bodies are also preserved as excerpts when the source data is truncated.
@@ -294,7 +296,7 @@ Five distinct user types, each with a different entry point into VEI:
 
 **Pain:** "My agent passes toy benchmarks but falls apart when enterprise workflows get messy — multiple systems, hidden state, competing deadlines, things that break halfway through."
 
-**How they use VEI:** Drop in their agent via the MCP interface or the SDK. Run it against progressively harder scenarios (p0-easy through pX-adversarial). The contract system tells them exactly what the agent got right and wrong. Branch from the failure point and try a different approach. Compare paths side by side.
+**How they use VEI:** Drop in their agent via the MCP interface or the SDK. Let it discover the world through `vei.orientation`, `vei.structure_view`, and the capability graphs. Run it against progressively harder scenarios (p0-easy through pX-adversarial). The contract system and mirror-mode scoring tell them what the agent got right and wrong. Branch from the failure point and try a different approach. Compare paths side by side.
 
 **Entry point:** `vei llm-test run --provider openai --model gpt-5 --task "..."`
 

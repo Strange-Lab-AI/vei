@@ -61,6 +61,8 @@ VEI has three top-level paths.
 
 The runnable company path starts from a built-in world or a captured company snapshot. VEI compiles that into one deterministic world session with connected surfaces such as mail, chat, tickets, docs, CRM, identity, and knowledge assets. Agents and humans act through VEI tools and routes. VEI records what happened, scores the run, and lets you replay or branch it.
 
+The agent-facing discovery ladder inside that world is now explicit: start with `vei.orientation`, then `vei.structure_view`, then `vei.capability_graphs`, `vei.graph_plan`, and `vei.graph_action`. `vei.structure_view` shows the event-derived read model with inferred entities, case clusters, timelines, and open ambiguities. Hidden truth comparison stays in the SDK, contract, and benchmark layers instead of the MCP tool surface.
+
 The knowledge authoring path rides on that same world. VEI hydrates notes, transcripts, metric snapshots, SOPs, pricing sheets, and deliverables into one `knowledge_graph`, then composes proposals or briefs with citations, freshness checks, and contract scoring. The deterministic baseline runs without an API key. The bounded LLM mode uses the same recorded event spine and the same workspace/run model.
 
 The historical what-if path starts from one normalized company history bundle. The outer layer is `context_snapshot.json`. It keeps the raw sources parallel as typed records, with provider health, timestamps, actors, cases, and linked records. VEI explores that bundle, ranks branch candidates, and picks one real decision point.

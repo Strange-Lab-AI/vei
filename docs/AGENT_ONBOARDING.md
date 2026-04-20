@@ -13,6 +13,7 @@ VEI is one deterministic enterprise simulation engine with several product surfa
 
 - `vei/world/` holds the world-session kernel and replayable state.
 - `vei/router/` exposes the MCP tool surface over the kernel.
+- `vei/structure/` builds the event-derived read model and mirror-mode comparison helpers.
 - `vei/twin/` exposes the HTTP governed twin surface.
 - `vei/workspace/` and `vei/run/` hold the file-backed workspace and run model.
 - `vei/whatif/` handles branch-point replay, counterfactuals, and saved example bundles.
@@ -23,6 +24,7 @@ VEI is one deterministic enterprise simulation engine with several product surfa
 
 - Same seed means same world. Treat determinism as part of the product.
 - Use `vei/<module>/api.py` for cross-module imports.
+- Use `vei.orientation` and `vei.structure_view` for agent-facing discovery. Keep hidden truth comparison on SDK, contract, and benchmark paths.
 - Keep local secrets in `.env` only.
 - Do not commit `_vei_out/`, `.artifacts/`, or ad hoc traces.
 - Prefer the repo command surface over raw tool invocations.
@@ -92,5 +94,5 @@ Import these constants from `vei.whatif.filenames` or `vei.whatif.api`.
 
 - `main` is protected; CI must be green to merge.
 - Keep branch work on topic.
-- After large what-if or eval runs, use `make clean-workspace`.
+- After large what-if or eval runs, use `make clean-workspace-dry-run` first, then `make clean-workspace`.
 - When you touch public behavior, update the docs in the same branch.

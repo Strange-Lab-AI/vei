@@ -32,6 +32,8 @@ VEI is a deterministic, MCP-native enterprise simulator built around one stable 
   - workflow, benchmark, demo, showcase, and suite executions
 - `Snapshot`
   - branchable world-state checkpoint over the kernel
+- `StructureView`
+  - event-derived read model (`vei.structure`) with inferred entities, case clusters, relations, timelines, and open ambiguities
 
 ## One Kernel, Four Modes
 
@@ -188,6 +190,8 @@ For the canonical product demo, `vei project identity-demo` wraps that ladder in
   - `create_world_session`
   - `observe`
   - `orientation`
+  - `structure_view`
+  - `compare_structure_to_truth`
   - `call_tool`
   - `capability_graphs`
   - `graph_plan`
@@ -199,8 +203,14 @@ For the canonical product demo, `vei project identity-demo` wraps that ladder in
   - `inject`
   - `list_events`
   - `cancel_event`
+- `vei.structure`
+  - build the event-derived read model from canonical events or saved world state
+  - compare inferred structure to hidden truth for mirror-mode scoring and debugging
+  - publish score-safe structure signals for contracts and benchmark payloads
 - `vei.sdk`
   - `create_session`
+  - session helpers now expose `structure_view()` for the event-derived read model
+  - session helpers now expose `compare_structure_to_truth()` for mirror-mode evaluation
   - scenario/facade/blueprint/benchmark manifest helpers
   - release/export helpers
   - workflow compile/run helpers
@@ -219,7 +229,7 @@ For the canonical product demo, `vei project identity-demo` wraps that ladder in
   - flagship workflows can now compile graph-native steps to `vei.graph_action` and resolve to concrete twins only at execution time
 - `vei.orientation`
   - agent-facing summaries derived from live world state, capability graphs, and builder hints
-  - visible surfaces, policy hints, key objects, suggested focuses, and next questions
+  - visible surfaces, policy hints, key objects, inferred cases, inferred entities, open ambiguities, suggested investigations, and next questions
 - `vei.grounding`
   - typed grounding bundles for imported organization, policy, and incident input
   - compilers that turn grounding bundles into `BlueprintAsset` authoring roots
@@ -257,7 +267,7 @@ For the canonical product demo, `vei project identity-demo` wraps that ladder in
 
 - `python -m vei.router`
   - stdio MCP transport
-  - agent-facing discoverability tools now include `vei.orientation`, `vei.capability_graphs`, `vei.graph_plan`, and `vei.graph_action`
+  - agent-facing discoverability tools now include `vei.orientation`, `vei.structure_view`, `vei.capability_graphs`, `vei.graph_plan`, and `vei.graph_action`
 - `python -m vei.router.sse`
   - SSE MCP transport
 - Twin Gateway (FastAPI, default `:3012`)
@@ -322,7 +332,8 @@ VEI keeps the current router twins, but the public ontology now groups them as f
 - Prefer contract rules to carry provenance that says which rules were imported, derived, or simulated and which tenant objects they apply to.
 - Prefer `WorldSession -> capability_graphs() -> graph_plan() -> graph_action()` as the main agent-facing planning/mutation ladder inside a live world.
 - Prefer knowledge authoring to flow through `knowledge_graph` and `vei.knowledge.api` instead of a sidecar document system.
-- Use `orientation()` to help agents discover the world before they begin mutating it.
+- Use `orientation()` and `structure_view()` to help agents discover the world before they begin mutating it.
+- Keep `compare_structure_to_truth()` on mirror-mode, SDK, contract, and benchmark paths rather than agent-facing MCP tools.
 - Prefer graph-native workflow steps for long-horizon playbooks when the intent is domain-level mutation rather than a specific vendor surface.
 - Prefer semantic environment building first. VM-backed or OS-level facades are future plugin substrates, not the core runtime model.
 - Preserve imported-vs-derived-vs-simulated provenance through normalization, workspace storage, run timelines, and UI inspection.
