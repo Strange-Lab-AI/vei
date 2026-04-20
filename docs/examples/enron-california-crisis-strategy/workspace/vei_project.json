@@ -3,7 +3,7 @@
   "name": "b2b_saas",
   "title": "Enron Corporation",
   "description": "Customer-shaped b2b saas twin for Enron Corporation",
-  "created_at": "2026-04-19T02:42:39+00:00",
+  "created_at": "2026-04-20T00:15:32+00:00",
   "source_kind": "vertical",
   "source_ref": "b2b_saas",
   "blueprint_asset_path": "sources/blueprint_asset.json",

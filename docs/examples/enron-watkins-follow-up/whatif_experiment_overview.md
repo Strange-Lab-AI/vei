@@ -1,4 +1,4 @@
-# watkins_followup_questions_saved_bundle_20260417
+# watkins_followup_questions_saved_bundle_20260419
 
 Thread: `thr_6ca597ba4bf815ac`
 Case: `thread:thr_6ca597ba4bf815ac`
@@ -7,7 +7,7 @@ Branch event: `enron_d8d296de473f63be`
 Changed actor: `sherron.watkins@enron.com`
 Historical event type: message
 Historical subject: The key questions I asked Lay on Aug 22
-Prompt: Escalate the follow-up note to Ken Lay, the audit committee, and internal legal, preserve the written record, and pause any broad reassurance until the accounting questions are reviewed.
+Prompt: Escalate the follow-up note to Ken Lay, the audit committee, and internal legal, preserve the written record, and pause broad reassurance.
 
 ## Historical Event
 - Timestamp: 2001-10-30T14:58:45Z

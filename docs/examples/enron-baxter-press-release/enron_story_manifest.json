@@ -1,0 +1,37 @@
+{
+  "manifest_version": 1,
+  "bundle_slug": "enron-baxter-press-release",
+  "title": "Enron Baxter Press Release Example",
+  "organization_name": "Enron Corporation",
+  "source_mode": "real_history",
+  "benchmark_role": "proof",
+  "lead": "This is the crisis-communications proof case. It shows a real public-facing branch where messaging quality and timing both matter.",
+  "branch_point": "The Cliff Baxter press-release loop is active and the company has to decide how transparent, delayed, or reassuring the public message should be.",
+  "actual_happened": "The communications loop moved through a tight internal chain while the company shaped how much to say and how fast to say it.",
+  "branch_timestamp": "2001-05-02",
+  "history_event_count": 30,
+  "future_event_count": 6,
+  "source_families": [
+    "credit",
+    "disclosure",
+    "filing",
+    "financial",
+    "market",
+    "news"
+  ],
+  "domains": [
+    "governance",
+    "obs_graph"
+  ],
+  "forecast_file": "whatif_reference_result.json",
+  "public_objective_pack_id": "protect_company_default",
+  "top_candidate": "Transparent fact-based release",
+  "workspace_root": "/Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/docs/examples/enron-baxter-press-release/workspace",
+  "ui_command": "vei ui serve \\\n  --root /Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/docs/examples/enron-baxter-press-release/workspace \\\n  --host 127.0.0.1 \\\n  --port 3055",
+  "files": {
+    "overview": "enron_story_overview.md",
+    "exports_preview": "enron_exports_preview.json",
+    "presentation_manifest": "enron_presentation_manifest.json",
+    "presentation_guide": "enron_presentation_guide.md"
+  }
+}

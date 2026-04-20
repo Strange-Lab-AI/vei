@@ -1,0 +1,60 @@
+{
+  "metadata": {
+    "name": "whatif-baseline-thr_23255c500305185d",
+    "description": "Historical future events scheduled after the branch point.",
+    "tags": [
+      "whatif",
+      "baseline",
+      "historical"
+    ],
+    "source": "enron_rosetta",
+    "transform_hash": null
+  },
+  "events": [
+    {
+      "time_ms": 1,
+      "actor_id": "richard.causey@enron.com",
+      "channel": "mail",
+      "type": "escalation",
+      "correlation_id": "thr_23255c500305185d",
+      "payload": {
+        "from": "richard.causey@enron.com",
+        "to": "rod.hayslett@enron.com",
+        "subj": "FW: Third Quarter Review of Northern and Transwestern",
+        "body_text": "[Historical email excerpt]\n-----Original Message-----\nFrom: \tWalden, Clint  \nSent:\tWednesday, October 31, 2001 3:56 AM\nTo:\tButts, Bob; Peng, Gary\nCc:\tCausey, Richard\nSubject:\tThird Quarter Review of Northern and Transwestern\n\n\t\nFYI, \n\nAndersen has agreed that they will be able to issue review reports on the pipelines based on the following terms:\n\n1.  The review opinions must be restricted to the lenders only.\n2.  There must be a substantial footnote on the \"overhang\" issues (i.e., SEC investigation, potential bankruptcy, asset carryvalues in certain situations, etc.)\n3.  The review opinion will contain an emphasis of\n\n[Excerpt limited by source data. Original body may be longer.]\n\nEvent type: escalation\nForward detected in source metadata.\nEscalation detected in source metadata.",
+        "thread_id": "thr_23255c500305185d",
+        "category": "historical"
+      }
+    },
+    {
+      "time_ms": 6598000,
+      "actor_id": "rod.hayslett@enron.com",
+      "channel": "mail",
+      "type": "escalation",
+      "correlation_id": "thr_23255c500305185d",
+      "payload": {
+        "from": "rod.hayslett@enron.com",
+        "to": "james.saunders@enron.com",
+        "subj": "FW: Third Quarter Review of Northern and Transwestern",
+        "body_text": "[Historical email excerpt]\n-----Original Message-----\nFrom: \tCausey, Richard  \nSent:\tWednesday, October 31, 2001 8:45 AM\nTo:\tHayslett, Rod\nSubject:\tFW: Third Quarter Review of Northern and Transwestern\n\nJust in case you have not seen this.  Thanks for your help and let me know of any issues.  Thanks again\n\n -----Original Message-----\nFrom: \tWalden, Clint  \nSent:\tWednesday, October 31, 2001 3:56 AM\nTo:\tButts, Bob; Peng, Gary\nCc:\tCausey, Richard\nSubject:\tThird Quarter Review of Northern and Transwestern\n\n\t\nFYI, \n\nAndersen has agreed that they will be able to issue review reports on the pipelines based on the following te\n\n[Excerpt limited by source data. Original body may be longer.]\n\nEvent type: escalation\nForward detected in source metadata.\nEscalation detected in source metadata.\nCC count: 1.\nBCC count: 1.",
+        "thread_id": "thr_23255c500305185d",
+        "category": "historical"
+      }
+    },
+    {
+      "time_ms": 24291000,
+      "actor_id": "rod.hayslett@enron.com",
+      "channel": "mail",
+      "type": "escalation",
+      "correlation_id": "thr_23255c500305185d",
+      "payload": {
+        "from": "rod.hayslett@enron.com",
+        "to": "a..howard@enron.com",
+        "subj": "RE: FW: Third Quarter Review of Northern and Transwestern",
+        "body_text": "[Historical email excerpt]\n-----Original Message-----\nFrom: Saunders, James \nSent: Wednesday, October 31, 2001 3:28 PM\nTo: Walden, Clint; Causey, Richard; Hayslett, Rod\nCc: 'roger.d.willard@us.andersen.com';\n'heather.l.mueck@us.andersen.com'; Allen, Joe; Dimacali, Aurora\nSubject: RE: FW: Third Quarter Review of Northern and Transwestern\n\n\n\n\n-----Original Message-----\nFrom: roger.d.willard@us.andersen.com\n[mailto:roger.d.willard@us.andersen.com]\nSent: Wednesday, October 31, 2001 1:25 PM\nTo: Saunders, James\nCc: ;\nchristopher.j.herbold@us.andersen.com; gerrard.r.heep@us.andersen.com;\ndavid.b.duncan@us.andersen.com; michael\n\n[Excerpt limited by source data. Original body may be longer.]\n\nEvent type: escalation\nEscalation detected in source metadata.\nCC count: 1.\nBCC count: 1.",
+        "thread_id": "thr_23255c500305185d",
+        "category": "historical"
+      }
+    }
+  ]
+}

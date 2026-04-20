@@ -151,7 +151,7 @@ Optional sidecars are validated when present:
 - `whatif_ejepa_result.json`, `whatif_reference_result.json`, or `whatif_heuristic_baseline_result.json`: saved forecast result
 - `whatif_business_state_comparison.json` + `whatif_business_state_comparison.md`: ranked comparison payload and summary when the ranked path is saved
 
-For Enron, VEI now ships the full repo-owned data chain. The archive lives under `data/enron/`, the public-company fixture lives under `vei/whatif/fixtures/enron_public_context`, the curated public-record fixture lives under `vei/whatif/fixtures/enron_record_history`, and the helper docs live in [ROSETTA_SOURCE.md](ROSETTA_SOURCE.md). Refresh the public fixture with `python scripts/prepare_enron_public_context.py`, verify the vendored archive with `python scripts/check_rosetta_archive.py`, and refresh screenshots with `python scripts/capture_enron_bundle_screenshots.py`.
+For Enron, VEI now ships the saved example surface plus a small checked-in Rosetta sample. The sample lives under `data/enron/rosetta/`, the full archive is an optional download fetched with `make fetch-enron-full`, the public-company fixture lives under `vei/whatif/fixtures/enron_public_context`, the curated public-record fixture lives under `vei/whatif/fixtures/enron_record_history`, and the helper docs live in [ENRON_DATASET.md](ENRON_DATASET.md) and [ROSETTA_SOURCE.md](ROSETTA_SOURCE.md). Refresh the public fixture with `python scripts/prepare_enron_public_context.py`, fetch and verify the full archive with `make fetch-enron-full` plus `python scripts/check_rosetta_archive.py`, and refresh screenshots with `python scripts/capture_enron_bundle_screenshots.py`.
 
 The current Enron public context carries 11 dated financial checkpoints, 21 dated public news events, 986 daily stock rows, 7 credit events, and 1 FERC timeline event across 24 archived public source files. The curated public-record fixture adds dated filings, disclosures, hearing records, and exhibit-style records into the same saved canonical timeline. VEI slices those rows to the active Enron window and then to the chosen branch date before they are shown in Studio, written into the saved episode manifest, attached to the saved bundle, or added to benchmark dossiers.
 
@@ -257,12 +257,21 @@ vei whatif benchmark build \
 
 ## Current Studio flow
 
-The current repo-owned Enron set has four saved bundles:
+The current repo-owned Enron set has eight saved bundles split into two roles.
+
+Proof bundles:
 
 - `docs/examples/enron-master-agreement-public-context/`
-- `docs/examples/enron-watkins-follow-up/`
-- `docs/examples/enron-california-crisis-strategy/`
 - `docs/examples/enron-pge-power-deal/`
+- `docs/examples/enron-california-crisis-strategy/`
+- `docs/examples/enron-baxter-press-release/`
+- `docs/examples/enron-braveheart-forward/`
+
+Narrative bundles:
+
+- `docs/examples/enron-watkins-follow-up/`
+- `docs/examples/enron-q3-disclosure-review/`
+- `docs/examples/enron-skilling-resignation-materials/`
 
 The flow gif and search screenshot below still show the interactive loop at a high level. The decision, public-context, macro, and ranking panels were refreshed from the repo-owned bundles with `python scripts/capture_enron_bundle_screenshots.py`, so a fresh clone can open the same saved branch points and inspect the same saved comparisons without a sibling checkout.
 
@@ -301,7 +310,7 @@ vei ui serve \
 
 Open `http://127.0.0.1:3055` and stay inside that workspace. This keeps the display tied to the actual Enron branch point and the actual saved result.
 
-This repo-owned Studio path is a saved reference display first. The repo now also carries the Rosetta archive under `data/enron/rosetta`, so a fresh clone can rebuild the examples and run whole-history Enron search without reaching outside the repo.
+This repo-owned Studio path is a saved reference display first. The checkout carries the Rosetta sample under `data/enron/rosetta`, so a fresh clone can open the saved bundles and rebuild the sample-backed example surface immediately. Fetch the full archive with `make fetch-enron-full` when you want whole-history Enron search, full benchmark builds, full training runs, or archive validation.
 
 Use the saved snapshot directly when you want a fresh-clone rerun of the same branch slice:
 
@@ -317,7 +326,7 @@ vei whatif experiment \
   --forecast-backend reference
 ```
 
-That rerun uses the saved branch workspace slice that ships in the repo. Whole-history Enron search uses the vendored archive by default, or `VEI_WHATIF_ROSETTA_DIR` when you point it somewhere else.
+That rerun uses the saved branch workspace slice that ships in the repo. Whole-history Enron search, training, and full benchmark builds use the fetched full archive, or `VEI_WHATIF_ROSETTA_DIR` when you point VEI at a different full archive path.
 
 The committed example bundle also carries:
 
@@ -332,7 +341,7 @@ The committed example bundle also carries:
 
 Unlike a plain saved run (which may omit ranked sidecars), this repo-owned example intentionally includes ranked comparison artifacts as part of the reference story.
 
-Those files live under `docs/examples/enron-master-agreement-public-context/` beside the saved workspace. The branch date is September 27, 2000, so the saved scene shows 5 financial checkpoints, 6 public-news items, 680 market rows, and a 30-event branch-local canonical timeline drawn from multiple source families. Use the vendored Rosetta archive when you want whole-history Enron search or a new run from the full corpus.
+Those files live under `docs/examples/enron-master-agreement-public-context/` beside the saved workspace. The branch date is September 27, 2000, so the saved scene shows 5 financial checkpoints, 6 public-news items, 680 market rows, and a 30-event branch-local canonical timeline drawn from multiple source families. Use `make fetch-enron-full` when you want whole-history Enron search or a new run from the full corpus.
 
 Refresh the repo-owned bundles, validate them, and refresh the screenshots before you report a change:
 
@@ -377,7 +386,7 @@ All trained model families use the same boundary for this benchmark:
 
 The held-out Enron dossiers now include dated public financial checkpoints, public news items, and curated public-record events that were already known by the branch date. That same richer pre-branch history now feeds the training rows and the saved replay path.
 
-Rebuilding this benchmark now uses the vendored Enron Rosetta dataset under `data/enron/rosetta` by default. `VEI_WHATIF_ROSETTA_DIR` still overrides that path when you want to point at a different archive.
+Rebuilding this benchmark uses the fetched full Enron archive. The checked-in sample under `data/enron/rosetta` is for saved bundles, smoke checks, and repo-default source resolution. `VEI_WHATIF_ROSETTA_DIR` still overrides the full-data path when you want to point at a different archive.
 
 The matched-input benchmark study now gives `jepa_latent` and `full_context_transformer` the same pre-branch event sequence, summary features, and action schema. That makes the main rerun a clean model comparison instead of a mixed input comparison.
 

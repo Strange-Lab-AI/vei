@@ -45,7 +45,11 @@ def test_all_repo_owned_enron_bundles_have_saved_forecast_and_ranked_comparison(
                 encoding="utf-8"
             )
         )
-        assert len(comparison_payload.get("candidates", [])) >= 3
+        assert comparison_payload.get("objective_pack", {}).get("pack_id") == (
+            "protect_company_default"
+        )
+        assert len(comparison_payload.get("candidates", [])) == 4
+        assert isinstance(comparison_payload.get("public_summary"), dict)
         assert any(
             (bundle_root / filename).exists()
             for filename in STUDIO_SAVED_FORECAST_FILES
@@ -115,6 +119,7 @@ def test_all_repo_owned_enron_bundles_have_rich_prior_timelines() -> None:
 
 
 def test_all_repo_owned_enron_bundles_ship_demo_story_metadata() -> None:
+    roles_by_bundle: dict[str, str] = {}
     for bundle_root in _bundle_roots():
         story_manifest = json.loads(
             (bundle_root / "enron_story_manifest.json").read_text(encoding="utf-8")
@@ -129,9 +134,19 @@ def test_all_repo_owned_enron_bundles_ship_demo_story_metadata() -> None:
         )
 
         assert story_manifest["source_mode"] == "real_history"
-        assert story_manifest["benchmark_role"] == "headline"
+        assert story_manifest["benchmark_role"] in {"proof", "narrative"}
         assert story_manifest["history_event_count"] >= 30
         assert len(story_manifest["source_families"]) >= 3
         assert story_manifest["forecast_file"] == REFERENCE_FORECAST_FILE
         assert len(presentation_manifest["beats"]) == 7
         assert len(exports_preview) == 3
+        roles_by_bundle[bundle_root.name] = story_manifest["benchmark_role"]
+
+    assert roles_by_bundle["enron-master-agreement-public-context"] == "proof"
+    assert roles_by_bundle["enron-pge-power-deal"] == "proof"
+    assert roles_by_bundle["enron-california-crisis-strategy"] == "proof"
+    assert roles_by_bundle["enron-baxter-press-release"] == "proof"
+    assert roles_by_bundle["enron-braveheart-forward"] == "proof"
+    assert roles_by_bundle["enron-watkins-follow-up"] == "narrative"
+    assert roles_by_bundle["enron-q3-disclosure-review"] == "narrative"
+    assert roles_by_bundle["enron-skilling-resignation-materials"] == "narrative"

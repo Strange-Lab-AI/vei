@@ -1,0 +1,40 @@
+{
+  "manifest_version": 1,
+  "bundle_slug": "enron-skilling-resignation-materials",
+  "title": "Enron Skilling Resignation Materials Example",
+  "organization_name": "Enron Corporation",
+  "source_mode": "real_history",
+  "benchmark_role": "narrative",
+  "lead": "This is the executive-transition narrative case. It shows the same saved bundle surface working on a trust and messaging branch rather than a contract or trading branch.",
+  "branch_point": "The company is drafting materials around Jeff Skilling's resignation and has to decide how candid, controlled, or aggressively reassuring the message should be.",
+  "actual_happened": "The resignation materials moved through a controlled executive communications loop.",
+  "branch_timestamp": "2001-08-14",
+  "history_event_count": 32,
+  "future_event_count": 1,
+  "source_families": [
+    "credit",
+    "disclosure",
+    "filing",
+    "financial",
+    "governance",
+    "mail",
+    "news",
+    "regulatory"
+  ],
+  "domains": [
+    "governance",
+    "internal",
+    "obs_graph"
+  ],
+  "forecast_file": "whatif_reference_result.json",
+  "public_objective_pack_id": "protect_company_default",
+  "top_candidate": "Narrow internal-only draft",
+  "workspace_root": "/Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/docs/examples/enron-skilling-resignation-materials/workspace",
+  "ui_command": "vei ui serve \\\n  --root /Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/docs/examples/enron-skilling-resignation-materials/workspace \\\n  --host 127.0.0.1 \\\n  --port 3055",
+  "files": {
+    "overview": "enron_story_overview.md",
+    "exports_preview": "enron_exports_preview.json",
+    "presentation_manifest": "enron_presentation_manifest.json",
+    "presentation_guide": "enron_presentation_guide.md"
+  }
+}

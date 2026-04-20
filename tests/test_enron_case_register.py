@@ -51,3 +51,19 @@ def test_enron_benchmark_pack_includes_macro_families() -> None:
         "braveheart_forward",
         "skilling_resignation_materials",
     }.issubset(case_ids)
+
+
+def test_enron_benchmark_pack_event_ids_resolve_in_repo_rosetta_sample() -> None:
+    repo_root = Path(__file__).resolve().parents[1]
+    rosetta_path = repo_root / "data" / "enron" / "rosetta"
+    cases = BENCHMARK_CASE_PACKS[DEFAULT_BENCHMARK_PACK_ID]
+
+    event_ids = [case.event_id for case in cases if case.event_id]
+    metadata_rows = pq.read_table(
+        rosetta_path / "enron_rosetta_events_metadata.parquet",
+        filters=[[("event_id", "in", event_ids)]],
+        columns=["event_id"],
+    ).to_pylist()
+    resolved_ids = {str(row["event_id"]) for row in metadata_rows}
+
+    assert resolved_ids == set(event_ids)

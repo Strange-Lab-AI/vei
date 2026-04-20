@@ -1,73 +1,46 @@
-# enron_california_crisis_business_state_comparison_20260417
+# enron_california_crisis_business_state_comparison_20260419
 
-Objective pack: `contain_exposure`
-Thread: `thr_af4757447fa4b384`
-Branch event: `enron_99afc1ca73d1a1bb`
-Historical subject: IMPORTANT - READ IMMEDIATELY
+## Branch Point
+- Tim Belden's desk receives a preservation order tied to the California crisis while the trading strategy is still active.
 
-## Recorded Historical Path
-- Recorded business state centers on approval and escalation pressure and relationship stability.
-- Approval and escalation pressure stays limited in the recorded path.
-- Relationship stability looks strong in the recorded path.
-- Exposure risk stays limited in the recorded path.
+## What Actually Happened
+- The preservation-order thread stayed inside the active crisis loop while the desk was still deciding how far to halt or continue.
 
-## Candidate Moves
-### Rank 1: Seek Skilling sign-off
-- Prompt: Preserve the record, memo the issue to Jeff Skilling for an explicit decision, and keep the current strategy on hold until leadership answers.
-- Business state: Slightly lower exposure risk.
-- Net effect score: 0.023
-- Forecast summary: Predicted risk moves down by 0.080, with escalation delta 0 and external-send delta 0.
-- Risk change: 0.08 -> 0.0
-- External-send delta: 0
-- Stock return (5d): 0.0646 -> 0.1046
-- Credit action (30d): 1.0 -> 0.88
-- FERC action (180d): 0.0 -> 0.0
-- The thread looks safer to contain.
-- Handling burden stays close to the historical path.
-- Execution pace stays close to the historical path.
-- Commercial footing stays close to the historical path.
+## Actions We Can Take
+### Rank 1: Preserve and seek executive sign-off
+- Preserve the record, but wait for top-level approval before acting.
+- Legal and regulatory exposure: improves (0.06 -> 0.029)
+- Disclosure and stakeholder trust: improves (0.955 -> 0.977)
+- Commercial damage: improves (0.04 -> 0.018)
+- Internal execution drag: improves (0.026 -> 0.022)
+- Why: Slightly lower exposure risk.
 
-### Rank 2: Proceed with narrow circulation
-- Prompt: Keep the strategy moving, preserve the order inside a narrow legal and trading loop, and avoid broad distribution while continuing the desk play.
-- Business state: Slightly lower exposure risk. Trade-off: Slightly higher approval and escalation pressure.
-- Net effect score: -0.005
-- Forecast summary: Predicted risk moves down by 0.080, with escalation delta 0 and external-send delta 0.
-- Risk change: 0.08 -> 0.0
-- External-send delta: 0
-- Stock return (5d): 0.0646 -> 0.0546
-- Credit action (30d): 1.0 -> 1.0
-- FERC action (180d): 0.0 -> 0.0
-- The thread looks safer to contain.
-- Internal handling looks heavier.
-- Near-term execution looks slower.
-- Commercial footing stays close to the historical path.
+### Rank 2: Continue in a narrow loop
+- Keep going, but keep the circle tight.
+- Legal and regulatory exposure: improves (0.06 -> 0.048)
+- Disclosure and stakeholder trust: worsens (0.955 -> 0.946)
+- Commercial damage: worsens (0.04 -> 0.046)
+- Internal execution drag: worsens (0.026 -> 0.077)
+- Why: Slightly lower exposure risk. Trade-off: Slightly higher approval and escalation pressure.
 
-### Rank 3: Halt and self-report
-- Prompt: Pause the strategy, preserve the record, alert legal and compliance, and prepare a self-report path to FERC and the California authorities.
-- Business state: Slightly lower exposure risk. Trade-off: Moderately higher approval and escalation pressure.
-- Net effect score: -0.013
-- Forecast summary: Predicted risk moves down by 0.080, with escalation delta 0 and external-send delta 0.
-- Risk change: 0.08 -> 0.0
-- External-send delta: 0
-- Stock return (5d): 0.0646 -> 0.1046
-- Credit action (30d): 1.0 -> 0.88
-- FERC action (180d): 0.0 -> 0.0
-- The thread looks safer to contain.
-- Internal handling looks heavier.
-- Near-term execution looks slower.
-- Commercial footing stays close to the historical path.
+### Rank 3: Preserve and halt
+- Stop the play, preserve the record, and open the legal path.
+- Legal and regulatory exposure: improves (0.06 -> 0.054)
+- Disclosure and stakeholder trust: worsens (0.955 -> 0.938)
+- Commercial damage: worsens (0.04 -> 0.053)
+- Internal execution drag: worsens (0.026 -> 0.091)
+- Why: Slightly lower exposure risk. Trade-off: Moderately higher approval and escalation pressure.
 
-### Rank 4: Proceed and widen
-- Prompt: Keep the strategy moving, widen the internal circulation for rapid comments, and keep the desk fully active despite the preservation order.
-- Business state: Moderately higher exposure risk.
-- Net effect score: -0.087
-- Forecast summary: Predicted risk moves up by 0.120, with escalation delta 0 and external-send delta 1.
-- Risk change: 0.08 -> 0.2
-- External-send delta: 1
-- Stock return (5d): 0.0646 -> 0.0146
-- Credit action (30d): 1.0 -> 1.0
-- FERC action (180d): 0.0 -> 0.0
-- The thread carries slightly more exposure.
-- Internal handling looks heavier.
-- Near-term execution looks slower.
-- Commercial footing looks weaker.
+### Rank 4: Continue and widen
+- Keep going and broaden the loop.
+- Legal and regulatory exposure: worsens (0.06 -> 0.141)
+- Disclosure and stakeholder trust: worsens (0.955 -> 0.873)
+- Commercial damage: worsens (0.04 -> 0.125)
+- Internal execution drag: worsens (0.026 -> 0.104)
+- Why: Moderately higher exposure risk.
+
+## Predicted Effect On The Company
+
+- Best current move: Preserve and seek executive sign-off
+- Recorded future events after the historical branch: 4
+- Readout: Slightly lower exposure risk.

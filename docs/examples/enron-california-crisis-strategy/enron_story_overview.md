@@ -6,20 +6,22 @@ VEI is one shared timeline and replay surface. This bundle shows the real-histor
 
 - Title: `Enron California Crisis Strategy Example`
 - Bundle slug: `enron-california-crisis-strategy`
+- Bundle role: `proof`
 - Branch point: Tim Belden's desk receives a preservation order tied to the California crisis while the trading strategy is still active.
+- What actually happened: The preservation-order thread stayed inside the active crisis loop while the desk was still deciding how far to halt or continue.
 - Branch date: `2000-12-15`
 - Prior events: `30`
 - Recorded future events: `4`
 - Source families: `disclosure, filing, financial, mail, market, news`
 - Domains: `governance, internal, obs_graph`
 - Saved forecast file: `whatif_reference_result.json`
-- Top ranked candidate: `Seek Skilling sign-off`
+- Top ranked candidate: `Preserve and seek executive sign-off`
 
 ## Why it matters
 
-This branch matters because the desk still has room to choose between legal containment and continued conduct after the preservation order lands. The saved comparison turns that into a plain choice about halting, documenting, or pushing through.
+This case is useful because the fork is mechanically clear. Preserve and halt. Preserve and seek executive sign-off. Continue in a narrow loop. Or continue and widen.
 
-The FERC and refund timeline gives the branch a wider public frame, but the macro panel remains advisory context beside the preserved email evidence and the ranked decision path.
+It gives the proof set the cleanest legal and operational branch.
 
 ## Open it
 
@@ -39,5 +41,5 @@ vei ui serve \
 
 ## Structured notes
 
-- Story manifest role: `headline`
+- Story manifest role: `proof`
 - Presentation beats: `7`

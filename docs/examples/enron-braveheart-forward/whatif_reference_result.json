@@ -1,0 +1,169 @@
+{
+  "status": "ok",
+  "backend": "reference",
+  "prompt": "Open an accounting review on Braveheart, preserve the working record, and require explicit disclosure review before the structure keeps moving.",
+  "summary": "reference forecast completed.",
+  "baseline": {
+    "backend": "historical",
+    "future_event_count": 6,
+    "future_escalation_count": 6,
+    "future_assignment_count": 0,
+    "future_approval_count": 0,
+    "future_external_event_count": 4,
+    "risk_score": 1.0,
+    "stock_return_5d": 0.0408,
+    "credit_action_30d": 1.0,
+    "ferc_action_180d": 0.0,
+    "summary": "6 future events remain, including 6 escalations and 4 externally addressed messages."
+  },
+  "predicted": {
+    "backend": "reference",
+    "future_event_count": 10,
+    "future_escalation_count": 6,
+    "future_assignment_count": 0,
+    "future_approval_count": 0,
+    "future_external_event_count": 8,
+    "risk_score": 1.0,
+    "stock_return_5d": 0.0808,
+    "credit_action_30d": 0.88,
+    "ferc_action_180d": 0.0,
+    "summary": "6 future events remain, including 6 escalations and 4 externally addressed messages."
+  },
+  "delta": {
+    "risk_score_delta": 0.0,
+    "future_event_delta": 4,
+    "escalation_delta": 0,
+    "assignment_delta": 0,
+    "approval_delta": 0,
+    "external_event_delta": 4,
+    "stock_return_5d_delta": 0.04,
+    "credit_action_30d_delta": -0.12,
+    "ferc_action_180d_delta": 0.0
+  },
+  "branch_event": null,
+  "horizon_event_count": 0,
+  "surprise_score": null,
+  "current_state_summary": {},
+  "predicted_state_summary": {},
+  "actual_state_summary": {},
+  "business_state_change": {
+    "method": "reference_business_state_v1",
+    "confidence": "medium",
+    "summary": "Much lower approval and escalation pressure. Trade-off: Slightly higher exposure risk.",
+    "baseline": {
+      "exposure": 0.717,
+      "trust": 0.541,
+      "coordination_load": 0.109,
+      "execution_delay": 0.093,
+      "deal_position": 0.586,
+      "governance_pressure": 0.646
+    },
+    "predicted": {
+      "exposure": 0.75,
+      "trust": 0.556,
+      "coordination_load": 0.091,
+      "execution_delay": 0.093,
+      "deal_position": 0.584,
+      "governance_pressure": 0.466
+    },
+    "impacts": [
+      {
+        "state_id": "governance_pressure",
+        "label": "Approval and escalation pressure",
+        "baseline_value": 0.646,
+        "predicted_value": 0.466,
+        "delta": -0.18,
+        "effect": "better",
+        "magnitude": "strong",
+        "summary": "Much lower approval and escalation pressure."
+      },
+      {
+        "state_id": "exposure",
+        "label": "Exposure risk",
+        "baseline_value": 0.717,
+        "predicted_value": 0.75,
+        "delta": 0.033,
+        "effect": "worse",
+        "magnitude": "slight",
+        "summary": "Slightly higher exposure risk."
+      },
+      {
+        "state_id": "coordination_load",
+        "label": "Internal handling load",
+        "baseline_value": 0.109,
+        "predicted_value": 0.091,
+        "delta": -0.018,
+        "effect": "flat",
+        "magnitude": "flat",
+        "summary": "Internal handling load stays close to the historical path."
+      },
+      {
+        "state_id": "trust",
+        "label": "Relationship stability",
+        "baseline_value": 0.541,
+        "predicted_value": 0.556,
+        "delta": 0.015,
+        "effect": "flat",
+        "magnitude": "flat",
+        "summary": "Relationship stability stays close to the historical path."
+      },
+      {
+        "state_id": "deal_position",
+        "label": "Commercial position",
+        "baseline_value": 0.586,
+        "predicted_value": 0.584,
+        "delta": -0.002,
+        "effect": "flat",
+        "magnitude": "flat",
+        "summary": "Commercial position stays close to the historical path."
+      },
+      {
+        "state_id": "execution_delay",
+        "label": "Execution delay",
+        "baseline_value": 0.093,
+        "predicted_value": 0.093,
+        "delta": 0.0,
+        "effect": "flat",
+        "magnitude": "flat",
+        "summary": "Execution delay stays close to the historical path."
+      }
+    ],
+    "consequence_estimates": [
+      {
+        "consequence_id": "containment",
+        "label": "Containment",
+        "effect": "worse",
+        "magnitude": "slight",
+        "summary": "The thread carries slightly more exposure."
+      },
+      {
+        "consequence_id": "review_burden",
+        "label": "Handling burden",
+        "effect": "better",
+        "magnitude": "moderate",
+        "summary": "Internal handling looks lighter."
+      },
+      {
+        "consequence_id": "execution_path",
+        "label": "Execution path",
+        "effect": "flat",
+        "magnitude": "flat",
+        "summary": "Execution pace stays close to the historical path."
+      },
+      {
+        "consequence_id": "commercial_position",
+        "label": "Commercial footing",
+        "effect": "flat",
+        "magnitude": "flat",
+        "summary": "Commercial footing stays close to the historical path."
+      }
+    ],
+    "tradeoffs": [
+      "Slightly higher exposure risk."
+    ],
+    "net_effect_score": 0.003
+  },
+  "artifacts": null,
+  "notes": [],
+  "error": null
+}

@@ -1,0 +1,78 @@
+{
+  "opening_hook": "Open a real Enron branch with the mail thread, the dated public-company timeline, and the learned reference forecast already lined up.",
+  "demo_goal": "Show one real-history Enron branch on the shared canonical timeline with the saved forecast, the ranked actions, and the thicker company context.",
+  "presenter_setup": {
+    "organization_name": "Enron Corporation",
+    "bundle_slug": "enron-q3-disclosure-review",
+    "bundle_role": "narrative",
+    "workspace_root": "/Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/docs/examples/enron-q3-disclosure-review/workspace",
+    "ui_command": "vei ui serve \\\n  --root /Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/docs/examples/enron-q3-disclosure-review/workspace \\\n  --host 127.0.0.1 \\\n  --port 3055"
+  },
+  "primitives": [
+    {
+      "name": "Historical Branch",
+      "current_value": "Third-quarter review material is moving while the company is deciding how much to say about the growing accounting and liquidity overhang.",
+      "what_it_means": "One real dated branch point from the Enron archive."
+    },
+    {
+      "name": "Timeline",
+      "current_value": "credit, disclosure, filing, financial, governance, news, regulatory",
+      "what_it_means": "Mail plus dated public-company context on one shared chronology."
+    },
+    {
+      "name": "Forecast",
+      "current_value": "whatif_reference_result.json",
+      "what_it_means": "Repo-owned learned reference result that ships with the bundle."
+    }
+  ],
+  "beats": [
+    {
+      "title": "Open the saved bundle",
+      "studio_view": "whatif",
+      "operator_action": "Start in Studio with the saved Enron workspace open.",
+      "read_it_as": "This is a repo-owned real-history branch, not a synthetic script."
+    },
+    {
+      "title": "Show the mixed timeline",
+      "studio_view": "timeline",
+      "operator_action": "Filter the Company Timeline and point out mail plus public-context rows before the branch.",
+      "read_it_as": "The branch lives inside one shared chronology rather than beside detached side panels."
+    },
+    {
+      "title": "Anchor the real decision",
+      "studio_view": "whatif",
+      "operator_action": "Read the branch point and why this thread matters.",
+      "read_it_as": "The choice is concrete and dated, and the saved bundle keeps the real lead-up in view."
+    },
+    {
+      "title": "Show the candidate ranking",
+      "studio_view": "whatif",
+      "operator_action": "Open the ranked comparison and call out the current top candidate.",
+      "read_it_as": "The current saved winner is Management-only review before disclosure."
+    },
+    {
+      "title": "Show the learned forecast",
+      "studio_view": "whatif",
+      "operator_action": "Open the saved forecast panel and keep the reference backend visible.",
+      "read_it_as": "The shipped learned path is the default saved result for this bundle."
+    },
+    {
+      "title": "Keep the macro claims narrow",
+      "studio_view": "whatif",
+      "operator_action": "Point at the public-company slice and note the current calibration caveat.",
+      "read_it_as": "The macro fields stay advisory context beside the real thread evidence."
+    },
+    {
+      "title": "Close on the shared product surface",
+      "studio_view": "whatif",
+      "operator_action": "End on the bundle files and export preview.",
+      "read_it_as": "The same saved bundle now carries the branch, the chronology, the forecast, and the demo guide in one place."
+    }
+  ],
+  "closing_argument": "This bundle works as a complete Enron branch case because the branch, the lead-up timeline, the ranked alternatives, and the saved forecast all live on one surface.",
+  "operator_commands": [
+    "vei ui serve \\\n  --root /Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/docs/examples/enron-q3-disclosure-review/workspace \\\n  --host 127.0.0.1 \\\n  --port 3055",
+    "python scripts/build_enron_example_bundles.py --bundle enron-q3-disclosure-review",
+    "python scripts/validate_enron_example_bundles.py --root /Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/docs/examples"
+  ]
+}

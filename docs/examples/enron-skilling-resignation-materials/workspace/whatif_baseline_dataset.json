@@ -1,0 +1,30 @@
+{
+  "metadata": {
+    "name": "whatif-baseline-thr_d5715810ccdf7655",
+    "description": "Historical future events scheduled after the branch point.",
+    "tags": [
+      "whatif",
+      "baseline",
+      "historical"
+    ],
+    "source": "enron_rosetta",
+    "transform_hash": null
+  },
+  "events": [
+    {
+      "time_ms": 1,
+      "actor_id": ".palmer@enron.com",
+      "channel": "mail",
+      "type": "escalation",
+      "correlation_id": "thr_d5715810ccdf7655",
+      "payload": {
+        "from": ".palmer@enron.com",
+        "to": "j..kean@enron.com",
+        "subj": "Latest drafts of communications materials",
+        "body_text": "[Historical email excerpt]\nMark\n\n[Excerpt limited by source data. Original body may be longer.]\n\nEvent type: escalation\nEscalation detected in source metadata.",
+        "thread_id": "thr_d5715810ccdf7655",
+        "category": "historical"
+      }
+    }
+  ]
+}

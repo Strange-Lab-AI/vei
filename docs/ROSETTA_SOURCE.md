@@ -1,52 +1,77 @@
 # Enron Rosetta Source
 
-The repo now carries the Enron Rosetta chain directly under `data/enron/`.
+The Enron dataset now has two layers.
 
-## Layout
+- `data/enron/rosetta/` is the small checked-in sample that powers the saved bundles, source resolution, smoke checks, and repo-default Studio paths.
+- The full Enron archive is an optional download fetched with `make fetch-enron-full`. It is stored outside the repo checkout and described by `data/enron/full_dataset_release.json`.
 
-- `data/enron/raw/enron_mail_20150507.tar.gz`: vendored CMU maildir tar
-- `data/enron/source/enron_rosetta_source.parquet`: normalized source cache used to build Rosetta
-- `data/enron/rosetta/`: derived Rosetta event archive used by VEI
+## Repo sample
 
-The runtime default is `data/enron/rosetta`. Set `VEI_WHATIF_ROSETTA_DIR` only when you need to override that location.
-
-## Derived archive
-
-The Rosetta archive includes:
+The checked-in sample keeps the same file names the runtime already expects:
 
 - `enron_rosetta_events_metadata.parquet`
 - `enron_rosetta_events_content.parquet`
-- schema and summary sidecars
-- sample CSV exports
-- talk and work graph sidecars from the same build
+- `enron_talk_graph_edges.parquet`
+- `enron_work_graph_transitions.parquet`
+- `enron_work_graph_edges.parquet`
 
-`python scripts/check_rosetta_archive.py` verifies the archive, checks the required parquet columns, checks row-count parity, and confirms the fixed benchmark event ids resolve.
+The sample also carries:
 
-## Build path
+- `enron_rosetta_dataset.json`
+- `enron_rosetta_summary.md`
+- schema and sample CSV sidecars
 
-The build script lives in `scripts/build_enron_rosetta.py`.
+That sample is built from a fixed set of benchmark anchor cases and short local thread context. It is large enough for the case register, the saved Enron bundles, the timeline UI, and repo-default source resolution.
 
-Default inputs:
+## Full archive
 
-- source cache: `data/enron/source/enron_rosetta_source.parquet`
-- raw tar fallback: `data/enron/raw/enron_mail_20150507.tar.gz`
-- output directory: `data/enron/rosetta`
+The full archive lives outside the normal checkout as one release asset. Fetch it with:
 
-Typical rebuild:
+```bash
+make fetch-enron-full
+```
+
+That command downloads the release asset, verifies the checksum from `data/enron/full_dataset_release.json`, extracts it into the local cache, and prints the resolved paths.
+
+After that, these commands use the full archive:
+
+- `python scripts/check_rosetta_archive.py`
+- `python scripts/train_reference_backend_on_enron.py`
+- `python scripts/build_enron_macro_outcome_table.py`
+- `python scripts/find_enron_candidate_events.py`
+
+`VEI_WHATIF_ROSETTA_DIR` still overrides the discovered full-data path when you want to point VEI at a different archive location.
+
+## Resolution order
+
+When VEI looks for Enron Rosetta data, it resolves paths in this order:
+
+- the workspace manifest source directory
+- `VEI_WHATIF_ROSETTA_DIR`
+- the fetched full-dataset cache path
+- the checked-in sample at `data/enron/rosetta/`
+- a workspace-local `rosetta/` folder
+
+That means full-data work automatically uses the fetched archive when it is present, while saved-bundle and smoke-check paths still work from a fresh clone.
+
+## Rebuild paths
+
+Build or refresh the checked-in sample from a full archive with:
+
+```bash
+python scripts/build_enron_rosetta_sample.py
+```
+
+Refresh the fetched full Rosetta archive itself with:
 
 ```bash
 python scripts/build_enron_rosetta.py --prefer-local-source --include-content
-python scripts/check_rosetta_archive.py
 ```
 
-## Event ids
+Package a new full-dataset release asset with:
 
-The Rosetta build keeps the same event id scheme used by the historical what-if system:
+```bash
+make package-enron-full
+```
 
-`enron_{sha1(message_id|timestamp|actor)[:16]}`
-
-That stable scheme is what lets repo-owned saved bundles, benchmark seeds, and archive checks refer to the same branch events.
-
-## Provenance
-
-The builder was ported from the sibling `llmenron` project so this repo no longer depends on that checkout for Enron work. The upstream raw mail corpus is the public CMU Enron email dataset. Keep the raw tar, source cache, and derived archive together so the repo stays self-contained for rebuilds and for whole-history search.
+The release packager writes a checksum file beside the archive and adds a full-dataset marker into the staged Rosetta folder.

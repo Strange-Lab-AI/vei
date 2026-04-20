@@ -1,6 +1,6 @@
 # Enron Watkins Follow-up Example
 
-This example uses the October 30 follow-up note that is actually in the archive. The original August 22 Watkins memo is not present in this Rosetta cut, so the saved branch starts from the later note that restates the questions she says she raised to Ken Lay.
+This is the main narrative governance case. It is the strongest moral fork in the set, even though it has a thinner recorded downstream tail than Master Agreement.
 
 ## Open It In Studio
 
@@ -17,23 +17,46 @@ Open `http://127.0.0.1:3055`.
 
 ![Saved ranking panel](../../assets/enron-whatif/watkins-follow-up-ranking.png)
 
+## Branch Point
+
+- Sherron Watkins is writing a follow-up note that preserves her account of the questions she says she raised to Ken Lay on August 22, 2001.
+
+## What Actually Happened
+
+- The follow-up note became a narrow internal preserved record during the wider disclosure spiral.
+
+## Actions We Can Take
+
+- **Formal audit escalation**: Turn the note into a formal accounting escalation.
+- **Board and legal preservation**: Preserve the record inside the board and legal path.
+- **Narrow internal escalation**: Warn upward, but keep the loop narrow.
+- **Suppress and monitor**: Keep the concern private and avoid formal escalation.
+
+## Predicted Effect On The Company
+
+- Recorded future events after the historical branch: 1
+- Current top-ranked action: Suppress and monitor
+- Short readout: This move stays close to the historical business path.
+- Legal and regulatory exposure: stays flat (0.068 -> 0.068)
+- Disclosure and stakeholder trust: stays flat (0.954 -> 0.954)
+- Commercial damage: stays flat (0.031 -> 0.031)
+- Internal execution drag: stays flat (0.029 -> 0.029)
+
 ## Why This Branch Matters
 
-The branch matters because it turns a private internal warning into a preserved written record at the point where trust inside Enron is already breaking down. The decision is who sees the note, how fast legal is involved, and whether the record becomes harder to bury.
+This is the case to use when you want the clearest human and governance story. The branch is simple to explain and the stakes are obvious.
 
-This example should be read as an email-path and escalation case first. The macro panel stays advisory context beside that path, and the weak calibration report keeps the bankruptcy-mechanism claim narrow.
+Use it as a narrative case, not as the main technical proof case.
 
-## What This Example Covers
+## Bundle Facts
 
-- Historical branch point: Sherron Watkins is writing a follow-up note that preserves her account of the questions she says she raised to Ken Lay on August 22, while the company is already in the public disclosure spiral.
 - Saved branch scene: 36 prior events and 1 recorded future events
 - Public-company slice at 2001-10-30: 11 financial checkpoints, 13 public news items, 944 market checkpoints, 4 credit checkpoints, and 1 regulatory checkpoints
 - Prior timeline source families: credit, disclosure, filing, financial, governance, news, regulatory
 - Prior timeline domains: governance, obs_graph
-- Saved LLM path: Escalate the follow-up note to Ken Lay, the audit committee, and internal legal, preserve the written record, and pause any broad reassurance until the accounting questions are reviewed.
+- Bundle role: `narrative`
+- Saved LLM path: Escalate the follow-up note to Ken Lay, the audit committee, and internal legal, preserve the written record, and pause broad reassurance.
 - Saved forecast file: `whatif_reference_result.json`
-- Business-state readout: Much higher exposure risk.
-- Top ranked candidate: Send the warning anonymously
 
 ## Saved Files
 
@@ -53,8 +76,12 @@ This example should be read as an email-path and escalation case first. The macr
 ## Other Enron Examples
 
 - [Enron Master Agreement Example](../enron-master-agreement-public-context/README.md)
-- [Enron California Crisis Strategy Example](../enron-california-crisis-strategy/README.md)
 - [Enron PG&E Power Deal Example](../enron-pge-power-deal/README.md)
+- [Enron California Crisis Strategy Example](../enron-california-crisis-strategy/README.md)
+- [Enron Baxter Press Release Example](../enron-baxter-press-release/README.md)
+- [Enron Braveheart Forward Example](../enron-braveheart-forward/README.md)
+- [Enron Q3 Disclosure Review Example](../enron-q3-disclosure-review/README.md)
+- [Enron Skilling Resignation Materials Example](../enron-skilling-resignation-materials/README.md)
 
 ## Refresh
 
@@ -66,6 +93,6 @@ python scripts/capture_enron_bundle_screenshots.py --bundle enron-watkins-follow
 
 ## Constraint
 
-This repo now carries the Rosetta parquet archive, the source cache, and the raw Enron mail tar under `data/enron/`, so a fresh clone can open these saved examples and rebuild them without reaching into a sibling checkout.
+This repo now carries a small checked-in Enron Rosetta sample for the saved bundles and smoke checks. Fetch the full archive with `make fetch-enron-full` when you want full training, full benchmark builds, or full archive validation.
 
 The macro heads in these saved bundles stay advisory context beside the email-path evidence. See [the current calibration report](../../../studies/macro_calibration_enron_v1/calibration_report.md) before making any stronger claim.

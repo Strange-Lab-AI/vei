@@ -1,9 +1,10 @@
 {
   "opening_hook": "Open a real Enron branch with the mail thread, the dated public-company timeline, and the learned reference forecast already lined up.",
-  "demo_goal": "Show that the Enron flagship is a real-history, multi-source what-if bundle on the shared canonical timeline.",
+  "demo_goal": "Show one real-history Enron branch on the shared canonical timeline with the saved forecast, the ranked actions, and the thicker company context.",
   "presenter_setup": {
     "organization_name": "Enron Corporation",
     "bundle_slug": "enron-california-crisis-strategy",
+    "bundle_role": "proof",
     "workspace_root": "/Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/docs/examples/enron-california-crisis-strategy/workspace",
     "ui_command": "vei ui serve \\\n  --root /Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/docs/examples/enron-california-crisis-strategy/workspace \\\n  --host 127.0.0.1 \\\n  --port 3055"
   },
@@ -47,7 +48,7 @@
       "title": "Show the candidate ranking",
       "studio_view": "whatif",
       "operator_action": "Open the ranked comparison and call out the current top candidate.",
-      "read_it_as": "The current saved winner is Seek Skilling sign-off."
+      "read_it_as": "The current saved winner is Preserve and seek executive sign-off."
     },
     {
       "title": "Show the learned forecast",
@@ -68,7 +69,7 @@
       "read_it_as": "The same saved bundle now carries the branch, the chronology, the forecast, and the demo guide in one place."
     }
   ],
-  "closing_argument": "Enron is the real-history flagship because the bundle now opens as one coherent branch scene with the chronology, the learned forecast, and the dated public context already attached.",
+  "closing_argument": "This bundle works as a complete Enron branch case because the branch, the lead-up timeline, the ranked alternatives, and the saved forecast all live on one surface.",
   "operator_commands": [
     "vei ui serve \\\n  --root /Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/docs/examples/enron-california-crisis-strategy/workspace \\\n  --host 127.0.0.1 \\\n  --port 3055",
     "python scripts/build_enron_example_bundles.py --bundle enron-california-crisis-strategy",

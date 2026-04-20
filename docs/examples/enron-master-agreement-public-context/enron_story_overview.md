@@ -6,20 +6,22 @@ VEI is one shared timeline and replay surface. This bundle shows the real-histor
 
 - Title: `Enron Master Agreement Example`
 - Bundle slug: `enron-master-agreement-public-context`
+- Bundle role: `proof`
 - Branch point: Debra Perlingiere is about to send the Master Agreement draft to Cargill on September 27, 2000.
+- What actually happened: The draft went outside quickly, then the thread widened into a long reassignment and redline tail with no visible formal signoff.
 - Branch date: `2000-09-27`
 - Prior events: `30`
 - Recorded future events: `84`
 - Source families: `disclosure, filing, financial, mail, market, news`
 - Domains: `governance, internal, obs_graph`
 - Saved forecast file: `whatif_reference_result.json`
-- Top ranked candidate: `Hold for internal review`
+- Top ranked candidate: `Internal legal review`
 
 ## Why it matters
 
-This branch is the clearest procedural example in the Enron set. One contract draft is ready to go out, and the decision is whether to keep the document inside legal review or widen the outside loop.
+This is the clearest proof case because it has the largest visible recorded tail after the branch. You can point at the same decision, the actual downstream chain, and the ranked alternate moves in one view.
 
-The wider public-company panel puts that narrow legal choice inside the larger Enron arc. The macro heads stay in the scene as dated context only, because the current calibration report is still weak.
+The company timeline around it is thicker now, so the branch reads as a company event rather than a detached contract email.
 
 ## Open it
 
@@ -39,5 +41,5 @@ vei ui serve \
 
 ## Structured notes
 
-- Story manifest role: `headline`
+- Story manifest role: `proof`
 - Presentation beats: `7`

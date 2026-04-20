@@ -1,0 +1,997 @@
+{
+  "label": "enron_baxter_press_release_business_state_comparison_20260419",
+  "objective_pack_id": "protect_company_default",
+  "internal_objective_pack_id": "contain_exposure",
+  "objective_pack": {
+    "pack_id": "protect_company_default",
+    "title": "Protect Company",
+    "summary": "Favor moves that lower legal exposure, preserve trust, limit commercial damage, and keep internal execution drag manageable.",
+    "outcomes": [
+      "Legal and regulatory exposure",
+      "Disclosure and stakeholder trust",
+      "Commercial damage",
+      "Internal execution drag"
+    ]
+  },
+  "thread_id": "thr_76b3a6fa85ec2f54",
+  "branch_event_id": "enron_f9851a464c7fa074",
+  "thread_subject": "Baxter Press Release",
+  "historical_business_state": {
+    "method": "historical_v1",
+    "confidence": "medium",
+    "summary": "Recorded business state centers on exposure risk and relationship stability.",
+    "snapshot": {
+      "exposure": 0.55,
+      "trust": 0.556,
+      "coordination_load": 0.44,
+      "execution_delay": 0.313,
+      "deal_position": 0.569,
+      "governance_pressure": 0.347
+    },
+    "indicators": [
+      {
+        "state_id": "exposure",
+        "label": "Exposure risk",
+        "value": 0.55,
+        "level": "medium",
+        "summary": "Exposure risk is moderate in the recorded path."
+      },
+      {
+        "state_id": "trust",
+        "label": "Relationship stability",
+        "value": 0.556,
+        "level": "medium",
+        "summary": "Relationship stability stays mixed in the recorded path."
+      },
+      {
+        "state_id": "coordination_load",
+        "label": "Internal handling load",
+        "value": 0.44,
+        "level": "medium",
+        "summary": "Internal handling load is moderate in the recorded path."
+      },
+      {
+        "state_id": "deal_position",
+        "label": "Commercial position",
+        "value": 0.569,
+        "level": "medium",
+        "summary": "Commercial position stays mixed in the recorded path."
+      },
+      {
+        "state_id": "governance_pressure",
+        "label": "Approval and escalation pressure",
+        "value": 0.347,
+        "level": "low",
+        "summary": "Approval and escalation pressure stays limited in the recorded path."
+      },
+      {
+        "state_id": "execution_delay",
+        "label": "Execution delay",
+        "value": 0.313,
+        "level": "low",
+        "summary": "Execution delay stays limited in the recorded path."
+      }
+    ],
+    "implications": [
+      "Exposure risk is moderate in the recorded path.",
+      "Relationship stability stays mixed in the recorded path.",
+      "Internal handling load is moderate in the recorded path."
+    ]
+  },
+  "candidates": [
+    {
+      "label": "Transparent fact-based release",
+      "prompt": "Publish a factual release that states what is known, avoids spin, and routes follow-up questions through one legal and communications owner.",
+      "explanation": "Say only what is known and keep the wording factual.",
+      "forecast": {
+        "backend": "heuristic_baseline",
+        "summary": "Predicted risk moves down by 0.300, with escalation delta -1 and external-send delta 0.",
+        "baseline_risk_score": 1.0,
+        "predicted_risk_score": 0.7,
+        "external_event_delta": 0,
+        "escalation_delta": -1,
+        "baseline_stock_return_5d": -0.1009,
+        "predicted_stock_return_5d": -0.0609,
+        "baseline_credit_action_30d": 0.0,
+        "predicted_credit_action_30d": 0.0,
+        "baseline_ferc_action_180d": 1.0,
+        "predicted_ferc_action_180d": 1.0
+      },
+      "business_state_change": {
+        "method": "heuristic_baseline_business_state_v1",
+        "confidence": "medium",
+        "summary": "Much lower exposure risk.",
+        "baseline": {
+          "exposure": 0.55,
+          "trust": 0.556,
+          "coordination_load": 0.44,
+          "execution_delay": 0.313,
+          "deal_position": 0.569,
+          "governance_pressure": 0.347
+        },
+        "predicted": {
+          "exposure": 0.385,
+          "trust": 0.657,
+          "coordination_load": 0.369,
+          "execution_delay": 0.266,
+          "deal_position": 0.67,
+          "governance_pressure": 0.322
+        },
+        "impacts": [
+          {
+            "state_id": "exposure",
+            "label": "Exposure risk",
+            "baseline_value": 0.55,
+            "predicted_value": 0.385,
+            "delta": -0.165,
+            "effect": "better",
+            "magnitude": "strong",
+            "summary": "Much lower exposure risk."
+          },
+          {
+            "state_id": "deal_position",
+            "label": "Commercial position",
+            "baseline_value": 0.569,
+            "predicted_value": 0.67,
+            "delta": 0.101,
+            "effect": "better",
+            "magnitude": "moderate",
+            "summary": "Moderately stronger commercial position."
+          },
+          {
+            "state_id": "trust",
+            "label": "Relationship stability",
+            "baseline_value": 0.556,
+            "predicted_value": 0.657,
+            "delta": 0.101,
+            "effect": "better",
+            "magnitude": "moderate",
+            "summary": "Moderately stronger relationship stability."
+          },
+          {
+            "state_id": "coordination_load",
+            "label": "Internal handling load",
+            "baseline_value": 0.44,
+            "predicted_value": 0.369,
+            "delta": -0.071,
+            "effect": "better",
+            "magnitude": "slight",
+            "summary": "Slightly lower internal handling load."
+          },
+          {
+            "state_id": "execution_delay",
+            "label": "Execution delay",
+            "baseline_value": 0.313,
+            "predicted_value": 0.266,
+            "delta": -0.047,
+            "effect": "better",
+            "magnitude": "slight",
+            "summary": "Slightly lower execution delay."
+          },
+          {
+            "state_id": "governance_pressure",
+            "label": "Approval and escalation pressure",
+            "baseline_value": 0.347,
+            "predicted_value": 0.322,
+            "delta": -0.025,
+            "effect": "flat",
+            "magnitude": "flat",
+            "summary": "Approval and escalation pressure stays close to the historical path."
+          }
+        ],
+        "consequence_estimates": [
+          {
+            "consequence_id": "containment",
+            "label": "Containment",
+            "effect": "better",
+            "magnitude": "strong",
+            "summary": "The thread looks much safer to contain."
+          },
+          {
+            "consequence_id": "review_burden",
+            "label": "Handling burden",
+            "effect": "better",
+            "magnitude": "slight",
+            "summary": "Internal handling looks lighter."
+          },
+          {
+            "consequence_id": "execution_path",
+            "label": "Execution path",
+            "effect": "better",
+            "magnitude": "slight",
+            "summary": "Near-term execution looks faster."
+          },
+          {
+            "consequence_id": "commercial_position",
+            "label": "Commercial footing",
+            "effect": "better",
+            "magnitude": "moderate",
+            "summary": "Commercial footing looks stronger."
+          }
+        ],
+        "tradeoffs": [],
+        "net_effect_score": 0.105
+      },
+      "public_summary": {
+        "action_label": "Transparent fact-based release",
+        "branch_explanation": "Say only what is known and keep the wording factual.",
+        "actual_historical_action": "The communications loop moved through a tight internal chain while the company shaped how much to say and how fast to say it.",
+        "recorded_future_event_count": 6,
+        "public_outcomes": [
+          {
+            "label": "Legal and regulatory exposure",
+            "baseline_value": 0.489,
+            "predicted_value": 0.366,
+            "delta": -0.123,
+            "effect": "better",
+            "summary": "improves"
+          },
+          {
+            "label": "Disclosure and stakeholder trust",
+            "baseline_value": 0.556,
+            "predicted_value": 0.657,
+            "delta": 0.101,
+            "effect": "better",
+            "summary": "improves"
+          },
+          {
+            "label": "Commercial damage",
+            "baseline_value": 0.431,
+            "predicted_value": 0.33,
+            "delta": -0.101,
+            "effect": "better",
+            "summary": "improves"
+          },
+          {
+            "label": "Internal execution drag",
+            "baseline_value": 0.377,
+            "predicted_value": 0.318,
+            "delta": -0.059,
+            "effect": "better",
+            "summary": "improves"
+          }
+        ],
+        "overall_rank": 1,
+        "short_explanation": "Much lower exposure risk.",
+        "public_score": 0.656
+      },
+      "rank": 1
+    },
+    {
+      "label": "Board and legal alignment delay",
+      "prompt": "Hold the release for board and legal alignment, keep the language factual, and avoid broad reassurance until the internal record is stable.",
+      "explanation": "Delay briefly for tighter internal alignment before releasing.",
+      "forecast": {
+        "backend": "heuristic_baseline",
+        "summary": "Predicted risk moves down by 0.380, with escalation delta -1 and external-send delta 0.",
+        "baseline_risk_score": 1.0,
+        "predicted_risk_score": 0.62,
+        "external_event_delta": 0,
+        "escalation_delta": -1,
+        "baseline_stock_return_5d": -0.1009,
+        "predicted_stock_return_5d": -0.1109,
+        "baseline_credit_action_30d": 0.0,
+        "predicted_credit_action_30d": 0.03,
+        "baseline_ferc_action_180d": 1.0,
+        "predicted_ferc_action_180d": 1.0
+      },
+      "business_state_change": {
+        "method": "heuristic_baseline_business_state_v1",
+        "confidence": "medium",
+        "summary": "Much lower exposure risk. Trade-off: Moderately higher internal handling load.",
+        "baseline": {
+          "exposure": 0.55,
+          "trust": 0.556,
+          "coordination_load": 0.44,
+          "execution_delay": 0.313,
+          "deal_position": 0.569,
+          "governance_pressure": 0.347
+        },
+        "predicted": {
+          "exposure": 0.341,
+          "trust": 0.615,
+          "coordination_load": 0.559,
+          "execution_delay": 0.39,
+          "deal_position": 0.625,
+          "governance_pressure": 0.335
+        },
+        "impacts": [
+          {
+            "state_id": "exposure",
+            "label": "Exposure risk",
+            "baseline_value": 0.55,
+            "predicted_value": 0.341,
+            "delta": -0.209,
+            "effect": "better",
+            "magnitude": "strong",
+            "summary": "Much lower exposure risk."
+          },
+          {
+            "state_id": "coordination_load",
+            "label": "Internal handling load",
+            "baseline_value": 0.44,
+            "predicted_value": 0.559,
+            "delta": 0.119,
+            "effect": "worse",
+            "magnitude": "moderate",
+            "summary": "Moderately higher internal handling load."
+          },
+          {
+            "state_id": "execution_delay",
+            "label": "Execution delay",
+            "baseline_value": 0.313,
+            "predicted_value": 0.39,
+            "delta": 0.077,
+            "effect": "worse",
+            "magnitude": "slight",
+            "summary": "Slightly higher execution delay."
+          },
+          {
+            "state_id": "trust",
+            "label": "Relationship stability",
+            "baseline_value": 0.556,
+            "predicted_value": 0.615,
+            "delta": 0.059,
+            "effect": "better",
+            "magnitude": "slight",
+            "summary": "Slightly stronger relationship stability."
+          },
+          {
+            "state_id": "deal_position",
+            "label": "Commercial position",
+            "baseline_value": 0.569,
+            "predicted_value": 0.625,
+            "delta": 0.056,
+            "effect": "better",
+            "magnitude": "slight",
+            "summary": "Slightly stronger commercial position."
+          },
+          {
+            "state_id": "governance_pressure",
+            "label": "Approval and escalation pressure",
+            "baseline_value": 0.347,
+            "predicted_value": 0.335,
+            "delta": -0.012,
+            "effect": "flat",
+            "magnitude": "flat",
+            "summary": "Approval and escalation pressure stays close to the historical path."
+          }
+        ],
+        "consequence_estimates": [
+          {
+            "consequence_id": "containment",
+            "label": "Containment",
+            "effect": "better",
+            "magnitude": "strong",
+            "summary": "The thread looks much safer to contain."
+          },
+          {
+            "consequence_id": "review_burden",
+            "label": "Handling burden",
+            "effect": "worse",
+            "magnitude": "slight",
+            "summary": "Internal handling looks heavier."
+          },
+          {
+            "consequence_id": "execution_path",
+            "label": "Execution path",
+            "effect": "worse",
+            "magnitude": "slight",
+            "summary": "Near-term execution looks slower."
+          },
+          {
+            "consequence_id": "commercial_position",
+            "label": "Commercial footing",
+            "effect": "better",
+            "magnitude": "slight",
+            "summary": "Commercial footing looks stronger."
+          }
+        ],
+        "tradeoffs": [
+          "Moderately higher internal handling load.",
+          "Slightly higher execution delay."
+        ],
+        "net_effect_score": 0.063
+      },
+      "public_summary": {
+        "action_label": "Board and legal alignment delay",
+        "branch_explanation": "Delay briefly for tighter internal alignment before releasing.",
+        "actual_historical_action": "The communications loop moved through a tight internal chain while the company shaped how much to say and how fast to say it.",
+        "recorded_future_event_count": 6,
+        "public_outcomes": [
+          {
+            "label": "Legal and regulatory exposure",
+            "baseline_value": 0.489,
+            "predicted_value": 0.339,
+            "delta": -0.15,
+            "effect": "better",
+            "summary": "improves"
+          },
+          {
+            "label": "Disclosure and stakeholder trust",
+            "baseline_value": 0.556,
+            "predicted_value": 0.615,
+            "delta": 0.059,
+            "effect": "better",
+            "summary": "improves"
+          },
+          {
+            "label": "Commercial damage",
+            "baseline_value": 0.431,
+            "predicted_value": 0.375,
+            "delta": -0.056,
+            "effect": "better",
+            "summary": "improves"
+          },
+          {
+            "label": "Internal execution drag",
+            "baseline_value": 0.377,
+            "predicted_value": 0.475,
+            "delta": 0.098,
+            "effect": "worse",
+            "summary": "worsens"
+          }
+        ],
+        "overall_rank": 2,
+        "short_explanation": "Much lower exposure risk. Trade-off: Moderately higher internal handling load.",
+        "public_score": 0.62
+      },
+      "rank": 2
+    },
+    {
+      "label": "Narrow internal handling",
+      "prompt": "Keep the communications draft inside a very small executive and legal loop, delay public release, and avoid wider internal circulation.",
+      "explanation": "Keep the matter tightly internal and delay the public line.",
+      "forecast": {
+        "backend": "heuristic_baseline",
+        "summary": "Predicted risk moves down by 0.180, with escalation delta -1 and external-send delta 0.",
+        "baseline_risk_score": 1.0,
+        "predicted_risk_score": 0.82,
+        "external_event_delta": 0,
+        "escalation_delta": -1,
+        "baseline_stock_return_5d": -0.1009,
+        "predicted_stock_return_5d": -0.0609,
+        "baseline_credit_action_30d": 0.0,
+        "predicted_credit_action_30d": 0.0,
+        "baseline_ferc_action_180d": 1.0,
+        "predicted_ferc_action_180d": 1.0
+      },
+      "business_state_change": {
+        "method": "heuristic_baseline_business_state_v1",
+        "confidence": "medium",
+        "summary": "Moderately lower exposure risk.",
+        "baseline": {
+          "exposure": 0.55,
+          "trust": 0.556,
+          "coordination_load": 0.44,
+          "execution_delay": 0.313,
+          "deal_position": 0.569,
+          "governance_pressure": 0.347
+        },
+        "predicted": {
+          "exposure": 0.451,
+          "trust": 0.596,
+          "coordination_load": 0.468,
+          "execution_delay": 0.334,
+          "deal_position": 0.605,
+          "governance_pressure": 0.314
+        },
+        "impacts": [
+          {
+            "state_id": "exposure",
+            "label": "Exposure risk",
+            "baseline_value": 0.55,
+            "predicted_value": 0.451,
+            "delta": -0.099,
+            "effect": "better",
+            "magnitude": "moderate",
+            "summary": "Moderately lower exposure risk."
+          },
+          {
+            "state_id": "trust",
+            "label": "Relationship stability",
+            "baseline_value": 0.556,
+            "predicted_value": 0.596,
+            "delta": 0.04,
+            "effect": "better",
+            "magnitude": "slight",
+            "summary": "Slightly stronger relationship stability."
+          },
+          {
+            "state_id": "deal_position",
+            "label": "Commercial position",
+            "baseline_value": 0.569,
+            "predicted_value": 0.605,
+            "delta": 0.036,
+            "effect": "better",
+            "magnitude": "slight",
+            "summary": "Slightly stronger commercial position."
+          },
+          {
+            "state_id": "governance_pressure",
+            "label": "Approval and escalation pressure",
+            "baseline_value": 0.347,
+            "predicted_value": 0.314,
+            "delta": -0.033,
+            "effect": "better",
+            "magnitude": "slight",
+            "summary": "Slightly lower approval and escalation pressure."
+          },
+          {
+            "state_id": "coordination_load",
+            "label": "Internal handling load",
+            "baseline_value": 0.44,
+            "predicted_value": 0.468,
+            "delta": 0.028,
+            "effect": "flat",
+            "magnitude": "flat",
+            "summary": "Internal handling load stays close to the historical path."
+          },
+          {
+            "state_id": "execution_delay",
+            "label": "Execution delay",
+            "baseline_value": 0.313,
+            "predicted_value": 0.334,
+            "delta": 0.021,
+            "effect": "flat",
+            "magnitude": "flat",
+            "summary": "Execution delay stays close to the historical path."
+          }
+        ],
+        "consequence_estimates": [
+          {
+            "consequence_id": "containment",
+            "label": "Containment",
+            "effect": "better",
+            "magnitude": "moderate",
+            "summary": "The thread looks safer to contain."
+          },
+          {
+            "consequence_id": "review_burden",
+            "label": "Handling burden",
+            "effect": "flat",
+            "magnitude": "flat",
+            "summary": "Handling burden stays close to the historical path."
+          },
+          {
+            "consequence_id": "execution_path",
+            "label": "Execution path",
+            "effect": "flat",
+            "magnitude": "flat",
+            "summary": "Execution pace stays close to the historical path."
+          },
+          {
+            "consequence_id": "commercial_position",
+            "label": "Commercial footing",
+            "effect": "better",
+            "magnitude": "slight",
+            "summary": "Commercial footing looks stronger."
+          }
+        ],
+        "tradeoffs": [],
+        "net_effect_score": 0.041
+      },
+      "public_summary": {
+        "action_label": "Narrow internal handling",
+        "branch_explanation": "Keep the matter tightly internal and delay the public line.",
+        "actual_historical_action": "The communications loop moved through a tight internal chain while the company shaped how much to say and how fast to say it.",
+        "recorded_future_event_count": 6,
+        "public_outcomes": [
+          {
+            "label": "Legal and regulatory exposure",
+            "baseline_value": 0.489,
+            "predicted_value": 0.41,
+            "delta": -0.079,
+            "effect": "better",
+            "summary": "improves"
+          },
+          {
+            "label": "Disclosure and stakeholder trust",
+            "baseline_value": 0.556,
+            "predicted_value": 0.596,
+            "delta": 0.04,
+            "effect": "better",
+            "summary": "improves"
+          },
+          {
+            "label": "Commercial damage",
+            "baseline_value": 0.431,
+            "predicted_value": 0.395,
+            "delta": -0.036,
+            "effect": "better",
+            "summary": "improves"
+          },
+          {
+            "label": "Internal execution drag",
+            "baseline_value": 0.377,
+            "predicted_value": 0.401,
+            "delta": 0.024,
+            "effect": "worse",
+            "summary": "worsens"
+          }
+        ],
+        "overall_rank": 3,
+        "short_explanation": "Moderately lower exposure risk.",
+        "public_score": 0.597
+      },
+      "rank": 3
+    },
+    {
+      "label": "Vague reassurance release",
+      "prompt": "Issue a quick reassurance-heavy release, keep details thin, and aim to steady the market reaction before the full internal review catches up.",
+      "explanation": "Release fast, but lean on vague reassurance.",
+      "forecast": {
+        "backend": "heuristic_baseline",
+        "summary": "Predicted risk moves flat by 0.000, with escalation delta 0 and external-send delta 0.",
+        "baseline_risk_score": 1.0,
+        "predicted_risk_score": 1.0,
+        "external_event_delta": 0,
+        "escalation_delta": 0,
+        "baseline_stock_return_5d": -0.1009,
+        "predicted_stock_return_5d": -0.0609,
+        "baseline_credit_action_30d": 0.0,
+        "predicted_credit_action_30d": 0.0,
+        "baseline_ferc_action_180d": 1.0,
+        "predicted_ferc_action_180d": 1.0
+      },
+      "business_state_change": {
+        "method": "heuristic_baseline_business_state_v1",
+        "confidence": "medium",
+        "summary": "This move stays close to the historical business path.",
+        "baseline": {
+          "exposure": 0.55,
+          "trust": 0.556,
+          "coordination_load": 0.44,
+          "execution_delay": 0.313,
+          "deal_position": 0.569,
+          "governance_pressure": 0.347
+        },
+        "predicted": {
+          "exposure": 0.55,
+          "trust": 0.556,
+          "coordination_load": 0.44,
+          "execution_delay": 0.313,
+          "deal_position": 0.569,
+          "governance_pressure": 0.347
+        },
+        "impacts": [
+          {
+            "state_id": "exposure",
+            "label": "Exposure risk",
+            "baseline_value": 0.55,
+            "predicted_value": 0.55,
+            "delta": 0.0,
+            "effect": "flat",
+            "magnitude": "flat",
+            "summary": "Exposure risk stays close to the historical path."
+          },
+          {
+            "state_id": "deal_position",
+            "label": "Commercial position",
+            "baseline_value": 0.569,
+            "predicted_value": 0.569,
+            "delta": 0.0,
+            "effect": "flat",
+            "magnitude": "flat",
+            "summary": "Commercial position stays close to the historical path."
+          },
+          {
+            "state_id": "trust",
+            "label": "Relationship stability",
+            "baseline_value": 0.556,
+            "predicted_value": 0.556,
+            "delta": 0.0,
+            "effect": "flat",
+            "magnitude": "flat",
+            "summary": "Relationship stability stays close to the historical path."
+          },
+          {
+            "state_id": "execution_delay",
+            "label": "Execution delay",
+            "baseline_value": 0.313,
+            "predicted_value": 0.313,
+            "delta": 0.0,
+            "effect": "flat",
+            "magnitude": "flat",
+            "summary": "Execution delay stays close to the historical path."
+          },
+          {
+            "state_id": "coordination_load",
+            "label": "Internal handling load",
+            "baseline_value": 0.44,
+            "predicted_value": 0.44,
+            "delta": 0.0,
+            "effect": "flat",
+            "magnitude": "flat",
+            "summary": "Internal handling load stays close to the historical path."
+          },
+          {
+            "state_id": "governance_pressure",
+            "label": "Approval and escalation pressure",
+            "baseline_value": 0.347,
+            "predicted_value": 0.347,
+            "delta": 0.0,
+            "effect": "flat",
+            "magnitude": "flat",
+            "summary": "Approval and escalation pressure stays close to the historical path."
+          }
+        ],
+        "consequence_estimates": [
+          {
+            "consequence_id": "containment",
+            "label": "Containment",
+            "effect": "flat",
+            "magnitude": "flat",
+            "summary": "Containment stays close to the historical path."
+          },
+          {
+            "consequence_id": "review_burden",
+            "label": "Handling burden",
+            "effect": "flat",
+            "magnitude": "flat",
+            "summary": "Handling burden stays close to the historical path."
+          },
+          {
+            "consequence_id": "execution_path",
+            "label": "Execution path",
+            "effect": "flat",
+            "magnitude": "flat",
+            "summary": "Execution pace stays close to the historical path."
+          },
+          {
+            "consequence_id": "commercial_position",
+            "label": "Commercial footing",
+            "effect": "flat",
+            "magnitude": "flat",
+            "summary": "Commercial footing stays close to the historical path."
+          }
+        ],
+        "tradeoffs": [],
+        "net_effect_score": 0.0
+      },
+      "public_summary": {
+        "action_label": "Vague reassurance release",
+        "branch_explanation": "Release fast, but lean on vague reassurance.",
+        "actual_historical_action": "The communications loop moved through a tight internal chain while the company shaped how much to say and how fast to say it.",
+        "recorded_future_event_count": 6,
+        "public_outcomes": [
+          {
+            "label": "Legal and regulatory exposure",
+            "baseline_value": 0.489,
+            "predicted_value": 0.489,
+            "delta": 0.0,
+            "effect": "flat",
+            "summary": "stays flat"
+          },
+          {
+            "label": "Disclosure and stakeholder trust",
+            "baseline_value": 0.556,
+            "predicted_value": 0.556,
+            "delta": 0.0,
+            "effect": "flat",
+            "summary": "stays flat"
+          },
+          {
+            "label": "Commercial damage",
+            "baseline_value": 0.431,
+            "predicted_value": 0.431,
+            "delta": 0.0,
+            "effect": "flat",
+            "summary": "stays flat"
+          },
+          {
+            "label": "Internal execution drag",
+            "baseline_value": 0.377,
+            "predicted_value": 0.377,
+            "delta": 0.0,
+            "effect": "flat",
+            "summary": "stays flat"
+          }
+        ],
+        "overall_rank": 4,
+        "short_explanation": "This move stays close to the historical business path.",
+        "public_score": 0.554
+      },
+      "rank": 4
+    }
+  ],
+  "public_summary": {
+    "bundle_role": "proof",
+    "branch_point": "The Cliff Baxter press-release loop is active and the company has to decide how transparent, delayed, or reassuring the public message should be.",
+    "actual_happened": "The communications loop moved through a tight internal chain while the company shaped how much to say and how fast to say it.",
+    "actions_we_can_take": [
+      {
+        "label": "Transparent fact-based release",
+        "branch_explanation": "Say only what is known and keep the wording factual."
+      },
+      {
+        "label": "Board and legal alignment delay",
+        "branch_explanation": "Delay briefly for tighter internal alignment before releasing."
+      },
+      {
+        "label": "Narrow internal handling",
+        "branch_explanation": "Keep the matter tightly internal and delay the public line."
+      },
+      {
+        "label": "Vague reassurance release",
+        "branch_explanation": "Release fast, but lean on vague reassurance."
+      }
+    ],
+    "predicted_effect_summary": "Much lower exposure risk.",
+    "recorded_future_event_count": 6,
+    "candidates": [
+      {
+        "action_label": "Transparent fact-based release",
+        "branch_explanation": "Say only what is known and keep the wording factual.",
+        "actual_historical_action": "The communications loop moved through a tight internal chain while the company shaped how much to say and how fast to say it.",
+        "recorded_future_event_count": 6,
+        "public_outcomes": [
+          {
+            "label": "Legal and regulatory exposure",
+            "baseline_value": 0.489,
+            "predicted_value": 0.366,
+            "delta": -0.123,
+            "effect": "better",
+            "summary": "improves"
+          },
+          {
+            "label": "Disclosure and stakeholder trust",
+            "baseline_value": 0.556,
+            "predicted_value": 0.657,
+            "delta": 0.101,
+            "effect": "better",
+            "summary": "improves"
+          },
+          {
+            "label": "Commercial damage",
+            "baseline_value": 0.431,
+            "predicted_value": 0.33,
+            "delta": -0.101,
+            "effect": "better",
+            "summary": "improves"
+          },
+          {
+            "label": "Internal execution drag",
+            "baseline_value": 0.377,
+            "predicted_value": 0.318,
+            "delta": -0.059,
+            "effect": "better",
+            "summary": "improves"
+          }
+        ],
+        "overall_rank": 1,
+        "short_explanation": "Much lower exposure risk.",
+        "public_score": 0.656
+      },
+      {
+        "action_label": "Board and legal alignment delay",
+        "branch_explanation": "Delay briefly for tighter internal alignment before releasing.",
+        "actual_historical_action": "The communications loop moved through a tight internal chain while the company shaped how much to say and how fast to say it.",
+        "recorded_future_event_count": 6,
+        "public_outcomes": [
+          {
+            "label": "Legal and regulatory exposure",
+            "baseline_value": 0.489,
+            "predicted_value": 0.339,
+            "delta": -0.15,
+            "effect": "better",
+            "summary": "improves"
+          },
+          {
+            "label": "Disclosure and stakeholder trust",
+            "baseline_value": 0.556,
+            "predicted_value": 0.615,
+            "delta": 0.059,
+            "effect": "better",
+            "summary": "improves"
+          },
+          {
+            "label": "Commercial damage",
+            "baseline_value": 0.431,
+            "predicted_value": 0.375,
+            "delta": -0.056,
+            "effect": "better",
+            "summary": "improves"
+          },
+          {
+            "label": "Internal execution drag",
+            "baseline_value": 0.377,
+            "predicted_value": 0.475,
+            "delta": 0.098,
+            "effect": "worse",
+            "summary": "worsens"
+          }
+        ],
+        "overall_rank": 2,
+        "short_explanation": "Much lower exposure risk. Trade-off: Moderately higher internal handling load.",
+        "public_score": 0.62
+      },
+      {
+        "action_label": "Narrow internal handling",
+        "branch_explanation": "Keep the matter tightly internal and delay the public line.",
+        "actual_historical_action": "The communications loop moved through a tight internal chain while the company shaped how much to say and how fast to say it.",
+        "recorded_future_event_count": 6,
+        "public_outcomes": [
+          {
+            "label": "Legal and regulatory exposure",
+            "baseline_value": 0.489,
+            "predicted_value": 0.41,
+            "delta": -0.079,
+            "effect": "better",
+            "summary": "improves"
+          },
+          {
+            "label": "Disclosure and stakeholder trust",
+            "baseline_value": 0.556,
+            "predicted_value": 0.596,
+            "delta": 0.04,
+            "effect": "better",
+            "summary": "improves"
+          },
+          {
+            "label": "Commercial damage",
+            "baseline_value": 0.431,
+            "predicted_value": 0.395,
+            "delta": -0.036,
+            "effect": "better",
+            "summary": "improves"
+          },
+          {
+            "label": "Internal execution drag",
+            "baseline_value": 0.377,
+            "predicted_value": 0.401,
+            "delta": 0.024,
+            "effect": "worse",
+            "summary": "worsens"
+          }
+        ],
+        "overall_rank": 3,
+        "short_explanation": "Moderately lower exposure risk.",
+        "public_score": 0.597
+      },
+      {
+        "action_label": "Vague reassurance release",
+        "branch_explanation": "Release fast, but lean on vague reassurance.",
+        "actual_historical_action": "The communications loop moved through a tight internal chain while the company shaped how much to say and how fast to say it.",
+        "recorded_future_event_count": 6,
+        "public_outcomes": [
+          {
+            "label": "Legal and regulatory exposure",
+            "baseline_value": 0.489,
+            "predicted_value": 0.489,
+            "delta": 0.0,
+            "effect": "flat",
+            "summary": "stays flat"
+          },
+          {
+            "label": "Disclosure and stakeholder trust",
+            "baseline_value": 0.556,
+            "predicted_value": 0.556,
+            "delta": 0.0,
+            "effect": "flat",
+            "summary": "stays flat"
+          },
+          {
+            "label": "Commercial damage",
+            "baseline_value": 0.431,
+            "predicted_value": 0.431,
+            "delta": 0.0,
+            "effect": "flat",
+            "summary": "stays flat"
+          },
+          {
+            "label": "Internal execution drag",
+            "baseline_value": 0.377,
+            "predicted_value": 0.377,
+            "delta": 0.0,
+            "effect": "flat",
+            "summary": "stays flat"
+          }
+        ],
+        "overall_rank": 4,
+        "short_explanation": "This move stays close to the historical business path.",
+        "public_score": 0.554
+      }
+    ]
+  }
+}

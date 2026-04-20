@@ -1,0 +1,38 @@
+{
+  "manifest_version": 1,
+  "bundle_slug": "enron-q3-disclosure-review",
+  "title": "Enron Q3 Disclosure Review Example",
+  "organization_name": "Enron Corporation",
+  "source_mode": "real_history",
+  "benchmark_role": "narrative",
+  "lead": "This is the disclosure narrative case. It makes the October 2001 review path legible without relying on a single whistleblower note.",
+  "branch_point": "Third-quarter review material is moving while the company is deciding how much to say about the growing accounting and liquidity overhang.",
+  "actual_happened": "The review material kept moving through management, finance, and legal during the disclosure crisis.",
+  "branch_timestamp": "2001-10-31",
+  "history_event_count": 36,
+  "future_event_count": 3,
+  "source_families": [
+    "credit",
+    "disclosure",
+    "filing",
+    "financial",
+    "governance",
+    "news",
+    "regulatory"
+  ],
+  "domains": [
+    "governance",
+    "obs_graph"
+  ],
+  "forecast_file": "whatif_reference_result.json",
+  "public_objective_pack_id": "protect_company_default",
+  "top_candidate": "Management-only review before disclosure",
+  "workspace_root": "/Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/docs/examples/enron-q3-disclosure-review/workspace",
+  "ui_command": "vei ui serve \\\n  --root /Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/docs/examples/enron-q3-disclosure-review/workspace \\\n  --host 127.0.0.1 \\\n  --port 3055",
+  "files": {
+    "overview": "enron_story_overview.md",
+    "exports_preview": "enron_exports_preview.json",
+    "presentation_manifest": "enron_presentation_manifest.json",
+    "presentation_guide": "enron_presentation_guide.md"
+  }
+}

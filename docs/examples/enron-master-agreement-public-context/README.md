@@ -1,6 +1,6 @@
 # Enron Master Agreement Example
 
-This example keeps the original Master Agreement branch point in the repo, now with the wider Enron macro context and the newer stock, credit, and regulatory fixtures attached.
+This is the default long-tail technical proof case. It keeps the visible downstream mail tail while placing the contract choice inside the richer Enron company timeline.
 
 ## Open It In Studio
 
@@ -17,23 +17,46 @@ Open `http://127.0.0.1:3055`.
 
 ![Saved ranking panel](../../assets/enron-whatif/master-agreement-public-context-ranking.png)
 
+## Branch Point
+
+- Debra Perlingiere is about to send the Master Agreement draft to Cargill on September 27, 2000.
+
+## What Actually Happened
+
+- The draft went outside quickly, then the thread widened into a long reassignment and redline tail with no visible formal signoff.
+
+## Actions We Can Take
+
+- **Internal legal review**: Keep ownership narrow and get legal review before any outside send.
+- **Narrow status note**: Acknowledge the request without sending the draft.
+- **Controlled external send**: Send outside once, with explicit limits and a tight reply loop.
+- **Fast outside circulation**: Move fast and widen the loop for speed.
+
+## Predicted Effect On The Company
+
+- Recorded future events after the historical branch: 84
+- Current top-ranked action: Internal legal review
+- Short readout: Much lower outside spread risk. Trade-off: Slightly higher internal handling load.
+- Legal and regulatory exposure: improves (0.71 -> 0.42)
+- Disclosure and stakeholder trust: improves (0.345 -> 0.536)
+- Commercial damage: improves (0.699 -> 0.49)
+- Internal execution drag: worsens (0.498 -> 0.504)
+
 ## Why This Branch Matters
 
-This branch is the clearest procedural example in the Enron set. One contract draft is ready to go out, and the decision is whether to keep the document inside legal review or widen the outside loop.
+This is the clearest proof case because it has the largest visible recorded tail after the branch. You can point at the same decision, the actual downstream chain, and the ranked alternate moves in one view.
 
-The wider public-company panel puts that narrow legal choice inside the larger Enron arc. The macro heads stay in the scene as dated context only, because the current calibration report is still weak.
+The company timeline around it is thicker now, so the branch reads as a company event rather than a detached contract email.
 
-## What This Example Covers
+## Bundle Facts
 
-- Historical branch point: Debra Perlingiere is about to send the Master Agreement draft to Cargill on September 27, 2000.
 - Saved branch scene: 30 prior events and 84 recorded future events
 - Public-company slice at 2000-09-27: 5 financial checkpoints, 6 public news items, 679 market checkpoints, 0 credit checkpoints, and 0 regulatory checkpoints
 - Prior timeline source families: disclosure, filing, financial, mail, market, news
 - Prior timeline domains: governance, internal, obs_graph
+- Bundle role: `proof`
 - Saved LLM path: Keep the draft inside Enron, ask Gerald Nemec and Sara Shackleton for review, and hold the outside send.
 - Saved forecast file: `whatif_reference_result.json`
-- Business-state readout: Slightly lower internal handling load. Trade-off: Slightly higher outside spread risk.
-- Top ranked candidate: Hold for internal review
 
 ## Saved Files
 
@@ -52,9 +75,13 @@ The wider public-company panel puts that narrow legal choice inside the larger E
 
 ## Other Enron Examples
 
-- [Enron Watkins Follow-up Example](../enron-watkins-follow-up/README.md)
-- [Enron California Crisis Strategy Example](../enron-california-crisis-strategy/README.md)
 - [Enron PG&E Power Deal Example](../enron-pge-power-deal/README.md)
+- [Enron California Crisis Strategy Example](../enron-california-crisis-strategy/README.md)
+- [Enron Baxter Press Release Example](../enron-baxter-press-release/README.md)
+- [Enron Braveheart Forward Example](../enron-braveheart-forward/README.md)
+- [Enron Watkins Follow-up Example](../enron-watkins-follow-up/README.md)
+- [Enron Q3 Disclosure Review Example](../enron-q3-disclosure-review/README.md)
+- [Enron Skilling Resignation Materials Example](../enron-skilling-resignation-materials/README.md)
 
 ## Bankruptcy Arc Timeline
 
@@ -70,6 +97,6 @@ python scripts/capture_enron_bundle_screenshots.py --bundle enron-master-agreeme
 
 ## Constraint
 
-This repo now carries the Rosetta parquet archive, the source cache, and the raw Enron mail tar under `data/enron/`, so a fresh clone can open these saved examples and rebuild them without reaching into a sibling checkout.
+This repo now carries a small checked-in Enron Rosetta sample for the saved bundles and smoke checks. Fetch the full archive with `make fetch-enron-full` when you want full training, full benchmark builds, or full archive validation.
 
 The macro heads in these saved bundles stay advisory context beside the email-path evidence. See [the current calibration report](../../../studies/macro_calibration_enron_v1/calibration_report.md) before making any stronger claim.

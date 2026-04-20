@@ -1,10 +1,10 @@
 {
   "version": "2",
   "mode": "both",
-  "label": "watkins_followup_questions_saved_bundle_20260417",
+  "label": "watkins_followup_questions_saved_bundle_20260419",
   "intervention": {
-    "label": "watkins_followup_questions_saved_bundle_20260417",
-    "prompt": "Escalate the follow-up note to Ken Lay, the audit committee, and internal legal, preserve the written record, and pause any broad reassurance until the accounting questions are reviewed.",
+    "label": "watkins_followup_questions_saved_bundle_20260419",
+    "prompt": "Escalate the follow-up note to Ken Lay, the audit committee, and internal legal, preserve the written record, and pause broad reassurance.",
     "objective": "Direct escalations to senior executives require a department-head gate.",
     "scenario_id": "escalation_firewall",
     "thread_id": "thr_6ca597ba4bf815ac",
@@ -20,7 +20,7 @@
         "Allow direct escalation but flag the thread for governance review."
       ]
     },
-    "prompt": "Escalate the follow-up note to Ken Lay, the audit committee, and internal legal, preserve the written record, and pause any broad reassurance until the accounting questions are reviewed.",
+    "prompt": "Escalate the follow-up note to Ken Lay, the audit committee, and internal legal, preserve the written record, and pause broad reassurance.",
     "world_summary": {
       "source": "enron",
       "organization_name": "Enron Corporation",
@@ -13727,7 +13727,7 @@
   "forecast_result": {
     "status": "ok",
     "backend": "reference",
-    "prompt": "Escalate the follow-up note to Ken Lay, the audit committee, and internal legal, preserve the written record, and pause any broad reassurance until the accounting questions are reviewed.",
+    "prompt": "Escalate the follow-up note to Ken Lay, the audit committee, and internal legal, preserve the written record, and pause broad reassurance.",
     "summary": "reference forecast completed.",
     "baseline": {
       "backend": "historical",

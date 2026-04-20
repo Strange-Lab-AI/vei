@@ -6,6 +6,10 @@ from pathlib import Path
 from typing import Any
 
 from vei.whatif.filenames import CONTEXT_SNAPSHOT_FILE, EPISODE_MANIFEST_FILE
+from ._enron_dataset import (
+    repo_enron_sample_rosetta_dir,
+    resolve_cached_full_enron_rosetta_dir,
+)
 from ._helpers import load_episode_snapshot
 from .episode import load_episode_manifest
 
@@ -18,10 +22,13 @@ def resolve_whatif_rosetta_dir(workspace_root: Path) -> Path | None:
     )
     if manifest_source_dir is not None:
         candidates.append(manifest_source_dir)
-    candidates.append(_repo_default_rosetta_dir())
     configured = os.environ.get("VEI_WHATIF_ROSETTA_DIR", "").strip()
     if configured:
         candidates.append(Path(configured).expanduser())
+    cached_full_dir = resolve_cached_full_enron_rosetta_dir()
+    if cached_full_dir is not None:
+        candidates.append(cached_full_dir)
+    candidates.append(_repo_default_rosetta_dir())
     candidates.append(workspace_root / "rosetta")
     for candidate in candidates:
         resolved = candidate.expanduser().resolve()
@@ -184,7 +191,7 @@ def _workspace_whatif_source_hint(workspace_root: Path) -> str | None:
 
 
 def _repo_default_rosetta_dir() -> Path:
-    return Path(__file__).resolve().parents[2] / "data" / "enron" / "rosetta"
+    return repo_enron_sample_rosetta_dir()
 
 
 def _resolve_explicit_enron_rosetta_dir(workspace_root: Path) -> Path | None:
@@ -198,6 +205,9 @@ def _resolve_explicit_enron_rosetta_dir(workspace_root: Path) -> Path | None:
     configured = os.environ.get("VEI_WHATIF_ROSETTA_DIR", "").strip()
     if configured:
         candidates.append(Path(configured).expanduser())
+    cached_full_dir = resolve_cached_full_enron_rosetta_dir()
+    if cached_full_dir is not None:
+        candidates.append(cached_full_dir)
     candidates.append(workspace_root / "rosetta")
     for candidate in candidates:
         resolved = candidate.expanduser().resolve()

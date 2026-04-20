@@ -1,0 +1,105 @@
+{
+  "metadata": {
+    "name": "whatif-baseline-thr_5ece5722490045f0",
+    "description": "Historical future events scheduled after the branch point.",
+    "tags": [
+      "whatif",
+      "baseline",
+      "historical"
+    ],
+    "source": "enron_rosetta",
+    "transform_hash": null
+  },
+  "events": [
+    {
+      "time_ms": 1,
+      "actor_id": "kevin.kindall@enron.com",
+      "channel": "mail",
+      "type": "escalation",
+      "correlation_id": "thr_5ece5722490045f0",
+      "payload": {
+        "from": "kevin.kindall@enron.com",
+        "to": "vasant.shanbhogue@enron.com",
+        "subj": "Braveheart",
+        "body_text": "[Historical email excerpt]\n---------------------- Forwarded by Kevin Kindall/Corp/Enron on 12/19/2000 \n02:08 PM ---------------------------\n\n\nGail Tholen@ECT\n12/19/2000 01:39 PM\nTo: Li Sun/NA/Enron@Enron\ncc: Kevin Kindall/Corp/Enron@ENRON, Eugenio Perez/HOU/ECT@ECT \n\nSubject: Braveheart\n\nNew TRS for 4Q.\n---------------------- Forwarded by Gail Tholen/HOU/ECT on 12/19/2000 01:32 \nPM ---------------------------\n\n\nConnie Lee@ENRON COMMUNICATIONS\n12/19/2000 09:40 AM\nTo: Gail Tholen/HOU/ECT@ECT\ncc: Amin Maredia/Enron Communications@Enron Communications, Michael \nKrautz/Enron Communications@Enron Communications, Alan \nQuain\n\n[Excerpt limited by source data. Original body may be longer.]\n\nEvent type: escalation\nForward detected in source metadata.\nEscalation detected in source metadata.",
+        "thread_id": "thr_5ece5722490045f0",
+        "category": "historical"
+      }
+    },
+    {
+      "time_ms": 1,
+      "actor_id": "kevin.kindall@enron.com",
+      "channel": "mail",
+      "type": "escalation",
+      "correlation_id": "thr_5ece5722490045f0",
+      "payload": {
+        "from": "kevin.kindall@enron.com",
+        "to": "vasant.shanbhogue@enron.com",
+        "subj": "Braveheart",
+        "body_text": "[Historical email excerpt]\n---------------------- Forwarded by Kevin Kindall/Corp/Enron on 12/19/2000 \n02:08 PM ---------------------------\n\n\nGail Tholen@ECT\n12/19/2000 01:39 PM\nTo: Li Sun/NA/Enron@Enron\ncc: Kevin Kindall/Corp/Enron@ENRON, Eugenio Perez/HOU/ECT@ECT \n\nSubject: Braveheart\n\nNew TRS for 4Q.\n---------------------- Forwarded by Gail Tholen/HOU/ECT on 12/19/2000 01:32 \nPM ---------------------------\n\n\nConnie Lee@ENRON COMMUNICATIONS\n12/19/2000 09:40 AM\nTo: Gail Tholen/HOU/ECT@ECT\ncc: Amin Maredia/Enron Communications@Enron Communications, Michael \nKrautz/Enron Communications@Enron Communications, Alan \nQuain\n\n[Excerpt limited by source data. Original body may be longer.]\n\nEvent type: escalation\nForward detected in source metadata.\nEscalation detected in source metadata.",
+        "thread_id": "thr_5ece5722490045f0",
+        "category": "historical"
+      }
+    },
+    {
+      "time_ms": 2220000,
+      "actor_id": "vince.kaminski@enron.com",
+      "channel": "mail",
+      "type": "escalation",
+      "correlation_id": "thr_5ece5722490045f0",
+      "payload": {
+        "from": "vince.kaminski@enron.com",
+        "to": "vkaminski@aol.com",
+        "subj": "Braveheart",
+        "body_text": "[Historical email excerpt]\nKevin Kindall@ENRON\n12/19/2000 02:06 PM\nTo: Vince J Kaminski/HOU/ECT@ECT, Vasant Shanbhogue/HOU/ECT@ECT\ncc:  \nSubject: Braveheart\n\nFYI...\n\n\n\n---------------------- Forwarded by Kevin Kindall/Corp/Enron on 12/19/2000 \n02:08 PM ---------------------------\n\n\nGail Tholen@ECT\n12/19/2000 01:39 PM\nTo: Li Sun/NA/Enron@Enron\ncc: Kevin Kindall/Corp/Enron@ENRON, Eugenio Perez/HOU/ECT@ECT \n\nSubject: Braveheart\n\nNew TRS for 4Q.\n---------------------- Forwarded by Gail Tholen/HOU/ECT on 12/19/2000 01:32 \nPM ---------------------------\n\n\nConnie Lee@ENRON COMMUNICATIONS\n12/19/2000 09:40 AM\nTo: Gail Tholen/HO\n\n[Excerpt limited by source data. Original body may be longer.]\n\nEvent type: escalation\nForward detected in source metadata.\nEscalation detected in source metadata.",
+        "thread_id": "thr_5ece5722490045f0",
+        "category": "historical"
+      }
+    },
+    {
+      "time_ms": 2220000,
+      "actor_id": "vince.kaminski@enron.com",
+      "channel": "mail",
+      "type": "escalation",
+      "correlation_id": "thr_5ece5722490045f0",
+      "payload": {
+        "from": "vince.kaminski@enron.com",
+        "to": "vkaminski@aol.com",
+        "subj": "Braveheart",
+        "body_text": "[Historical email excerpt]\nKevin Kindall@ENRON\n12/19/2000 02:06 PM\nTo: Vince J Kaminski/HOU/ECT@ECT, Vasant Shanbhogue/HOU/ECT@ECT\ncc:  \nSubject: Braveheart\n\nFYI...\n\n\n\n---------------------- Forwarded by Kevin Kindall/Corp/Enron on 12/19/2000 \n02:08 PM ---------------------------\n\n\nGail Tholen@ECT\n12/19/2000 01:39 PM\nTo: Li Sun/NA/Enron@Enron\ncc: Kevin Kindall/Corp/Enron@ENRON, Eugenio Perez/HOU/ECT@ECT \n\nSubject: Braveheart\n\nNew TRS for 4Q.\n---------------------- Forwarded by Gail Tholen/HOU/ECT on 12/19/2000 01:32 \nPM ---------------------------\n\n\nConnie Lee@ENRON COMMUNICATIONS\n12/19/2000 09:40 AM\nTo: Gail Tholen/HO\n\n[Excerpt limited by source data. Original body may be longer.]\n\nEvent type: escalation\nForward detected in source metadata.\nEscalation detected in source metadata.",
+        "thread_id": "thr_5ece5722490045f0",
+        "category": "historical"
+      }
+    },
+    {
+      "time_ms": 2220000,
+      "actor_id": "vince.kaminski@enron.com",
+      "channel": "mail",
+      "type": "escalation",
+      "correlation_id": "thr_5ece5722490045f0",
+      "payload": {
+        "from": "vince.kaminski@enron.com",
+        "to": "vkaminski@aol.com",
+        "subj": "Braveheart",
+        "body_text": "[Historical email excerpt]\nKevin Kindall@ENRON\n12/19/2000 02:06 PM\nTo: Vince J Kaminski/HOU/ECT@ECT, Vasant Shanbhogue/HOU/ECT@ECT\ncc:  \nSubject: Braveheart\n\nFYI...\n\n\n\n---------------------- Forwarded by Kevin Kindall/Corp/Enron on 12/19/2000 \n02:08 PM ---------------------------\n\n\nGail Tholen@ECT\n12/19/2000 01:39 PM\nTo: Li Sun/NA/Enron@Enron\ncc: Kevin Kindall/Corp/Enron@ENRON, Eugenio Perez/HOU/ECT@ECT \n\nSubject: Braveheart\n\nNew TRS for 4Q.\n---------------------- Forwarded by Gail Tholen/HOU/ECT on 12/19/2000 01:32 \nPM ---------------------------\n\n\nConnie Lee@ENRON COMMUNICATIONS\n12/19/2000 09:40 AM\nTo: Gail Tholen/HO\n\n[Excerpt limited by source data. Original body may be longer.]\n\nEvent type: escalation\nForward detected in source metadata.\nEscalation detected in source metadata.",
+        "thread_id": "thr_5ece5722490045f0",
+        "category": "historical"
+      }
+    },
+    {
+      "time_ms": 2220000,
+      "actor_id": "vince.kaminski@enron.com",
+      "channel": "mail",
+      "type": "escalation",
+      "correlation_id": "thr_5ece5722490045f0",
+      "payload": {
+        "from": "vince.kaminski@enron.com",
+        "to": "vkaminski@aol.com",
+        "subj": "Braveheart",
+        "body_text": "[Historical email excerpt]\nKevin Kindall@ENRON\n12/19/2000 02:06 PM\nTo: Vince J Kaminski/HOU/ECT@ECT, Vasant Shanbhogue/HOU/ECT@ECT\ncc:  \nSubject: Braveheart\n\nFYI...\n\n\n\n---------------------- Forwarded by Kevin Kindall/Corp/Enron on 12/19/2000 \n02:08 PM ---------------------------\n\n\nGail Tholen@ECT\n12/19/2000 01:39 PM\nTo: Li Sun/NA/Enron@Enron\ncc: Kevin Kindall/Corp/Enron@ENRON, Eugenio Perez/HOU/ECT@ECT \n\nSubject: Braveheart\n\nNew TRS for 4Q.\n---------------------- Forwarded by Gail Tholen/HOU/ECT on 12/19/2000 01:32 \nPM ---------------------------\n\n\nConnie Lee@ENRON COMMUNICATIONS\n12/19/2000 09:40 AM\nTo: Gail Tholen/HO\n\n[Excerpt limited by source data. Original body may be longer.]\n\nEvent type: escalation\nForward detected in source metadata.\nEscalation detected in source metadata.",
+        "thread_id": "thr_5ece5722490045f0",
+        "category": "historical"
+      }
+    }
+  ]
+}

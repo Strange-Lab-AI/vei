@@ -4,9 +4,10 @@
   "title": "Enron California Crisis Strategy Example",
   "organization_name": "Enron Corporation",
   "source_mode": "real_history",
-  "benchmark_role": "headline",
-  "lead": "This example moves the branch point into the California power-crisis conduct and lets the saved comparison sit inside the FERC and refund timeline that now ships with the repo.",
+  "benchmark_role": "proof",
+  "lead": "This is the regulatory conduct case. It puts a preservation order, an active trading posture, and a narrow fork about halting versus continuing onto one saved branch.",
   "branch_point": "Tim Belden's desk receives a preservation order tied to the California crisis while the trading strategy is still active.",
+  "actual_happened": "The preservation-order thread stayed inside the active crisis loop while the desk was still deciding how far to halt or continue.",
   "branch_timestamp": "2000-12-15",
   "history_event_count": 30,
   "future_event_count": 4,
@@ -24,7 +25,8 @@
     "obs_graph"
   ],
   "forecast_file": "whatif_reference_result.json",
-  "top_candidate": "Seek Skilling sign-off",
+  "public_objective_pack_id": "protect_company_default",
+  "top_candidate": "Preserve and seek executive sign-off",
   "workspace_root": "/Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/docs/examples/enron-california-crisis-strategy/workspace",
   "ui_command": "vei ui serve \\\n  --root /Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/docs/examples/enron-california-crisis-strategy/workspace \\\n  --host 127.0.0.1 \\\n  --port 3055",
   "files": {

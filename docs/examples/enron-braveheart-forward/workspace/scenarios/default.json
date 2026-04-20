@@ -1,0 +1,26 @@
+{
+  "name": "default",
+  "title": "Pinnacle Analytics",
+  "description": "Enterprise SaaS renewal at risk with integration failure, champion departure, and competitive displacement pressure.",
+  "scenario_name": "enterprise_renewal_risk",
+  "workflow_name": "b2b_saas",
+  "workflow_variant": "enterprise_renewal_risk",
+  "workflow_parameters": {},
+  "contract_path": "contracts/default.contract.json",
+  "inspection_focus": "summary",
+  "tags": [],
+  "hidden_faults": {},
+  "actor_hints": [],
+  "contract_overrides": {},
+  "metadata": {
+    "source_kind": "vertical",
+    "source_ref": "b2b_saas",
+    "builder_environment": {
+      "vertical": "b2b_saas",
+      "what_if_branches": [
+        "Fix the integration and rebuild trust before the renewal conversation",
+        "Lead with the discount and hope the product issues don't kill the deal"
+      ]
+    }
+  }
+}

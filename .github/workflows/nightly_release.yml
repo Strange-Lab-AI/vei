@@ -12,8 +12,6 @@ jobs:
       AGENT_MODE: baseline
     steps:
       - uses: actions/checkout@v6
-        with:
-          lfs: true
 
       - name: Set up Python
         uses: actions/setup-python@v6

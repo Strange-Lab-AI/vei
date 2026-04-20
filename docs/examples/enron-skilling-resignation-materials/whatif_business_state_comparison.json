@@ -1,0 +1,1000 @@
+{
+  "label": "enron_skilling_resignation_materials_business_state_comparison_20260419",
+  "objective_pack_id": "protect_company_default",
+  "internal_objective_pack_id": "contain_exposure",
+  "objective_pack": {
+    "pack_id": "protect_company_default",
+    "title": "Protect Company",
+    "summary": "Favor moves that lower legal exposure, preserve trust, limit commercial damage, and keep internal execution drag manageable.",
+    "outcomes": [
+      "Legal and regulatory exposure",
+      "Disclosure and stakeholder trust",
+      "Commercial damage",
+      "Internal execution drag"
+    ]
+  },
+  "thread_id": "thr_d5715810ccdf7655",
+  "branch_event_id": "enron_f225c917c6f1076f",
+  "thread_subject": "Latest drafts of communications materials",
+  "historical_business_state": {
+    "method": "historical_v1",
+    "confidence": "medium",
+    "summary": "Recorded business state centers on approval and escalation pressure and relationship stability.",
+    "snapshot": {
+      "exposure": 0.149,
+      "trust": 0.784,
+      "coordination_load": 0.115,
+      "execution_delay": 0.08,
+      "deal_position": 0.842,
+      "governance_pressure": 0.75
+    },
+    "indicators": [
+      {
+        "state_id": "governance_pressure",
+        "label": "Approval and escalation pressure",
+        "value": 0.75,
+        "level": "high",
+        "summary": "Approval and escalation pressure is high in the recorded path."
+      },
+      {
+        "state_id": "trust",
+        "label": "Relationship stability",
+        "value": 0.784,
+        "level": "high",
+        "summary": "Relationship stability looks strong in the recorded path."
+      },
+      {
+        "state_id": "deal_position",
+        "label": "Commercial position",
+        "value": 0.842,
+        "level": "very_high",
+        "summary": "Commercial position looks strong in the recorded path."
+      },
+      {
+        "state_id": "exposure",
+        "label": "Exposure risk",
+        "value": 0.149,
+        "level": "very_low",
+        "summary": "Exposure risk stays limited in the recorded path."
+      },
+      {
+        "state_id": "coordination_load",
+        "label": "Internal handling load",
+        "value": 0.115,
+        "level": "very_low",
+        "summary": "Internal handling load stays limited in the recorded path."
+      },
+      {
+        "state_id": "execution_delay",
+        "label": "Execution delay",
+        "value": 0.08,
+        "level": "very_low",
+        "summary": "Execution delay stays limited in the recorded path."
+      }
+    ],
+    "implications": [
+      "Approval and escalation pressure is high in the recorded path.",
+      "Relationship stability looks strong in the recorded path.",
+      "Commercial position looks strong in the recorded path."
+    ]
+  },
+  "candidates": [
+    {
+      "label": "Narrow internal-only draft",
+      "prompt": "Keep the draft inside a very small executive and legal loop, delay wider circulation, and hold on public messaging until the internal record is tight.",
+      "explanation": "Hold the draft in a very small internal loop.",
+      "forecast": {
+        "backend": "heuristic_baseline",
+        "summary": "Predicted risk moves down by 0.270, with escalation delta -1 and external-send delta 0.",
+        "baseline_risk_score": 0.27,
+        "predicted_risk_score": 0.0,
+        "external_event_delta": 0,
+        "escalation_delta": -1,
+        "baseline_stock_return_5d": -0.14,
+        "predicted_stock_return_5d": -0.1,
+        "baseline_credit_action_30d": 0.0,
+        "predicted_credit_action_30d": 0.0,
+        "baseline_ferc_action_180d": null,
+        "predicted_ferc_action_180d": null
+      },
+      "business_state_change": {
+        "method": "heuristic_baseline_business_state_v1",
+        "confidence": "medium",
+        "summary": "Much lower approval and escalation pressure. Trade-off: Much higher internal handling load.",
+        "baseline": {
+          "exposure": 0.149,
+          "trust": 0.784,
+          "coordination_load": 0.115,
+          "execution_delay": 0.08,
+          "deal_position": 0.842,
+          "governance_pressure": 0.75
+        },
+        "predicted": {
+          "exposure": 0.0,
+          "trust": 0.822,
+          "coordination_load": 0.285,
+          "execution_delay": 0.21,
+          "deal_position": 0.857,
+          "governance_pressure": 0.55
+        },
+        "impacts": [
+          {
+            "state_id": "governance_pressure",
+            "label": "Approval and escalation pressure",
+            "baseline_value": 0.75,
+            "predicted_value": 0.55,
+            "delta": -0.2,
+            "effect": "better",
+            "magnitude": "strong",
+            "summary": "Much lower approval and escalation pressure."
+          },
+          {
+            "state_id": "coordination_load",
+            "label": "Internal handling load",
+            "baseline_value": 0.115,
+            "predicted_value": 0.285,
+            "delta": 0.17,
+            "effect": "worse",
+            "magnitude": "strong",
+            "summary": "Much higher internal handling load."
+          },
+          {
+            "state_id": "exposure",
+            "label": "Exposure risk",
+            "baseline_value": 0.149,
+            "predicted_value": 0.0,
+            "delta": -0.149,
+            "effect": "better",
+            "magnitude": "moderate",
+            "summary": "Moderately lower exposure risk."
+          },
+          {
+            "state_id": "execution_delay",
+            "label": "Execution delay",
+            "baseline_value": 0.08,
+            "predicted_value": 0.21,
+            "delta": 0.13,
+            "effect": "worse",
+            "magnitude": "moderate",
+            "summary": "Moderately higher execution delay."
+          },
+          {
+            "state_id": "trust",
+            "label": "Relationship stability",
+            "baseline_value": 0.784,
+            "predicted_value": 0.822,
+            "delta": 0.038,
+            "effect": "better",
+            "magnitude": "slight",
+            "summary": "Slightly stronger relationship stability."
+          },
+          {
+            "state_id": "deal_position",
+            "label": "Commercial position",
+            "baseline_value": 0.842,
+            "predicted_value": 0.857,
+            "delta": 0.015,
+            "effect": "flat",
+            "magnitude": "flat",
+            "summary": "Commercial position stays close to the historical path."
+          }
+        ],
+        "consequence_estimates": [
+          {
+            "consequence_id": "containment",
+            "label": "Containment",
+            "effect": "better",
+            "magnitude": "moderate",
+            "summary": "The thread looks safer to contain."
+          },
+          {
+            "consequence_id": "review_burden",
+            "label": "Handling burden",
+            "effect": "flat",
+            "magnitude": "flat",
+            "summary": "Handling burden stays close to the historical path."
+          },
+          {
+            "consequence_id": "execution_path",
+            "label": "Execution path",
+            "effect": "worse",
+            "magnitude": "moderate",
+            "summary": "Near-term execution looks slower."
+          },
+          {
+            "consequence_id": "commercial_position",
+            "label": "Commercial footing",
+            "effect": "flat",
+            "magnitude": "flat",
+            "summary": "Commercial footing stays close to the historical path."
+          }
+        ],
+        "tradeoffs": [
+          "Much higher internal handling load.",
+          "Moderately higher execution delay."
+        ],
+        "net_effect_score": 0.029
+      },
+      "public_summary": {
+        "action_label": "Narrow internal-only draft",
+        "branch_explanation": "Hold the draft in a very small internal loop.",
+        "actual_historical_action": "The resignation materials moved through a controlled executive communications loop.",
+        "recorded_future_event_count": 1,
+        "public_outcomes": [
+          {
+            "label": "Legal and regulatory exposure",
+            "baseline_value": 0.329,
+            "predicted_value": 0.165,
+            "delta": -0.164,
+            "effect": "better",
+            "summary": "improves"
+          },
+          {
+            "label": "Disclosure and stakeholder trust",
+            "baseline_value": 0.784,
+            "predicted_value": 0.822,
+            "delta": 0.038,
+            "effect": "better",
+            "summary": "improves"
+          },
+          {
+            "label": "Commercial damage",
+            "baseline_value": 0.158,
+            "predicted_value": 0.143,
+            "delta": -0.015,
+            "effect": "better",
+            "summary": "improves"
+          },
+          {
+            "label": "Internal execution drag",
+            "baseline_value": 0.098,
+            "predicted_value": 0.247,
+            "delta": 0.149,
+            "effect": "worse",
+            "summary": "worsens"
+          }
+        ],
+        "overall_rank": 1,
+        "short_explanation": "Much lower approval and escalation pressure. Trade-off: Much higher internal handling load.",
+        "public_score": 0.825
+      },
+      "rank": 1
+    },
+    {
+      "label": "Controlled transition message",
+      "prompt": "Keep the message disciplined and factual, coordinate the release through legal and communications, and avoid extra claims.",
+      "explanation": "Keep the message controlled and factual.",
+      "forecast": {
+        "backend": "heuristic_baseline",
+        "summary": "Predicted risk moves down by 0.180, with escalation delta -1 and external-send delta 0.",
+        "baseline_risk_score": 0.27,
+        "predicted_risk_score": 0.09,
+        "external_event_delta": 0,
+        "escalation_delta": -1,
+        "baseline_stock_return_5d": -0.14,
+        "predicted_stock_return_5d": -0.1,
+        "baseline_credit_action_30d": 0.0,
+        "predicted_credit_action_30d": 0.0,
+        "baseline_ferc_action_180d": null,
+        "predicted_ferc_action_180d": null
+      },
+      "business_state_change": {
+        "method": "heuristic_baseline_business_state_v1",
+        "confidence": "medium",
+        "summary": "Much lower approval and escalation pressure. Trade-off: Much higher internal handling load.",
+        "baseline": {
+          "exposure": 0.149,
+          "trust": 0.784,
+          "coordination_load": 0.115,
+          "execution_delay": 0.08,
+          "deal_position": 0.842,
+          "governance_pressure": 0.75
+        },
+        "predicted": {
+          "exposure": 0.05,
+          "trust": 0.8,
+          "coordination_load": 0.285,
+          "execution_delay": 0.21,
+          "deal_position": 0.835,
+          "governance_pressure": 0.55
+        },
+        "impacts": [
+          {
+            "state_id": "governance_pressure",
+            "label": "Approval and escalation pressure",
+            "baseline_value": 0.75,
+            "predicted_value": 0.55,
+            "delta": -0.2,
+            "effect": "better",
+            "magnitude": "strong",
+            "summary": "Much lower approval and escalation pressure."
+          },
+          {
+            "state_id": "coordination_load",
+            "label": "Internal handling load",
+            "baseline_value": 0.115,
+            "predicted_value": 0.285,
+            "delta": 0.17,
+            "effect": "worse",
+            "magnitude": "strong",
+            "summary": "Much higher internal handling load."
+          },
+          {
+            "state_id": "execution_delay",
+            "label": "Execution delay",
+            "baseline_value": 0.08,
+            "predicted_value": 0.21,
+            "delta": 0.13,
+            "effect": "worse",
+            "magnitude": "moderate",
+            "summary": "Moderately higher execution delay."
+          },
+          {
+            "state_id": "exposure",
+            "label": "Exposure risk",
+            "baseline_value": 0.149,
+            "predicted_value": 0.05,
+            "delta": -0.099,
+            "effect": "better",
+            "magnitude": "moderate",
+            "summary": "Moderately lower exposure risk."
+          },
+          {
+            "state_id": "trust",
+            "label": "Relationship stability",
+            "baseline_value": 0.784,
+            "predicted_value": 0.8,
+            "delta": 0.016,
+            "effect": "flat",
+            "magnitude": "flat",
+            "summary": "Relationship stability stays close to the historical path."
+          },
+          {
+            "state_id": "deal_position",
+            "label": "Commercial position",
+            "baseline_value": 0.842,
+            "predicted_value": 0.835,
+            "delta": -0.007,
+            "effect": "flat",
+            "magnitude": "flat",
+            "summary": "Commercial position stays close to the historical path."
+          }
+        ],
+        "consequence_estimates": [
+          {
+            "consequence_id": "containment",
+            "label": "Containment",
+            "effect": "better",
+            "magnitude": "moderate",
+            "summary": "The thread looks safer to contain."
+          },
+          {
+            "consequence_id": "review_burden",
+            "label": "Handling burden",
+            "effect": "flat",
+            "magnitude": "flat",
+            "summary": "Handling burden stays close to the historical path."
+          },
+          {
+            "consequence_id": "execution_path",
+            "label": "Execution path",
+            "effect": "worse",
+            "magnitude": "moderate",
+            "summary": "Near-term execution looks slower."
+          },
+          {
+            "consequence_id": "commercial_position",
+            "label": "Commercial footing",
+            "effect": "flat",
+            "magnitude": "flat",
+            "summary": "Commercial footing stays close to the historical path."
+          }
+        ],
+        "tradeoffs": [
+          "Much higher internal handling load.",
+          "Moderately higher execution delay."
+        ],
+        "net_effect_score": 0.005
+      },
+      "public_summary": {
+        "action_label": "Controlled transition message",
+        "branch_explanation": "Keep the message controlled and factual.",
+        "actual_historical_action": "The resignation materials moved through a controlled executive communications loop.",
+        "recorded_future_event_count": 1,
+        "public_outcomes": [
+          {
+            "label": "Legal and regulatory exposure",
+            "baseline_value": 0.329,
+            "predicted_value": 0.2,
+            "delta": -0.129,
+            "effect": "better",
+            "summary": "improves"
+          },
+          {
+            "label": "Disclosure and stakeholder trust",
+            "baseline_value": 0.784,
+            "predicted_value": 0.8,
+            "delta": 0.016,
+            "effect": "better",
+            "summary": "improves"
+          },
+          {
+            "label": "Commercial damage",
+            "baseline_value": 0.158,
+            "predicted_value": 0.165,
+            "delta": 0.007,
+            "effect": "worse",
+            "summary": "worsens"
+          },
+          {
+            "label": "Internal execution drag",
+            "baseline_value": 0.098,
+            "predicted_value": 0.247,
+            "delta": 0.149,
+            "effect": "worse",
+            "summary": "worsens"
+          }
+        ],
+        "overall_rank": 2,
+        "short_explanation": "Much lower approval and escalation pressure. Trade-off: Much higher internal handling load.",
+        "public_score": 0.802
+      },
+      "rank": 2
+    },
+    {
+      "label": "Candid transition materials",
+      "prompt": "Draft a candid transition message, keep the executive record aligned, and avoid aggressive reassurance language.",
+      "explanation": "Use a more candid transition explanation.",
+      "forecast": {
+        "backend": "heuristic_baseline",
+        "summary": "Predicted risk moves flat by 0.000, with escalation delta 0 and external-send delta 0.",
+        "baseline_risk_score": 0.27,
+        "predicted_risk_score": 0.27,
+        "external_event_delta": 0,
+        "escalation_delta": 0,
+        "baseline_stock_return_5d": -0.14,
+        "predicted_stock_return_5d": -0.14,
+        "baseline_credit_action_30d": 0.0,
+        "predicted_credit_action_30d": 0.0,
+        "baseline_ferc_action_180d": null,
+        "predicted_ferc_action_180d": null
+      },
+      "business_state_change": {
+        "method": "heuristic_baseline_business_state_v1",
+        "confidence": "medium",
+        "summary": "This move stays close to the historical business path.",
+        "baseline": {
+          "exposure": 0.149,
+          "trust": 0.784,
+          "coordination_load": 0.115,
+          "execution_delay": 0.08,
+          "deal_position": 0.842,
+          "governance_pressure": 0.75
+        },
+        "predicted": {
+          "exposure": 0.149,
+          "trust": 0.784,
+          "coordination_load": 0.115,
+          "execution_delay": 0.08,
+          "deal_position": 0.842,
+          "governance_pressure": 0.75
+        },
+        "impacts": [
+          {
+            "state_id": "exposure",
+            "label": "Exposure risk",
+            "baseline_value": 0.149,
+            "predicted_value": 0.149,
+            "delta": 0.0,
+            "effect": "flat",
+            "magnitude": "flat",
+            "summary": "Exposure risk stays close to the historical path."
+          },
+          {
+            "state_id": "deal_position",
+            "label": "Commercial position",
+            "baseline_value": 0.842,
+            "predicted_value": 0.842,
+            "delta": 0.0,
+            "effect": "flat",
+            "magnitude": "flat",
+            "summary": "Commercial position stays close to the historical path."
+          },
+          {
+            "state_id": "trust",
+            "label": "Relationship stability",
+            "baseline_value": 0.784,
+            "predicted_value": 0.784,
+            "delta": 0.0,
+            "effect": "flat",
+            "magnitude": "flat",
+            "summary": "Relationship stability stays close to the historical path."
+          },
+          {
+            "state_id": "execution_delay",
+            "label": "Execution delay",
+            "baseline_value": 0.08,
+            "predicted_value": 0.08,
+            "delta": 0.0,
+            "effect": "flat",
+            "magnitude": "flat",
+            "summary": "Execution delay stays close to the historical path."
+          },
+          {
+            "state_id": "coordination_load",
+            "label": "Internal handling load",
+            "baseline_value": 0.115,
+            "predicted_value": 0.115,
+            "delta": 0.0,
+            "effect": "flat",
+            "magnitude": "flat",
+            "summary": "Internal handling load stays close to the historical path."
+          },
+          {
+            "state_id": "governance_pressure",
+            "label": "Approval and escalation pressure",
+            "baseline_value": 0.75,
+            "predicted_value": 0.75,
+            "delta": 0.0,
+            "effect": "flat",
+            "magnitude": "flat",
+            "summary": "Approval and escalation pressure stays close to the historical path."
+          }
+        ],
+        "consequence_estimates": [
+          {
+            "consequence_id": "containment",
+            "label": "Containment",
+            "effect": "flat",
+            "magnitude": "flat",
+            "summary": "Containment stays close to the historical path."
+          },
+          {
+            "consequence_id": "review_burden",
+            "label": "Handling burden",
+            "effect": "flat",
+            "magnitude": "flat",
+            "summary": "Handling burden stays close to the historical path."
+          },
+          {
+            "consequence_id": "execution_path",
+            "label": "Execution path",
+            "effect": "flat",
+            "magnitude": "flat",
+            "summary": "Execution pace stays close to the historical path."
+          },
+          {
+            "consequence_id": "commercial_position",
+            "label": "Commercial footing",
+            "effect": "flat",
+            "magnitude": "flat",
+            "summary": "Commercial footing stays close to the historical path."
+          }
+        ],
+        "tradeoffs": [],
+        "net_effect_score": 0.0
+      },
+      "public_summary": {
+        "action_label": "Candid transition materials",
+        "branch_explanation": "Use a more candid transition explanation.",
+        "actual_historical_action": "The resignation materials moved through a controlled executive communications loop.",
+        "recorded_future_event_count": 1,
+        "public_outcomes": [
+          {
+            "label": "Legal and regulatory exposure",
+            "baseline_value": 0.329,
+            "predicted_value": 0.329,
+            "delta": 0.0,
+            "effect": "flat",
+            "summary": "stays flat"
+          },
+          {
+            "label": "Disclosure and stakeholder trust",
+            "baseline_value": 0.784,
+            "predicted_value": 0.784,
+            "delta": 0.0,
+            "effect": "flat",
+            "summary": "stays flat"
+          },
+          {
+            "label": "Commercial damage",
+            "baseline_value": 0.158,
+            "predicted_value": 0.158,
+            "delta": 0.0,
+            "effect": "flat",
+            "summary": "stays flat"
+          },
+          {
+            "label": "Internal execution drag",
+            "baseline_value": 0.098,
+            "predicted_value": 0.098,
+            "delta": 0.0,
+            "effect": "flat",
+            "summary": "stays flat"
+          }
+        ],
+        "overall_rank": 3,
+        "short_explanation": "This move stays close to the historical business path.",
+        "public_score": 0.777
+      },
+      "rank": 3
+    },
+    {
+      "label": "Aggressive reassurance messaging",
+      "prompt": "Push a strong reassurance-heavy transition message quickly, emphasize stability, and downplay uncertainty around the change.",
+      "explanation": "Lean hard on reassurance and stability.",
+      "forecast": {
+        "backend": "heuristic_baseline",
+        "summary": "Predicted risk moves flat by 0.000, with escalation delta 0 and external-send delta 0.",
+        "baseline_risk_score": 0.27,
+        "predicted_risk_score": 0.27,
+        "external_event_delta": 0,
+        "escalation_delta": 0,
+        "baseline_stock_return_5d": -0.14,
+        "predicted_stock_return_5d": -0.14,
+        "baseline_credit_action_30d": 0.0,
+        "predicted_credit_action_30d": 0.0,
+        "baseline_ferc_action_180d": null,
+        "predicted_ferc_action_180d": null
+      },
+      "business_state_change": {
+        "method": "heuristic_baseline_business_state_v1",
+        "confidence": "medium",
+        "summary": "This move stays close to the historical business path.",
+        "baseline": {
+          "exposure": 0.149,
+          "trust": 0.784,
+          "coordination_load": 0.115,
+          "execution_delay": 0.08,
+          "deal_position": 0.842,
+          "governance_pressure": 0.75
+        },
+        "predicted": {
+          "exposure": 0.149,
+          "trust": 0.784,
+          "coordination_load": 0.115,
+          "execution_delay": 0.08,
+          "deal_position": 0.842,
+          "governance_pressure": 0.75
+        },
+        "impacts": [
+          {
+            "state_id": "exposure",
+            "label": "Exposure risk",
+            "baseline_value": 0.149,
+            "predicted_value": 0.149,
+            "delta": 0.0,
+            "effect": "flat",
+            "magnitude": "flat",
+            "summary": "Exposure risk stays close to the historical path."
+          },
+          {
+            "state_id": "deal_position",
+            "label": "Commercial position",
+            "baseline_value": 0.842,
+            "predicted_value": 0.842,
+            "delta": 0.0,
+            "effect": "flat",
+            "magnitude": "flat",
+            "summary": "Commercial position stays close to the historical path."
+          },
+          {
+            "state_id": "trust",
+            "label": "Relationship stability",
+            "baseline_value": 0.784,
+            "predicted_value": 0.784,
+            "delta": 0.0,
+            "effect": "flat",
+            "magnitude": "flat",
+            "summary": "Relationship stability stays close to the historical path."
+          },
+          {
+            "state_id": "execution_delay",
+            "label": "Execution delay",
+            "baseline_value": 0.08,
+            "predicted_value": 0.08,
+            "delta": 0.0,
+            "effect": "flat",
+            "magnitude": "flat",
+            "summary": "Execution delay stays close to the historical path."
+          },
+          {
+            "state_id": "coordination_load",
+            "label": "Internal handling load",
+            "baseline_value": 0.115,
+            "predicted_value": 0.115,
+            "delta": 0.0,
+            "effect": "flat",
+            "magnitude": "flat",
+            "summary": "Internal handling load stays close to the historical path."
+          },
+          {
+            "state_id": "governance_pressure",
+            "label": "Approval and escalation pressure",
+            "baseline_value": 0.75,
+            "predicted_value": 0.75,
+            "delta": 0.0,
+            "effect": "flat",
+            "magnitude": "flat",
+            "summary": "Approval and escalation pressure stays close to the historical path."
+          }
+        ],
+        "consequence_estimates": [
+          {
+            "consequence_id": "containment",
+            "label": "Containment",
+            "effect": "flat",
+            "magnitude": "flat",
+            "summary": "Containment stays close to the historical path."
+          },
+          {
+            "consequence_id": "review_burden",
+            "label": "Handling burden",
+            "effect": "flat",
+            "magnitude": "flat",
+            "summary": "Handling burden stays close to the historical path."
+          },
+          {
+            "consequence_id": "execution_path",
+            "label": "Execution path",
+            "effect": "flat",
+            "magnitude": "flat",
+            "summary": "Execution pace stays close to the historical path."
+          },
+          {
+            "consequence_id": "commercial_position",
+            "label": "Commercial footing",
+            "effect": "flat",
+            "magnitude": "flat",
+            "summary": "Commercial footing stays close to the historical path."
+          }
+        ],
+        "tradeoffs": [],
+        "net_effect_score": 0.0
+      },
+      "public_summary": {
+        "action_label": "Aggressive reassurance messaging",
+        "branch_explanation": "Lean hard on reassurance and stability.",
+        "actual_historical_action": "The resignation materials moved through a controlled executive communications loop.",
+        "recorded_future_event_count": 1,
+        "public_outcomes": [
+          {
+            "label": "Legal and regulatory exposure",
+            "baseline_value": 0.329,
+            "predicted_value": 0.329,
+            "delta": 0.0,
+            "effect": "flat",
+            "summary": "stays flat"
+          },
+          {
+            "label": "Disclosure and stakeholder trust",
+            "baseline_value": 0.784,
+            "predicted_value": 0.784,
+            "delta": 0.0,
+            "effect": "flat",
+            "summary": "stays flat"
+          },
+          {
+            "label": "Commercial damage",
+            "baseline_value": 0.158,
+            "predicted_value": 0.158,
+            "delta": 0.0,
+            "effect": "flat",
+            "summary": "stays flat"
+          },
+          {
+            "label": "Internal execution drag",
+            "baseline_value": 0.098,
+            "predicted_value": 0.098,
+            "delta": 0.0,
+            "effect": "flat",
+            "summary": "stays flat"
+          }
+        ],
+        "overall_rank": 4,
+        "short_explanation": "This move stays close to the historical business path.",
+        "public_score": 0.777
+      },
+      "rank": 4
+    }
+  ],
+  "public_summary": {
+    "bundle_role": "narrative",
+    "branch_point": "The company is drafting materials around Jeff Skilling's resignation and has to decide how candid, controlled, or aggressively reassuring the message should be.",
+    "actual_happened": "The resignation materials moved through a controlled executive communications loop.",
+    "actions_we_can_take": [
+      {
+        "label": "Narrow internal-only draft",
+        "branch_explanation": "Hold the draft in a very small internal loop."
+      },
+      {
+        "label": "Controlled transition message",
+        "branch_explanation": "Keep the message controlled and factual."
+      },
+      {
+        "label": "Candid transition materials",
+        "branch_explanation": "Use a more candid transition explanation."
+      },
+      {
+        "label": "Aggressive reassurance messaging",
+        "branch_explanation": "Lean hard on reassurance and stability."
+      }
+    ],
+    "predicted_effect_summary": "Much lower approval and escalation pressure. Trade-off: Much higher internal handling load.",
+    "recorded_future_event_count": 1,
+    "candidates": [
+      {
+        "action_label": "Narrow internal-only draft",
+        "branch_explanation": "Hold the draft in a very small internal loop.",
+        "actual_historical_action": "The resignation materials moved through a controlled executive communications loop.",
+        "recorded_future_event_count": 1,
+        "public_outcomes": [
+          {
+            "label": "Legal and regulatory exposure",
+            "baseline_value": 0.329,
+            "predicted_value": 0.165,
+            "delta": -0.164,
+            "effect": "better",
+            "summary": "improves"
+          },
+          {
+            "label": "Disclosure and stakeholder trust",
+            "baseline_value": 0.784,
+            "predicted_value": 0.822,
+            "delta": 0.038,
+            "effect": "better",
+            "summary": "improves"
+          },
+          {
+            "label": "Commercial damage",
+            "baseline_value": 0.158,
+            "predicted_value": 0.143,
+            "delta": -0.015,
+            "effect": "better",
+            "summary": "improves"
+          },
+          {
+            "label": "Internal execution drag",
+            "baseline_value": 0.098,
+            "predicted_value": 0.247,
+            "delta": 0.149,
+            "effect": "worse",
+            "summary": "worsens"
+          }
+        ],
+        "overall_rank": 1,
+        "short_explanation": "Much lower approval and escalation pressure. Trade-off: Much higher internal handling load.",
+        "public_score": 0.825
+      },
+      {
+        "action_label": "Controlled transition message",
+        "branch_explanation": "Keep the message controlled and factual.",
+        "actual_historical_action": "The resignation materials moved through a controlled executive communications loop.",
+        "recorded_future_event_count": 1,
+        "public_outcomes": [
+          {
+            "label": "Legal and regulatory exposure",
+            "baseline_value": 0.329,
+            "predicted_value": 0.2,
+            "delta": -0.129,
+            "effect": "better",
+            "summary": "improves"
+          },
+          {
+            "label": "Disclosure and stakeholder trust",
+            "baseline_value": 0.784,
+            "predicted_value": 0.8,
+            "delta": 0.016,
+            "effect": "better",
+            "summary": "improves"
+          },
+          {
+            "label": "Commercial damage",
+            "baseline_value": 0.158,
+            "predicted_value": 0.165,
+            "delta": 0.007,
+            "effect": "worse",
+            "summary": "worsens"
+          },
+          {
+            "label": "Internal execution drag",
+            "baseline_value": 0.098,
+            "predicted_value": 0.247,
+            "delta": 0.149,
+            "effect": "worse",
+            "summary": "worsens"
+          }
+        ],
+        "overall_rank": 2,
+        "short_explanation": "Much lower approval and escalation pressure. Trade-off: Much higher internal handling load.",
+        "public_score": 0.802
+      },
+      {
+        "action_label": "Candid transition materials",
+        "branch_explanation": "Use a more candid transition explanation.",
+        "actual_historical_action": "The resignation materials moved through a controlled executive communications loop.",
+        "recorded_future_event_count": 1,
+        "public_outcomes": [
+          {
+            "label": "Legal and regulatory exposure",
+            "baseline_value": 0.329,
+            "predicted_value": 0.329,
+            "delta": 0.0,
+            "effect": "flat",
+            "summary": "stays flat"
+          },
+          {
+            "label": "Disclosure and stakeholder trust",
+            "baseline_value": 0.784,
+            "predicted_value": 0.784,
+            "delta": 0.0,
+            "effect": "flat",
+            "summary": "stays flat"
+          },
+          {
+            "label": "Commercial damage",
+            "baseline_value": 0.158,
+            "predicted_value": 0.158,
+            "delta": 0.0,
+            "effect": "flat",
+            "summary": "stays flat"
+          },
+          {
+            "label": "Internal execution drag",
+            "baseline_value": 0.098,
+            "predicted_value": 0.098,
+            "delta": 0.0,
+            "effect": "flat",
+            "summary": "stays flat"
+          }
+        ],
+        "overall_rank": 3,
+        "short_explanation": "This move stays close to the historical business path.",
+        "public_score": 0.777
+      },
+      {
+        "action_label": "Aggressive reassurance messaging",
+        "branch_explanation": "Lean hard on reassurance and stability.",
+        "actual_historical_action": "The resignation materials moved through a controlled executive communications loop.",
+        "recorded_future_event_count": 1,
+        "public_outcomes": [
+          {
+            "label": "Legal and regulatory exposure",
+            "baseline_value": 0.329,
+            "predicted_value": 0.329,
+            "delta": 0.0,
+            "effect": "flat",
+            "summary": "stays flat"
+          },
+          {
+            "label": "Disclosure and stakeholder trust",
+            "baseline_value": 0.784,
+            "predicted_value": 0.784,
+            "delta": 0.0,
+            "effect": "flat",
+            "summary": "stays flat"
+          },
+          {
+            "label": "Commercial damage",
+            "baseline_value": 0.158,
+            "predicted_value": 0.158,
+            "delta": 0.0,
+            "effect": "flat",
+            "summary": "stays flat"
+          },
+          {
+            "label": "Internal execution drag",
+            "baseline_value": 0.098,
+            "predicted_value": 0.098,
+            "delta": 0.0,
+            "effect": "flat",
+            "summary": "stays flat"
+          }
+        ],
+        "overall_rank": 4,
+        "short_explanation": "This move stays close to the historical business path.",
+        "public_score": 0.777
+      }
+    ]
+  }
+}

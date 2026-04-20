@@ -1,9 +1,9 @@
 {
   "version": "2",
   "mode": "both",
-  "label": "master_agreement_saved_bundle_20260417",
+  "label": "master_agreement_saved_bundle_20260419",
   "intervention": {
-    "label": "master_agreement_saved_bundle_20260417",
+    "label": "master_agreement_saved_bundle_20260419",
     "prompt": "Keep the draft inside Enron, ask Gerald Nemec and Sara Shackleton for review, and hold the outside send.",
     "objective": "Messages with attachment references to outside recipients are held for review.",
     "scenario_id": "external_dlp",

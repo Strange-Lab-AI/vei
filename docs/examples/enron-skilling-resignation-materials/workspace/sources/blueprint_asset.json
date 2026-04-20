@@ -1,0 +1,260 @@
+{
+  "name": "enron_corporation.customer_twin.blueprint",
+  "title": "Enron Corporation",
+  "description": "Customer-shaped twin for Enron Corporation",
+  "scenario_name": "enterprise_renewal_risk",
+  "family_name": "b2b_saas",
+  "workflow_name": "b2b_saas",
+  "workflow_variant": "enterprise_renewal_risk",
+  "workflow_parameters": {},
+  "requested_facades": [
+    "identity",
+    "mail"
+  ],
+  "surface_fidelity": {},
+  "capability_graphs": {
+    "organization_name": "Enron Corporation",
+    "organization_domain": "enron.com",
+    "timezone": "America/New_York",
+    "scenario_brief": "A $480K enterprise renewal is at risk. The product champion left, a breaking API change hit the customer's pipeline, and the new decision-maker is evaluating a competitor.",
+    "comm_graph": {
+      "slack_initial_message": "Apex renewal war room is live.",
+      "slack_channels": [],
+      "mail_threads": [
+        {
+          "thread_id": "thr_d5715810ccdf7655",
+          "title": "Latest drafts of communications materials",
+          "category": "historical",
+          "messages": [
+            {
+              "from_address": ".palmer@enron.com",
+              "to_address": "j..kean@enron.com",
+              "subject": "Latest drafts of communications materials",
+              "body_text": "[Historical email excerpt]\nMark\n\n[Excerpt limited by source data. Original body may be longer.]\n\nEvent type: escalation\nEscalation detected in source metadata.",
+              "unread": false,
+              "time_ms": 997803924000
+            },
+            {
+              "from_address": ".palmer@enron.com",
+              "to_address": "j..kean@enron.com",
+              "subject": "Latest drafts of communications materials",
+              "body_text": "[Historical email excerpt]\nMark\n\n[Excerpt limited by source data. Original body may be longer.]\n\nEvent type: escalation\nEscalation detected in source metadata.",
+              "unread": false,
+              "time_ms": 997803924000
+            }
+          ]
+        }
+      ],
+      "metadata": {}
+    },
+    "doc_graph": null,
+    "work_graph": null,
+    "identity_graph": {
+      "users": [
+        {
+          "user_id": ".palmer@enron.com",
+          "email": ".palmer@enron.com",
+          "first_name": "Palmer",
+          "last_name": "Actor",
+          "login": ".palmer@enron.com",
+          "display_name": "Palmer",
+          "status": "ACTIVE",
+          "department": null,
+          "title": null,
+          "manager": null,
+          "groups": [],
+          "applications": [],
+          "factors": [],
+          "last_login_ms": null
+        },
+        {
+          "user_id": "group:3ed995e9d11be79b",
+          "email": "group:3ed995e9d11be79b",
+          "first_name": "Group:3ed995e9d11be79b",
+          "last_name": "Actor",
+          "login": "group:3ed995e9d11be79b",
+          "display_name": "Group:3ed995e9d11be79b",
+          "status": "ACTIVE",
+          "department": null,
+          "title": null,
+          "manager": null,
+          "groups": [],
+          "applications": [],
+          "factors": [],
+          "last_login_ms": null
+        }
+      ],
+      "groups": [],
+      "applications": [],
+      "hris_employees": [],
+      "policies": [],
+      "metadata": {}
+    },
+    "revenue_graph": null,
+    "knowledge_graph": null,
+    "ops_graph": null,
+    "property_graph": null,
+    "campaign_graph": null,
+    "inventory_graph": null,
+    "metadata": {
+      "vertical": "b2b_saas",
+      "what_if_branches": [
+        "Fix the integration and rebuild trust before the renewal conversation",
+        "Lead with the discount and hope the product issues don't kill the deal"
+      ],
+      "customer_twin_capture": true,
+      "source_providers": [
+        "mail_archive"
+      ],
+      "customer_twin_mold": {
+        "density_level": "medium",
+        "named_team_expansion": "minimal",
+        "crisis_family": null,
+        "redaction_mode": "preserve",
+        "synthetic_expansion_strength": "light",
+        "included_surfaces": [
+          "mail",
+          "identity"
+        ]
+      }
+    }
+  },
+  "environment": {
+    "organization_name": "Enron Corporation",
+    "organization_domain": "enron.com",
+    "timezone": "America/New_York",
+    "scenario_brief": "A $480K enterprise renewal is at risk. The product champion left, a breaking API change hit the customer's pipeline, and the new decision-maker is evaluating a competitor.",
+    "slack_initial_message": null,
+    "slack_channels": [],
+    "mail_threads": [
+      {
+        "thread_id": "thr_d5715810ccdf7655",
+        "title": "Latest drafts of communications materials",
+        "category": "historical",
+        "messages": [
+          {
+            "from_address": ".palmer@enron.com",
+            "to_address": "j..kean@enron.com",
+            "subject": "Latest drafts of communications materials",
+            "body_text": "[Historical email excerpt]\nMark\n\n[Excerpt limited by source data. Original body may be longer.]\n\nEvent type: escalation\nEscalation detected in source metadata.",
+            "unread": false,
+            "time_ms": 997803924000
+          },
+          {
+            "from_address": ".palmer@enron.com",
+            "to_address": "j..kean@enron.com",
+            "subject": "Latest drafts of communications materials",
+            "body_text": "[Historical email excerpt]\nMark\n\n[Excerpt limited by source data. Original body may be longer.]\n\nEvent type: escalation\nEscalation detected in source metadata.",
+            "unread": false,
+            "time_ms": 997803924000
+          }
+        ]
+      }
+    ],
+    "documents": [],
+    "tickets": [],
+    "identity_users": [
+      {
+        "user_id": ".palmer@enron.com",
+        "email": ".palmer@enron.com",
+        "first_name": "Palmer",
+        "last_name": "Actor",
+        "login": ".palmer@enron.com",
+        "display_name": "Palmer",
+        "status": "ACTIVE",
+        "department": null,
+        "title": null,
+        "manager": null,
+        "groups": [],
+        "applications": [],
+        "factors": [],
+        "last_login_ms": null
+      },
+      {
+        "user_id": "group:3ed995e9d11be79b",
+        "email": "group:3ed995e9d11be79b",
+        "first_name": "Group:3ed995e9d11be79b",
+        "last_name": "Actor",
+        "login": "group:3ed995e9d11be79b",
+        "display_name": "Group:3ed995e9d11be79b",
+        "status": "ACTIVE",
+        "department": null,
+        "title": null,
+        "manager": null,
+        "groups": [],
+        "applications": [],
+        "factors": [],
+        "last_login_ms": null
+      }
+    ],
+    "identity_groups": [],
+    "identity_applications": [],
+    "service_requests": [],
+    "google_drive_shares": [],
+    "hris_employees": [],
+    "crm_companies": [],
+    "crm_contacts": [],
+    "crm_deals": [],
+    "metadata": {
+      "vertical": "b2b_saas",
+      "what_if_branches": [
+        "Fix the integration and rebuild trust before the renewal conversation",
+        "Lead with the discount and hope the product issues don't kill the deal"
+      ],
+      "customer_twin_capture": true,
+      "source_providers": [
+        "mail_archive"
+      ],
+      "customer_twin_mold": {
+        "density_level": "medium",
+        "named_team_expansion": "minimal",
+        "crisis_family": null,
+        "redaction_mode": "preserve",
+        "synthetic_expansion_strength": "light",
+        "included_surfaces": [
+          "mail",
+          "identity"
+        ]
+      },
+      "strict_empty_slack": true,
+      "mail_archive_view": true,
+      "mail_archive_mailbox": "j..kean@enron.com"
+    }
+  },
+  "metadata": {
+    "vertical": "b2b_saas",
+    "customer_twin": {
+      "organization_name": "Enron Corporation",
+      "organization_domain": "enron.com",
+      "mold": {
+        "archetype": "b2b_saas",
+        "expansion_level": "medium",
+        "density_level": "medium",
+        "named_team_expansion": "minimal",
+        "crisis_family": null,
+        "included_surfaces": [
+          "mail",
+          "identity"
+        ],
+        "redaction_mode": "preserve",
+        "synthetic_expansion_strength": "light",
+        "scenario_variant": null,
+        "contract_variant": null
+      },
+      "source_providers": [
+        "mail_archive"
+      ]
+    },
+    "customer_twin_mold": {
+      "density_level": "medium",
+      "named_team_expansion": "minimal",
+      "crisis_family": null,
+      "redaction_mode": "preserve",
+      "synthetic_expansion_strength": "light",
+      "included_surfaces": [
+        "mail",
+        "identity"
+      ]
+    }
+  }
+}

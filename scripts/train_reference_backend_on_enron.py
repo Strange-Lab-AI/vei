@@ -7,7 +7,12 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from vei.whatif.api import build_branch_point_benchmark, load_world, resolve_whatif_rosetta_dir
+from vei.whatif._enron_dataset import require_full_enron_rosetta_dir
+from vei.whatif.api import (
+    build_branch_point_benchmark,
+    load_world,
+    resolve_whatif_rosetta_dir,
+)
 
 DEFAULT_OUTPUT_ROOT = Path("data/enron/reference_backend")
 DEFAULT_BENCHMARK_ROOT = Path("_vei_out/reference_backend_enron_benchmark")
@@ -22,13 +27,20 @@ SHIPPED_REFERENCE_FILES = {
 
 def _resolve_rosetta_dir(value: str | None) -> Path:
     if value:
-        return Path(value).expanduser().resolve()
+        return require_full_enron_rosetta_dir(
+            Path(value).expanduser().resolve(),
+            purpose="reference backend training",
+        )
     resolved = resolve_whatif_rosetta_dir(Path.cwd())
     if resolved is None:
         raise RuntimeError(
-            "No Enron Rosetta archive found. Set VEI_WHATIF_ROSETTA_DIR or pass --rosetta-dir."
+            "No Enron Rosetta dataset found. Run `make fetch-enron-full`, "
+            "set VEI_WHATIF_ROSETTA_DIR, or pass --rosetta-dir."
         )
-    return resolved
+    return require_full_enron_rosetta_dir(
+        resolved,
+        purpose="reference backend training",
+    )
 
 
 def _run_bridge_command(

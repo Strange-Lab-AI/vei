@@ -4,9 +4,10 @@
   "title": "Enron Watkins Follow-up Example",
   "organization_name": "Enron Corporation",
   "source_mode": "real_history",
-  "benchmark_role": "headline",
-  "lead": "This example uses the October 30 follow-up note that is actually in the archive. The original August 22 Watkins memo is not present in this Rosetta cut, so the saved branch starts from the later note that restates the questions she says she raised to Ken Lay.",
-  "branch_point": "Sherron Watkins is writing a follow-up note that preserves her account of the questions she says she raised to Ken Lay on August 22, while the company is already in the public disclosure spiral.",
+  "benchmark_role": "narrative",
+  "lead": "This is the main narrative governance case. It is the strongest moral fork in the set, even though it has a thinner recorded downstream tail than Master Agreement.",
+  "branch_point": "Sherron Watkins is writing a follow-up note that preserves her account of the questions she says she raised to Ken Lay on August 22, 2001.",
+  "actual_happened": "The follow-up note became a narrow internal preserved record during the wider disclosure spiral.",
   "branch_timestamp": "2001-10-30",
   "history_event_count": 36,
   "future_event_count": 1,
@@ -24,7 +25,8 @@
     "obs_graph"
   ],
   "forecast_file": "whatif_reference_result.json",
-  "top_candidate": "Send the warning anonymously",
+  "public_objective_pack_id": "protect_company_default",
+  "top_candidate": "Suppress and monitor",
   "workspace_root": "/Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/docs/examples/enron-watkins-follow-up/workspace",
   "ui_command": "vei ui serve \\\n  --root /Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/docs/examples/enron-watkins-follow-up/workspace \\\n  --host 127.0.0.1 \\\n  --port 3055",
   "files": {

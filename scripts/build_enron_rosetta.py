@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build repo-local Rosetta artifacts from the vendored Enron source data."""
+"""Build full Rosetta artifacts from the fetched Enron source data."""
 
 from __future__ import annotations
 
@@ -17,6 +17,8 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
+
+from vei.whatif._enron_dataset import load_enron_full_dataset_release
 
 HF_PARQUET_URLS = [
     "https://huggingface.co/datasets/corbt/enron-emails/resolve/main/data/train-00000-of-00003.parquet",
@@ -62,17 +64,18 @@ STATE_MAP = {
 
 
 def parse_args() -> argparse.Namespace:
+    release = load_enron_full_dataset_release()
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--source-cache",
         type=Path,
-        default=Path("data/enron/source/enron_rosetta_source.parquet"),
+        default=release.resolved_source_dir / "enron_rosetta_source.parquet",
         help="Local source cache with recipient metadata + body snippet.",
     )
     parser.add_argument(
         "--output-dir",
         type=Path,
-        default=Path("data/enron/rosetta"),
+        default=release.resolved_rosetta_dir,
         help="Output directory for Rosetta artifacts.",
     )
     parser.add_argument("--start-year", type=int, default=1997)
@@ -108,7 +111,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--local-tar-path",
         type=Path,
-        default=Path("data/enron/raw/enron_mail_20150507.tar.gz"),
+        default=release.resolved_raw_dir / "enron_mail_20150507.tar.gz",
         help="Local Enron tarball fallback when remote source is unavailable.",
     )
     parser.add_argument(

@@ -73,11 +73,17 @@ Public-company facts live beside the bundle in `whatif_public_context.json` when
 
 ## Walk Through The Enron Case
 
-The repo now ships the whole Enron what-if chain under `data/enron/` and `docs/examples/`. That includes the raw mail tar, the normalized source parquet, the repo-local Rosetta parquet archive, the public-company context fixtures, the curated public-record timeline fixture, and four saved Studio bundles.
+The repo now ships the Enron what-if surface in two parts. The checkout carries a small checked-in Rosetta sample under `data/enron/rosetta/`, the public-company fixtures, the curated public-record fixture, and eight saved Studio bundles under `docs/examples/`. The full Enron archive is an optional download fetched with `make fetch-enron-full`.
 
 The repo-owned Enron public context now carries 11 dated financial checkpoints, 21 dated public news events, 986 daily stock rows, 7 credit events, and 1 FERC timeline event across 24 archived public source files. The saved Enron workspaces now also carry a richer branch-local timeline that blends mail with dated filings, disclosures, hearings, exhibits, and market records through the same canonical ledger.
 
-Verify the vendored archive before you start:
+Fetch the full archive when you want full-data search, training, or archive validation:
+
+```bash
+make fetch-enron-full
+```
+
+Verify that full archive after it is fetched:
 
 ```bash
 python scripts/check_rosetta_archive.py
@@ -126,14 +132,23 @@ The ranked comparison turns the same branch into a business choice. `Hold for in
 
 ![Ranked business comparison of three candidate moves scored against the recorded future](docs/assets/enron-whatif/enron-ranked-comparison.png)
 
-The repo now ships four saved Enron examples. Each one now carries at least 30 prior canonical events and at least three real source families in the saved timeline:
+The repo now ships eight saved Enron examples. Each one carries at least 30 prior canonical events and at least three real source families in the saved timeline.
 
-- `enron-master-agreement-public-context`: procedural legal review inside the wider company arc
-- `enron-watkins-follow-up`: the October 30 Watkins follow-up note that restates the questions she says she raised to Lay
-- `enron-california-crisis-strategy`: California trading conduct inside the refund and FERC timeline
-- `enron-pge-power-deal`: commercial legal handling against counterparty deterioration
+Proof examples:
 
-The repo-owned Enron data chain is documented in [docs/ROSETTA_SOURCE.md](docs/ROSETTA_SOURCE.md).
+- `enron-master-agreement-public-context`: contract control with a long visible downstream tail
+- `enron-pge-power-deal`: commercial judgment under counterparty deterioration
+- `enron-california-crisis-strategy`: regulatory and trading pressure under a preservation order
+- `enron-baxter-press-release`: public communications under executive shock
+- `enron-braveheart-forward`: accounting and structure review inside a finance loop
+
+Narrative examples:
+
+- `enron-watkins-follow-up`: the strongest governance fork, with a thinner recorded tail
+- `enron-q3-disclosure-review`: disclosure choices inside the October 2001 crisis
+- `enron-skilling-resignation-materials`: executive messaging and trust under leadership change
+
+The repo-owned Enron data chain is documented in [docs/ENRON_DATASET.md](docs/ENRON_DATASET.md), [docs/ROSETTA_SOURCE.md](docs/ROSETTA_SOURCE.md), and [docs/ENRON_CASEBOOK.md](docs/ENRON_CASEBOOK.md).
 
 Train the repo-local reference backend when you want the Enron path to use the learned forecast by default:
 

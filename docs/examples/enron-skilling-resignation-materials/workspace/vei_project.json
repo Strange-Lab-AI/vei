@@ -1,0 +1,81 @@
+{
+  "version": "1",
+  "name": "b2b_saas",
+  "title": "Enron Corporation",
+  "description": "Customer-shaped b2b saas twin for Enron Corporation",
+  "created_at": "2026-04-20T00:16:17+00:00",
+  "source_kind": "vertical",
+  "source_ref": "b2b_saas",
+  "blueprint_asset_path": "sources/blueprint_asset.json",
+  "grounding_bundle_path": null,
+  "imports_dir": "imports",
+  "import_package_path": null,
+  "normalization_report_path": null,
+  "provenance_path": null,
+  "redaction_report_path": null,
+  "generated_scenarios_path": null,
+  "source_registry_path": "imports/source_registry.json",
+  "source_sync_history_path": "imports/source_sync_history.json",
+  "compiled_root": "compiled",
+  "scenarios_dir": "scenarios",
+  "contracts_dir": "contracts",
+  "runs_dir": "runs",
+  "runs_index_path": "runs/index.json",
+  "active_scenario": "default",
+  "scenarios": [
+    {
+      "name": "default",
+      "title": "Pinnacle Analytics",
+      "description": "Enterprise SaaS renewal at risk with integration failure, champion departure, and competitive displacement pressure.",
+      "scenario_name": "enterprise_renewal_risk",
+      "workflow_name": "b2b_saas",
+      "workflow_variant": "enterprise_renewal_risk",
+      "workflow_parameters": {},
+      "contract_path": "contracts/default.contract.json",
+      "inspection_focus": "summary",
+      "tags": [],
+      "hidden_faults": {},
+      "actor_hints": [],
+      "contract_overrides": {},
+      "metadata": {
+        "source_kind": "vertical",
+        "source_ref": "b2b_saas",
+        "builder_environment": {
+          "vertical": "b2b_saas",
+          "what_if_branches": [
+            "Fix the integration and rebuild trust before the renewal conversation",
+            "Lead with the discount and hope the product issues don't kill the deal"
+          ]
+        }
+      }
+    }
+  ],
+  "metadata": {
+    "customer_twin": {
+      "organization_name": "Enron Corporation",
+      "organization_domain": "enron.com",
+      "mold": {
+        "archetype": "b2b_saas",
+        "expansion_level": "medium",
+        "density_level": "medium",
+        "named_team_expansion": "minimal",
+        "crisis_family": null,
+        "included_surfaces": [
+          "mail",
+          "identity"
+        ],
+        "redaction_mode": "preserve",
+        "synthetic_expansion_strength": "light",
+        "scenario_variant": null,
+        "contract_variant": null
+      }
+    },
+    "governor": {
+      "connector_mode": "sim",
+      "demo_mode": false,
+      "autoplay": false,
+      "demo_interval_ms": 1500,
+      "hero_world": "b2b_saas"
+    }
+  }
+}

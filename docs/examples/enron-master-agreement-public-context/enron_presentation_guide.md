@@ -8,7 +8,7 @@ Open a real Enron branch with the mail thread, the dated public-company timeline
 
 ## Demo Goal
 
-Show that the Enron flagship is a real-history, multi-source what-if bundle on the shared canonical timeline.
+Show one real-history Enron branch on the shared canonical timeline with the saved forecast, the ranked actions, and the thicker company context.
 
 ## Walkthrough Flow
 
@@ -34,7 +34,7 @@ Show that the Enron flagship is a real-history, multi-source what-if bundle on t
 
 - Studio view: `whatif`
 - Operator action: Open the ranked comparison and call out the current top candidate.
-- Read it as: The current saved winner is Hold for internal review.
+- Read it as: The current saved winner is Internal legal review.
 
 ### Step 5 · Show the learned forecast
 
@@ -56,7 +56,7 @@ Show that the Enron flagship is a real-history, multi-source what-if bundle on t
 
 ## Closing Argument
 
-Enron is the real-history flagship because the bundle now opens as one coherent branch scene with the chronology, the learned forecast, and the dated public context already attached.
+This bundle works as a complete Enron branch case because the branch, the lead-up timeline, the ranked alternatives, and the saved forecast all live on one surface.
 
 ## Operator Commands
 

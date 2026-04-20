@@ -1,9 +1,9 @@
 {
   "version": "2",
   "mode": "both",
-  "label": "pg_e_power_deal_saved_bundle_20260417",
+  "label": "pg_e_power_deal_saved_bundle_20260419",
   "intervention": {
-    "label": "pg_e_power_deal_saved_bundle_20260417",
+    "label": "pg_e_power_deal_saved_bundle_20260419",
     "prompt": "Hold the deal until PG&E credit is rechecked, ask for collateral, and keep legal and credit on one internal review loop.",
     "objective": "Threads touching both legal and trading signals require review before forwarding or escalation.",
     "scenario_id": "compliance_gateway",

@@ -1,0 +1,105 @@
+{
+  "metadata": {
+    "name": "whatif-baseline-thr_76b3a6fa85ec2f54",
+    "description": "Historical future events scheduled after the branch point.",
+    "tags": [
+      "whatif",
+      "baseline",
+      "historical"
+    ],
+    "source": "enron_rosetta",
+    "transform_hash": null
+  },
+  "events": [
+    {
+      "time_ms": 1,
+      "actor_id": "karen.denne@enron.com",
+      "channel": "mail",
+      "type": "escalation",
+      "correlation_id": "thr_76b3a6fa85ec2f54",
+      "payload": {
+        "from": "karen.denne@enron.com",
+        "to": "cliff.baxter@enron.com",
+        "subj": "Baxter Press Release",
+        "body_text": "[Historical email excerpt]\nThank you.\nKaren\n\n[Excerpt limited by source data. Original body may be longer.]\n\nEvent type: escalation\nEscalation detected in source metadata.\nCC count: 1.\nBCC count: 1.",
+        "thread_id": "thr_76b3a6fa85ec2f54",
+        "category": "historical"
+      }
+    },
+    {
+      "time_ms": 7920000,
+      "actor_id": "steven.kean@enron.com",
+      "channel": "mail",
+      "type": "assignment",
+      "correlation_id": "thr_76b3a6fa85ec2f54",
+      "payload": {
+        "from": "steven.kean@enron.com",
+        "to": "karen.denne@enron.com",
+        "subj": "Re: Baxter Press Release",
+        "body_text": "[Historical email excerpt]\nKaren Denne\n05/01/2001 07:07 PM\nTo: Kenneth Lay/Corp/Enron@ENRON, Jeff Skilling/Corp/Enron@ENRON, Cliff \nBaxter/Enron@EnronXGate, Steven J Kean/NA/Enron@Enron\ncc: Mark Palmer/Corp/Enron@ENRON \n\nSubject: Baxter Press Release\n\nAttached is a draft press release announcing Cliff's resignation.  This is \nscheduled to be issued tomorrow, following the distribution of the internal \nmemo.  Please let me know if you have any comments or changes.\n\nThank you.\nKaren\n\n[Excerpt limited by source data. Original body may be longer.]\n\nEvent type: assignment",
+        "thread_id": "thr_76b3a6fa85ec2f54",
+        "category": "historical"
+      }
+    },
+    {
+      "time_ms": 7920000,
+      "actor_id": "steven.kean@enron.com",
+      "channel": "mail",
+      "type": "assignment",
+      "correlation_id": "thr_76b3a6fa85ec2f54",
+      "payload": {
+        "from": "steven.kean@enron.com",
+        "to": "karen.denne@enron.com",
+        "subj": "Re: Baxter Press Release",
+        "body_text": "[Historical email excerpt]\nKaren Denne\n05/01/2001 07:07 PM\nTo: Kenneth Lay/Corp/Enron@ENRON, Jeff Skilling/Corp/Enron@ENRON, Cliff \nBaxter/Enron@EnronXGate, Steven J Kean/NA/Enron@Enron\ncc: Mark Palmer/Corp/Enron@ENRON \n\nSubject: Baxter Press Release\n\nAttached is a draft press release announcing Cliff's resignation.  This is \nscheduled to be issued tomorrow, following the distribution of the internal \nmemo.  Please let me know if you have any comments or changes.\n\nThank you.\nKaren\n\n[Excerpt limited by source data. Original body may be longer.]\n\nEvent type: assignment",
+        "thread_id": "thr_76b3a6fa85ec2f54",
+        "category": "historical"
+      }
+    },
+    {
+      "time_ms": 7920000,
+      "actor_id": "steven.kean@enron.com",
+      "channel": "mail",
+      "type": "assignment",
+      "correlation_id": "thr_76b3a6fa85ec2f54",
+      "payload": {
+        "from": "steven.kean@enron.com",
+        "to": "karen.denne@enron.com",
+        "subj": "Re: Baxter Press Release",
+        "body_text": "[Historical email excerpt]\nKaren Denne\n05/01/2001 07:07 PM\nTo: Kenneth Lay/Corp/Enron@ENRON, Jeff Skilling/Corp/Enron@ENRON, Cliff \nBaxter/Enron@EnronXGate, Steven J Kean/NA/Enron@Enron\ncc: Mark Palmer/Corp/Enron@ENRON \n\nSubject: Baxter Press Release\n\nAttached is a draft press release announcing Cliff's resignation.  This is \nscheduled to be issued tomorrow, following the distribution of the internal \nmemo.  Please let me know if you have any comments or changes.\n\nThank you.\nKaren\n\n[Excerpt limited by source data. Original body may be longer.]\n\nEvent type: assignment",
+        "thread_id": "thr_76b3a6fa85ec2f54",
+        "category": "historical"
+      }
+    },
+    {
+      "time_ms": 7920000,
+      "actor_id": "steven.kean@enron.com",
+      "channel": "mail",
+      "type": "assignment",
+      "correlation_id": "thr_76b3a6fa85ec2f54",
+      "payload": {
+        "from": "steven.kean@enron.com",
+        "to": "karen.denne@enron.com",
+        "subj": "Re: Baxter Press Release",
+        "body_text": "[Historical email excerpt]\nKaren Denne\n05/01/2001 07:07 PM\nTo: Kenneth Lay/Corp/Enron@ENRON, Jeff Skilling/Corp/Enron@ENRON, Cliff \nBaxter/Enron@EnronXGate, Steven J Kean/NA/Enron@Enron\ncc: Mark Palmer/Corp/Enron@ENRON \n\nSubject: Baxter Press Release\n\nAttached is a draft press release announcing Cliff's resignation.  This is \nscheduled to be issued tomorrow, following the distribution of the internal \nmemo.  Please let me know if you have any comments or changes.\n\nThank you.\nKaren\n\n[Excerpt limited by source data. Original body may be longer.]\n\nEvent type: assignment",
+        "thread_id": "thr_76b3a6fa85ec2f54",
+        "category": "historical"
+      }
+    },
+    {
+      "time_ms": 7920000,
+      "actor_id": "steven.kean@enron.com",
+      "channel": "mail",
+      "type": "assignment",
+      "correlation_id": "thr_76b3a6fa85ec2f54",
+      "payload": {
+        "from": "steven.kean@enron.com",
+        "to": "karen.denne@enron.com",
+        "subj": "Re: Baxter Press Release",
+        "body_text": "[Historical email excerpt]\nKaren Denne\n05/01/2001 07:07 PM\nTo: Kenneth Lay/Corp/Enron@ENRON, Jeff Skilling/Corp/Enron@ENRON, Cliff \nBaxter/Enron@EnronXGate, Steven J Kean/NA/Enron@Enron\ncc: Mark Palmer/Corp/Enron@ENRON \n\nSubject: Baxter Press Release\n\nAttached is a draft press release announcing Cliff's resignation.  This is \nscheduled to be issued tomorrow, following the distribution of the internal \nmemo.  Please let me know if you have any comments or changes.\n\nThank you.\nKaren\n\n[Excerpt limited by source data. Original body may be longer.]\n\nEvent type: assignment",
+        "thread_id": "thr_76b3a6fa85ec2f54",
+        "category": "historical"
+      }
+    }
+  ]
+}

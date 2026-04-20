@@ -266,6 +266,7 @@ def _bundle_story_context(spec, bundle_root: Path) -> dict[str, Any]:
             encoding="utf-8"
         )
     )
+    comparison_public_summary = comparison_payload.get("public_summary") or {}
     public_context_payload = json.loads(
         (workspace_root / PUBLIC_CONTEXT_FILE).read_text(encoding="utf-8")
     )
@@ -281,6 +282,11 @@ def _bundle_story_context(spec, bundle_root: Path) -> dict[str, Any]:
         if comparison_payload.get("candidates")
         else {}
     )
+    top_public_candidate = (
+        comparison_public_summary.get("candidates", [{}])
+        if isinstance(comparison_public_summary.get("candidates"), list)
+        else [{}]
+    )[0]
     forecast_filename = _forecast_filename(bundle_root)
     (
         financial_count,
@@ -304,6 +310,8 @@ def _bundle_story_context(spec, bundle_root: Path) -> dict[str, Any]:
         "forecast_payload": forecast_payload,
         "business_change": business_change,
         "top_candidate": top_candidate,
+        "top_public_candidate": top_public_candidate,
+        "comparison_public_summary": comparison_public_summary,
         "forecast_filename": forecast_filename,
         "financial_count": financial_count,
         "news_count": news_count,
@@ -334,9 +342,9 @@ def _write_bundle_readme(
     source_family_labels = list(bundle_context["source_family_labels"])
     domain_labels = list(bundle_context["domain_labels"])
     forecast_filename = str(bundle_context["forecast_filename"])
-    forecast_payload = dict(bundle_context["forecast_payload"])
-    business_change = dict(bundle_context["business_change"])
     top_candidate = dict(bundle_context["top_candidate"])
+    comparison_public_summary = dict(bundle_context["comparison_public_summary"])
+    top_public_candidate = dict(bundle_context["top_public_candidate"])
     sibling_lines = [
         f"- [{other.title}](../{other.bundle_slug}/README.md)"
         for other in bundle_specs()
@@ -353,6 +361,17 @@ def _write_bundle_readme(
     story_lines: list[str] = []
     for paragraph in spec.story_lines:
         story_lines.extend([paragraph, ""])
+    action_lines = [
+        f"- **{candidate.label}**: {candidate.explanation}"
+        for candidate in spec.candidates
+    ]
+    outcome_lines = [
+        (
+            f"- {row['label']}: {row['summary']} "
+            f"({row['baseline_value']} -> {row['predicted_value']})"
+        )
+        for row in top_public_candidate.get("public_outcomes", [])
+    ]
     readme = "\n".join(
         [
             f"# {spec.title}",
@@ -377,12 +396,36 @@ def _write_bundle_readme(
                 f"{spec.screenshot_stem}-ranking.png)"
             ),
             "",
+            "## Branch Point",
+            "",
+            f"- {spec.branch_point}",
+            "",
+            "## What Actually Happened",
+            "",
+            f"- {spec.actual_happened}",
+            "",
+            "## Actions We Can Take",
+            "",
+            *action_lines,
+            "",
+            "## Predicted Effect On The Company",
+            "",
+            (
+                f"- Recorded future events after the historical branch: "
+                f"{comparison_public_summary.get('recorded_future_event_count') or future_count}"
+            ),
+            f"- Current top-ranked action: {top_candidate.get('label') or '(none)'}",
+            (
+                "- Short readout: "
+                f"{top_public_candidate.get('short_explanation') or 'Saved forecast summary.'}"
+            ),
+            *outcome_lines,
+            "",
             "## Why This Branch Matters",
             "",
             *story_lines,
-            "## What This Example Covers",
+            "## Bundle Facts",
             "",
-            f"- Historical branch point: {spec.branch_point}",
             (
                 f"- Saved branch scene: {history_count} prior events and "
                 f"{future_count} recorded future events"
@@ -401,13 +444,9 @@ def _write_bundle_readme(
                 "- Prior timeline domains: "
                 f"{', '.join(domain_labels) if domain_labels else 'unknown'}"
             ),
+            f"- Bundle role: `{spec.role}`",
             f"- Saved LLM path: {spec.primary_prompt}",
             f"- Saved forecast file: `{forecast_filename}`",
-            (
-                f"- Business-state readout: "
-                f"{business_change.get('summary') or forecast_payload.get('summary') or 'Saved forecast summary.'}"
-            ),
-            (f"- Top ranked candidate: " f"{top_candidate.get('label') or '(none)'}"),
             "",
             "## Saved Files",
             "",
@@ -440,10 +479,10 @@ def _write_bundle_readme(
             "## Constraint",
             "",
             (
-                "This repo now carries the Rosetta parquet archive, the source cache, "
-                "and the raw Enron mail tar under `data/enron/`, so a fresh clone can "
-                "open these saved examples and rebuild them without reaching into a "
-                "sibling checkout."
+                "This repo now carries a small checked-in Enron Rosetta sample for the "
+                "saved bundles and smoke checks. Fetch the full archive with "
+                "`make fetch-enron-full` when you want full training, full benchmark "
+                "builds, or full archive validation."
             ),
             "",
             (
@@ -505,15 +544,17 @@ def _bundle_story_manifest(
         "title": spec.title,
         "organization_name": "Enron Corporation",
         "source_mode": "real_history",
-        "benchmark_role": "headline",
+        "benchmark_role": spec.role,
         "lead": spec.lead,
         "branch_point": spec.branch_point,
+        "actual_happened": spec.actual_happened,
         "branch_timestamp": context["branch_timestamp"],
         "history_event_count": context["history_count"],
         "future_event_count": context["future_count"],
         "source_families": list(context["source_family_labels"]),
         "domains": list(context["domain_labels"]),
         "forecast_file": context["forecast_filename"],
+        "public_objective_pack_id": spec.public_objective_pack_id,
         "top_candidate": dict(context["top_candidate"]).get("label") or "",
         "workspace_root": str((bundle_root / WORKSPACE_DIRECTORY).resolve()),
         "ui_command": str(context["ui_command"]),
@@ -540,12 +581,13 @@ def _bundle_presentation_manifest(
             "timeline, and the learned reference forecast already lined up."
         ),
         "demo_goal": (
-            "Show that the Enron flagship is a real-history, multi-source what-if bundle "
-            "on the shared canonical timeline."
+            "Show one real-history Enron branch on the shared canonical timeline with "
+            "the saved forecast, the ranked actions, and the thicker company context."
         ),
         "presenter_setup": {
             "organization_name": "Enron Corporation",
             "bundle_slug": spec.bundle_slug,
+            "bundle_role": spec.role,
             "workspace_root": str((bundle_root / WORKSPACE_DIRECTORY).resolve()),
             "ui_command": str(context["ui_command"]),
         },
@@ -611,9 +653,9 @@ def _bundle_presentation_manifest(
             },
         ],
         "closing_argument": (
-            "Enron is the real-history flagship because the bundle now opens as one "
-            "coherent branch scene with the chronology, the learned forecast, and the "
-            "dated public context already attached."
+            "This bundle works as a complete Enron branch case because the branch, the "
+            "lead-up timeline, the ranked alternatives, and the saved forecast all live "
+            "on one surface."
         ),
         "operator_commands": [
             str(context["ui_command"]),
@@ -642,7 +684,9 @@ def _render_enron_story_overview(
             "",
             f"- Title: `{spec.title}`",
             f"- Bundle slug: `{spec.bundle_slug}`",
+            f"- Bundle role: `{spec.role}`",
             f"- Branch point: {spec.branch_point}",
+            f"- What actually happened: {spec.actual_happened}",
             f"- Branch date: `{context['branch_timestamp']}`",
             f"- Prior events: `{context['history_count']}`",
             f"- Recorded future events: `{context['future_count']}`",
@@ -762,6 +806,54 @@ def _write_bundle_story_files(
     )
 
 
+def _write_casebook_overview() -> None:
+    proof_specs = [spec for spec in bundle_specs() if spec.role == "proof"]
+    narrative_specs = [spec for spec in bundle_specs() if spec.role == "narrative"]
+    lines = [
+        "# Enron Casebook",
+        "",
+        "The Enron surface is split into two layers.",
+        "",
+        "- `proof`: the technical flagship cases with the clearest downstream tails or operational forks",
+        "- `narrative`: the strongest governance and disclosure stories for essay, demo, and presentation use",
+        "",
+        "## Proof examples",
+        "",
+    ]
+    for spec in proof_specs:
+        lines.extend(
+            [
+                f"- [{spec.title}](examples/{spec.bundle_slug}/README.md)",
+                f"  - Branch point: {spec.branch_point}",
+                f"  - What actually happened: {spec.actual_happened}",
+            ]
+        )
+    lines.extend(["", "## Narrative examples", ""])
+    for spec in narrative_specs:
+        lines.extend(
+            [
+                f"- [{spec.title}](examples/{spec.bundle_slug}/README.md)",
+                f"  - Branch point: {spec.branch_point}",
+                f"  - What actually happened: {spec.actual_happened}",
+            ]
+        )
+    lines.extend(
+        [
+            "",
+            "## Public reading order",
+            "",
+            "- Start with Master Agreement for the long-tail technical proof.",
+            "- Use Baxter, PG&E, California, and Braveheart to show range across communication, commercial, regulatory, and accounting forks.",
+            "- Use Watkins, Q3 disclosure review, and Skilling resignation materials as the narrative governance set.",
+            "",
+        ]
+    )
+    Path("docs/ENRON_CASEBOOK.md").write_text(
+        "\n".join(lines),
+        encoding="utf-8",
+    )
+
+
 def _history_dimension_labels(
     canonical_bundle,
     *,
@@ -835,8 +927,16 @@ def build_bundle(
         output_root,
         label=spec.comparison_label,
         objective_pack_id=spec.objective_pack_id,
+        public_objective_pack_id=spec.public_objective_pack_id,
+        bundle_role=spec.role,
+        branch_point=spec.branch_point,
+        actual_happened=spec.actual_happened,
         candidates=[
-            {"label": candidate.label, "prompt": candidate.prompt}
+            {
+                "label": candidate.label,
+                "prompt": candidate.prompt,
+                "explanation": candidate.explanation,
+            }
             for candidate in spec.candidates
         ],
     )
@@ -1042,6 +1142,7 @@ def main() -> None:
             refresh_llm=args.refresh_llm,
         )
         print(f"built: {output_root}")
+    _write_casebook_overview()
     render_timeline_image()
     render_timeline_markdown()
 

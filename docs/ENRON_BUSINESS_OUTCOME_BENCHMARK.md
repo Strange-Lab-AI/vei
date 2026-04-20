@@ -23,7 +23,7 @@ The current Enron benchmark build joins three repo-owned inputs:
 - the packaged public-company context fixture under `vei/whatif/fixtures/enron_public_context`
 - the curated public-record fixture under `vei/whatif/fixtures/enron_record_history`
 
-The benchmark reads the vendored Rosetta archive under `data/enron/rosetta` by default. `VEI_WHATIF_ROSETTA_DIR` still overrides that path when you want to point at a different archive.
+The repo checkout carries a small Rosetta sample under `data/enron/rosetta` for saved bundles and smoke checks. The benchmark build itself uses the fetched full Enron archive. Set `VEI_WHATIF_ROSETTA_DIR` when you want to point the build at a specific full archive path.
 
 That public-context fixture currently contains:
 
@@ -153,7 +153,7 @@ The matched-input comparison path uses:
 ```bash
 # Build the factual dataset and held-out Enron pack
 vei whatif benchmark build \
-  --rosetta-dir data/enron/rosetta \
+  --rosetta-dir /path/to/full/rosetta \
   --artifacts-root _vei_out/whatif_benchmarks/branch_point_ranking_v2 \
   --label enron_business_outcome_public_context_20260412
 
@@ -248,33 +248,40 @@ Use those numbers as the main factual forecasting headline for the repo-owned En
 
 ## Flagship proof pass
 
-The repo now also carries a smaller judged proof pass focused on the four flagship Enron cases:
+The repo now also carries a smaller judged proof pass focused on the current proof flagship pack:
 
 - `master_agreement`
-- `watkins_followup_questions`
-- `california_crisis_order`
 - `pg_e_power_deal`
+- `california_crisis_order`
+- `baxter_press_release`
+- `braveheart_forward`
+- `q3_disclosure_review`
+- `btu_weekly`
+- `credit_derivatives_confidentiality`
 
 Run it with:
 
 ```bash
 set -a; source .env; set +a
-.venv/bin/python scripts/run_enron_flagship_proof_pass.py
+.venv/bin/python scripts/run_enron_flagship_proof_pass.py \
+  --pack enron_proof_flagship_v2 \
+  --publish-root studies/enron_flagship_proof_pass_v2
 ```
 
-The current checked-in summary lives under `studies/enron_flagship_proof_pass_v1/` and reports:
+The current checked-in summary lives under `studies/enron_flagship_proof_pass_v2/` and reports:
 
-- judged rankings: `20`
-- judge top-1 agreement: `0.15`
-- judge pairwise accuracy: `0.667`
-- judge Kendall tau: `0.333`
-- dominance checks: `66/155` (`0.426`)
+- top-choice agreement: `0.25`
+- pairwise accuracy: `0.625`
+- hard-subset pairwise accuracy: `0.75`
+- judged rankings: `40`
+- judge Kendall tau: `0.225`
+- dominance checks: `67/155` (`0.432`)
 
-Treat that proof pass as stronger evidence than the saved screenshots alone, but still weaker than a full judged benchmark sweep over the whole held-out pack.
+This proof pass is sample-backed on purpose. It uses the repo-shipped held-out case pack and the shipped reference checkpoint, so it is the right evidence for case ranking and presentation work. Use the reference metrics card for the factual forecasting headline and the full fetched archive for heavier benchmark rebuilds.
 
 ## Optional matched-input study
 
-The matched-input multi-seed rerun remains available as a research comparison over one saved Enron public-context build produced from the vendored Rosetta archive. That rerun compares the three aligned models that all read the same pre-branch contract: `jepa_latent`, `full_context_transformer`, and `treatment_transformer`.
+The matched-input multi-seed rerun remains available as a research comparison over one saved Enron public-context build produced from the fetched full archive. That rerun compares the three aligned models that all read the same pre-branch contract: `jepa_latent`, `full_context_transformer`, and `treatment_transformer`.
 
 The current saved 5-seed, 2-epoch matched-input study produced these held-out decision scores:
 

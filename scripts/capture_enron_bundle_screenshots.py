@@ -18,6 +18,11 @@ except ModuleNotFoundError:  # pragma: no cover - optional dependency
     Page = object  # type: ignore[assignment]
 
 try:
+    from PIL import Image
+except ModuleNotFoundError:  # pragma: no cover - optional dependency
+    Image = None  # type: ignore[assignment]
+
+try:
     from scripts.enron_example_specs import bundle_specs
 except ModuleNotFoundError:
     sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -26,6 +31,8 @@ except ModuleNotFoundError:
 
 ASSETS_ROOT = Path("docs/assets/enron-whatif")
 MANIFEST_PATH = ASSETS_ROOT / "enron-bundle-screenshots.json"
+PROOF_GRID_PATH = ASSETS_ROOT / "enron-proof-grid.png"
+NARRATIVE_GRID_PATH = ASSETS_ROOT / "enron-narrative-grid.png"
 VIEWPORT = {"width": 1680, "height": 2200}
 
 
@@ -49,10 +56,20 @@ def _free_port() -> int:
         return int(sock.getsockname()[1])
 
 
-def _wait_for_server(base_url: str, *, timeout_s: float = 30.0) -> None:
+def _wait_for_server(
+    base_url: str,
+    *,
+    server: subprocess.Popen[str],
+    timeout_s: float = 60.0,
+) -> None:
     deadline = time.monotonic() + timeout_s
     last_error = ""
     while time.monotonic() < deadline:
+        if server.poll() is not None:
+            stdout = (server.stdout.read() if server.stdout is not None else "").strip()
+            stderr = (server.stderr.read() if server.stderr is not None else "").strip()
+            details = stderr or stdout or "no server output"
+            raise RuntimeError(f"Studio exited before startup at {base_url}: {details}")
         try:
             response = requests.get(f"{base_url}/api/workspace", timeout=1.5)
             if response.status_code == 200:
@@ -75,8 +92,8 @@ def _start_server(workspace_root: Path, *, port: int) -> subprocess.Popen[str]:
     return subprocess.Popen(
         command,
         cwd=str(Path.cwd()),
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
         text=True,
     )
 
@@ -135,7 +152,7 @@ def _capture_bundle(bundle_slug: str, workspace_root: Path) -> dict[str, str]:
     base_url = f"http://127.0.0.1:{port}"
     server = _start_server(workspace_root, port=port)
     try:
-        _wait_for_server(base_url)
+        _wait_for_server(base_url, server=server)
         with sync_playwright() as playwright:
             browser = playwright.chromium.launch(headless=True)
             page = browser.new_page(viewport=VIEWPORT, device_scale_factor=1)
@@ -212,6 +229,35 @@ def _capture_bundle(bundle_slug: str, workspace_root: Path) -> dict[str, str]:
     return {name: str(path) for name, path in _bundle_targets(bundle_slug).items()}
 
 
+def _write_grid(specs, *, target_path: Path) -> None:
+    if Image is None:
+        return
+    scene_paths = [
+        _bundle_targets(spec.bundle_slug)["scene"]
+        for spec in specs
+        if _bundle_targets(spec.bundle_slug)["scene"].exists()
+    ]
+    if not scene_paths:
+        return
+    images = [Image.open(path).convert("RGB") for path in scene_paths]
+    try:
+        tile_width = min(image.width for image in images)
+        tile_height = min(image.height for image in images)
+        columns = 2 if len(images) > 2 else len(images)
+        rows = (len(images) + columns - 1) // columns
+        canvas = Image.new("RGB", (tile_width * columns, tile_height * rows), "white")
+        for index, image in enumerate(images):
+            resized = image.resize((tile_width, tile_height))
+            x = (index % columns) * tile_width
+            y = (index // columns) * tile_height
+            canvas.paste(resized, (x, y))
+        target_path.parent.mkdir(parents=True, exist_ok=True)
+        canvas.save(target_path)
+    finally:
+        for image in images:
+            image.close()
+
+
 def main() -> None:
     if sync_playwright is None:
         raise SystemExit(
@@ -237,17 +283,31 @@ def main() -> None:
         manifest_bundles.append(
             {
                 "bundle_slug": spec.bundle_slug,
+                "role": spec.role,
                 "workspace_root": str(workspace_root),
                 "screenshots": screenshots,
             }
         )
         print(f"Captured screenshots for {spec.bundle_slug}")
 
+    _write_grid(
+        [spec for spec in specs if spec.role == "proof"],
+        target_path=PROOF_GRID_PATH,
+    )
+    _write_grid(
+        [spec for spec in specs if spec.role == "narrative"],
+        target_path=NARRATIVE_GRID_PATH,
+    )
+
     MANIFEST_PATH.write_text(
         json.dumps(
             {
                 "generated_at": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
                 "bundles": manifest_bundles,
+                "grids": {
+                    "proof": str(PROOF_GRID_PATH),
+                    "narrative": str(NARRATIVE_GRID_PATH),
+                },
             },
             indent=2,
         )

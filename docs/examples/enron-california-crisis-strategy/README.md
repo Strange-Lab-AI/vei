@@ -1,6 +1,6 @@
 # Enron California Crisis Strategy Example
 
-This example moves the branch point into the California power-crisis conduct and lets the saved comparison sit inside the FERC and refund timeline that now ships with the repo.
+This is the regulatory conduct case. It puts a preservation order, an active trading posture, and a narrow fork about halting versus continuing onto one saved branch.
 
 ## Open It In Studio
 
@@ -17,23 +17,46 @@ Open `http://127.0.0.1:3055`.
 
 ![Saved ranking panel](../../assets/enron-whatif/california-crisis-strategy-ranking.png)
 
+## Branch Point
+
+- Tim Belden's desk receives a preservation order tied to the California crisis while the trading strategy is still active.
+
+## What Actually Happened
+
+- The preservation-order thread stayed inside the active crisis loop while the desk was still deciding how far to halt or continue.
+
+## Actions We Can Take
+
+- **Preserve and halt**: Stop the play, preserve the record, and open the legal path.
+- **Preserve and seek executive sign-off**: Preserve the record, but wait for top-level approval before acting.
+- **Continue in a narrow loop**: Keep going, but keep the circle tight.
+- **Continue and widen**: Keep going and broaden the loop.
+
+## Predicted Effect On The Company
+
+- Recorded future events after the historical branch: 4
+- Current top-ranked action: Preserve and seek executive sign-off
+- Short readout: Slightly lower exposure risk.
+- Legal and regulatory exposure: improves (0.06 -> 0.029)
+- Disclosure and stakeholder trust: improves (0.955 -> 0.977)
+- Commercial damage: improves (0.04 -> 0.018)
+- Internal execution drag: improves (0.026 -> 0.022)
+
 ## Why This Branch Matters
 
-This branch matters because the desk still has room to choose between legal containment and continued conduct after the preservation order lands. The saved comparison turns that into a plain choice about halting, documenting, or pushing through.
+This case is useful because the fork is mechanically clear. Preserve and halt. Preserve and seek executive sign-off. Continue in a narrow loop. Or continue and widen.
 
-The FERC and refund timeline gives the branch a wider public frame, but the macro panel remains advisory context beside the preserved email evidence and the ranked decision path.
+It gives the proof set the cleanest legal and operational branch.
 
-## What This Example Covers
+## Bundle Facts
 
-- Historical branch point: Tim Belden's desk receives a preservation order tied to the California crisis while the trading strategy is still active.
 - Saved branch scene: 30 prior events and 4 recorded future events
 - Public-company slice at 2000-12-15: 6 financial checkpoints, 6 public news items, 733 market checkpoints, 0 credit checkpoints, and 0 regulatory checkpoints
 - Prior timeline source families: disclosure, filing, financial, mail, market, news
 - Prior timeline domains: governance, internal, obs_graph
+- Bundle role: `proof`
 - Saved LLM path: Pause the strategy, preserve the record, alert legal and compliance, and prepare a self-report path instead of continuing the trading play.
 - Saved forecast file: `whatif_reference_result.json`
-- Business-state readout: Much higher exposure risk.
-- Top ranked candidate: Seek Skilling sign-off
 
 ## Saved Files
 
@@ -53,8 +76,12 @@ The FERC and refund timeline gives the branch a wider public frame, but the macr
 ## Other Enron Examples
 
 - [Enron Master Agreement Example](../enron-master-agreement-public-context/README.md)
-- [Enron Watkins Follow-up Example](../enron-watkins-follow-up/README.md)
 - [Enron PG&E Power Deal Example](../enron-pge-power-deal/README.md)
+- [Enron Baxter Press Release Example](../enron-baxter-press-release/README.md)
+- [Enron Braveheart Forward Example](../enron-braveheart-forward/README.md)
+- [Enron Watkins Follow-up Example](../enron-watkins-follow-up/README.md)
+- [Enron Q3 Disclosure Review Example](../enron-q3-disclosure-review/README.md)
+- [Enron Skilling Resignation Materials Example](../enron-skilling-resignation-materials/README.md)
 
 ## Refresh
 
@@ -66,6 +93,6 @@ python scripts/capture_enron_bundle_screenshots.py --bundle enron-california-cri
 
 ## Constraint
 
-This repo now carries the Rosetta parquet archive, the source cache, and the raw Enron mail tar under `data/enron/`, so a fresh clone can open these saved examples and rebuild them without reaching into a sibling checkout.
+This repo now carries a small checked-in Enron Rosetta sample for the saved bundles and smoke checks. Fetch the full archive with `make fetch-enron-full` when you want full training, full benchmark builds, or full archive validation.
 
 The macro heads in these saved bundles stay advisory context beside the email-path evidence. See [the current calibration report](../../../studies/macro_calibration_enron_v1/calibration_report.md) before making any stronger claim.

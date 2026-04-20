@@ -1,7 +1,7 @@
 {
   "status": "ok",
   "backend": "reference",
-  "prompt": "Escalate the follow-up note to Ken Lay, the audit committee, and internal legal, preserve the written record, and pause any broad reassurance until the accounting questions are reviewed.",
+  "prompt": "Escalate the follow-up note to Ken Lay, the audit committee, and internal legal, preserve the written record, and pause broad reassurance.",
   "summary": "reference forecast completed.",
   "baseline": {
     "backend": "historical",

@@ -1,6 +1,18 @@
 {
-  "label": "enron_master_agreement_business_state_comparison_20260417",
-  "objective_pack_id": "contain_exposure",
+  "label": "enron_master_agreement_business_state_comparison_20260419",
+  "objective_pack_id": "protect_company_default",
+  "internal_objective_pack_id": "contain_exposure",
+  "objective_pack": {
+    "pack_id": "protect_company_default",
+    "title": "Protect Company",
+    "summary": "Favor moves that lower legal exposure, preserve trust, limit commercial damage, and keep internal execution drag manageable.",
+    "outcomes": [
+      "Legal and regulatory exposure",
+      "Disclosure and stakeholder trust",
+      "Commercial damage",
+      "Internal execution drag"
+    ]
+  },
   "thread_id": "thr_e565b47423d035c9",
   "branch_event_id": "enron_bcda1b925800af8c",
   "thread_subject": "Master Agreement",
@@ -68,8 +80,9 @@
   },
   "candidates": [
     {
-      "label": "Hold for internal review",
+      "label": "Internal legal review",
       "prompt": "Keep the draft inside Enron, ask Gerald Nemec and Sara Shackleton for review, and hold the outside send.",
+      "explanation": "Keep ownership narrow and get legal review before any outside send.",
       "forecast": {
         "backend": "heuristic_baseline",
         "summary": "Predicted risk moves down by 0.440, with escalation delta 0 and external-send delta -64.",
@@ -202,11 +215,55 @@
         ],
         "net_effect_score": 0.209
       },
+      "public_summary": {
+        "action_label": "Internal legal review",
+        "branch_explanation": "Keep ownership narrow and get legal review before any outside send.",
+        "actual_historical_action": "The draft went outside quickly, then the thread widened into a long reassignment and redline tail with no visible formal signoff.",
+        "recorded_future_event_count": 84,
+        "public_outcomes": [
+          {
+            "label": "Legal and regulatory exposure",
+            "baseline_value": 0.71,
+            "predicted_value": 0.42,
+            "delta": -0.29,
+            "effect": "better",
+            "summary": "improves"
+          },
+          {
+            "label": "Disclosure and stakeholder trust",
+            "baseline_value": 0.345,
+            "predicted_value": 0.536,
+            "delta": 0.191,
+            "effect": "better",
+            "summary": "improves"
+          },
+          {
+            "label": "Commercial damage",
+            "baseline_value": 0.699,
+            "predicted_value": 0.49,
+            "delta": -0.209,
+            "effect": "better",
+            "summary": "improves"
+          },
+          {
+            "label": "Internal execution drag",
+            "baseline_value": 0.498,
+            "predicted_value": 0.504,
+            "delta": 0.006,
+            "effect": "worse",
+            "summary": "worsens"
+          }
+        ],
+        "overall_rank": 1,
+        "short_explanation": "Much lower outside spread risk. Trade-off: Slightly higher internal handling load.",
+        "public_score": 0.539
+      },
       "rank": 1
     },
     {
-      "label": "Send a narrow status note",
-      "prompt": "Send Cargill a short no-attachment status note, promise a clean draft soon, and keep one internal legal owner on the next step.",
+      "label": "Narrow status note",
+      "prompt": "Send Cargill a short status note with no attachment, promise a clean draft after review, and keep one internal legal owner on the next step.",
+      "explanation": "Acknowledge the request without sending the draft.",
       "forecast": {
         "backend": "heuristic_baseline",
         "summary": "Predicted risk moves down by 0.540, with escalation delta -8 and external-send delta -16.",
@@ -336,11 +393,236 @@
         "tradeoffs": [],
         "net_effect_score": 0.208
       },
+      "public_summary": {
+        "action_label": "Narrow status note",
+        "branch_explanation": "Acknowledge the request without sending the draft.",
+        "actual_historical_action": "The draft went outside quickly, then the thread widened into a long reassignment and redline tail with no visible formal signoff.",
+        "recorded_future_event_count": 84,
+        "public_outcomes": [
+          {
+            "label": "Legal and regulatory exposure",
+            "baseline_value": 0.71,
+            "predicted_value": 0.474,
+            "delta": -0.236,
+            "effect": "better",
+            "summary": "improves"
+          },
+          {
+            "label": "Disclosure and stakeholder trust",
+            "baseline_value": 0.345,
+            "predicted_value": 0.542,
+            "delta": 0.197,
+            "effect": "better",
+            "summary": "improves"
+          },
+          {
+            "label": "Commercial damage",
+            "baseline_value": 0.699,
+            "predicted_value": 0.495,
+            "delta": -0.204,
+            "effect": "better",
+            "summary": "improves"
+          },
+          {
+            "label": "Internal execution drag",
+            "baseline_value": 0.498,
+            "predicted_value": 0.38,
+            "delta": -0.118,
+            "effect": "better",
+            "summary": "improves"
+          }
+        ],
+        "overall_rank": 2,
+        "short_explanation": "Much lower outside spread risk.",
+        "public_score": 0.539
+      },
       "rank": 2
     },
     {
-      "label": "Push for fast turnaround",
+      "label": "Controlled external send",
+      "prompt": "Send the draft to Cargill with explicit caveats that it is for review only, keep Gerald Nemec on the next step, and hold wider circulation.",
+      "explanation": "Send outside once, with explicit limits and a tight reply loop.",
+      "forecast": {
+        "backend": "heuristic_baseline",
+        "summary": "Predicted risk moves down by 0.200, with escalation delta 0 and external-send delta -64.",
+        "baseline_risk_score": 1.0,
+        "predicted_risk_score": 0.8,
+        "external_event_delta": -64,
+        "escalation_delta": 0,
+        "baseline_stock_return_5d": 0.0007,
+        "predicted_stock_return_5d": 0.0407,
+        "baseline_credit_action_30d": 0.0,
+        "predicted_credit_action_30d": 0.0,
+        "baseline_ferc_action_180d": 0.0,
+        "predicted_ferc_action_180d": 0.0
+      },
+      "business_state_change": {
+        "method": "heuristic_baseline_business_state_v1",
+        "confidence": "medium",
+        "summary": "Much lower outside spread risk. Trade-off: Slightly higher internal handling load.",
+        "baseline": {
+          "exposure": 0.94,
+          "trust": 0.345,
+          "coordination_load": 0.431,
+          "execution_delay": 0.565,
+          "deal_position": 0.301,
+          "governance_pressure": 0.172
+        },
+        "predicted": {
+          "exposure": 0.64,
+          "trust": 0.477,
+          "coordination_load": 0.494,
+          "execution_delay": 0.514,
+          "deal_position": 0.45,
+          "governance_pressure": 0.215
+        },
+        "impacts": [
+          {
+            "state_id": "exposure",
+            "label": "Outside spread risk",
+            "baseline_value": 0.94,
+            "predicted_value": 0.64,
+            "delta": -0.3,
+            "effect": "better",
+            "magnitude": "strong",
+            "summary": "Much lower outside spread risk."
+          },
+          {
+            "state_id": "deal_position",
+            "label": "Commercial position",
+            "baseline_value": 0.301,
+            "predicted_value": 0.45,
+            "delta": 0.149,
+            "effect": "better",
+            "magnitude": "moderate",
+            "summary": "Moderately stronger commercial position."
+          },
+          {
+            "state_id": "trust",
+            "label": "Relationship stability",
+            "baseline_value": 0.345,
+            "predicted_value": 0.477,
+            "delta": 0.132,
+            "effect": "better",
+            "magnitude": "moderate",
+            "summary": "Moderately stronger relationship stability."
+          },
+          {
+            "state_id": "coordination_load",
+            "label": "Internal handling load",
+            "baseline_value": 0.431,
+            "predicted_value": 0.494,
+            "delta": 0.063,
+            "effect": "worse",
+            "magnitude": "slight",
+            "summary": "Slightly higher internal handling load."
+          },
+          {
+            "state_id": "execution_delay",
+            "label": "Execution delay",
+            "baseline_value": 0.565,
+            "predicted_value": 0.514,
+            "delta": -0.051,
+            "effect": "better",
+            "magnitude": "slight",
+            "summary": "Slightly lower execution delay."
+          },
+          {
+            "state_id": "governance_pressure",
+            "label": "Approval and escalation pressure",
+            "baseline_value": 0.172,
+            "predicted_value": 0.215,
+            "delta": 0.043,
+            "effect": "worse",
+            "magnitude": "slight",
+            "summary": "Slightly higher approval and escalation pressure."
+          }
+        ],
+        "consequence_estimates": [
+          {
+            "consequence_id": "containment",
+            "label": "Containment",
+            "effect": "better",
+            "magnitude": "strong",
+            "summary": "The thread looks much safer to contain."
+          },
+          {
+            "consequence_id": "review_burden",
+            "label": "Handling burden",
+            "effect": "worse",
+            "magnitude": "slight",
+            "summary": "Internal handling looks heavier."
+          },
+          {
+            "consequence_id": "execution_path",
+            "label": "Execution path",
+            "effect": "better",
+            "magnitude": "slight",
+            "summary": "Near-term execution looks faster."
+          },
+          {
+            "consequence_id": "commercial_position",
+            "label": "Commercial footing",
+            "effect": "better",
+            "magnitude": "moderate",
+            "summary": "Commercial footing looks stronger."
+          }
+        ],
+        "tradeoffs": [
+          "Slightly higher internal handling load.",
+          "Slightly higher approval and escalation pressure."
+        ],
+        "net_effect_score": 0.145
+      },
+      "public_summary": {
+        "action_label": "Controlled external send",
+        "branch_explanation": "Send outside once, with explicit limits and a tight reply loop.",
+        "actual_historical_action": "The draft went outside quickly, then the thread widened into a long reassignment and redline tail with no visible formal signoff.",
+        "recorded_future_event_count": 84,
+        "public_outcomes": [
+          {
+            "label": "Legal and regulatory exposure",
+            "baseline_value": 0.71,
+            "predicted_value": 0.512,
+            "delta": -0.198,
+            "effect": "better",
+            "summary": "improves"
+          },
+          {
+            "label": "Disclosure and stakeholder trust",
+            "baseline_value": 0.345,
+            "predicted_value": 0.477,
+            "delta": 0.132,
+            "effect": "better",
+            "summary": "improves"
+          },
+          {
+            "label": "Commercial damage",
+            "baseline_value": 0.699,
+            "predicted_value": 0.55,
+            "delta": -0.149,
+            "effect": "better",
+            "summary": "improves"
+          },
+          {
+            "label": "Internal execution drag",
+            "baseline_value": 0.498,
+            "predicted_value": 0.504,
+            "delta": 0.006,
+            "effect": "worse",
+            "summary": "worsens"
+          }
+        ],
+        "overall_rank": 3,
+        "short_explanation": "Much lower outside spread risk. Trade-off: Slightly higher internal handling load.",
+        "public_score": 0.477
+      },
+      "rank": 3
+    },
+    {
+      "label": "Fast outside circulation",
       "prompt": "Send the draft now, keep the outside loop active, and widen circulation for rapid comments and turnaround.",
+      "explanation": "Move fast and widen the loop for speed.",
       "forecast": {
         "backend": "heuristic_baseline",
         "summary": "Predicted risk moves flat by 0.000, with escalation delta 0 and external-send delta 10.",
@@ -472,7 +754,249 @@
         ],
         "net_effect_score": -0.019
       },
-      "rank": 3
+      "public_summary": {
+        "action_label": "Fast outside circulation",
+        "branch_explanation": "Move fast and widen the loop for speed.",
+        "actual_historical_action": "The draft went outside quickly, then the thread widened into a long reassignment and redline tail with no visible formal signoff.",
+        "recorded_future_event_count": 84,
+        "public_outcomes": [
+          {
+            "label": "Legal and regulatory exposure",
+            "baseline_value": 0.71,
+            "predicted_value": 0.717,
+            "delta": 0.007,
+            "effect": "worse",
+            "summary": "worsens"
+          },
+          {
+            "label": "Disclosure and stakeholder trust",
+            "baseline_value": 0.345,
+            "predicted_value": 0.328,
+            "delta": -0.017,
+            "effect": "worse",
+            "summary": "worsens"
+          },
+          {
+            "label": "Commercial damage",
+            "baseline_value": 0.699,
+            "predicted_value": 0.721,
+            "delta": 0.022,
+            "effect": "worse",
+            "summary": "worsens"
+          },
+          {
+            "label": "Internal execution drag",
+            "baseline_value": 0.498,
+            "predicted_value": 0.526,
+            "delta": 0.028,
+            "effect": "worse",
+            "summary": "worsens"
+          }
+        ],
+        "overall_rank": 4,
+        "short_explanation": "Slightly higher execution delay.",
+        "public_score": 0.322
+      },
+      "rank": 4
     }
-  ]
+  ],
+  "public_summary": {
+    "bundle_role": "proof",
+    "branch_point": "Debra Perlingiere is about to send the Master Agreement draft to Cargill on September 27, 2000.",
+    "actual_happened": "The draft went outside quickly, then the thread widened into a long reassignment and redline tail with no visible formal signoff.",
+    "actions_we_can_take": [
+      {
+        "label": "Internal legal review",
+        "branch_explanation": "Keep ownership narrow and get legal review before any outside send."
+      },
+      {
+        "label": "Narrow status note",
+        "branch_explanation": "Acknowledge the request without sending the draft."
+      },
+      {
+        "label": "Controlled external send",
+        "branch_explanation": "Send outside once, with explicit limits and a tight reply loop."
+      },
+      {
+        "label": "Fast outside circulation",
+        "branch_explanation": "Move fast and widen the loop for speed."
+      }
+    ],
+    "predicted_effect_summary": "Much lower outside spread risk. Trade-off: Slightly higher internal handling load.",
+    "recorded_future_event_count": 84,
+    "candidates": [
+      {
+        "action_label": "Internal legal review",
+        "branch_explanation": "Keep ownership narrow and get legal review before any outside send.",
+        "actual_historical_action": "The draft went outside quickly, then the thread widened into a long reassignment and redline tail with no visible formal signoff.",
+        "recorded_future_event_count": 84,
+        "public_outcomes": [
+          {
+            "label": "Legal and regulatory exposure",
+            "baseline_value": 0.71,
+            "predicted_value": 0.42,
+            "delta": -0.29,
+            "effect": "better",
+            "summary": "improves"
+          },
+          {
+            "label": "Disclosure and stakeholder trust",
+            "baseline_value": 0.345,
+            "predicted_value": 0.536,
+            "delta": 0.191,
+            "effect": "better",
+            "summary": "improves"
+          },
+          {
+            "label": "Commercial damage",
+            "baseline_value": 0.699,
+            "predicted_value": 0.49,
+            "delta": -0.209,
+            "effect": "better",
+            "summary": "improves"
+          },
+          {
+            "label": "Internal execution drag",
+            "baseline_value": 0.498,
+            "predicted_value": 0.504,
+            "delta": 0.006,
+            "effect": "worse",
+            "summary": "worsens"
+          }
+        ],
+        "overall_rank": 1,
+        "short_explanation": "Much lower outside spread risk. Trade-off: Slightly higher internal handling load.",
+        "public_score": 0.539
+      },
+      {
+        "action_label": "Narrow status note",
+        "branch_explanation": "Acknowledge the request without sending the draft.",
+        "actual_historical_action": "The draft went outside quickly, then the thread widened into a long reassignment and redline tail with no visible formal signoff.",
+        "recorded_future_event_count": 84,
+        "public_outcomes": [
+          {
+            "label": "Legal and regulatory exposure",
+            "baseline_value": 0.71,
+            "predicted_value": 0.474,
+            "delta": -0.236,
+            "effect": "better",
+            "summary": "improves"
+          },
+          {
+            "label": "Disclosure and stakeholder trust",
+            "baseline_value": 0.345,
+            "predicted_value": 0.542,
+            "delta": 0.197,
+            "effect": "better",
+            "summary": "improves"
+          },
+          {
+            "label": "Commercial damage",
+            "baseline_value": 0.699,
+            "predicted_value": 0.495,
+            "delta": -0.204,
+            "effect": "better",
+            "summary": "improves"
+          },
+          {
+            "label": "Internal execution drag",
+            "baseline_value": 0.498,
+            "predicted_value": 0.38,
+            "delta": -0.118,
+            "effect": "better",
+            "summary": "improves"
+          }
+        ],
+        "overall_rank": 2,
+        "short_explanation": "Much lower outside spread risk.",
+        "public_score": 0.539
+      },
+      {
+        "action_label": "Controlled external send",
+        "branch_explanation": "Send outside once, with explicit limits and a tight reply loop.",
+        "actual_historical_action": "The draft went outside quickly, then the thread widened into a long reassignment and redline tail with no visible formal signoff.",
+        "recorded_future_event_count": 84,
+        "public_outcomes": [
+          {
+            "label": "Legal and regulatory exposure",
+            "baseline_value": 0.71,
+            "predicted_value": 0.512,
+            "delta": -0.198,
+            "effect": "better",
+            "summary": "improves"
+          },
+          {
+            "label": "Disclosure and stakeholder trust",
+            "baseline_value": 0.345,
+            "predicted_value": 0.477,
+            "delta": 0.132,
+            "effect": "better",
+            "summary": "improves"
+          },
+          {
+            "label": "Commercial damage",
+            "baseline_value": 0.699,
+            "predicted_value": 0.55,
+            "delta": -0.149,
+            "effect": "better",
+            "summary": "improves"
+          },
+          {
+            "label": "Internal execution drag",
+            "baseline_value": 0.498,
+            "predicted_value": 0.504,
+            "delta": 0.006,
+            "effect": "worse",
+            "summary": "worsens"
+          }
+        ],
+        "overall_rank": 3,
+        "short_explanation": "Much lower outside spread risk. Trade-off: Slightly higher internal handling load.",
+        "public_score": 0.477
+      },
+      {
+        "action_label": "Fast outside circulation",
+        "branch_explanation": "Move fast and widen the loop for speed.",
+        "actual_historical_action": "The draft went outside quickly, then the thread widened into a long reassignment and redline tail with no visible formal signoff.",
+        "recorded_future_event_count": 84,
+        "public_outcomes": [
+          {
+            "label": "Legal and regulatory exposure",
+            "baseline_value": 0.71,
+            "predicted_value": 0.717,
+            "delta": 0.007,
+            "effect": "worse",
+            "summary": "worsens"
+          },
+          {
+            "label": "Disclosure and stakeholder trust",
+            "baseline_value": 0.345,
+            "predicted_value": 0.328,
+            "delta": -0.017,
+            "effect": "worse",
+            "summary": "worsens"
+          },
+          {
+            "label": "Commercial damage",
+            "baseline_value": 0.699,
+            "predicted_value": 0.721,
+            "delta": 0.022,
+            "effect": "worse",
+            "summary": "worsens"
+          },
+          {
+            "label": "Internal execution drag",
+            "baseline_value": 0.498,
+            "predicted_value": 0.526,
+            "delta": 0.028,
+            "effect": "worse",
+            "summary": "worsens"
+          }
+        ],
+        "overall_rank": 4,
+        "short_explanation": "Slightly higher execution delay.",
+        "public_score": 0.322
+      }
+    ]
+  }
 }

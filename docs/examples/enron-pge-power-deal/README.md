@@ -1,6 +1,6 @@
 # Enron PG&E Power Deal Example
 
-This example ties a commercial legal thread to the widening credit story around PG&E and gives the saved forecast a cleaner macro-credit hook than the original contract-only example.
+This is the clean commercial judgment case. It puts a real counterparty decision under credit pressure on the same saved timeline and forecast surface.
 
 ## Open It In Studio
 
@@ -17,23 +17,46 @@ Open `http://127.0.0.1:3055`.
 
 ![Saved ranking panel](../../assets/enron-whatif/pge-power-deal-ranking.png)
 
+## Branch Point
+
+- Sara Shackleton is moving a PG&E financial power deal while the counterparty credit picture is deteriorating.
+
+## What Actually Happened
+
+- The deal thread kept moving through the legal and commercial loop while the wider PG&E situation worsened.
+
+## Actions We Can Take
+
+- **Hold for credit re-check**: Pause the deal and re-check counterparty credit before moving.
+- **Restructure with collateral**: Keep the deal alive, but rewrite the risk terms.
+- **Close with tighter approval**: Keep momentum, but require a visibly tighter approval path.
+- **Push quarter-end close**: Favor speed and quarter-end timing over extra credit review.
+
+## Predicted Effect On The Company
+
+- Recorded future events after the historical branch: 6
+- Current top-ranked action: Hold for credit re-check
+- Short readout: Much lower exposure risk. Trade-off: Moderately higher internal handling load.
+- Legal and regulatory exposure: improves (0.509 -> 0.358)
+- Disclosure and stakeholder trust: improves (0.615 -> 0.674)
+- Commercial damage: improves (0.362 -> 0.306)
+- Internal execution drag: worsens (0.197 -> 0.294)
+
 ## Why This Branch Matters
 
-This branch is interesting because it keeps the legal drafting work small and concrete while the counterparty story around PG&E is getting materially worse in public. The saved choices are about whether Enron slows down, restructures, or keeps pressing ahead.
+This case is strong because more than one move looks plausible. The question is not only safety. The question is whether Enron should slow down, restructure, or still push the deal through.
 
-The stock, credit, and bankruptcy fixtures add context around the deal date. The macro panel still stays advisory because the current calibration report is weak.
+It also gives the proof set a commercial and credit branch instead of only legal or governance branches.
 
-## What This Example Covers
+## Bundle Facts
 
-- Historical branch point: Sara Shackleton is moving a PG&E financial power deal while the counterparty's macro-credit picture is deteriorating.
 - Saved branch scene: 30 prior events and 6 recorded future events
 - Public-company slice at 1999-05-12: 1 financial checkpoints, 0 public news items, 335 market checkpoints, 0 credit checkpoints, and 0 regulatory checkpoints
 - Prior timeline source families: disclosure, financial, market
 - Prior timeline domains: governance, obs_graph
+- Bundle role: `proof`
 - Saved LLM path: Hold the deal until PG&E credit is rechecked, ask for collateral, and keep legal and credit on one internal review loop.
 - Saved forecast file: `whatif_reference_result.json`
-- Business-state readout: Moderately lower approval and escalation pressure.
-- Top ranked candidate: Hold for credit re-check
 
 ## Saved Files
 
@@ -53,8 +76,12 @@ The stock, credit, and bankruptcy fixtures add context around the deal date. The
 ## Other Enron Examples
 
 - [Enron Master Agreement Example](../enron-master-agreement-public-context/README.md)
-- [Enron Watkins Follow-up Example](../enron-watkins-follow-up/README.md)
 - [Enron California Crisis Strategy Example](../enron-california-crisis-strategy/README.md)
+- [Enron Baxter Press Release Example](../enron-baxter-press-release/README.md)
+- [Enron Braveheart Forward Example](../enron-braveheart-forward/README.md)
+- [Enron Watkins Follow-up Example](../enron-watkins-follow-up/README.md)
+- [Enron Q3 Disclosure Review Example](../enron-q3-disclosure-review/README.md)
+- [Enron Skilling Resignation Materials Example](../enron-skilling-resignation-materials/README.md)
 
 ## Refresh
 
@@ -66,6 +93,6 @@ python scripts/capture_enron_bundle_screenshots.py --bundle enron-pge-power-deal
 
 ## Constraint
 
-This repo now carries the Rosetta parquet archive, the source cache, and the raw Enron mail tar under `data/enron/`, so a fresh clone can open these saved examples and rebuild them without reaching into a sibling checkout.
+This repo now carries a small checked-in Enron Rosetta sample for the saved bundles and smoke checks. Fetch the full archive with `make fetch-enron-full` when you want full training, full benchmark builds, or full archive validation.
 
 The macro heads in these saved bundles stay advisory context beside the email-path evidence. See [the current calibration report](../../../studies/macro_calibration_enron_v1/calibration_report.md) before making any stronger claim.

@@ -7,8 +7,10 @@ from pathlib import Path
 
 import pyarrow.parquet as pq
 
+from vei.whatif._enron_dataset import require_full_enron_rosetta_dir
+from vei.whatif.api import resolve_whatif_rosetta_dir
+
 ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_ROSETTA_DIR = ROOT / "data" / "enron" / "rosetta"
 OUTPUT_PATH = ROOT / "_vei_out" / "rosetta_archive_verdict.json"
 EXPECTED_METADATA_COLUMNS = {
     "event_id",
@@ -103,20 +105,16 @@ def main() -> None:
 
 def resolve_rosetta_dir() -> Path:
     configured = os.environ.get("VEI_WHATIF_ROSETTA_DIR", "").strip()
-    candidates = [
-        Path(configured).expanduser() if configured else None,
-        DEFAULT_ROSETTA_DIR,
-    ]
-    for candidate in candidates:
-        if candidate is None:
-            continue
-        resolved = candidate.resolve()
-        if (resolved / "enron_rosetta_events_metadata.parquet").exists():
-            return resolved
-    raise SystemExit(
-        "could not find Enron Rosetta archive. "
-        "Set VEI_WHATIF_ROSETTA_DIR or keep data/enron/rosetta present."
-    )
+    candidate = Path(configured).expanduser() if configured else resolve_whatif_rosetta_dir(ROOT)
+    if candidate is None:
+        raise SystemExit(
+            "could not find an Enron Rosetta dataset. "
+            "Run `make fetch-enron-full` or set VEI_WHATIF_ROSETTA_DIR."
+        )
+    try:
+        return require_full_enron_rosetta_dir(candidate, purpose="archive validation")
+    except RuntimeError as exc:
+        raise SystemExit(str(exc)) from exc
 
 
 def _json_timestamp(value: object) -> str:

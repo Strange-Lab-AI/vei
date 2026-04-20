@@ -1,7 +1,7 @@
 # Reference Backend Metrics
 
 - Model: `full_context_transformer`
-- Rosetta archive: `/Users/rohit/Documents/Workspace/Coding/digital-enterprise-twin/data/enron/rosetta`
+- Rosetta archive: full Enron archive fetched outside the repo checkout
 - Train rows: `7613`
 - Validation rows: `1631`
 - Epochs: `1`

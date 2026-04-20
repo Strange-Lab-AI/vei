@@ -1,9 +1,9 @@
 {
   "version": "2",
   "mode": "both",
-  "label": "california_crisis_order_saved_bundle_20260417",
+  "label": "california_crisis_order_saved_bundle_20260419",
   "intervention": {
-    "label": "california_crisis_order_saved_bundle_20260417",
+    "label": "california_crisis_order_saved_bundle_20260419",
     "prompt": "Pause the strategy, preserve the record, alert legal and compliance, and prepare a self-report path instead of continuing the trading play.",
     "objective": "Threads touching both legal and trading signals require review before forwarding or escalation.",
     "scenario_id": "compliance_gateway",

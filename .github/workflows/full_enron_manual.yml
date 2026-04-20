@@ -1,0 +1,61 @@
+name: full-enron-manual
+
+on:
+  workflow_dispatch:
+    inputs:
+      task:
+        description: Full Enron job to run
+        required: true
+        default: proof-pass
+        type: choice
+        options:
+          - archive-check
+          - proof-pass
+          - reference-train
+
+jobs:
+  full-enron:
+    runs-on: ubuntu-latest
+    env:
+      AGENT_MODE: baseline
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Setup
+        run: make setup-full
+
+      - name: Fetch full Enron archive
+        run: |
+          . .venv/bin/activate
+          python scripts/fetch_enron_full_dataset.py > _vei_out/fetch_enron_full_dataset.json
+          python - <<'PY' >> "$GITHUB_ENV"
+          import json
+          from pathlib import Path
+          payload = json.loads(Path("_vei_out/fetch_enron_full_dataset.json").read_text())
+          print(f"VEI_WHATIF_ROSETTA_DIR={payload['rosetta_dir']}")
+          PY
+
+      - name: Archive check
+        if: ${{ github.event.inputs.task == 'archive-check' }}
+        run: |
+          . .venv/bin/activate
+          python scripts/check_rosetta_archive.py
+
+      - name: Proof pass
+        if: ${{ github.event.inputs.task == 'proof-pass' }}
+        run: |
+          . .venv/bin/activate
+          python scripts/check_rosetta_archive.py
+          python scripts/run_enron_flagship_proof_pass.py
+
+      - name: Reference train
+        if: ${{ github.event.inputs.task == 'reference-train' }}
+        run: |
+          . .venv/bin/activate
+          python scripts/train_reference_backend_on_enron.py --rosetta-dir "$VEI_WHATIF_ROSETTA_DIR"

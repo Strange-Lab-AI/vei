@@ -90,6 +90,26 @@ def _enron_bundle_issues(bundle_root: Path) -> list[str]:
         path = bundle_root / filename
         if not path.exists():
             issues.append(f"missing bundle artifact: {path}")
+    comparison_payload = json.loads(
+        (bundle_root / "whatif_business_state_comparison.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    if comparison_payload.get("objective_pack", {}).get("pack_id") != (
+        "protect_company_default"
+    ):
+        issues.append("expected protect_company_default as the public objective pack")
+    candidate_count = len(comparison_payload.get("candidates") or [])
+    if candidate_count != 4:
+        issues.append(f"expected exactly 4 candidate actions, found {candidate_count}")
+    public_summary = comparison_payload.get("public_summary")
+    if not isinstance(public_summary, dict):
+        issues.append("missing public_summary in business state comparison payload")
+    story_manifest = json.loads(
+        (bundle_root / "enron_story_manifest.json").read_text(encoding="utf-8")
+    )
+    if story_manifest.get("benchmark_role") not in {"proof", "narrative"}:
+        issues.append("expected benchmark_role to be proof or narrative")
     issues.extend(_bundle_history_issues(bundle_root))
     return issues
 

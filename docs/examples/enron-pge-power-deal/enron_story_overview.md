@@ -6,7 +6,9 @@ VEI is one shared timeline and replay surface. This bundle shows the real-histor
 
 - Title: `Enron PG&E Power Deal Example`
 - Bundle slug: `enron-pge-power-deal`
-- Branch point: Sara Shackleton is moving a PG&E financial power deal while the counterparty's macro-credit picture is deteriorating.
+- Bundle role: `proof`
+- Branch point: Sara Shackleton is moving a PG&E financial power deal while the counterparty credit picture is deteriorating.
+- What actually happened: The deal thread kept moving through the legal and commercial loop while the wider PG&E situation worsened.
 - Branch date: `1999-05-12`
 - Prior events: `30`
 - Recorded future events: `6`
@@ -17,9 +19,9 @@ VEI is one shared timeline and replay surface. This bundle shows the real-histor
 
 ## Why it matters
 
-This branch is interesting because it keeps the legal drafting work small and concrete while the counterparty story around PG&E is getting materially worse in public. The saved choices are about whether Enron slows down, restructures, or keeps pressing ahead.
+This case is strong because more than one move looks plausible. The question is not only safety. The question is whether Enron should slow down, restructure, or still push the deal through.
 
-The stock, credit, and bankruptcy fixtures add context around the deal date. The macro panel still stays advisory because the current calibration report is weak.
+It also gives the proof set a commercial and credit branch instead of only legal or governance branches.
 
 ## Open it
 
@@ -39,5 +41,5 @@ vei ui serve \
 
 ## Structured notes
 
-- Story manifest role: `headline`
+- Story manifest role: `proof`
 - Presentation beats: `7`

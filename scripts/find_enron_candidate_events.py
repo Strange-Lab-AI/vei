@@ -7,6 +7,8 @@ from typing import Any
 
 import pyarrow.parquet as pq
 
+from vei.whatif._enron_dataset import require_full_enron_rosetta_dir
+
 
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
@@ -113,7 +115,10 @@ def _matches_range(timestamp_text: str, *, from_ts: str, to_ts: str) -> bool:
 
 def main() -> int:
     args = _parse_args()
-    rosetta_dir = args.rosetta_dir.expanduser().resolve()
+    rosetta_dir = require_full_enron_rosetta_dir(
+        args.rosetta_dir.expanduser().resolve(),
+        purpose="candidate-event mining",
+    )
     metadata_rows = _load_metadata(rosetta_dir)
     actor_filters = _normalize_text_values(args.actor)
     target_filters = _normalize_text_values(args.target)

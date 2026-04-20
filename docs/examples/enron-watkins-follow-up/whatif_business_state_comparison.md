@@ -1,69 +1,46 @@
-# enron_watkins_followup_business_state_comparison_20260417
+# enron_watkins_followup_business_state_comparison_20260419
 
-Objective pack: `contain_exposure`
-Thread: `thr_6ca597ba4bf815ac`
-Branch event: `enron_d8d296de473f63be`
-Historical subject: The key questions I asked Lay on Aug 22
+## Branch Point
+- Sherron Watkins is writing a follow-up note that preserves her account of the questions she says she raised to Ken Lay on August 22, 2001.
 
-## Recorded Historical Path
-- Recorded business state centers on approval and escalation pressure and relationship stability.
-- Approval and escalation pressure stays limited in the recorded path.
-- Relationship stability looks strong in the recorded path.
-- Internal handling load stays limited in the recorded path.
+## What Actually Happened
+- The follow-up note became a narrow internal preserved record during the wider disclosure spiral.
 
-## Candidate Moves
-### Rank 1: Send the warning anonymously
-- Prompt: Strip the sender identity, send the warning as an anonymous follow-up note to Ken Lay and the audit committee, and keep the distribution narrow.
-- Business state: This move stays close to the historical business path.
-- Net effect score: 0.0
-- Forecast summary: Predicted risk moves flat by 0.000, with escalation delta 0 and external-send delta 0.
-- Risk change: 0.02 -> 0.02
-- External-send delta: 0
-- Stock return (5d): -0.1912 -> -0.1412
-- Credit action (30d): 1.0 -> 0.88
-- Containment stays close to the historical path.
-- Handling burden stays close to the historical path.
-- Execution pace stays close to the historical path.
-- Commercial footing stays close to the historical path.
+## Actions We Can Take
+### Rank 1: Suppress and monitor
+- Keep the concern private and avoid formal escalation.
+- Legal and regulatory exposure: stays flat (0.068 -> 0.068)
+- Disclosure and stakeholder trust: stays flat (0.954 -> 0.954)
+- Commercial damage: stays flat (0.031 -> 0.031)
+- Internal execution drag: stays flat (0.029 -> 0.029)
+- Why: This move stays close to the historical business path.
 
-### Rank 2: Suppress and monitor
-- Prompt: Keep the follow-up note inside a very small internal loop, do not escalate it further, and monitor the accounting story quietly for a few days.
-- Business state: This move stays close to the historical business path.
-- Net effect score: 0.0
-- Forecast summary: Predicted risk moves flat by 0.000, with escalation delta 0 and external-send delta 0.
-- Risk change: 0.02 -> 0.02
-- External-send delta: 0
-- Stock return (5d): -0.1912 -> -0.2412
-- Credit action (30d): 1.0 -> 1.0
-- Containment stays close to the historical path.
-- Handling burden stays close to the historical path.
-- Execution pace stays close to the historical path.
-- Commercial footing stays close to the historical path.
+### Rank 2: Formal audit escalation
+- Turn the note into a formal accounting escalation.
+- Legal and regulatory exposure: worsens (0.068 -> 0.135)
+- Disclosure and stakeholder trust: worsens (0.954 -> 0.842)
+- Commercial damage: worsens (0.031 -> 0.131)
+- Internal execution drag: worsens (0.029 -> 0.235)
+- Why: Much higher approval and escalation pressure.
 
-### Rank 3: Escalate to audit committee
-- Prompt: Escalate the follow-up note to Ken Lay, the audit committee, and internal legal, preserve the written record, and copy Arthur Andersen on the factual accounting questions.
-- Business state: Much higher approval and escalation pressure.
-- Net effect score: -0.102
-- Forecast summary: Predicted risk moves down by 0.020, with escalation delta 0 and external-send delta 0.
-- Risk change: 0.02 -> 0.0
-- External-send delta: 0
-- Stock return (5d): -0.1912 -> -0.1512
-- Credit action (30d): 1.0 -> 0.88
-- Containment stays close to the historical path.
-- Internal handling looks much heavier.
-- Near-term execution looks slower.
-- Commercial footing looks weaker.
+### Rank 3: Board and legal preservation
+- Preserve the record inside the board and legal path.
+- Legal and regulatory exposure: worsens (0.068 -> 0.135)
+- Disclosure and stakeholder trust: worsens (0.954 -> 0.842)
+- Commercial damage: worsens (0.031 -> 0.131)
+- Internal execution drag: worsens (0.029 -> 0.235)
+- Why: Much higher approval and escalation pressure.
 
-### Rank 4: Route through Vinson & Elkins
-- Prompt: Keep the follow-up note inside Enron, route it through internal legal and Vinson & Elkins for review, and hold broader escalation until that review is complete.
-- Business state: Much higher approval and escalation pressure.
-- Net effect score: -0.102
-- Forecast summary: Predicted risk moves down by 0.020, with escalation delta 0 and external-send delta 0.
-- Risk change: 0.02 -> 0.0
-- External-send delta: 0
-- Stock return (5d): -0.1912 -> -0.2012
-- Credit action (30d): 1.0 -> 1.0
-- Containment stays close to the historical path.
-- Internal handling looks much heavier.
-- Near-term execution looks slower.
-- Commercial footing looks weaker.
+### Rank 4: Narrow internal escalation
+- Warn upward, but keep the loop narrow.
+- Legal and regulatory exposure: worsens (0.068 -> 0.135)
+- Disclosure and stakeholder trust: worsens (0.954 -> 0.842)
+- Commercial damage: worsens (0.031 -> 0.131)
+- Internal execution drag: worsens (0.029 -> 0.235)
+- Why: Much higher approval and escalation pressure.
+
+## Predicted Effect On The Company
+
+- Best current move: Suppress and monitor
+- Recorded future events after the historical branch: 1
+- Readout: This move stays close to the historical business path.

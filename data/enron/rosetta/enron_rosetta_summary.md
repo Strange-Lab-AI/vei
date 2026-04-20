@@ -1,46 +1,11 @@
-# Enron Rosetta Export Summary
+# Enron Rosetta Sample
 
-## Event Table
-- Rows: **410,019**
-- Unique actors: **16,830**
-- Unique thread/task IDs: **133,218**
-- Escalation share: **35.07%**
+This checked-in sample carries the benchmark anchor threads that power the saved Enron bundles and the proof-case smoke tests.
 
-### Event Type Shares
-- escalation: **35.07%**
-- message: **27.49%**
-- assignment: **20.55%**
-- message_reply: **14.73%**
-- approval: **2.16%**
-
-## Talk Graph
-- Directed edges: **311,316**
-- Total interactions: **2,990,873**
-
-### Top 10 Talk Edges
-- pete.davis@enron.com -> ryan.slinger@enron.com: n=9077, escalation_share=0.98
-- pete.davis@enron.com -> geir.solberg@enron.com: n=9071, escalation_share=0.98
-- pete.davis@enron.com -> mark.guzman@enron.com: n=9071, escalation_share=0.98
-- pete.davis@enron.com -> craig.dean@enron.com: n=8285, escalation_share=0.98
-- pete.davis@enron.com -> leaf.harasin@enron.com: n=5965, escalation_share=0.99
-- pete.davis@enron.com -> bert.meyers@enron.com: n=5962, escalation_share=0.99
-- pete.davis@enron.com -> monika.causholli@enron.com: n=5685, escalation_share=0.99
-- pete.davis@enron.com -> bill.williams.iii@enron.com: n=5334, escalation_share=0.99
-- pete.davis@enron.com -> dporter3@enron.com: n=5334, escalation_share=0.99
-- pete.davis@enron.com -> jbryson@enron.com: n=5334, escalation_share=0.99
-
-## Work Graph
-- State transitions logged: **410,019**
-- Distinct transition edges: **30**
-
-### Top State Transitions
-- escalated -> escalated: 89372 transitions across 30650 threads
-- opened -> opened: 62905 transitions across 19854 threads
-- assigned -> assigned: 51595 transitions across 17842 threads
-- start -> opened: 44702 transitions across 44702 threads
-- start -> escalated: 44646 transitions across 44646 threads
-- active -> active: 32624 transitions across 11185 threads
-- start -> assigned: 25294 transitions across 25294 threads
-- start -> active: 16199 transitions across 16199 threads
-- approved -> approved: 5816 transitions across 1858 threads
-- escalated -> active: 4914 transitions across 4214 threads
+- Selected case ids: arbitration_guidance, baxter_press_release, braveheart_forward, btu_weekly, california_crisis_order, cargill_contract, cargill_internal, confirmations_policy, credit_derivatives_confidentiality, credit_suisse_products, draft_position_paper, ees_preholiday_update, ferc_weekly_report, hlp_swap_agreement, interview_senior_counsel, kwb_power_contract, market_descriptions_review, master_agreement, nerc_review, nordic_master_agreement, paralegal_position, performance_review_portz, performance_review_time, pg_e_power_deal, q3_disclosure_review, restructured_transaction, risk_management_policy, skilling_resignation_materials, urgent_etol_swap, vendor_policy_mailing, watkins_followup_questions
+- Selected thread ids: thr_0e578eb0c195b5c3, thr_1d6e90d6c8697401, thr_23255c500305185d, thr_2544d56bf9095663, thr_44e3ef3a1390591a, thr_5c00adfa02940001, thr_5ece5722490045f0, thr_68db3d4f8c43d4cf, thr_6c3fb0b2556d4dc9, thr_6ca597ba4bf815ac, thr_76b3a6fa85ec2f54, thr_78c548790f61a53a, thr_7e08456b3e073b84, thr_7f3c60579836d4e5, thr_820f7864cf391784, thr_88dfec0c8873a099, thr_a202337836dbf327, thr_aba0dad1e5f2f73c, thr_af4757447fa4b384, thr_c326eb090e657ce3, thr_c33f65c4d4da5d75, thr_c79fc41dcab28f9c, thr_cb1bbdeee0e3dbad, thr_cb6ca499db205b16, thr_d2c707104eb69e23, thr_d44084d11d01b888, thr_d5715810ccdf7655, thr_dc0c00d776de62bb, thr_e565b47423d035c9, thr_eef6c92a67ebce05, thr_ef921535947da991
+- Event rows: 343
+- Content rows: 343
+- Talk graph edges: 29454
+- Work graph transitions: 343
+- Work graph edges: 30

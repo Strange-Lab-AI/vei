@@ -1,0 +1,28 @@
+[
+  {
+    "name": "Canonical Timeline Export",
+    "summary": "32 prior canonical events from credit, disclosure, filing, financial, governance, mail, news, regulatory before the branch point.",
+    "paths": [
+      "workspace/context_snapshot.json",
+      "workspace/canonical_events.jsonl",
+      "workspace/canonical_event_index.json"
+    ]
+  },
+  {
+    "name": "Learned Forecast Export",
+    "summary": "Saved reference forecast in whatif_reference_result.json plus the combined what-if experiment result.",
+    "paths": [
+      "whatif_experiment_result.json",
+      "whatif_reference_result.json",
+      "whatif_business_state_comparison.json"
+    ]
+  },
+  {
+    "name": "Public Context Export",
+    "summary": "Dated public-company slice with 10 financial, 10 news, 894 market, 3 credit, and 1 regulatory checkpoints.",
+    "paths": [
+      "workspace/whatif_public_context.json",
+      "timeline_arc.md"
+    ]
+  }
+]

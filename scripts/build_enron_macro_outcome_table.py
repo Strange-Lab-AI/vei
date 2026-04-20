@@ -6,6 +6,7 @@ from collections import defaultdict
 from pathlib import Path
 
 from vei.context.api import load_enron_public_context, slice_public_context_to_branch
+from vei.whatif._enron_dataset import require_full_enron_rosetta_dir
 from vei.whatif.api import score_historical_tail
 from vei.whatif.cases import assign_case_ids
 from vei.whatif.corpus._enron import ENRON_DOMAIN, build_event
@@ -165,7 +166,11 @@ def write_macro_outcome_rows(
     output_path: Path = DEFAULT_OUTPUT_PATH,
     rosetta_dir: Path = Path("data/enron/rosetta"),
 ) -> Path:
-    rows = build_macro_outcome_rows(rosetta_dir=rosetta_dir.resolve())
+    resolved_rosetta_dir = require_full_enron_rosetta_dir(
+        rosetta_dir.resolve(),
+        purpose="macro outcome table build",
+    )
+    rows = build_macro_outcome_rows(rosetta_dir=resolved_rosetta_dir)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     with output_path.open("w", encoding="utf-8") as handle:
         for row in rows:

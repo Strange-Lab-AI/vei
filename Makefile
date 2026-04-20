@@ -11,7 +11,7 @@ SETUP_FULL_EXTRAS := dev,llm,sse,ui,test,rl,browser,worldmodel,jepa
 COVERAGE_FAIL_UNDER ?= $(or $(shell awk 'BEGIN { section = 0 } $$1 == "coverage:" { section = 1; next } section && $$1 == "global:" { print int($$2 * 100); exit }' $(AGENTS_FILE) 2>/dev/null),80)
 PIPAPI_PYTHON := $(abspath $(VENV_BIN)/python)
 
-.PHONY: setup bootstrap setup-full check check-full test test-full dynamics-eval llm-live deps-audit enron-example service-ops-example dispatch-local-example enron-screens all clean clean-workspace clean-workspace-dry-run
+.PHONY: setup bootstrap setup-full check check-full test test-full dynamics-eval llm-live deps-audit enron-example service-ops-example dispatch-local-example enron-screens fetch-enron-full package-enron-full all clean clean-workspace clean-workspace-dry-run
 
 $(VENV)/bin/activate:
 	$(PYTHON) -m venv $(VENV)
@@ -124,6 +124,12 @@ dispatch-local-example: $(SETUP_FULL_STAMP)
 enron-screens: $(SETUP_FULL_STAMP)
 	$(VENV_BIN)/python -m playwright install chromium
 	$(VENV_BIN)/python scripts/capture_enron_bundle_screenshots.py
+
+fetch-enron-full: $(SETUP_FULL_STAMP)
+	$(VENV_BIN)/python scripts/fetch_enron_full_dataset.py
+
+package-enron-full: $(SETUP_FULL_STAMP)
+	$(VENV_BIN)/python scripts/package_enron_full_dataset_release.py
 
 all: check-full test-full dynamics-eval llm-live deps-audit
 

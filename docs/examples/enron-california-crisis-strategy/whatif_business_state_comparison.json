@@ -1,6 +1,18 @@
 {
-  "label": "enron_california_crisis_business_state_comparison_20260417",
-  "objective_pack_id": "contain_exposure",
+  "label": "enron_california_crisis_business_state_comparison_20260419",
+  "objective_pack_id": "protect_company_default",
+  "internal_objective_pack_id": "contain_exposure",
+  "objective_pack": {
+    "pack_id": "protect_company_default",
+    "title": "Protect Company",
+    "summary": "Favor moves that lower legal exposure, preserve trust, limit commercial damage, and keep internal execution drag manageable.",
+    "outcomes": [
+      "Legal and regulatory exposure",
+      "Disclosure and stakeholder trust",
+      "Commercial damage",
+      "Internal execution drag"
+    ]
+  },
   "thread_id": "thr_af4757447fa4b384",
   "branch_event_id": "enron_99afc1ca73d1a1bb",
   "thread_subject": "IMPORTANT - READ IMMEDIATELY",
@@ -68,8 +80,9 @@
   },
   "candidates": [
     {
-      "label": "Seek Skilling sign-off",
+      "label": "Preserve and seek executive sign-off",
       "prompt": "Preserve the record, memo the issue to Jeff Skilling for an explicit decision, and keep the current strategy on hold until leadership answers.",
+      "explanation": "Preserve the record, but wait for top-level approval before acting.",
       "forecast": {
         "backend": "heuristic_baseline",
         "summary": "Predicted risk moves down by 0.080, with escalation delta 0 and external-send delta 0.",
@@ -199,11 +212,55 @@
         "tradeoffs": [],
         "net_effect_score": 0.023
       },
+      "public_summary": {
+        "action_label": "Preserve and seek executive sign-off",
+        "branch_explanation": "Preserve the record, but wait for top-level approval before acting.",
+        "actual_historical_action": "The preservation-order thread stayed inside the active crisis loop while the desk was still deciding how far to halt or continue.",
+        "recorded_future_event_count": 4,
+        "public_outcomes": [
+          {
+            "label": "Legal and regulatory exposure",
+            "baseline_value": 0.06,
+            "predicted_value": 0.029,
+            "delta": -0.031,
+            "effect": "better",
+            "summary": "improves"
+          },
+          {
+            "label": "Disclosure and stakeholder trust",
+            "baseline_value": 0.955,
+            "predicted_value": 0.977,
+            "delta": 0.022,
+            "effect": "better",
+            "summary": "improves"
+          },
+          {
+            "label": "Commercial damage",
+            "baseline_value": 0.04,
+            "predicted_value": 0.018,
+            "delta": -0.022,
+            "effect": "better",
+            "summary": "improves"
+          },
+          {
+            "label": "Internal execution drag",
+            "baseline_value": 0.026,
+            "predicted_value": 0.022,
+            "delta": -0.004,
+            "effect": "better",
+            "summary": "improves"
+          }
+        ],
+        "overall_rank": 1,
+        "short_explanation": "Slightly lower exposure risk.",
+        "public_score": 0.976
+      },
       "rank": 1
     },
     {
-      "label": "Proceed with narrow circulation",
+      "label": "Continue in a narrow loop",
       "prompt": "Keep the strategy moving, preserve the order inside a narrow legal and trading loop, and avoid broad distribution while continuing the desk play.",
+      "explanation": "Keep going, but keep the circle tight.",
       "forecast": {
         "backend": "heuristic_baseline",
         "summary": "Predicted risk moves down by 0.080, with escalation delta 0 and external-send delta 0.",
@@ -336,11 +393,55 @@
         ],
         "net_effect_score": -0.005
       },
+      "public_summary": {
+        "action_label": "Continue in a narrow loop",
+        "branch_explanation": "Keep going, but keep the circle tight.",
+        "actual_historical_action": "The preservation-order thread stayed inside the active crisis loop while the desk was still deciding how far to halt or continue.",
+        "recorded_future_event_count": 4,
+        "public_outcomes": [
+          {
+            "label": "Legal and regulatory exposure",
+            "baseline_value": 0.06,
+            "predicted_value": 0.048,
+            "delta": -0.012,
+            "effect": "better",
+            "summary": "improves"
+          },
+          {
+            "label": "Disclosure and stakeholder trust",
+            "baseline_value": 0.955,
+            "predicted_value": 0.946,
+            "delta": -0.009,
+            "effect": "worse",
+            "summary": "worsens"
+          },
+          {
+            "label": "Commercial damage",
+            "baseline_value": 0.04,
+            "predicted_value": 0.046,
+            "delta": 0.006,
+            "effect": "worse",
+            "summary": "worsens"
+          },
+          {
+            "label": "Internal execution drag",
+            "baseline_value": 0.026,
+            "predicted_value": 0.077,
+            "delta": 0.051,
+            "effect": "worse",
+            "summary": "worsens"
+          }
+        ],
+        "overall_rank": 2,
+        "short_explanation": "Slightly lower exposure risk. Trade-off: Slightly higher approval and escalation pressure.",
+        "public_score": 0.947
+      },
       "rank": 2
     },
     {
-      "label": "Halt and self-report",
+      "label": "Preserve and halt",
       "prompt": "Pause the strategy, preserve the record, alert legal and compliance, and prepare a self-report path to FERC and the California authorities.",
+      "explanation": "Stop the play, preserve the record, and open the legal path.",
       "forecast": {
         "backend": "heuristic_baseline",
         "summary": "Predicted risk moves down by 0.080, with escalation delta 0 and external-send delta 0.",
@@ -473,11 +574,55 @@
         ],
         "net_effect_score": -0.013
       },
+      "public_summary": {
+        "action_label": "Preserve and halt",
+        "branch_explanation": "Stop the play, preserve the record, and open the legal path.",
+        "actual_historical_action": "The preservation-order thread stayed inside the active crisis loop while the desk was still deciding how far to halt or continue.",
+        "recorded_future_event_count": 4,
+        "public_outcomes": [
+          {
+            "label": "Legal and regulatory exposure",
+            "baseline_value": 0.06,
+            "predicted_value": 0.054,
+            "delta": -0.006,
+            "effect": "better",
+            "summary": "improves"
+          },
+          {
+            "label": "Disclosure and stakeholder trust",
+            "baseline_value": 0.955,
+            "predicted_value": 0.938,
+            "delta": -0.017,
+            "effect": "worse",
+            "summary": "worsens"
+          },
+          {
+            "label": "Commercial damage",
+            "baseline_value": 0.04,
+            "predicted_value": 0.053,
+            "delta": 0.013,
+            "effect": "worse",
+            "summary": "worsens"
+          },
+          {
+            "label": "Internal execution drag",
+            "baseline_value": 0.026,
+            "predicted_value": 0.091,
+            "delta": 0.065,
+            "effect": "worse",
+            "summary": "worsens"
+          }
+        ],
+        "overall_rank": 3,
+        "short_explanation": "Slightly lower exposure risk. Trade-off: Moderately higher approval and escalation pressure.",
+        "public_score": 0.939
+      },
       "rank": 3
     },
     {
-      "label": "Proceed and widen",
+      "label": "Continue and widen",
       "prompt": "Keep the strategy moving, widen the internal circulation for rapid comments, and keep the desk fully active despite the preservation order.",
+      "explanation": "Keep going and broaden the loop.",
       "forecast": {
         "backend": "heuristic_baseline",
         "summary": "Predicted risk moves up by 0.120, with escalation delta 0 and external-send delta 1.",
@@ -610,7 +755,249 @@
         ],
         "net_effect_score": -0.087
       },
+      "public_summary": {
+        "action_label": "Continue and widen",
+        "branch_explanation": "Keep going and broaden the loop.",
+        "actual_historical_action": "The preservation-order thread stayed inside the active crisis loop while the desk was still deciding how far to halt or continue.",
+        "recorded_future_event_count": 4,
+        "public_outcomes": [
+          {
+            "label": "Legal and regulatory exposure",
+            "baseline_value": 0.06,
+            "predicted_value": 0.141,
+            "delta": 0.081,
+            "effect": "worse",
+            "summary": "worsens"
+          },
+          {
+            "label": "Disclosure and stakeholder trust",
+            "baseline_value": 0.955,
+            "predicted_value": 0.873,
+            "delta": -0.082,
+            "effect": "worse",
+            "summary": "worsens"
+          },
+          {
+            "label": "Commercial damage",
+            "baseline_value": 0.04,
+            "predicted_value": 0.125,
+            "delta": 0.085,
+            "effect": "worse",
+            "summary": "worsens"
+          },
+          {
+            "label": "Internal execution drag",
+            "baseline_value": 0.026,
+            "predicted_value": 0.104,
+            "delta": 0.078,
+            "effect": "worse",
+            "summary": "worsens"
+          }
+        ],
+        "overall_rank": 4,
+        "short_explanation": "Moderately higher exposure risk.",
+        "public_score": 0.872
+      },
       "rank": 4
     }
-  ]
+  ],
+  "public_summary": {
+    "bundle_role": "proof",
+    "branch_point": "Tim Belden's desk receives a preservation order tied to the California crisis while the trading strategy is still active.",
+    "actual_happened": "The preservation-order thread stayed inside the active crisis loop while the desk was still deciding how far to halt or continue.",
+    "actions_we_can_take": [
+      {
+        "label": "Preserve and seek executive sign-off",
+        "branch_explanation": "Preserve the record, but wait for top-level approval before acting."
+      },
+      {
+        "label": "Continue in a narrow loop",
+        "branch_explanation": "Keep going, but keep the circle tight."
+      },
+      {
+        "label": "Preserve and halt",
+        "branch_explanation": "Stop the play, preserve the record, and open the legal path."
+      },
+      {
+        "label": "Continue and widen",
+        "branch_explanation": "Keep going and broaden the loop."
+      }
+    ],
+    "predicted_effect_summary": "Slightly lower exposure risk.",
+    "recorded_future_event_count": 4,
+    "candidates": [
+      {
+        "action_label": "Preserve and seek executive sign-off",
+        "branch_explanation": "Preserve the record, but wait for top-level approval before acting.",
+        "actual_historical_action": "The preservation-order thread stayed inside the active crisis loop while the desk was still deciding how far to halt or continue.",
+        "recorded_future_event_count": 4,
+        "public_outcomes": [
+          {
+            "label": "Legal and regulatory exposure",
+            "baseline_value": 0.06,
+            "predicted_value": 0.029,
+            "delta": -0.031,
+            "effect": "better",
+            "summary": "improves"
+          },
+          {
+            "label": "Disclosure and stakeholder trust",
+            "baseline_value": 0.955,
+            "predicted_value": 0.977,
+            "delta": 0.022,
+            "effect": "better",
+            "summary": "improves"
+          },
+          {
+            "label": "Commercial damage",
+            "baseline_value": 0.04,
+            "predicted_value": 0.018,
+            "delta": -0.022,
+            "effect": "better",
+            "summary": "improves"
+          },
+          {
+            "label": "Internal execution drag",
+            "baseline_value": 0.026,
+            "predicted_value": 0.022,
+            "delta": -0.004,
+            "effect": "better",
+            "summary": "improves"
+          }
+        ],
+        "overall_rank": 1,
+        "short_explanation": "Slightly lower exposure risk.",
+        "public_score": 0.976
+      },
+      {
+        "action_label": "Continue in a narrow loop",
+        "branch_explanation": "Keep going, but keep the circle tight.",
+        "actual_historical_action": "The preservation-order thread stayed inside the active crisis loop while the desk was still deciding how far to halt or continue.",
+        "recorded_future_event_count": 4,
+        "public_outcomes": [
+          {
+            "label": "Legal and regulatory exposure",
+            "baseline_value": 0.06,
+            "predicted_value": 0.048,
+            "delta": -0.012,
+            "effect": "better",
+            "summary": "improves"
+          },
+          {
+            "label": "Disclosure and stakeholder trust",
+            "baseline_value": 0.955,
+            "predicted_value": 0.946,
+            "delta": -0.009,
+            "effect": "worse",
+            "summary": "worsens"
+          },
+          {
+            "label": "Commercial damage",
+            "baseline_value": 0.04,
+            "predicted_value": 0.046,
+            "delta": 0.006,
+            "effect": "worse",
+            "summary": "worsens"
+          },
+          {
+            "label": "Internal execution drag",
+            "baseline_value": 0.026,
+            "predicted_value": 0.077,
+            "delta": 0.051,
+            "effect": "worse",
+            "summary": "worsens"
+          }
+        ],
+        "overall_rank": 2,
+        "short_explanation": "Slightly lower exposure risk. Trade-off: Slightly higher approval and escalation pressure.",
+        "public_score": 0.947
+      },
+      {
+        "action_label": "Preserve and halt",
+        "branch_explanation": "Stop the play, preserve the record, and open the legal path.",
+        "actual_historical_action": "The preservation-order thread stayed inside the active crisis loop while the desk was still deciding how far to halt or continue.",
+        "recorded_future_event_count": 4,
+        "public_outcomes": [
+          {
+            "label": "Legal and regulatory exposure",
+            "baseline_value": 0.06,
+            "predicted_value": 0.054,
+            "delta": -0.006,
+            "effect": "better",
+            "summary": "improves"
+          },
+          {
+            "label": "Disclosure and stakeholder trust",
+            "baseline_value": 0.955,
+            "predicted_value": 0.938,
+            "delta": -0.017,
+            "effect": "worse",
+            "summary": "worsens"
+          },
+          {
+            "label": "Commercial damage",
+            "baseline_value": 0.04,
+            "predicted_value": 0.053,
+            "delta": 0.013,
+            "effect": "worse",
+            "summary": "worsens"
+          },
+          {
+            "label": "Internal execution drag",
+            "baseline_value": 0.026,
+            "predicted_value": 0.091,
+            "delta": 0.065,
+            "effect": "worse",
+            "summary": "worsens"
+          }
+        ],
+        "overall_rank": 3,
+        "short_explanation": "Slightly lower exposure risk. Trade-off: Moderately higher approval and escalation pressure.",
+        "public_score": 0.939
+      },
+      {
+        "action_label": "Continue and widen",
+        "branch_explanation": "Keep going and broaden the loop.",
+        "actual_historical_action": "The preservation-order thread stayed inside the active crisis loop while the desk was still deciding how far to halt or continue.",
+        "recorded_future_event_count": 4,
+        "public_outcomes": [
+          {
+            "label": "Legal and regulatory exposure",
+            "baseline_value": 0.06,
+            "predicted_value": 0.141,
+            "delta": 0.081,
+            "effect": "worse",
+            "summary": "worsens"
+          },
+          {
+            "label": "Disclosure and stakeholder trust",
+            "baseline_value": 0.955,
+            "predicted_value": 0.873,
+            "delta": -0.082,
+            "effect": "worse",
+            "summary": "worsens"
+          },
+          {
+            "label": "Commercial damage",
+            "baseline_value": 0.04,
+            "predicted_value": 0.125,
+            "delta": 0.085,
+            "effect": "worse",
+            "summary": "worsens"
+          },
+          {
+            "label": "Internal execution drag",
+            "baseline_value": 0.026,
+            "predicted_value": 0.104,
+            "delta": 0.078,
+            "effect": "worse",
+            "summary": "worsens"
+          }
+        ],
+        "overall_rank": 4,
+        "short_explanation": "Moderately higher exposure risk.",
+        "public_score": 0.872
+      }
+    ]
+  }
 }

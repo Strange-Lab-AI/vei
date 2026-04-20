@@ -1,6 +1,18 @@
 {
-  "label": "enron_pge_power_deal_business_state_comparison_20260417",
-  "objective_pack_id": "contain_exposure",
+  "label": "enron_pge_power_deal_business_state_comparison_20260419",
+  "objective_pack_id": "protect_company_default",
+  "internal_objective_pack_id": "contain_exposure",
+  "objective_pack": {
+    "pack_id": "protect_company_default",
+    "title": "Protect Company",
+    "summary": "Favor moves that lower legal exposure, preserve trust, limit commercial damage, and keep internal execution drag manageable.",
+    "outcomes": [
+      "Legal and regulatory exposure",
+      "Disclosure and stakeholder trust",
+      "Commercial damage",
+      "Internal execution drag"
+    ]
+  },
   "thread_id": "thr_c33f65c4d4da5d75",
   "branch_event_id": "enron_e2e504e2ff9e60de",
   "thread_subject": "PG&E Financial Power Deal",
@@ -70,6 +82,7 @@
     {
       "label": "Hold for credit re-check",
       "prompt": "Hold the PG&E deal until the credit team re-checks the counterparty, keep legal inside the loop, and avoid the outside push.",
+      "explanation": "Pause the deal and re-check counterparty credit before moving.",
       "forecast": {
         "backend": "heuristic_baseline",
         "summary": "Predicted risk moves down by 0.380, with escalation delta -2 and external-send delta 0.",
@@ -202,11 +215,55 @@
         ],
         "net_effect_score": 0.063
       },
+      "public_summary": {
+        "action_label": "Hold for credit re-check",
+        "branch_explanation": "Pause the deal and re-check counterparty credit before moving.",
+        "actual_historical_action": "The deal thread kept moving through the legal and commercial loop while the wider PG&E situation worsened.",
+        "recorded_future_event_count": 6,
+        "public_outcomes": [
+          {
+            "label": "Legal and regulatory exposure",
+            "baseline_value": 0.509,
+            "predicted_value": 0.358,
+            "delta": -0.151,
+            "effect": "better",
+            "summary": "improves"
+          },
+          {
+            "label": "Disclosure and stakeholder trust",
+            "baseline_value": 0.615,
+            "predicted_value": 0.674,
+            "delta": 0.059,
+            "effect": "better",
+            "summary": "improves"
+          },
+          {
+            "label": "Commercial damage",
+            "baseline_value": 0.362,
+            "predicted_value": 0.306,
+            "delta": -0.056,
+            "effect": "better",
+            "summary": "improves"
+          },
+          {
+            "label": "Internal execution drag",
+            "baseline_value": 0.197,
+            "predicted_value": 0.294,
+            "delta": 0.097,
+            "effect": "worse",
+            "summary": "worsens"
+          }
+        ],
+        "overall_rank": 1,
+        "short_explanation": "Much lower exposure risk. Trade-off: Moderately higher internal handling load.",
+        "public_score": 0.673
+      },
       "rank": 1
     },
     {
       "label": "Restructure with collateral",
       "prompt": "Keep the deal alive, ask for collateral and tighter credit protections, and route the revision through legal and credit before any outside send.",
+      "explanation": "Keep the deal alive, but rewrite the risk terms.",
       "forecast": {
         "backend": "heuristic_baseline",
         "summary": "Predicted risk moves down by 0.180, with escalation delta -2 and external-send delta 0.",
@@ -336,18 +393,62 @@
         "tradeoffs": [],
         "net_effect_score": 0.051
       },
+      "public_summary": {
+        "action_label": "Restructure with collateral",
+        "branch_explanation": "Keep the deal alive, but rewrite the risk terms.",
+        "actual_historical_action": "The deal thread kept moving through the legal and commercial loop while the wider PG&E situation worsened.",
+        "recorded_future_event_count": 6,
+        "public_outcomes": [
+          {
+            "label": "Legal and regulatory exposure",
+            "baseline_value": 0.509,
+            "predicted_value": 0.407,
+            "delta": -0.102,
+            "effect": "better",
+            "summary": "improves"
+          },
+          {
+            "label": "Disclosure and stakeholder trust",
+            "baseline_value": 0.615,
+            "predicted_value": 0.669,
+            "delta": 0.054,
+            "effect": "better",
+            "summary": "improves"
+          },
+          {
+            "label": "Commercial damage",
+            "baseline_value": 0.362,
+            "predicted_value": 0.317,
+            "delta": -0.045,
+            "effect": "better",
+            "summary": "improves"
+          },
+          {
+            "label": "Internal execution drag",
+            "baseline_value": 0.197,
+            "predicted_value": 0.212,
+            "delta": 0.015,
+            "effect": "worse",
+            "summary": "worsens"
+          }
+        ],
+        "overall_rank": 2,
+        "short_explanation": "Moderately lower approval and escalation pressure.",
+        "public_score": 0.664
+      },
       "rank": 2
     },
     {
-      "label": "Accept as-is",
-      "prompt": "Accept the deal as written, keep the current outside loop moving, and avoid adding new credit conditions.",
+      "label": "Close with tighter approval",
+      "prompt": "Keep the deal moving, require a tighter executive and credit sign-off path, and limit changes to what is needed for close.",
+      "explanation": "Keep momentum, but require a visibly tighter approval path.",
       "forecast": {
         "backend": "heuristic_baseline",
-        "summary": "Predicted risk moves flat by 0.000, with escalation delta 0 and external-send delta 0.",
+        "summary": "Predicted risk moves down by 0.140, with escalation delta -2 and external-send delta 0.",
         "baseline_risk_score": 1.0,
-        "predicted_risk_score": 1.0,
+        "predicted_risk_score": 0.86,
         "external_event_delta": 0,
-        "escalation_delta": 0,
+        "escalation_delta": -2,
         "baseline_stock_return_5d": -0.0343,
         "predicted_stock_return_5d": -0.0343,
         "baseline_credit_action_30d": 0.0,
@@ -358,7 +459,7 @@
       "business_state_change": {
         "method": "heuristic_baseline_business_state_v1",
         "confidence": "medium",
-        "summary": "This move stays close to the historical business path.",
+        "summary": "Moderately lower approval and escalation pressure.",
         "baseline": {
           "exposure": 0.55,
           "trust": 0.615,
@@ -368,89 +469,89 @@
           "governance_pressure": 0.412
         },
         "predicted": {
-          "exposure": 0.55,
-          "trust": 0.615,
-          "coordination_load": 0.224,
-          "execution_delay": 0.169,
-          "deal_position": 0.638,
-          "governance_pressure": 0.412
+          "exposure": 0.473,
+          "trust": 0.66,
+          "coordination_load": 0.241,
+          "execution_delay": 0.183,
+          "deal_position": 0.673,
+          "governance_pressure": 0.304
         },
         "impacts": [
+          {
+            "state_id": "governance_pressure",
+            "label": "Approval and escalation pressure",
+            "baseline_value": 0.412,
+            "predicted_value": 0.304,
+            "delta": -0.108,
+            "effect": "better",
+            "magnitude": "moderate",
+            "summary": "Moderately lower approval and escalation pressure."
+          },
           {
             "state_id": "exposure",
             "label": "Exposure risk",
             "baseline_value": 0.55,
-            "predicted_value": 0.55,
-            "delta": 0.0,
-            "effect": "flat",
-            "magnitude": "flat",
-            "summary": "Exposure risk stays close to the historical path."
-          },
-          {
-            "state_id": "deal_position",
-            "label": "Commercial position",
-            "baseline_value": 0.638,
-            "predicted_value": 0.638,
-            "delta": 0.0,
-            "effect": "flat",
-            "magnitude": "flat",
-            "summary": "Commercial position stays close to the historical path."
+            "predicted_value": 0.473,
+            "delta": -0.077,
+            "effect": "better",
+            "magnitude": "slight",
+            "summary": "Slightly lower exposure risk."
           },
           {
             "state_id": "trust",
             "label": "Relationship stability",
             "baseline_value": 0.615,
-            "predicted_value": 0.615,
-            "delta": 0.0,
-            "effect": "flat",
-            "magnitude": "flat",
-            "summary": "Relationship stability stays close to the historical path."
+            "predicted_value": 0.66,
+            "delta": 0.045,
+            "effect": "better",
+            "magnitude": "slight",
+            "summary": "Slightly stronger relationship stability."
           },
           {
-            "state_id": "execution_delay",
-            "label": "Execution delay",
-            "baseline_value": 0.169,
-            "predicted_value": 0.169,
-            "delta": 0.0,
-            "effect": "flat",
-            "magnitude": "flat",
-            "summary": "Execution delay stays close to the historical path."
+            "state_id": "deal_position",
+            "label": "Commercial position",
+            "baseline_value": 0.638,
+            "predicted_value": 0.673,
+            "delta": 0.035,
+            "effect": "better",
+            "magnitude": "slight",
+            "summary": "Slightly stronger commercial position."
           },
           {
             "state_id": "coordination_load",
             "label": "Internal handling load",
             "baseline_value": 0.224,
-            "predicted_value": 0.224,
-            "delta": 0.0,
+            "predicted_value": 0.241,
+            "delta": 0.017,
             "effect": "flat",
             "magnitude": "flat",
             "summary": "Internal handling load stays close to the historical path."
           },
           {
-            "state_id": "governance_pressure",
-            "label": "Approval and escalation pressure",
-            "baseline_value": 0.412,
-            "predicted_value": 0.412,
-            "delta": 0.0,
+            "state_id": "execution_delay",
+            "label": "Execution delay",
+            "baseline_value": 0.169,
+            "predicted_value": 0.183,
+            "delta": 0.014,
             "effect": "flat",
             "magnitude": "flat",
-            "summary": "Approval and escalation pressure stays close to the historical path."
+            "summary": "Execution delay stays close to the historical path."
           }
         ],
         "consequence_estimates": [
           {
             "consequence_id": "containment",
             "label": "Containment",
-            "effect": "flat",
-            "magnitude": "flat",
-            "summary": "Containment stays close to the historical path."
+            "effect": "better",
+            "magnitude": "slight",
+            "summary": "The thread looks safer to contain."
           },
           {
             "consequence_id": "review_burden",
             "label": "Handling burden",
-            "effect": "flat",
-            "magnitude": "flat",
-            "summary": "Handling burden stays close to the historical path."
+            "effect": "better",
+            "magnitude": "slight",
+            "summary": "Internal handling looks lighter."
           },
           {
             "consequence_id": "execution_path",
@@ -462,19 +563,63 @@
           {
             "consequence_id": "commercial_position",
             "label": "Commercial footing",
-            "effect": "flat",
-            "magnitude": "flat",
-            "summary": "Commercial footing stays close to the historical path."
+            "effect": "better",
+            "magnitude": "slight",
+            "summary": "Commercial footing looks stronger."
           }
         ],
         "tradeoffs": [],
-        "net_effect_score": 0.0
+        "net_effect_score": 0.041
+      },
+      "public_summary": {
+        "action_label": "Close with tighter approval",
+        "branch_explanation": "Keep momentum, but require a visibly tighter approval path.",
+        "actual_historical_action": "The deal thread kept moving through the legal and commercial loop while the wider PG&E situation worsened.",
+        "recorded_future_event_count": 6,
+        "public_outcomes": [
+          {
+            "label": "Legal and regulatory exposure",
+            "baseline_value": 0.509,
+            "predicted_value": 0.422,
+            "delta": -0.087,
+            "effect": "better",
+            "summary": "improves"
+          },
+          {
+            "label": "Disclosure and stakeholder trust",
+            "baseline_value": 0.615,
+            "predicted_value": 0.66,
+            "delta": 0.045,
+            "effect": "better",
+            "summary": "improves"
+          },
+          {
+            "label": "Commercial damage",
+            "baseline_value": 0.362,
+            "predicted_value": 0.327,
+            "delta": -0.035,
+            "effect": "better",
+            "summary": "improves"
+          },
+          {
+            "label": "Internal execution drag",
+            "baseline_value": 0.197,
+            "predicted_value": 0.212,
+            "delta": 0.015,
+            "effect": "worse",
+            "summary": "worsens"
+          }
+        ],
+        "overall_rank": 3,
+        "short_explanation": "Moderately lower approval and escalation pressure.",
+        "public_score": 0.654
       },
       "rank": 3
     },
     {
-      "label": "Push to close this quarter",
+      "label": "Push quarter-end close",
       "prompt": "Push to close the PG&E deal before quarter end, keep the outside loop active, and ask for fast comments on the current draft.",
+      "explanation": "Favor speed and quarter-end timing over extra credit review.",
       "forecast": {
         "backend": "heuristic_baseline",
         "summary": "Predicted risk moves flat by 0.000, with escalation delta 0 and external-send delta 1.",
@@ -607,7 +752,249 @@
         ],
         "net_effect_score": -0.027
       },
+      "public_summary": {
+        "action_label": "Push quarter-end close",
+        "branch_explanation": "Favor speed and quarter-end timing over extra credit review.",
+        "actual_historical_action": "The deal thread kept moving through the legal and commercial loop while the wider PG&E situation worsened.",
+        "recorded_future_event_count": 6,
+        "public_outcomes": [
+          {
+            "label": "Legal and regulatory exposure",
+            "baseline_value": 0.509,
+            "predicted_value": 0.521,
+            "delta": 0.012,
+            "effect": "worse",
+            "summary": "worsens"
+          },
+          {
+            "label": "Disclosure and stakeholder trust",
+            "baseline_value": 0.615,
+            "predicted_value": 0.592,
+            "delta": -0.023,
+            "effect": "worse",
+            "summary": "worsens"
+          },
+          {
+            "label": "Commercial damage",
+            "baseline_value": 0.362,
+            "predicted_value": 0.389,
+            "delta": 0.027,
+            "effect": "worse",
+            "summary": "worsens"
+          },
+          {
+            "label": "Internal execution drag",
+            "baseline_value": 0.197,
+            "predicted_value": 0.231,
+            "delta": 0.034,
+            "effect": "worse",
+            "summary": "worsens"
+          }
+        ],
+        "overall_rank": 4,
+        "short_explanation": "Slightly lower approval and escalation pressure. Trade-off: Slightly higher internal handling load.",
+        "public_score": 0.584
+      },
       "rank": 4
     }
-  ]
+  ],
+  "public_summary": {
+    "bundle_role": "proof",
+    "branch_point": "Sara Shackleton is moving a PG&E financial power deal while the counterparty credit picture is deteriorating.",
+    "actual_happened": "The deal thread kept moving through the legal and commercial loop while the wider PG&E situation worsened.",
+    "actions_we_can_take": [
+      {
+        "label": "Hold for credit re-check",
+        "branch_explanation": "Pause the deal and re-check counterparty credit before moving."
+      },
+      {
+        "label": "Restructure with collateral",
+        "branch_explanation": "Keep the deal alive, but rewrite the risk terms."
+      },
+      {
+        "label": "Close with tighter approval",
+        "branch_explanation": "Keep momentum, but require a visibly tighter approval path."
+      },
+      {
+        "label": "Push quarter-end close",
+        "branch_explanation": "Favor speed and quarter-end timing over extra credit review."
+      }
+    ],
+    "predicted_effect_summary": "Much lower exposure risk. Trade-off: Moderately higher internal handling load.",
+    "recorded_future_event_count": 6,
+    "candidates": [
+      {
+        "action_label": "Hold for credit re-check",
+        "branch_explanation": "Pause the deal and re-check counterparty credit before moving.",
+        "actual_historical_action": "The deal thread kept moving through the legal and commercial loop while the wider PG&E situation worsened.",
+        "recorded_future_event_count": 6,
+        "public_outcomes": [
+          {
+            "label": "Legal and regulatory exposure",
+            "baseline_value": 0.509,
+            "predicted_value": 0.358,
+            "delta": -0.151,
+            "effect": "better",
+            "summary": "improves"
+          },
+          {
+            "label": "Disclosure and stakeholder trust",
+            "baseline_value": 0.615,
+            "predicted_value": 0.674,
+            "delta": 0.059,
+            "effect": "better",
+            "summary": "improves"
+          },
+          {
+            "label": "Commercial damage",
+            "baseline_value": 0.362,
+            "predicted_value": 0.306,
+            "delta": -0.056,
+            "effect": "better",
+            "summary": "improves"
+          },
+          {
+            "label": "Internal execution drag",
+            "baseline_value": 0.197,
+            "predicted_value": 0.294,
+            "delta": 0.097,
+            "effect": "worse",
+            "summary": "worsens"
+          }
+        ],
+        "overall_rank": 1,
+        "short_explanation": "Much lower exposure risk. Trade-off: Moderately higher internal handling load.",
+        "public_score": 0.673
+      },
+      {
+        "action_label": "Restructure with collateral",
+        "branch_explanation": "Keep the deal alive, but rewrite the risk terms.",
+        "actual_historical_action": "The deal thread kept moving through the legal and commercial loop while the wider PG&E situation worsened.",
+        "recorded_future_event_count": 6,
+        "public_outcomes": [
+          {
+            "label": "Legal and regulatory exposure",
+            "baseline_value": 0.509,
+            "predicted_value": 0.407,
+            "delta": -0.102,
+            "effect": "better",
+            "summary": "improves"
+          },
+          {
+            "label": "Disclosure and stakeholder trust",
+            "baseline_value": 0.615,
+            "predicted_value": 0.669,
+            "delta": 0.054,
+            "effect": "better",
+            "summary": "improves"
+          },
+          {
+            "label": "Commercial damage",
+            "baseline_value": 0.362,
+            "predicted_value": 0.317,
+            "delta": -0.045,
+            "effect": "better",
+            "summary": "improves"
+          },
+          {
+            "label": "Internal execution drag",
+            "baseline_value": 0.197,
+            "predicted_value": 0.212,
+            "delta": 0.015,
+            "effect": "worse",
+            "summary": "worsens"
+          }
+        ],
+        "overall_rank": 2,
+        "short_explanation": "Moderately lower approval and escalation pressure.",
+        "public_score": 0.664
+      },
+      {
+        "action_label": "Close with tighter approval",
+        "branch_explanation": "Keep momentum, but require a visibly tighter approval path.",
+        "actual_historical_action": "The deal thread kept moving through the legal and commercial loop while the wider PG&E situation worsened.",
+        "recorded_future_event_count": 6,
+        "public_outcomes": [
+          {
+            "label": "Legal and regulatory exposure",
+            "baseline_value": 0.509,
+            "predicted_value": 0.422,
+            "delta": -0.087,
+            "effect": "better",
+            "summary": "improves"
+          },
+          {
+            "label": "Disclosure and stakeholder trust",
+            "baseline_value": 0.615,
+            "predicted_value": 0.66,
+            "delta": 0.045,
+            "effect": "better",
+            "summary": "improves"
+          },
+          {
+            "label": "Commercial damage",
+            "baseline_value": 0.362,
+            "predicted_value": 0.327,
+            "delta": -0.035,
+            "effect": "better",
+            "summary": "improves"
+          },
+          {
+            "label": "Internal execution drag",
+            "baseline_value": 0.197,
+            "predicted_value": 0.212,
+            "delta": 0.015,
+            "effect": "worse",
+            "summary": "worsens"
+          }
+        ],
+        "overall_rank": 3,
+        "short_explanation": "Moderately lower approval and escalation pressure.",
+        "public_score": 0.654
+      },
+      {
+        "action_label": "Push quarter-end close",
+        "branch_explanation": "Favor speed and quarter-end timing over extra credit review.",
+        "actual_historical_action": "The deal thread kept moving through the legal and commercial loop while the wider PG&E situation worsened.",
+        "recorded_future_event_count": 6,
+        "public_outcomes": [
+          {
+            "label": "Legal and regulatory exposure",
+            "baseline_value": 0.509,
+            "predicted_value": 0.521,
+            "delta": 0.012,
+            "effect": "worse",
+            "summary": "worsens"
+          },
+          {
+            "label": "Disclosure and stakeholder trust",
+            "baseline_value": 0.615,
+            "predicted_value": 0.592,
+            "delta": -0.023,
+            "effect": "worse",
+            "summary": "worsens"
+          },
+          {
+            "label": "Commercial damage",
+            "baseline_value": 0.362,
+            "predicted_value": 0.389,
+            "delta": 0.027,
+            "effect": "worse",
+            "summary": "worsens"
+          },
+          {
+            "label": "Internal execution drag",
+            "baseline_value": 0.197,
+            "predicted_value": 0.231,
+            "delta": 0.034,
+            "effect": "worse",
+            "summary": "worsens"
+          }
+        ],
+        "overall_rank": 4,
+        "short_explanation": "Slightly lower approval and escalation pressure. Trade-off: Slightly higher internal handling load.",
+        "public_score": 0.584
+      }
+    ]
+  }
 }

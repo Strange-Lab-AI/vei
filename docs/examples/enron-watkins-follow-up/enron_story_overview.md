@@ -6,20 +6,22 @@ VEI is one shared timeline and replay surface. This bundle shows the real-histor
 
 - Title: `Enron Watkins Follow-up Example`
 - Bundle slug: `enron-watkins-follow-up`
-- Branch point: Sherron Watkins is writing a follow-up note that preserves her account of the questions she says she raised to Ken Lay on August 22, while the company is already in the public disclosure spiral.
+- Bundle role: `narrative`
+- Branch point: Sherron Watkins is writing a follow-up note that preserves her account of the questions she says she raised to Ken Lay on August 22, 2001.
+- What actually happened: The follow-up note became a narrow internal preserved record during the wider disclosure spiral.
 - Branch date: `2001-10-30`
 - Prior events: `36`
 - Recorded future events: `1`
 - Source families: `credit, disclosure, filing, financial, governance, news, regulatory`
 - Domains: `governance, obs_graph`
 - Saved forecast file: `whatif_reference_result.json`
-- Top ranked candidate: `Send the warning anonymously`
+- Top ranked candidate: `Suppress and monitor`
 
 ## Why it matters
 
-The branch matters because it turns a private internal warning into a preserved written record at the point where trust inside Enron is already breaking down. The decision is who sees the note, how fast legal is involved, and whether the record becomes harder to bury.
+This is the case to use when you want the clearest human and governance story. The branch is simple to explain and the stakes are obvious.
 
-This example should be read as an email-path and escalation case first. The macro panel stays advisory context beside that path, and the weak calibration report keeps the bankruptcy-mechanism claim narrow.
+Use it as a narrative case, not as the main technical proof case.
 
 ## Open it
 
@@ -39,5 +41,5 @@ vei ui serve \
 
 ## Structured notes
 
-- Story manifest role: `headline`
+- Story manifest role: `narrative`
 - Presentation beats: `7`
