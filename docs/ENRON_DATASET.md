@@ -39,6 +39,8 @@ python scripts/check_rosetta_archive.py
 
 The fetch command reads `data/enron/full_dataset_release.json`, downloads the release asset, verifies the checksum, and extracts it into the local cache root described in that manifest.
 
+The current release lives at `https://github.com/strangeloopcanon/vei/releases/tag/enron-dataset-v1`.
+
 Set `VEI_WHATIF_ROSETTA_DIR` when you want VEI to use a different full archive location.
 
 ## Contributor flow
