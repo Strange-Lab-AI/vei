@@ -1288,6 +1288,7 @@ def test_mirror_registration_does_not_deadlock_with_dispatch(
     assert not dispatch_thread.is_alive()
     assert not register_thread.is_alive()
     assert errors == []
+    assert "vendor-bot" in runtime.session.router.actor_states
 
 
 def test_mirror_agent_removal_deletes_from_registry(

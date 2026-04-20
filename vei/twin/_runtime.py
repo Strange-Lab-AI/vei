@@ -98,6 +98,10 @@ class TwinRuntime:
         self.seed = 42042
         self.started_at = _iso_now()
         self._lock = threading.RLock()
+        self._pending_mirror_lock = threading.Lock()
+        self._pending_mirror_agents: dict[
+            str, tuple[ActorState, ExternalAgentIdentity | None]
+        ] = {}
         self.status = TwinRuntimeStatus(
             run_id=self.run_id,
             branch_name=self.branch_name,
@@ -192,8 +196,10 @@ class TwinRuntime:
         agent: ExternalAgentIdentity | None = None,
     ) -> Any:
         with self._lock:
+            self._flush_pending_mirror_agents_locked()
             try:
                 result = self.session.call_tool(resolved_tool, args)
+                self._flush_pending_mirror_agents_locked()
                 observation = self.session.observe(focus_hint)
                 snapshot = self.session.snapshot(f"gateway:{external_tool}")
                 contract_eval = self._evaluate(
@@ -234,6 +240,7 @@ class TwinRuntime:
                 self._append_contract_event(contract_eval, snapshot.time_ms)
                 return result
             except Exception as exc:  # noqa: BLE001
+                self._flush_pending_mirror_agents_locked()
                 snapshot = self.session.snapshot(f"error:{external_tool}")
                 contract_eval = self._evaluate(
                     snapshot,
@@ -321,6 +328,7 @@ class TwinRuntime:
 
     def peek(self, tool: str, args: dict[str, Any] | None = None) -> Any:
         with self._lock:
+            self._flush_pending_mirror_agents_locked()
             return self.session.call_tool(tool, args or {})
 
     def status_payload(self) -> dict[str, Any]:
@@ -569,6 +577,31 @@ class TwinRuntime:
         metadata["last_agent"] = payload
         self.status.metadata = metadata
 
+    def _queue_mirror_agent(
+        self,
+        *,
+        actor: ActorState,
+        identity: ExternalAgentIdentity | None,
+    ) -> None:
+        with self._pending_mirror_lock:
+            self._pending_mirror_agents[actor.actor_id] = (
+                actor.model_copy(deep=True),
+                identity.model_copy(deep=True) if identity is not None else None,
+            )
+
+    def _drain_pending_mirror_agents(
+        self,
+    ) -> list[tuple[ActorState, ExternalAgentIdentity | None]]:
+        with self._pending_mirror_lock:
+            pending = list(self._pending_mirror_agents.values())
+            self._pending_mirror_agents.clear()
+        return pending
+
+    def _flush_pending_mirror_agents_locked(self) -> None:
+        for actor, identity in self._drain_pending_mirror_agents():
+            self.session.register_actor(actor)
+            self._record_agent_identity(identity)
+
     def _refresh_mirror_status(self) -> None:
         if self.mirror is None:
             return
@@ -578,6 +611,7 @@ class TwinRuntime:
 
     def sync_mirror_runtime_state(self) -> None:
         with self._lock:
+            self._flush_pending_mirror_agents_locked()
             self._refresh_mirror_status()
             self._write_manifest(
                 status="running", success=None, error=None, completed_at=None
@@ -664,13 +698,20 @@ class TwinRuntime:
                 "source": agent.source,
             },
         )
-        with self._lock:
-            self.session.register_actor(actor)
-            self._record_agent_identity(_identity_from_mirror_agent(agent))
+        self._queue_mirror_agent(
+            actor=actor,
+            identity=_identity_from_mirror_agent(agent),
+        )
+        if not self._lock.acquire(blocking=False):
+            return
+        try:
+            self._flush_pending_mirror_agents_locked()
             self._refresh_mirror_status()
             self._write_manifest(
                 status="running", success=None, error=None, completed_at=None
             )
+        finally:
+            self._lock.release()
 
     def plan_mirror_action(
         self,
