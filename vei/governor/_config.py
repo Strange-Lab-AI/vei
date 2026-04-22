@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any, Mapping, cast
 
 from .models import (
+    GovernorApprovalRule,
     GovernorPolicyProfile,
     GovernorPolicyProfileId,
     GovernorWorkspaceConfig,
@@ -55,6 +56,7 @@ def default_governor_workspace_config(
     autoplay: bool = False,
     demo_interval_ms: int = 1500,
     hero_world: str | None = None,
+    approval_rules: list[GovernorApprovalRule | dict[str, Any]] | None = None,
 ) -> GovernorWorkspaceConfig:
     return GovernorWorkspaceConfig(
         connector_mode=(
@@ -64,6 +66,7 @@ def default_governor_workspace_config(
         autoplay=bool(autoplay),
         demo_interval_ms=max(250, int(demo_interval_ms)),
         hero_world=hero_world,
+        approval_rules=list(approval_rules or []),
     )
 
 

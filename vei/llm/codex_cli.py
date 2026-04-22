@@ -84,7 +84,7 @@ def run_codex_json(
     )
     try:
         payload = json.loads(result.raw_text)
-    except json.JSONDecodeError as exc:  # pragma: no cover - defensive path
+    except json.JSONDecodeError as exc:  # pragma: no cover
         snippet = result.raw_text.strip()
         if len(snippet) > 200:
             snippet = snippet[:200] + "..."

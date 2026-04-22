@@ -11,6 +11,7 @@ from .api import (
 )
 from .models import (
     GovernorActionPlan,
+    GovernorApprovalRule,
     GovernorAgentSpec,
     GovernorConnectorStatus,
     GovernorEventResult,
@@ -25,6 +26,7 @@ from .models import (
 __all__ = [
     "GovernorAgentSpec",
     "GovernorActionPlan",
+    "GovernorApprovalRule",
     "GovernorConnectorStatus",
     "GovernorEventResult",
     "GovernorIngestEvent",

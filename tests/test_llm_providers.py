@@ -66,15 +66,11 @@ def test_codex_schema_normalizer_closes_objects_and_requires_all_keys() -> None:
         {
             "type": "object",
             "properties": {
-                "tool_name": {
-                    "anyOf": [{"type": "string"}, {"type": "null"}]
-                },
+                "tool_name": {"anyOf": [{"type": "string"}, {"type": "null"}]},
                 "args": {
                     "type": "object",
                     "properties": {
-                        "doc_id": {
-                            "anyOf": [{"type": "string"}, {"type": "null"}]
-                        }
+                        "doc_id": {"anyOf": [{"type": "string"}, {"type": "null"}]}
                     },
                 },
             },

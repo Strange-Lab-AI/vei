@@ -216,7 +216,9 @@ def test_activate_created_workspace_scenario_bootstraps_contract(
     summary = show_workspace(root)
     preview = preview_workspace_scenario(root)
     compiled = next(
-        item for item in summary.compiled_scenarios if item.scenario_name == created.name
+        item
+        for item in summary.compiled_scenarios
+        if item.scenario_name == created.name
     )
     contract = load_workspace_contract(root, created.name)
 

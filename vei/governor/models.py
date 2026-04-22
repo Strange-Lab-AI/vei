@@ -28,6 +28,22 @@ GovernorConnectorWriteCapability = Literal["interactive", "read_only", "unsuppor
 GovernorActionDecision = Literal["allow", "deny", "approval_required"]
 
 
+class GovernorApprovalRule(BaseModel):
+    surface: str | None = None
+    resolved_tools: list[str] = Field(default_factory=list)
+    operation_classes: list[GovernorOperationClass] = Field(default_factory=list)
+    reason_code: str = "mirror.approval_required"
+    reason: str
+
+    @model_validator(mode="after")
+    def validate_rule_scope(self) -> "GovernorApprovalRule":
+        if self.surface or self.resolved_tools:
+            return self
+        raise ValueError(
+            "approval rule needs at least one matcher: surface or resolved_tools"
+        )
+
+
 class GovernorPolicyProfile(BaseModel):
     profile_id: GovernorPolicyProfileId
     label: str
@@ -44,6 +60,7 @@ class GovernorWorkspaceConfig(BaseModel):
     autoplay: bool = False
     demo_interval_ms: int = 1500
     hero_world: str | None = None
+    approval_rules: list[GovernorApprovalRule] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def validate_demo_connector_mode(self) -> "GovernorWorkspaceConfig":
