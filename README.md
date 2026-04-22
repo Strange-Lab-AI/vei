@@ -48,6 +48,8 @@ What you need:
 - ports `3011` and `3012` available
 - `OPENAI_API_KEY` in `.env` only when you want live LLM runs
 
+For live planning backends, VEI supports OpenAI, Anthropic, Google, OpenRouter, and local Codex CLI depending on your local auth and provider setup.
+
 ## Pick Your Entry Point
 
 - See the product: `vei quickstart run`
@@ -60,6 +62,8 @@ What you need:
 VEI has three top-level paths.
 
 The runnable company path starts from a built-in world or a captured company snapshot. VEI compiles that into one deterministic world session with connected surfaces such as mail, chat, tickets, docs, CRM, identity, and knowledge assets. Agents and humans act through VEI tools and routes. VEI records what happened, scores the run, and lets you replay or branch it.
+
+The governed twin path supports three write outcomes: allow, deny, or hold for approval. Workspace governor config can carry typed `approval_rules` for selected surfaces or tools, so approval holds live in normal workspace policy instead of one-off event payloads.
 
 The agent-facing discovery ladder inside that world is now explicit: start with `vei.orientation`, then `vei.structure_view`, then `vei.capability_graphs`, `vei.graph_plan`, and `vei.graph_action`. `vei.structure_view` shows the event-derived read model with inferred entities, case clusters, timelines, and open ambiguities. Hidden truth comparison stays in the SDK, contract, and benchmark layers instead of the MCP tool surface.
 

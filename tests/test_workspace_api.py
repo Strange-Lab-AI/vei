@@ -14,6 +14,7 @@ from vei.workspace.api import (
     activate_workspace_scenario,
     activate_workspace_scenario_variant,
     bootstrap_workspace_contract,
+    create_workspace_scenario,
     create_workspace_from_template,
     generate_workspace_scenarios_from_import,
     import_workspace,
@@ -183,6 +184,49 @@ def test_activate_workspace_scenario_updates_active_scenario_and_contract(
     assert summary.manifest.active_scenario == "oversharing_remediation"
     assert preview["scenario"]["name"] == "oversharing_remediation"
     assert preview["contract"]["metadata"]["contract_bootstrap"] == "import_policy_acl"
+
+
+def test_activate_created_workspace_scenario_bootstraps_contract(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "workspace"
+    create_workspace_from_template(
+        root=root,
+        source_kind="vertical",
+        source_ref="real_estate_management",
+    )
+    created = create_workspace_scenario(
+        root,
+        name="inspection_followup",
+        title="Inspection Followup",
+        description="Custom scenario added after the workspace already exists.",
+        hidden_faults={
+            "inspection_note_gap": {
+                "description": "Inspection note still missing from the handoff packet."
+            }
+        },
+        tags=["regression"],
+    )
+
+    activated = activate_workspace_scenario(
+        root,
+        created.name,
+        bootstrap_contract=True,
+    )
+    summary = show_workspace(root)
+    preview = preview_workspace_scenario(root)
+    compiled = next(
+        item
+        for item in summary.compiled_scenarios
+        if item.scenario_name == created.name
+    )
+    contract = load_workspace_contract(root, created.name)
+
+    assert activated.name == created.name
+    assert summary.manifest.active_scenario == created.name
+    assert compiled.contract_bootstrapped is True
+    assert preview["scenario"]["name"] == created.name
+    assert contract.workflow_name == preview["compiled_blueprint"]["workflow_name"]
 
 
 def test_vertical_workspace_variant_activation_updates_preview_and_contract(

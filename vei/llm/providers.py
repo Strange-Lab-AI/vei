@@ -8,6 +8,8 @@ import os
 import re
 from typing import Any, Dict, Optional
 
+from .codex_cli import run_codex_json
+
 try:
     from openai import AsyncOpenAI, BadRequestError
 except Exception:  # pragma: no cover
@@ -629,6 +631,40 @@ async def _openrouter_plan(
     )
 
 
+async def _codex_plan(
+    *,
+    model: str,
+    system: str,
+    user: str,
+    plan_schema: Optional[dict] = None,
+    timeout_s: int = 240,
+) -> PlanResult:
+    schema = plan_schema or {
+        "type": "object",
+        "additionalProperties": False,
+    }
+    prompt = (
+        "You are planning one VEI action.\n\n"
+        "System instructions:\n"
+        f"{system.strip()}\n\n"
+        "User instructions:\n"
+        f"{user.strip()}\n\n"
+        "Return one JSON object that matches the provided schema. "
+        "Do not call tools. Do not explain your answer."
+    )
+    plan = await asyncio.to_thread(
+        run_codex_json,
+        model=model,
+        prompt=prompt,
+        output_schema=schema,
+        timeout_s=timeout_s,
+    )
+    return PlanResult(
+        plan=plan,
+        usage=_build_usage(provider="codex", model=model),
+    )
+
+
 async def plan_once_with_usage(
     *,
     provider: str,
@@ -684,6 +720,14 @@ async def plan_once_with_usage(
             user=user,
             timeout_s=timeout_s,
             api_key=openrouter_api_key,
+        )
+    if p == "codex":
+        return await _codex_plan(
+            model=model,
+            system=system,
+            user=user,
+            plan_schema=plan_schema,
+            timeout_s=timeout_s,
         )
     raise ValueError(f"Unknown provider: {provider}")
 

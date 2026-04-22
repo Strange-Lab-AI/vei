@@ -748,6 +748,89 @@ def test_proxy_risky_action_returns_approval_required(
         assert response.json()["detail"]["code"] == "mirror.approval_required"
 
 
+def test_workspace_approval_rule_can_hold_safe_write_for_approval(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "service_ops_workspace_rule_approval"
+    bundle = build_customer_twin(
+        root,
+        snapshot=_sample_snapshot(),
+        organization_domain="clearwater.example.com",
+        mold=ContextMoldConfig(archetype="service_ops"),
+        mirror_config=default_governor_workspace_config(
+            hero_world="service_ops",
+            approval_rules=[
+                {
+                    "surface": "mail",
+                    "resolved_tools": ["mail.compose"],
+                    "operation_classes": ["write_safe"],
+                    "reason": (
+                        "Customer-facing incident mail requires approval before it is sent."
+                    ),
+                }
+            ],
+        ),
+    )
+    auth_headers = {"Authorization": f"Bearer {bundle.gateway.auth_token}"}
+
+    with TestClient(create_twin_gateway_app(root)) as client:
+        operator = client.post(
+            "/api/governor/agents",
+            headers=auth_headers,
+            json={
+                "agent_id": "ops-bot",
+                "name": "Ops Bot",
+                "mode": "ingest",
+                "allowed_surfaces": ["mail"],
+                "policy_profile_id": "operator",
+            },
+        )
+        assert operator.status_code == 201
+
+        approver = client.post(
+            "/api/governor/agents",
+            headers=auth_headers,
+            json={
+                "agent_id": "legal-bot",
+                "name": "Legal Bot",
+                "mode": "ingest",
+                "allowed_surfaces": ["mail"],
+                "policy_profile_id": "approver",
+            },
+        )
+        assert approver.status_code == 201
+
+        held = client.post(
+            "/api/governor/events",
+            headers=auth_headers,
+            json={
+                "agent_id": "ops-bot",
+                "external_tool": "mail.compose",
+                "resolved_tool": "mail.compose",
+                "focus_hint": "mail",
+                "args": {
+                    "to": "facilities@clearwatermedical.example.com",
+                    "subj": "Delay explanation",
+                    "body_text": "Cause line: technician no-show created the delay.",
+                },
+            },
+        )
+        assert held.status_code == 202
+        assert held.json()["handled_by"] == "pending_approval"
+        assert held.json()["result"]["reason"] == (
+            "Customer-facing incident mail requires approval before it is sent."
+        )
+        approval_id = held.json()["result"]["approval_id"]
+
+        approval = client.post(
+            f"/api/governor/approvals/{approval_id}/approve",
+            headers=auth_headers,
+            json={"resolver_agent_id": "legal-bot"},
+        )
+        assert approval.status_code == 200
+        assert approval.json()["status"] == "executed"
+
+
 def test_mirror_rate_limit_denial_tracks_throttled_count(
     tmp_path: Path,
 ) -> None:

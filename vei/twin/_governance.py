@@ -8,6 +8,7 @@ from vei.governor import (
     GovernorAgentSpec,
     GovernorConnectorStatus,
     GovernorIngestEvent,
+    GovernorWorkspaceConfig,
 )
 
 _MIRROR_OPERATION_CLASS_BY_TOOL: dict[str, str] = {
@@ -135,6 +136,34 @@ def check_policy_profile(
             f"{operation_class.replace('_', ' ')} actions"
         ),
     }
+
+
+def check_approval_rules(
+    *,
+    config: GovernorWorkspaceConfig,
+    tool_name: str,
+    surface: str,
+    operation_class: str,
+    approval_granted: bool,
+) -> dict[str, str] | None:
+    if approval_granted or operation_class == "read":
+        return None
+    normalized_surface = _normalize_surface(surface)
+    for rule in config.approval_rules:
+        if rule.operation_classes and operation_class not in rule.operation_classes:
+            continue
+        if rule.surface:
+            allowed_surfaces = _surface_alias_set(rule.surface)
+            if normalized_surface not in allowed_surfaces:
+                continue
+        if rule.resolved_tools and tool_name not in rule.resolved_tools:
+            continue
+        return {
+            "decision": "approval_required",
+            "code": rule.reason_code,
+            "reason": rule.reason,
+        }
+    return None
 
 
 def check_connector_safety(

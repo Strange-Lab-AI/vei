@@ -56,6 +56,7 @@ from .api import load_customer_twin
 from ._gateway_adapters import error_payload as _error_payload
 from ._gateway_routes import register_gateway_routes
 from ._governance import (
+    check_approval_rules as _check_approval_rules,
     check_connector_safety as _check_connector_safety,
     check_policy_profile as _check_policy_profile,
     check_surface_access as _check_surface_access,
@@ -767,6 +768,23 @@ class TwinRuntime:
                 reason=profile_decision["reason"],
             )
 
+        approval_rule_decision = self._check_approval_rules(
+            tool_name=tool_name,
+            surface=surface,
+            operation_class=operation_class,
+            approval_granted=approval_granted,
+        )
+        if approval_rule_decision is not None:
+            return GovernorActionPlan(
+                action=action,
+                surface=surface,
+                resolved_tool=tool_name,
+                operation_class=operation_class,
+                decision=approval_rule_decision["decision"],
+                reason_code=approval_rule_decision["code"],
+                reason=approval_rule_decision["reason"],
+            )
+
         connector_decision = self._check_connector_safety(
             tool_name=tool_name,
             surface=surface,
@@ -833,6 +851,22 @@ class TwinRuntime:
     ) -> dict[str, str] | None:
         return _check_policy_profile(
             agent=agent,
+            operation_class=operation_class,
+            approval_granted=approval_granted,
+        )
+
+    def _check_approval_rules(
+        self,
+        *,
+        tool_name: str,
+        surface: str,
+        operation_class: str,
+        approval_granted: bool,
+    ) -> dict[str, str] | None:
+        return _check_approval_rules(
+            config=self.mirror_config,
+            tool_name=tool_name,
+            surface=surface,
             operation_class=operation_class,
             approval_granted=approval_granted,
         )
