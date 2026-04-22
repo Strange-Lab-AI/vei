@@ -378,7 +378,7 @@ def compile_workspace(root: str | Path) -> WorkspaceSummary:
             contract.model_dump(mode="json"),
         )
         marker = scenario_root / ".contract_bootstrapped"
-        if bootstrapped:
+        if bootstrapped or marker.exists():
             marker.write_text("1", encoding="utf-8")
         elif marker.exists():
             marker.unlink()
@@ -468,8 +468,9 @@ def activate_workspace_scenario_variant(
     _write_json(
         _scenario_entry_path(path, manifest, scenario), scenario.model_dump(mode="json")
     )
-    bootstrap_workspace_contract(path, scenario_name=scenario.name, overwrite=True)
     compile_workspace(path)
+    if bootstrap_contract:
+        bootstrap_workspace_contract(path, scenario_name=scenario.name, overwrite=True)
     return resolve_workspace_scenario(path, scenario_name=scenario.name)
 
 
@@ -903,9 +904,9 @@ def activate_workspace_scenario(
     scenario = resolve_workspace_scenario(path, manifest, scenario_name)
     manifest.active_scenario = scenario.name
     write_workspace(path, manifest)
+    compile_workspace(path)
     if bootstrap_contract:
         bootstrap_workspace_contract(path, scenario_name=scenario.name, overwrite=True)
-    compile_workspace(path)
     return resolve_workspace_scenario(path, scenario_name=scenario.name)
 
 
