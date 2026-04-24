@@ -38,6 +38,7 @@ WhatIfResearchHypothesisLabel = Literal[
 ]
 WhatIfBackendScoreStatus = Literal["ok", "skipped", "error", "fallback"]
 WhatIfBenchmarkModelId = Literal[
+    "heuristic_baseline",
     "jepa_latent",
     "full_context_transformer",
     "ft_transformer",

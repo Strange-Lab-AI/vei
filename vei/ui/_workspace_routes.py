@@ -452,11 +452,12 @@ def register_workspace_routes(app: FastAPI, root: Path, *, deps: Any) -> None:
             "auto",
             "e_jepa",
             "heuristic_baseline",
+            "reference",
         }:
             raise HTTPException(
                 status_code=400,
                 detail=(
-                    "shadow_forecast_backend must be auto, e_jepa, or heuristic_baseline"
+                    "shadow_forecast_backend must be auto, e_jepa, heuristic_baseline, or reference"
                 ),
             )
         # The ranked experiment always runs LLM rollouts; only fall through to

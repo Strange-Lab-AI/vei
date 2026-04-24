@@ -66,7 +66,7 @@ def register_experiment_commands(app: typer.Typer) -> None:
         ),
         forecast_backend: str = typer.Option(
             "auto",
-            help="Forecast backend: auto | e_jepa | heuristic_baseline",
+            help="Forecast backend: auto | e_jepa | heuristic_baseline | reference",
         ),
         provider: str = typer.Option(
             "openai",
@@ -114,9 +114,10 @@ def register_experiment_commands(app: typer.Typer) -> None:
             "auto",
             "e_jepa",
             "heuristic_baseline",
+            "reference",
         }:
             raise typer.BadParameter(
-                "forecast-backend must be one of: auto, e_jepa, heuristic_baseline"
+                "forecast-backend must be one of: auto, e_jepa, heuristic_baseline, reference"
             )
         world = api.load_world(source=source, source_dir=source_dir)
         resolved_forecast_backend = None
@@ -211,7 +212,7 @@ def register_experiment_commands(app: typer.Typer) -> None:
         seed: int = typer.Option(42042, help="Deterministic seed"),
         shadow_forecast_backend: str = typer.Option(
             "auto",
-            help="Shadow forecast backend: auto | e_jepa | heuristic_baseline",
+            help="Shadow forecast backend: auto | e_jepa | heuristic_baseline | reference",
         ),
         ejepa_epochs: int = typer.Option(
             4, help="Training epochs for the JEPA backend"
@@ -241,9 +242,10 @@ def register_experiment_commands(app: typer.Typer) -> None:
             "auto",
             "e_jepa",
             "heuristic_baseline",
+            "reference",
         }:
             raise typer.BadParameter(
-                "shadow-forecast-backend must be one of: auto, e_jepa, heuristic_baseline"
+                "shadow-forecast-backend must be one of: auto, e_jepa, heuristic_baseline, reference"
             )
         world = api.load_world(source=source, source_dir=source_dir)
         result = api.run_ranked_counterfactual_experiment(

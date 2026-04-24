@@ -243,6 +243,7 @@ def _make_forecast_result(
     future_event_count: int,
     future_external_event_count: int,
     summary: str,
+    backend: str = "heuristic_baseline",
 ) -> WhatIfCounterfactualEstimateResult:
     baseline = WhatIfHistoricalScore(
         backend="historical",
@@ -251,14 +252,14 @@ def _make_forecast_result(
         risk_score=0.6,
     )
     predicted = WhatIfHistoricalScore(
-        backend="heuristic_baseline",
+        backend=backend,
         future_event_count=future_event_count,
         future_external_event_count=future_external_event_count,
         risk_score=risk_score,
     )
     return WhatIfCounterfactualEstimateResult(
         status="ok",
-        backend="heuristic_baseline",
+        backend=backend,
         prompt=prompt,
         summary=summary,
         baseline=baseline,
@@ -460,6 +461,7 @@ def test_vei_whatif_cli_rank_and_show_ranked_result(
                             future_event_count=1,
                             future_external_event_count=0,
                             summary="Shadow forecast completed.",
+                            backend=name,
                         ).model_dump(mode="json")
                     },
                 )
@@ -484,7 +486,7 @@ def test_vei_whatif_cli_rank_and_show_ranked_result(
             "--event-id",
             "evt-005",
             "--shadow-forecast-backend",
-            "heuristic_baseline",
+            "reference",
             "--candidate",
             "Keep this internal and pause.",
             "--candidate",
@@ -496,7 +498,7 @@ def test_vei_whatif_cli_rank_and_show_ranked_result(
     payload = json.loads(result.output)
     assert payload["recommended_candidate_label"] == "Keep this internal and pause."
     assert len(payload["candidates"]) == 2
-    assert payload["candidates"][0]["shadow"]["backend"] == "heuristic_baseline"
+    assert payload["candidates"][0]["shadow"]["backend"] == "reference"
 
     show_result = runner.invoke(
         cli_app,

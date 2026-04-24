@@ -3,6 +3,7 @@ from __future__ import annotations
 from .models import WhatIfBenchmarkModelId, WhatIfBusinessObjectivePackId
 
 BENCHMARK_MODELS: tuple[WhatIfBenchmarkModelId, ...] = (
+    "heuristic_baseline",
     "jepa_latent",
     "full_context_transformer",
     "ft_transformer",

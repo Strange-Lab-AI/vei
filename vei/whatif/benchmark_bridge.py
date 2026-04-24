@@ -80,6 +80,20 @@ _EVIDENCE_TARGET_NAMES = (
     "attachment_recirculation_count",
     "version_turn_count",
 )
+_BUSINESS_TARGET_NAMES = (
+    "enterprise_risk",
+    "commercial_position_proxy",
+    "org_strain_proxy",
+    "stakeholder_trust",
+    "execution_drag",
+)
+_OBJECTIVE_TARGET_NAMES = (
+    "minimize_enterprise_risk",
+    "protect_commercial_position",
+    "reduce_org_strain",
+    "preserve_stakeholder_trust",
+    "maintain_execution_velocity",
+)
 _PHASE_VALUES = ("history", "branch", "generated", "historical_future")
 _SEQUENCE_TOKEN_LIMIT = 12
 _SEQUENCE_NUMERIC_WIDTH = 12
@@ -102,6 +116,8 @@ class _RowEncoding:
     token_numeric: np.ndarray
     binary_target: float | None
     regression_target: np.ndarray | None
+    business_target: np.ndarray | None
+    objective_target: np.ndarray | None
     row: WhatIfBenchmarkDatasetRow
 
 
@@ -113,18 +129,24 @@ class _BatchTensors:
     token_numeric: Any
     target_binary: Any | None = None
     target_regression: Any | None = None
+    target_business: Any | None = None
+    target_objective: Any | None = None
 
 
 @dataclass(frozen=True)
 class _PredictionBatch:
     binary_probability: np.ndarray
     regression_values: np.ndarray
+    business_values: np.ndarray | None = None
+    objective_values: np.ndarray | None = None
 
 
 @dataclass(frozen=True)
 class _RowPrediction:
     binary_probability: float
     regression_values: np.ndarray
+    business_values: np.ndarray | None = None
+    objective_values: np.ndarray | None = None
 
 
 def main() -> int:
@@ -173,6 +195,14 @@ def _train_from_request(path: Path) -> WhatIfBenchmarkTrainResult:
         heldout_rows=dataset["heldout"],
         cases=build.cases,
     )
+    if request["model_id"] == "heuristic_baseline":
+        return _train_heuristic_baseline(
+            output_root=output_root,
+            build=build,
+            dataset=dataset,
+            preprocessor=preprocessor,
+        )
+
     train_rows = [preprocessor.encode_row(row) for row in dataset["train"]]
     validation_rows = [preprocessor.encode_row(row) for row in dataset["validation"]]
 
@@ -219,6 +249,8 @@ def _train_from_request(path: Path) -> WhatIfBenchmarkTrainResult:
             f"summary_features={len(preprocessor.summary_feature_names)}",
             f"action_tags={len(preprocessor.action_tag_names)}",
             f"event_types={len(preprocessor.event_type_names)}",
+            f"business_heads={len(_BUSINESS_TARGET_NAMES)}",
+            f"objective_heads={len(_OBJECTIVE_TARGET_NAMES)}",
         ],
         artifacts=WhatIfBenchmarkTrainArtifacts(
             root=output_root,
@@ -238,12 +270,19 @@ def _eval_from_request(path: Path) -> WhatIfBenchmarkEvalResult:
 
     build = load_branch_point_benchmark_build_result(request["build_root"])
     dataset = _load_dataset_rows(build.dataset.split_paths)
+    if request["model_id"] == "heuristic_baseline":
+        return _eval_heuristic_baseline(
+            output_root=output_root,
+            build=build,
+            dataset=dataset,
+        )
+
     checkpoint = load_checkpoint(output_root / "model.pt")
     preprocessor = BenchmarkPreprocessor.from_metadata(checkpoint["metadata"])
     trainer = TorchTrainer(model_id=request["model_id"], preprocessor=preprocessor)
     device = _resolve_device(str(request.get("device", "") or ""))
     model = trainer.build_model(device=device)
-    model.load_state_dict(checkpoint["state_dict"])
+    _load_compatible_state_dict(model, checkpoint["state_dict"])
     model.eval()
 
     test_rows = [preprocessor.encode_row(row) for row in dataset["test"]]
@@ -300,6 +339,121 @@ def _eval_from_request(path: Path) -> WhatIfBenchmarkEvalResult:
     return result
 
 
+def _train_heuristic_baseline(
+    *,
+    output_root: Path,
+    build,
+    dataset: dict[str, list[WhatIfBenchmarkDatasetRow]],
+    preprocessor: "BenchmarkPreprocessor",
+) -> WhatIfBenchmarkTrainResult:
+    model_path = output_root / "model.pt"
+    metadata_path = output_root / "metadata.json"
+    train_result_path = output_root / "train_result.json"
+    model_path.write_text(
+        json.dumps(
+            {
+                "model_id": "heuristic_baseline",
+                "note": "deterministic action-schema baseline; no learned weights",
+            },
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+    metadata_path.write_text(
+        json.dumps(preprocessor.to_metadata(), indent=2),
+        encoding="utf-8",
+    )
+    result = WhatIfBenchmarkTrainResult(
+        model_id="heuristic_baseline",
+        dataset_root=build.dataset.root,
+        train_loss=0.0,
+        validation_loss=0.0,
+        epoch_count=0,
+        train_row_count=len(dataset["train"]),
+        validation_row_count=len(dataset["validation"]),
+        notes=[
+            "heuristic_baseline uses action-schema rules and trains no weights",
+            f"test_rows={len(dataset['test'])}",
+            f"heldout_rows={len(dataset['heldout'])}",
+        ],
+        artifacts=WhatIfBenchmarkTrainArtifacts(
+            root=output_root,
+            model_path=model_path,
+            metadata_path=metadata_path,
+            train_result_path=train_result_path,
+        ),
+    )
+    train_result_path.write_text(result.model_dump_json(indent=2), encoding="utf-8")
+    return result
+
+
+def _eval_heuristic_baseline(
+    *,
+    output_root: Path,
+    build,
+    dataset: dict[str, list[WhatIfBenchmarkDatasetRow]],
+) -> WhatIfBenchmarkEvalResult:
+    metadata_path = output_root / "metadata.json"
+    if metadata_path.exists():
+        preprocessor = BenchmarkPreprocessor.from_metadata(
+            json.loads(metadata_path.read_text(encoding="utf-8"))
+        )
+    else:
+        preprocessor = _fit_preprocessor(
+            train_rows=dataset["train"],
+            validation_rows=dataset["validation"],
+            test_rows=dataset["test"],
+            heldout_rows=dataset["heldout"],
+            cases=build.cases,
+        )
+    test_rows = [preprocessor.encode_row(row) for row in dataset["test"]]
+    factual_predictions = _heuristic_predict_rows(
+        rows=test_rows,
+        preprocessor=preprocessor,
+    )
+    observed_metrics = _compute_observed_metrics(
+        rows=test_rows,
+        predictions=factual_predictions,
+        preprocessor=preprocessor,
+    )
+    heldout_rows = [preprocessor.encode_row(row) for row in dataset["heldout"]]
+    base_contract_by_case = {
+        encoded.row.contract.case_id: encoded.row.contract for encoded in heldout_rows
+    }
+    case_evaluations = _evaluate_heldout_cases_heuristic(
+        build_cases=build.cases,
+        base_contract_by_case=base_contract_by_case,
+        preprocessor=preprocessor,
+    )
+
+    prediction_jsonl_path = output_root / "predictions.jsonl"
+    _write_prediction_rows(
+        path=prediction_jsonl_path,
+        factual_rows=test_rows,
+        factual_predictions=factual_predictions,
+        case_evaluations=case_evaluations,
+    )
+    eval_result_path = output_root / "eval_result.json"
+    result = WhatIfBenchmarkEvalResult(
+        model_id="heuristic_baseline",
+        dataset_root=build.dataset.root,
+        observed_metrics=observed_metrics,
+        cases=case_evaluations,
+        notes=[
+            "heuristic action-schema baseline",
+            f"test_rows={len(test_rows)}",
+            f"heldout_cases={len(build.cases)}",
+        ],
+        artifacts=WhatIfBenchmarkEvalArtifacts(
+            root=output_root,
+            eval_result_path=eval_result_path,
+            prediction_jsonl_path=prediction_jsonl_path,
+        ),
+    )
+    eval_result_path.write_text(result.model_dump_json(indent=2), encoding="utf-8")
+    return result
+
+
 def _predict_from_request(path: Path) -> dict[str, Any]:
     request = json.loads(path.read_text(encoding="utf-8"))
     checkpoint_path = Path(request["checkpoint_path"]).expanduser().resolve()
@@ -308,7 +462,7 @@ def _predict_from_request(path: Path) -> dict[str, Any]:
     trainer = TorchTrainer(model_id=checkpoint["model_id"], preprocessor=preprocessor)
     device = _resolve_device(str(request.get("device", "") or ""))
     model = trainer.build_model(device=device)
-    model.load_state_dict(checkpoint["state_dict"])
+    _load_compatible_state_dict(model, checkpoint["state_dict"])
     model.eval()
 
     row = WhatIfBenchmarkDatasetRow.model_validate(request["row"])
@@ -328,11 +482,19 @@ def _predict_from_request(path: Path) -> dict[str, Any]:
         binary_probability=prediction.binary_probability,
         regression_values=prediction.regression_values,
     )
+    business_heads = preprocessor.decode_business(
+        prediction.business_values,
+        fallback_evidence=evidence_heads,
+    )
     return {
         "model_id": checkpoint["model_id"],
         "binary_probability": prediction.binary_probability,
         "regression_values": prediction.regression_values.tolist(),
         "evidence_heads": evidence_heads.model_dump(mode="json"),
+        "business_heads": business_heads.model_dump(mode="json"),
+        "objective_scores": preprocessor.decode_objective_scores(
+            prediction.objective_values
+        ),
     }
 
 
@@ -359,6 +521,18 @@ def load_checkpoint(path: Path) -> dict[str, Any]:
     return checkpoint
 
 
+def _load_compatible_state_dict(model: Any, state_dict: dict[str, Any]) -> None:
+    """Load older checkpoints even when newer optional heads have been added."""
+
+    current = model.state_dict()
+    compatible = {
+        key: value
+        for key, value in state_dict.items()
+        if key in current and tuple(value.shape) == tuple(current[key].shape)
+    }
+    model.load_state_dict(compatible, strict=False)
+
+
 class BenchmarkPreprocessor:
     def __init__(
         self,
@@ -370,6 +544,10 @@ class BenchmarkPreprocessor:
         event_type_names: Sequence[str],
         target_mean: Sequence[float],
         target_std: Sequence[float],
+        business_mean: Sequence[float] | None = None,
+        business_std: Sequence[float] | None = None,
+        objective_mean: Sequence[float] | None = None,
+        objective_std: Sequence[float] | None = None,
     ) -> None:
         self.summary_feature_names = list(summary_feature_names)
         self.summary_index = {
@@ -387,6 +565,38 @@ class BenchmarkPreprocessor:
         }
         self.target_mean = np.asarray(target_mean, dtype=np.float32)
         self.target_std = np.asarray(target_std, dtype=np.float32)
+        self.business_mean = np.asarray(
+            (
+                business_mean
+                if business_mean is not None
+                else np.zeros(len(_BUSINESS_TARGET_NAMES))
+            ),
+            dtype=np.float32,
+        )
+        self.business_std = np.asarray(
+            (
+                business_std
+                if business_std is not None
+                else np.ones(len(_BUSINESS_TARGET_NAMES))
+            ),
+            dtype=np.float32,
+        )
+        self.objective_mean = np.asarray(
+            (
+                objective_mean
+                if objective_mean is not None
+                else np.zeros(len(_OBJECTIVE_TARGET_NAMES))
+            ),
+            dtype=np.float32,
+        )
+        self.objective_std = np.asarray(
+            (
+                objective_std
+                if objective_std is not None
+                else np.ones(len(_OBJECTIVE_TARGET_NAMES))
+            ),
+            dtype=np.float32,
+        )
 
     @classmethod
     def from_metadata(cls, payload: dict[str, Any]) -> "BenchmarkPreprocessor":
@@ -398,6 +608,10 @@ class BenchmarkPreprocessor:
             event_type_names=payload["event_type_names"],
             target_mean=payload["target_mean"],
             target_std=payload["target_std"],
+            business_mean=payload.get("business_mean"),
+            business_std=payload.get("business_std"),
+            objective_mean=payload.get("objective_mean"),
+            objective_std=payload.get("objective_std"),
         )
 
     def to_metadata(self) -> dict[str, Any]:
@@ -409,6 +623,12 @@ class BenchmarkPreprocessor:
             "event_type_names": self.event_type_names,
             "target_mean": self.target_mean.tolist(),
             "target_std": self.target_std.tolist(),
+            "business_target_names": list(_BUSINESS_TARGET_NAMES),
+            "business_mean": self.business_mean.tolist(),
+            "business_std": self.business_std.tolist(),
+            "objective_target_names": list(_OBJECTIVE_TARGET_NAMES),
+            "objective_mean": self.objective_mean.tolist(),
+            "objective_std": self.objective_std.tolist(),
         }
 
     def encode_row(self, row: WhatIfBenchmarkDatasetRow) -> _RowEncoding:
@@ -427,6 +647,8 @@ class BenchmarkPreprocessor:
                 token_numeric=token_numeric,
                 binary_target=None,
                 regression_target=None,
+                business_target=None,
+                objective_target=None,
                 row=row,
             )
         return _RowEncoding(
@@ -436,6 +658,8 @@ class BenchmarkPreprocessor:
             token_numeric=token_numeric,
             binary_target=float(row.observed_evidence_heads.any_external_spread),
             regression_target=self._encode_targets(row.observed_evidence_heads),
+            business_target=self._encode_business(row.observed_business_outcomes),
+            objective_target=self._encode_objectives(row),
             row=row,
         )
 
@@ -500,6 +724,49 @@ class BenchmarkPreprocessor:
             attachment_recirculation_count=payload["attachment_recirculation_count"],
             version_turn_count=payload["version_turn_count"],
         )
+
+    def decode_business(
+        self,
+        business_values: Sequence[float] | None,
+        *,
+        fallback_evidence: WhatIfObservedEvidenceHeads,
+    ):
+        if business_values is None:
+            return evidence_to_business_outcomes(fallback_evidence)
+        from .models import WhatIfBusinessOutcomeHeads
+
+        values = np.nan_to_num(
+            (np.asarray(business_values, dtype=np.float32) * self.business_std)
+            + self.business_mean,
+            nan=0.0,
+            posinf=1.0,
+            neginf=0.0,
+        )
+        values = np.clip(values, 0.0, 1.0)
+        payload = {
+            name: round(float(values[index]), 3)
+            for index, name in enumerate(_BUSINESS_TARGET_NAMES)
+        }
+        return WhatIfBusinessOutcomeHeads(**payload)
+
+    def decode_objective_scores(
+        self,
+        objective_values: Sequence[float] | None,
+    ) -> dict[str, float]:
+        if objective_values is None:
+            return {}
+        values = np.nan_to_num(
+            (np.asarray(objective_values, dtype=np.float32) * self.objective_std)
+            + self.objective_mean,
+            nan=0.0,
+            posinf=1.0,
+            neginf=0.0,
+        )
+        values = np.clip(values, 0.0, 1.0)
+        return {
+            name: round(float(values[index]), 3)
+            for index, name in enumerate(_OBJECTIVE_TARGET_NAMES)
+        }
 
     def _encode_summary(self, features: Sequence[Any]) -> np.ndarray:
         values = np.zeros(len(self.summary_feature_names), dtype=np.float32)
@@ -663,6 +930,25 @@ class BenchmarkPreprocessor:
         logged = np.log1p(raw_values)
         return (logged - self.target_mean) / self.target_std
 
+    def _encode_business(self, targets: Any) -> np.ndarray:
+        raw_values = np.asarray(
+            [float(getattr(targets, name)) for name in _BUSINESS_TARGET_NAMES],
+            dtype=np.float32,
+        )
+        return (raw_values - self.business_mean) / self.business_std
+
+    def _encode_objectives(self, row: WhatIfBenchmarkDatasetRow) -> np.ndarray:
+        values: list[float] = []
+        for pack in list_business_objective_packs():
+            score = score_business_objective(
+                pack=pack,
+                outcomes=row.observed_business_outcomes,
+                evidence=row.observed_evidence_heads,
+            )
+            values.append(float(score.overall_score))
+        raw_values = np.asarray(values, dtype=np.float32)
+        return (raw_values - self.objective_mean) / self.objective_std
+
 
 def _fit_preprocessor(
     *,
@@ -749,6 +1035,54 @@ def _fit_preprocessor(
         else np.ones(len(_EVIDENCE_TARGET_NAMES))
     )
     target_std = np.where(target_std < 1e-6, 1.0, target_std)
+    business_matrix = np.asarray(
+        [
+            [
+                float(getattr(row.observed_business_outcomes, name))
+                for name in _BUSINESS_TARGET_NAMES
+            ]
+            for row in train_rows
+        ],
+        dtype=np.float32,
+    )
+    business_mean = (
+        business_matrix.mean(axis=0)
+        if len(business_matrix)
+        else np.zeros(len(_BUSINESS_TARGET_NAMES))
+    )
+    business_std = (
+        business_matrix.std(axis=0)
+        if len(business_matrix)
+        else np.ones(len(_BUSINESS_TARGET_NAMES))
+    )
+    business_std = np.where(business_std < 1e-6, 1.0, business_std)
+    objective_matrix = np.asarray(
+        [
+            [
+                float(
+                    score_business_objective(
+                        pack=pack,
+                        outcomes=row.observed_business_outcomes,
+                        evidence=row.observed_evidence_heads,
+                    ).overall_score
+                )
+                for pack in list_business_objective_packs()
+            ]
+            for row in train_rows
+        ],
+        dtype=np.float32,
+    )
+    objective_mean = (
+        objective_matrix.mean(axis=0)
+        if len(objective_matrix)
+        else np.zeros(len(_OBJECTIVE_TARGET_NAMES))
+    )
+    objective_std = (
+        objective_matrix.std(axis=0)
+        if len(objective_matrix)
+        else np.ones(len(_OBJECTIVE_TARGET_NAMES))
+    )
+    objective_std = np.where(objective_std < 1e-6, 1.0, objective_std)
     return BenchmarkPreprocessor(
         summary_feature_names=summary_names,
         summary_mean=summary_mean.tolist(),
@@ -757,6 +1091,10 @@ def _fit_preprocessor(
         event_type_names=sorted(event_types),
         target_mean=target_mean.tolist(),
         target_std=target_std.tolist(),
+        business_mean=business_mean.tolist(),
+        business_std=business_std.tolist(),
+        objective_mean=objective_mean.tolist(),
+        objective_std=objective_std.tolist(),
     )
 
 
@@ -818,12 +1156,7 @@ class TorchTrainer:
                 torch_module=torch,
             ):
                 optimizer.zero_grad()
-                outputs = model(
-                    batch.summary,
-                    batch.action,
-                    batch.token_categorical,
-                    batch.token_numeric,
-                )
+                outputs = _model_outputs(model, batch)
                 loss = _training_loss(
                     outputs=outputs,
                     batch=batch,
@@ -877,12 +1210,7 @@ class TorchTrainer:
                 device=device,
                 torch_module=self.torch,
             ):
-                outputs = model(
-                    batch.summary,
-                    batch.action,
-                    batch.token_categorical,
-                    batch.token_numeric,
-                )
+                outputs = _model_outputs(model, batch)
                 loss = _training_loss(
                     outputs=outputs,
                     batch=batch,
@@ -896,6 +1224,8 @@ class TorchTrainer:
         summary_dim = len(self.preprocessor.summary_feature_names)
         action_dim = _action_vector_width(self.preprocessor)
         target_dim = len(_EVIDENCE_TARGET_NAMES)
+        business_dim = len(_BUSINESS_TARGET_NAMES)
+        objective_dim = len(_OBJECTIVE_TARGET_NAMES)
         latent_dim = 96
         event_type_count = max(len(self.preprocessor.event_type_names), 1)
 
@@ -934,7 +1264,7 @@ class TorchTrainer:
                     nn.Linear(192, latent_dim),
                 )
                 self.target_encoder = nn.Sequential(
-                    nn.Linear(target_dim + 1, 192),
+                    nn.Linear(target_dim + business_dim + objective_dim + 1, 192),
                     nn.ReLU(),
                     nn.Linear(192, latent_dim),
                 )
@@ -945,6 +1275,8 @@ class TorchTrainer:
                 )
                 self.binary_head = nn.Linear(latent_dim, 1)
                 self.regression_head = nn.Linear(latent_dim, target_dim)
+                self.business_head = nn.Linear(latent_dim, business_dim)
+                self.objective_head = nn.Linear(latent_dim, objective_dim)
 
             def forward(
                 self,
@@ -954,6 +1286,8 @@ class TorchTrainer:
                 token_numeric: Any,
                 target_binary: Any | None = None,
                 target_regression: Any | None = None,
+                target_business: Any | None = None,
+                target_objective: Any | None = None,
             ) -> dict[str, Any]:
                 summary_action = self.summary_action_encoder(
                     self._concat([summary, action], dim=1)
@@ -972,8 +1306,15 @@ class TorchTrainer:
                 result = {
                     "binary_logits": self.binary_head(predicted_latent).squeeze(-1),
                     "regression": self.regression_head(predicted_latent),
+                    "business": self.business_head(predicted_latent),
+                    "objective": self.objective_head(predicted_latent),
                 }
-                if target_binary is None or target_regression is None:
+                if (
+                    target_binary is None
+                    or target_regression is None
+                    or target_business is None
+                    or target_objective is None
+                ):
                     result["latent_loss"] = None
                     return result
                 target = self.target_encoder(
@@ -981,6 +1322,8 @@ class TorchTrainer:
                         [
                             target_binary.unsqueeze(-1),
                             target_regression,
+                            target_business,
+                            target_objective,
                         ],
                         dim=1,
                     )
@@ -999,6 +1342,8 @@ class TorchTrainer:
         summary_dim = len(self.preprocessor.summary_feature_names)
         action_dim = _action_vector_width(self.preprocessor)
         target_dim = len(_EVIDENCE_TARGET_NAMES)
+        business_dim = len(_BUSINESS_TARGET_NAMES)
+        objective_dim = len(_OBJECTIVE_TARGET_NAMES)
         model_dim = 96
         event_type_count = max(len(self.preprocessor.event_type_names), 1)
 
@@ -1030,6 +1375,8 @@ class TorchTrainer:
                 self.encoder = nn.TransformerEncoder(encoder_layer, num_layers=2)
                 self.binary_head = nn.Linear(model_dim, 1)
                 self.regression_head = nn.Linear(model_dim, target_dim)
+                self.business_head = nn.Linear(model_dim, business_dim)
+                self.objective_head = nn.Linear(model_dim, objective_dim)
 
             def forward(
                 self,
@@ -1037,7 +1384,12 @@ class TorchTrainer:
                 action: Any,
                 token_categorical: Any,
                 token_numeric: Any,
+                target_binary: Any | None = None,
+                target_regression: Any | None = None,
+                target_business: Any | None = None,
+                target_objective: Any | None = None,
             ) -> dict[str, Any]:
+                del target_binary, target_regression, target_business, target_objective
                 summary_action_token = self.summary_action_projection(
                     self._concat([summary, action], dim=1)
                 ).unsqueeze(1)
@@ -1054,6 +1406,8 @@ class TorchTrainer:
                 return {
                     "binary_logits": self.binary_head(pooled).squeeze(-1),
                     "regression": self.regression_head(pooled),
+                    "business": self.business_head(pooled),
+                    "objective": self.objective_head(pooled),
                     "latent_loss": None,
                 }
 
@@ -1070,6 +1424,8 @@ class TorchTrainer:
         )
         model_dim = 96
         target_dim = len(_EVIDENCE_TARGET_NAMES)
+        business_dim = len(_BUSINESS_TARGET_NAMES)
+        objective_dim = len(_OBJECTIVE_TARGET_NAMES)
 
         class FTTransformerModel(nn.Module):
             def __init__(self) -> None:
@@ -1086,6 +1442,8 @@ class TorchTrainer:
                 self.encoder = nn.TransformerEncoder(encoder_layer, num_layers=2)
                 self.binary_head = nn.Linear(model_dim, 1)
                 self.regression_head = nn.Linear(model_dim, target_dim)
+                self.business_head = nn.Linear(model_dim, business_dim)
+                self.objective_head = nn.Linear(model_dim, objective_dim)
 
             def forward(
                 self,
@@ -1093,8 +1451,19 @@ class TorchTrainer:
                 action: Any,
                 token_categorical: Any,
                 token_numeric: Any,
+                target_binary: Any | None = None,
+                target_regression: Any | None = None,
+                target_business: Any | None = None,
+                target_objective: Any | None = None,
             ) -> dict[str, Any]:
-                del token_categorical, token_numeric
+                del (
+                    token_categorical,
+                    token_numeric,
+                    target_binary,
+                    target_regression,
+                    target_business,
+                    target_objective,
+                )
                 features = self._concat([summary, action], dim=1)
                 indices = self._indices(features)
                 tokens = self.feature_embedding(indices) + self.value_projection(
@@ -1105,6 +1474,8 @@ class TorchTrainer:
                 return {
                     "binary_logits": self.binary_head(pooled).squeeze(-1),
                     "regression": self.regression_head(pooled),
+                    "business": self.business_head(pooled),
+                    "objective": self.objective_head(pooled),
                     "latent_loss": None,
                 }
 
@@ -1128,6 +1499,8 @@ class TorchTrainer:
         nn = self.nn
         model_dim = 96
         target_dim = len(_EVIDENCE_TARGET_NAMES)
+        business_dim = len(_BUSINESS_TARGET_NAMES)
+        objective_dim = len(_OBJECTIVE_TARGET_NAMES)
         event_type_count = max(len(self.preprocessor.event_type_names), 1)
 
         class SequenceTransformerModel(nn.Module):
@@ -1149,6 +1522,8 @@ class TorchTrainer:
                 self.encoder = nn.TransformerEncoder(encoder_layer, num_layers=2)
                 self.binary_head = nn.Linear(model_dim, 1)
                 self.regression_head = nn.Linear(model_dim, target_dim)
+                self.business_head = nn.Linear(model_dim, business_dim)
+                self.objective_head = nn.Linear(model_dim, objective_dim)
 
             def forward(
                 self,
@@ -1156,8 +1531,19 @@ class TorchTrainer:
                 action: Any,
                 token_categorical: Any,
                 token_numeric: Any,
+                target_binary: Any | None = None,
+                target_regression: Any | None = None,
+                target_business: Any | None = None,
+                target_objective: Any | None = None,
             ) -> dict[str, Any]:
-                del summary, action
+                del (
+                    summary,
+                    action,
+                    target_binary,
+                    target_regression,
+                    target_business,
+                    target_objective,
+                )
                 tokens = (
                     self.phase_embedding(token_categorical[:, :, 0])
                     + self.event_embedding(token_categorical[:, :, 1])
@@ -1169,6 +1555,8 @@ class TorchTrainer:
                 return {
                     "binary_logits": self.binary_head(pooled).squeeze(-1),
                     "regression": self.regression_head(pooled),
+                    "business": self.business_head(pooled),
+                    "objective": self.objective_head(pooled),
                     "latent_loss": None,
                 }
 
@@ -1179,6 +1567,8 @@ class TorchTrainer:
         summary_dim = len(self.preprocessor.summary_feature_names)
         action_dim = _action_vector_width(self.preprocessor)
         target_dim = len(_EVIDENCE_TARGET_NAMES)
+        business_dim = len(_BUSINESS_TARGET_NAMES)
+        objective_dim = len(_OBJECTIVE_TARGET_NAMES)
         model_dim = 96
 
         class TreatmentTransformerModel(nn.Module):
@@ -1197,6 +1587,8 @@ class TorchTrainer:
                 self.encoder = nn.TransformerEncoder(encoder_layer, num_layers=2)
                 self.binary_head = nn.Linear(model_dim, 1)
                 self.regression_head = nn.Linear(model_dim, target_dim)
+                self.business_head = nn.Linear(model_dim, business_dim)
+                self.objective_head = nn.Linear(model_dim, objective_dim)
 
             def forward(
                 self,
@@ -1204,8 +1596,19 @@ class TorchTrainer:
                 action: Any,
                 token_categorical: Any,
                 token_numeric: Any,
+                target_binary: Any | None = None,
+                target_regression: Any | None = None,
+                target_business: Any | None = None,
+                target_objective: Any | None = None,
             ) -> dict[str, Any]:
-                del token_categorical, token_numeric
+                del (
+                    token_categorical,
+                    token_numeric,
+                    target_binary,
+                    target_regression,
+                    target_business,
+                    target_objective,
+                )
                 summary_token = self.summary_projection(summary).unsqueeze(1)
                 feature_indices = self._indices(action)
                 action_tokens = self.feature_embedding(
@@ -1218,6 +1621,8 @@ class TorchTrainer:
                 return {
                     "binary_logits": self.binary_head(pooled).squeeze(-1),
                     "regression": self.regression_head(pooled),
+                    "business": self.business_head(pooled),
+                    "objective": self.objective_head(pooled),
                     "latent_loss": None,
                 }
 
@@ -1276,6 +1681,8 @@ def _iter_batches(
         if (
             batch_rows[0].binary_target is None
             or batch_rows[0].regression_target is None
+            or batch_rows[0].business_target is None
+            or batch_rows[0].objective_target is None
         ):
             yield _BatchTensors(
                 summary=summary,
@@ -1299,7 +1706,30 @@ def _iter_batches(
                 dtype=torch_module.float32,
                 device=device,
             ),
+            target_business=torch_module.tensor(
+                np.stack([row.business_target for row in batch_rows]),
+                dtype=torch_module.float32,
+                device=device,
+            ),
+            target_objective=torch_module.tensor(
+                np.stack([row.objective_target for row in batch_rows]),
+                dtype=torch_module.float32,
+                device=device,
+            ),
         )
+
+
+def _model_outputs(model: Any, batch: _BatchTensors) -> dict[str, Any]:
+    return model(
+        batch.summary,
+        batch.action,
+        batch.token_categorical,
+        batch.token_numeric,
+        target_binary=batch.target_binary,
+        target_regression=batch.target_regression,
+        target_business=batch.target_business,
+        target_objective=batch.target_objective,
+    )
 
 
 def _training_loss(
@@ -1316,10 +1746,15 @@ def _training_loss(
         outputs["regression"],
         batch.target_regression,
     )
+    business_loss = functional.mse_loss(outputs["business"], batch.target_business)
+    objective_loss = functional.mse_loss(outputs["objective"], batch.target_objective)
     latent_loss = outputs.get("latent_loss")
+    supervised_loss = (
+        binary_loss + (0.5 * regression_loss) + business_loss + (1.25 * objective_loss)
+    )
     if latent_loss is None:
-        return binary_loss + regression_loss
-    return binary_loss + regression_loss + (0.25 * latent_loss)
+        return supervised_loss
+    return supervised_loss + (0.25 * latent_loss)
 
 
 def predict_rows(
@@ -1342,20 +1777,27 @@ def predict_rows(
             torch_module=torch_module,
             shuffle=False,
         ):
-            outputs = model(
-                batch.summary,
-                batch.action,
-                batch.token_categorical,
-                batch.token_numeric,
-            )
+            outputs = _model_outputs(model, batch)
             probability = (
                 torch_module.sigmoid(outputs["binary_logits"]).detach().cpu().numpy()
             )
             regression = outputs["regression"].detach().cpu().numpy()
+            business = (
+                outputs.get("business").detach().cpu().numpy()
+                if outputs.get("business") is not None
+                else None
+            )
+            objective = (
+                outputs.get("objective").detach().cpu().numpy()
+                if outputs.get("objective") is not None
+                else None
+            )
             batches.append(
                 _PredictionBatch(
                     binary_probability=probability,
                     regression_values=regression,
+                    business_values=business,
+                    objective_values=objective,
                 )
             )
     return batches
@@ -1398,11 +1840,17 @@ def _compute_observed_metrics(
             binary_probability=predicted.binary_probability,
             regression_values=predicted.regression_values,
         )
+        predicted_objective_scores = preprocessor.decode_objective_scores(
+            predicted.objective_values
+        )
         for name in _EVIDENCE_TARGET_NAMES:
             actual_regression[name].append(float(getattr(actual_targets, name)))
             predicted_regression[name].append(float(getattr(predicted_targets, name)))
         actual_business = row.row.observed_business_outcomes
-        predicted_business = evidence_to_business_outcomes(predicted_targets)
+        predicted_business = preprocessor.decode_business(
+            predicted.business_values,
+            fallback_evidence=predicted_targets,
+        )
         for name in business_errors:
             business_errors[name].append(
                 abs(
@@ -1421,8 +1869,12 @@ def _compute_observed_metrics(
                 outcomes=predicted_business,
                 evidence=predicted_targets,
             )
+            predicted_overall = predicted_objective_scores.get(
+                pack.pack_id,
+                predicted_score.overall_score,
+            )
             objective_errors[pack.pack_id].append(
-                abs(actual_score.overall_score - predicted_score.overall_score)
+                abs(actual_score.overall_score - predicted_overall)
             )
     return WhatIfObservedForecastMetrics(
         auroc_any_external_spread=_auroc(actual_binary, predicted_binary),
@@ -1495,14 +1947,26 @@ def _evaluate_heldout_cases(
                     binary_probability=float(prediction.binary_probability),
                     regression_values=prediction.regression_values,
                 )
-                predicted_business_outcomes = evidence_to_business_outcomes(
-                    predicted_evidence_heads
+                predicted_business_outcomes = preprocessor.decode_business(
+                    prediction.business_values,
+                    fallback_evidence=predicted_evidence_heads,
                 )
                 outcome_score = score_business_objective(
                     pack=objective_pack,
                     outcomes=predicted_business_outcomes,
                     evidence=predicted_evidence_heads,
                 )
+                direct_objective_scores = preprocessor.decode_objective_scores(
+                    prediction.objective_values
+                )
+                if objective_pack.pack_id in direct_objective_scores:
+                    outcome_score = outcome_score.model_copy(
+                        update={
+                            "overall_score": direct_objective_scores[
+                                objective_pack.pack_id
+                            ]
+                        }
+                    )
                 candidate_predictions.append(
                     WhatIfCounterfactualCandidatePrediction(
                         candidate=candidate,
@@ -1542,6 +2006,211 @@ def _evaluate_heldout_cases(
             )
         )
     return results
+
+
+def _evaluate_heldout_cases_heuristic(
+    *,
+    build_cases: Sequence[WhatIfBenchmarkCase],
+    base_contract_by_case: dict[str, Any],
+    preprocessor: BenchmarkPreprocessor,
+) -> list[WhatIfBenchmarkCaseEvaluation]:
+    results: list[WhatIfBenchmarkCaseEvaluation] = []
+    for case in build_cases:
+        base_contract = base_contract_by_case.get(case.case_id)
+        if base_contract is None:
+            continue
+        base_row = WhatIfBenchmarkDatasetRow(
+            row_id=f"{case.case_id}:candidate",
+            split="heldout",
+            thread_id=case.thread_id,
+            branch_event_id=case.event_id,
+            contract=base_contract,
+        )
+        objective_results: list[WhatIfCounterfactualObjectiveEvaluation] = []
+        for objective_pack in list_business_objective_packs():
+            encoded_candidates = [
+                preprocessor.encode_counterfactual(
+                    base_row,
+                    action_schema=candidate.action_schema,
+                )
+                for candidate in case.candidates
+            ]
+            predictions = _flatten_prediction_batches(
+                _heuristic_predict_rows(
+                    rows=encoded_candidates,
+                    preprocessor=preprocessor,
+                )
+            )
+            candidate_predictions: list[WhatIfCounterfactualCandidatePrediction] = []
+            for candidate, prediction in zip(
+                case.candidates, predictions, strict=False
+            ):
+                predicted_evidence_heads = preprocessor.decode_targets(
+                    binary_probability=float(prediction.binary_probability),
+                    regression_values=prediction.regression_values,
+                )
+                predicted_business_outcomes = preprocessor.decode_business(
+                    prediction.business_values,
+                    fallback_evidence=predicted_evidence_heads,
+                )
+                outcome_score = score_business_objective(
+                    pack=objective_pack,
+                    outcomes=predicted_business_outcomes,
+                    evidence=predicted_evidence_heads,
+                )
+                direct_objective_scores = preprocessor.decode_objective_scores(
+                    prediction.objective_values
+                )
+                if objective_pack.pack_id in direct_objective_scores:
+                    outcome_score = outcome_score.model_copy(
+                        update={
+                            "overall_score": direct_objective_scores[
+                                objective_pack.pack_id
+                            ]
+                        }
+                    )
+                candidate_predictions.append(
+                    WhatIfCounterfactualCandidatePrediction(
+                        candidate=candidate,
+                        expected_hypothesis=candidate.expected_hypotheses.get(
+                            objective_pack.pack_id,
+                            "middle_expected",
+                        ),
+                        predicted_evidence_heads=predicted_evidence_heads,
+                        predicted_business_outcomes=predicted_business_outcomes,
+                        predicted_objective_score=outcome_score,
+                    )
+                )
+            ordered = sorted(
+                candidate_predictions,
+                key=lambda item: (
+                    -item.predicted_objective_score.overall_score,
+                    item.predicted_business_outcomes.enterprise_risk,
+                    item.candidate.label.lower(),
+                ),
+            )
+            for index, item in enumerate(ordered, start=1):
+                item.rank = index
+            objective_results.append(
+                WhatIfCounterfactualObjectiveEvaluation(
+                    objective_pack=objective_pack,
+                    recommended_candidate_label=(
+                        ordered[0].candidate.label if ordered else ""
+                    ),
+                    candidates=ordered,
+                    expected_order_ok=_expected_order_ok(ordered),
+                )
+            )
+        results.append(
+            WhatIfBenchmarkCaseEvaluation(
+                case=case,
+                objectives=objective_results,
+            )
+        )
+    return results
+
+
+def _heuristic_predict_rows(
+    *,
+    rows: Sequence[_RowEncoding],
+    preprocessor: BenchmarkPreprocessor,
+) -> list[_PredictionBatch]:
+    if not rows:
+        return []
+    predictions = [
+        _heuristic_prediction_for_row(row, preprocessor=preprocessor) for row in rows
+    ]
+    return [
+        _PredictionBatch(
+            binary_probability=np.asarray(
+                [item.binary_probability for item in predictions],
+                dtype=np.float32,
+            ),
+            regression_values=np.vstack(
+                [item.regression_values for item in predictions]
+            ).astype(np.float32),
+            business_values=None,
+            objective_values=None,
+        )
+    ]
+
+
+def _heuristic_prediction_for_row(
+    row: _RowEncoding,
+    *,
+    preprocessor: BenchmarkPreprocessor,
+) -> _RowPrediction:
+    action = row.row.contract.action_schema
+    probability = 0.12
+    if action.recipient_scope in {"external", "mixed"}:
+        probability += 0.35
+    probability += min(0.25, max(0, action.external_recipient_count) * 0.08)
+    if action.outside_sharing_posture == "broad_external":
+        probability += 0.25
+    elif action.outside_sharing_posture == "limited_external":
+        probability += 0.12
+    elif action.outside_sharing_posture == "status_only":
+        probability += 0.05
+    if action.hold_required or action.decision_posture == "hold":
+        probability -= 0.2
+    if action.legal_review_required:
+        probability -= 0.08
+    probability = float(min(0.98, max(0.02, probability)))
+
+    review_loop_count = 1 if action.review_path != "none" else 0
+    if action.coordination_breadth in {"targeted", "broad"}:
+        review_loop_count += 1
+    participant_fanout = max(1, action.external_recipient_count + 1)
+    if action.coordination_breadth == "broad":
+        participant_fanout += 3
+    elif action.coordination_breadth == "targeted":
+        participant_fanout += 2
+    predicted = WhatIfObservedEvidenceHeads(
+        any_external_spread=probability >= 0.5,
+        outside_recipient_count=max(0, action.external_recipient_count),
+        outside_forward_count=(
+            1 if action.recipient_scope in {"external", "mixed"} else 0
+        ),
+        outside_attachment_spread_count=(
+            1 if action.attachment_policy == "present" and probability >= 0.5 else 0
+        ),
+        legal_follow_up_count=(
+            1
+            if action.legal_review_required
+            or action.review_path in {"internal_legal", "outside_counsel"}
+            else 0
+        ),
+        review_loop_count=review_loop_count,
+        markup_loop_count=(
+            1 if action.attachment_policy in {"present", "sanitized"} else 0
+        ),
+        executive_escalation_count=1 if action.escalation_level == "executive" else 0,
+        executive_mention_count=1 if action.escalation_level == "executive" else 0,
+        urgency_spike_count=1 if action.decision_posture == "resolve" else 0,
+        participant_fanout=participant_fanout,
+        cc_expansion_count=max(0, participant_fanout - 2),
+        cross_functional_loop_count=(
+            1 if action.coordination_breadth in {"targeted", "broad"} else 0
+        ),
+        time_to_first_follow_up_ms=3_600_000 if action.hold_required else 900_000,
+        time_to_thread_end_ms=7_200_000 if action.hold_required else 1_800_000,
+        review_delay_burden_ms=3_600_000 if review_loop_count else 0,
+        reassurance_count=1 if action.reassurance_style in {"medium", "high"} else 0,
+        apology_repair_count=0,
+        commitment_clarity_count=1 if action.owner_clarity == "single_owner" else 0,
+        blame_pressure_count=1 if action.decision_posture == "escalate" else 0,
+        internal_disagreement_count=1 if action.coordination_breadth == "broad" else 0,
+        attachment_recirculation_count=(
+            1 if action.attachment_policy == "present" and probability >= 0.5 else 0
+        ),
+        version_turn_count=(
+            1 if action.attachment_policy in {"present", "sanitized"} else 0
+        ),
+    )
+    return _RowPrediction(
+        binary_probability=probability,
+        regression_values=preprocessor._encode_targets(predicted),
+    )
 
 
 def _write_prediction_rows(
@@ -1605,6 +2274,16 @@ def _flatten_prediction_batches(
                 _RowPrediction(
                     binary_probability=float(batch.binary_probability[index]),
                     regression_values=np.asarray(batch.regression_values[index]),
+                    business_values=(
+                        np.asarray(batch.business_values[index])
+                        if batch.business_values is not None
+                        else None
+                    ),
+                    objective_values=(
+                        np.asarray(batch.objective_values[index])
+                        if batch.objective_values is not None
+                        else None
+                    ),
                 )
             )
     return flattened

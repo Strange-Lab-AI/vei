@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
@@ -192,6 +192,7 @@ class WhatIfBenchmarkCandidate(BaseModel):
     expected_hypotheses: dict[
         WhatIfBusinessObjectivePackId, WhatIfResearchHypothesisLabel
     ] = Field(default_factory=dict)
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
 
 class WhatIfBenchmarkCase(BaseModel):
@@ -227,6 +228,7 @@ class WhatIfBenchmarkDatasetManifest(BaseModel):
     audit_template_path: str = ""
     dossier_root: str = ""
     heldout_thread_ids: list[str] = Field(default_factory=list)
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
 
 class WhatIfBenchmarkBuildArtifacts(BaseModel):
@@ -245,6 +247,7 @@ class WhatIfBenchmarkBuildResult(BaseModel):
     dataset: WhatIfBenchmarkDatasetManifest
     cases: list[WhatIfBenchmarkCase] = Field(default_factory=list)
     artifacts: WhatIfBenchmarkBuildArtifacts
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
 
 class WhatIfObservedForecastMetrics(BaseModel):

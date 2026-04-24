@@ -26,6 +26,12 @@ from .benchmark import (
     train_branch_point_benchmark_model,
 )
 from .benchmark_runtime import run_branch_point_benchmark_prediction
+from .multitenant_benchmark import (
+    MultiTenantBenchmarkSource,
+    build_candidate_generation_prompt,
+    build_multitenant_world_model_benchmark,
+    validate_candidate_diversity,
+)
 from .counterfactual import (
     estimate_counterfactual_delta,
     run_llm_counterfactual,
@@ -121,7 +127,9 @@ _BOUNDARY_EXPORTS = (
 
 __all__ = [
     "build_branch_point_benchmark",
+    "build_candidate_generation_prompt",
     "build_decision_scene",
+    "build_multitenant_world_model_benchmark",
     "build_saved_decision_scene",
     "build_public_context",
     "MACRO_CALIBRATION_METRICS",
@@ -152,6 +160,7 @@ __all__ = [
     "load_world",
     "macro_delta_from_prompt",
     "materialize_episode",
+    "MultiTenantBenchmarkSource",
     "preview_macro_outcomes_for_prompt",
     "build_saved_ranked_result_payload",
     "BUSINESS_STATE_COMPARISON_FILE",
@@ -190,6 +199,7 @@ __all__ = [
     "search_events",
     "select_specific_event",
     "train_branch_point_benchmark_model",
+    "validate_candidate_diversity",
 ]
 
 

@@ -2,12 +2,18 @@ from __future__ import annotations
 
 from importlib import import_module
 from pathlib import Path
+from typing import cast
 
 import typer
 
+from vei.context.api import build_canonical_history_readiness
 from vei.whatif.api import load_world
 from vei.whatif.benchmark import (
     list_branch_point_benchmark_models,
+)
+from vei.whatif.multitenant_benchmark import (
+    CandidateGenerationMode,
+    MultiTenantBenchmarkSource,
 )
 from vei.whatif.render import (
     render_benchmark_build,
@@ -41,6 +47,43 @@ def _resolve_benchmark_model_ids(model_ids: list[str] | None) -> list[str]:
         "treatment_transformer",
     ]
     return [_resolve_benchmark_model_id(model_id) for model_id in requested]
+
+
+def _parse_multitenant_inputs(entries: list[str]) -> list[MultiTenantBenchmarkSource]:
+    sources: list[MultiTenantBenchmarkSource] = []
+    for entry in entries:
+        tenant_id, sep, raw_path = entry.partition("=")
+        if not tenant_id.strip() or sep != "=" or not raw_path.strip():
+            raise typer.BadParameter(
+                "multi-tenant inputs must use tenant_id=/path/to/context_snapshot.json"
+            )
+        path = Path(raw_path).expanduser().resolve()
+        readiness = build_canonical_history_readiness(path)
+        if not readiness.ready_for_world_modeling:
+            label = readiness.readiness_label
+            notes = "; ".join(readiness.notes)
+            raise typer.BadParameter(
+                f"tenant {tenant_id.strip()!r} is not ready for world-model training "
+                f"(readiness_label={label}). {notes}".strip()
+            )
+        world = load_world(source="company_history", source_dir=path)
+        sources.append(
+            MultiTenantBenchmarkSource(
+                tenant_id=tenant_id.strip(),
+                world=world,
+                display_name=world.summary.organization_name or tenant_id.strip(),
+                readiness_required=True,
+                readiness=readiness.model_dump(mode="json"),
+            )
+        )
+    return sources
+
+
+def _resolve_candidate_generation_mode(mode: str) -> CandidateGenerationMode:
+    normalized = mode.strip().lower()
+    if normalized in {"llm", "template"}:
+        return cast(CandidateGenerationMode, normalized)
+    raise typer.BadParameter("candidate-mode must be one of: llm, template")
 
 
 def register_benchmark_commands(benchmark_app: typer.Typer) -> None:
@@ -98,6 +141,60 @@ def register_benchmark_commands(benchmark_app: typer.Typer) -> None:
             )
         except ValueError as exc:
             raise typer.BadParameter(str(exc)) from exc
+        payload = (
+            render_benchmark_build(result)
+            if format == "markdown"
+            else result.model_dump(mode="json")
+        )
+        emit_payload(payload, format=format)
+
+    @benchmark_app.command("build-multitenant")
+    def build_multitenant_benchmark_command(
+        source_input: list[str] = typer.Option(
+            ...,
+            "--input",
+            help="Tenant context snapshot in tenant_id=/path/to/context_snapshot.json form. Repeat for each tenant.",
+        ),
+        artifacts_root: Path = typer.Option(
+            Path("_vei_out/world_model_multitenant"),
+            help="Directory where multi-tenant benchmark artifacts are written",
+        ),
+        label: str = typer.Option(
+            "enron_dispatch_world_model",
+            help="Human-friendly label for this benchmark build",
+        ),
+        heldout_cases_per_tenant: int = typer.Option(
+            4,
+            help="Final-tail decision cases to keep for each tenant",
+        ),
+        future_horizon_events: int = typer.Option(
+            6,
+            help="Post-branch events used as the finite factual forecast horizon",
+        ),
+        candidate_mode: str = typer.Option(
+            "llm",
+            help="Candidate generation mode: llm | template",
+        ),
+        candidate_model: str = typer.Option(
+            "gpt-5-mini",
+            help="Locked model used to generate broad candidate actions when candidate-mode=llm",
+        ),
+        format: str = typer.Option("json", help="Output format: json | markdown"),
+    ) -> None:
+        """Build a pooled Enron/Dispatch-style world-model benchmark."""
+
+        sources = _parse_multitenant_inputs(source_input)
+        result = _cli_module().build_multitenant_world_model_benchmark(
+            sources,
+            artifacts_root=artifacts_root,
+            label=label,
+            heldout_cases_per_tenant=heldout_cases_per_tenant,
+            candidate_generation_mode=_resolve_candidate_generation_mode(
+                candidate_mode
+            ),
+            candidate_model=candidate_model,
+            future_horizon_events=future_horizon_events,
+        )
         payload = (
             render_benchmark_build(result)
             if format == "markdown"

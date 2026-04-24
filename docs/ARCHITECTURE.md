@@ -351,6 +351,7 @@ VEI today is a deterministic enterprise simulator, governed twin, and replay pla
 
 - The reference backend (`vei.dynamics.backends.reference`) absorbs the existing `benchmark_bridge` trainer: a real PyTorch model trained on canonical event sequences with AUROC, ECE, and held-out case evaluation.
 - Training reads only `CanonicalEvent` streams — never raw provider payloads.
+- `vei whatif benchmark build-multitenant` can now build the first pooled learned world-model experiment from multiple company-history snapshots, with per-tenant temporal holdouts and LLM-generated candidate actions restricted to pre-branch context. This is an offline benchmark/training path, not an always-on CEO recommender.
 
 **What is heuristic (not learned):**
 

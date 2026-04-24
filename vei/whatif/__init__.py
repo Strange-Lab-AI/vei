@@ -98,9 +98,11 @@ __all__ = [
     "WhatIfSituationThread",
     "WhatIfWorld",
     "build_public_context",
+    "build_candidate_generation_prompt",
     "build_saved_ranked_result_payload",
     "default_forecast_backend",
     "build_branch_point_benchmark",
+    "build_multitenant_world_model_benchmark",
     "empty_public_context",
     "evaluate_branch_point_benchmark_model",
     "export_workspace_history_snapshot",
@@ -125,6 +127,7 @@ __all__ = [
     "load_ranked_experiment_result",
     "load_world",
     "materialize_episode",
+    "MultiTenantBenchmarkSource",
     "providers",
     "recommend_branch_thread",
     "replay_episode_baseline",
@@ -137,6 +140,7 @@ __all__ = [
     "search_events",
     "select_specific_event",
     "train_branch_point_benchmark_model",
+    "validate_candidate_diversity",
     "run_branch_point_benchmark_study",
     "run_branch_point_benchmark_prediction",
     "run_counterfactual_experiment",
@@ -149,12 +153,14 @@ __all__ = [
 
 _API_EXPORTS = {
     "build_public_context",
+    "build_candidate_generation_prompt",
     "build_saved_ranked_result_payload",
     "score_historical_tail",
     "build_decision_scene",
     "build_saved_decision_scene",
     "empty_public_context",
     "export_workspace_history_snapshot",
+    "build_multitenant_world_model_benchmark",
     "list_branch_candidates",
     "list_objective_packs",
     "list_supported_scenarios",
@@ -163,6 +169,7 @@ _API_EXPORTS = {
     "load_ranked_experiment_result",
     "load_world",
     "materialize_episode",
+    "MultiTenantBenchmarkSource",
     "recommend_branch_thread",
     "replay_episode_baseline",
     "resolve_saved_whatif_bundle",
@@ -178,6 +185,7 @@ _API_EXPORTS = {
     "estimate_counterfactual_delta",
     "run_llm_counterfactual",
     "run_whatif",
+    "validate_candidate_diversity",
 }
 _EJEPA_EXPORTS = {"default_forecast_backend", "run_ejepa_counterfactual"}
 _RESEARCH_EXPORTS = {
