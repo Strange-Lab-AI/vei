@@ -134,6 +134,14 @@ def _seed() -> dict:
                 "work_order_id": "WO1",
             },
         ],
+        "service_requests": [
+            {
+                "request_id": "SR1",
+                "title": "Emergency dispatch approval",
+                "status": "pending_approval",
+                "approvals": [{"stage": "dispatch", "status": "PENDING"}],
+            },
+        ],
         "policy": {
             "approval_threshold_usd": 1000.0,
             "vip_priority_override": True,
@@ -280,6 +288,22 @@ class TestHoldBilling:
 
 
 class TestOfficialStateUpdates:
+    def test_approve_request_marks_pending_stage_approved(self):
+        sim = _sim()
+        result = sim.approve_request(
+            "SR1", stage="dispatch", note="Approved for emergency service recovery"
+        )
+
+        assert result == {
+            "request_id": "SR1",
+            "status": "approved",
+            "approved_stage": "dispatch",
+        }
+        assert sim.service_requests["SR1"]["approvals"][0]["status"] == "APPROVED"
+        assert sim.service_requests["SR1"]["approval_note"] == (
+            "Approved for emergency service recovery"
+        )
+
     def test_update_work_order_status_updates_linked_appointment(self):
         sim = _sim()
         result = sim.update_work_order_status(
@@ -435,6 +459,7 @@ class TestActionMenu:
             "service_ops.list_overview",
             "service_ops.assign_dispatch",
             "service_ops.reschedule_dispatch",
+            "service_ops.approve_request",
             "service_ops.update_work_order_status",
             "service_ops.set_sla_clock",
             "service_ops.hold_billing",

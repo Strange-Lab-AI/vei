@@ -15,6 +15,7 @@ _MIRROR_OPERATION_CLASS_BY_TOOL: dict[str, str] = {
     "service_ops.list_overview": "read",
     "service_ops.assign_dispatch": "write_safe",
     "service_ops.reschedule_dispatch": "write_safe",
+    "service_ops.approve_request": "write_safe",
     "service_ops.update_work_order_status": "write_safe",
     "service_ops.set_sla_clock": "write_safe",
     "service_ops.hold_billing": "write_safe",

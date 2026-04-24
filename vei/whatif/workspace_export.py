@@ -400,6 +400,19 @@ def _run_call_summary(event: dict[str, str]) -> str:
             ]
             if part
         )
+    if tool == "service_ops.set_sla_clock":
+        billing_case_id = str(args.get("billing_case_id") or "billing case").strip()
+        clock_state = str(args.get("clock_state") or "").strip()
+        reason = str(args.get("reason") or "").strip()
+        return " ".join(
+            part
+            for part in [
+                f"{billing_case_id} SLA clock updated.",
+                f"State: {clock_state}." if clock_state else "",
+                reason,
+            ]
+            if part
+        )
     if tool == "service_ops.clear_exception":
         exception_id = str(args.get("exception_id") or "exception").strip()
         note = str(args.get("resolution_note") or "").strip()
@@ -431,11 +444,17 @@ def _run_channel_name(event: dict[str, str]) -> str:
     tool = event["tool"]
     if tool == "service_ops.hold_billing":
         return "#billing-ops"
+    if tool == "service_ops.set_sla_clock":
+        return "#billing-ops"
     if tool == "service_ops.clear_exception":
         return "#vip-escalations"
     if tool == "docs.update":
         return "#exec-brief"
-    if tool in {"service_ops.assign_dispatch", "servicedesk.update_request"}:
+    if tool in {
+        "service_ops.assign_dispatch",
+        "service_ops.update_work_order_status",
+        "servicedesk.update_request",
+    }:
         return "#clearwater-dispatch"
     return "#clearwater-dispatch"
 
@@ -445,8 +464,12 @@ def _run_ticket_id(event: dict[str, str]) -> str:
     tool = event["tool"]
     if tool == "service_ops.hold_billing":
         return "JRA-CFS-12"
+    if tool == "service_ops.set_sla_clock":
+        return "JRA-CFS-12"
     if tool == "service_ops.assign_dispatch":
         return "JRA-CFS-11"
+    if tool == "service_ops.update_work_order_status":
+        return "JRA-CFS-10"
     if tool == "service_ops.clear_exception":
         return "JRA-CFS-10"
     if tool == "servicedesk.update_request":

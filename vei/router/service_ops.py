@@ -54,6 +54,9 @@ class ServiceOpsSim:
             seed.get("billing_cases"), "billing_case_id"
         )
         self.exceptions = _normalize_records(seed.get("exceptions"), "exception_id")
+        self.service_requests = _normalize_records(
+            seed.get("service_requests"), "request_id"
+        )
         self.policy = {**_default_policy(), **dict(seed.get("policy") or {})}
 
     def export_state(self) -> Dict[str, Any]:
@@ -64,6 +67,7 @@ class ServiceOpsSim:
             "appointments": self.appointments,
             "billing_cases": self.billing_cases,
             "exceptions": self.exceptions,
+            "service_requests": self.service_requests,
             "policy": dict(self.policy),
         }
 
@@ -78,6 +82,9 @@ class ServiceOpsSim:
             state.get("billing_cases"), "billing_case_id"
         )
         self.exceptions = _normalize_records(state.get("exceptions"), "exception_id")
+        self.service_requests = _normalize_records(
+            state.get("service_requests"), "request_id"
+        )
         self.policy = {**_default_policy(), **dict(state.get("policy") or {})}
 
     def summary(self) -> str:
@@ -89,6 +96,11 @@ class ServiceOpsSim:
         billing_holds = sum(
             1 for payload in self.billing_cases.values() if bool(payload.get("hold"))
         )
+        pending_requests = sum(
+            1
+            for payload in self.service_requests.values()
+            if str(payload.get("status", "")).lower() in {"pending_approval", "review"}
+        )
         assigned_dispatches = sum(
             1
             for payload in self.appointments.values()
@@ -96,7 +108,8 @@ class ServiceOpsSim:
         )
         return (
             f"{len(self.work_orders)} work orders, {assigned_dispatches} assigned dispatches, "
-            f"{billing_holds} billing holds, {open_exceptions} open exceptions"
+            f"{billing_holds} billing holds, {open_exceptions} open exceptions, "
+            f"{pending_requests} pending requests"
         )
 
     def action_menu(self) -> List[Dict[str, Any]]:
@@ -104,6 +117,7 @@ class ServiceOpsSim:
             {"tool": "service_ops.list_overview", "label": "List Overview"},
             {"tool": "service_ops.assign_dispatch", "label": "Assign Dispatch"},
             {"tool": "service_ops.reschedule_dispatch", "label": "Reschedule Dispatch"},
+            {"tool": "service_ops.approve_request", "label": "Approve Request"},
             {
                 "tool": "service_ops.update_work_order_status",
                 "label": "Update Work Order Status",
@@ -122,6 +136,7 @@ class ServiceOpsSim:
             "appointments": list(self.appointments.values()),
             "billing_cases": list(self.billing_cases.values()),
             "exceptions": list(self.exceptions.values()),
+            "service_requests": list(self.service_requests.values()),
             "policy": dict(self.policy),
         }
 
@@ -393,6 +408,61 @@ class ServiceOpsSim:
             "status": str(billing_case.get("status") or ""),
         }
 
+    def approve_request(
+        self,
+        request_id: str,
+        stage: Optional[str] = None,
+        note: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        request = self._require(self.service_requests, request_id, "service request")
+        approvals = list(request.get("approvals") or [])
+        normalized_stage = str(stage or "").strip().lower()
+        matched_stage = ""
+        updated = False
+
+        for approval in approvals:
+            approval_stage = str(approval.get("stage") or "").strip().lower()
+            approval_status = str(approval.get("status") or "").strip().upper()
+            if normalized_stage and approval_stage != normalized_stage:
+                continue
+            if approval_status == "APPROVED":
+                matched_stage = approval_stage or matched_stage
+                continue
+            approval["status"] = "APPROVED"
+            matched_stage = approval_stage
+            updated = True
+            break
+
+        if not approvals:
+            approvals = [
+                {"stage": normalized_stage or "dispatch", "status": "APPROVED"}
+            ]
+            matched_stage = str(approvals[0]["stage"])
+            updated = True
+        elif not updated and normalized_stage:
+            approvals.append({"stage": normalized_stage, "status": "APPROVED"})
+            matched_stage = normalized_stage
+            updated = True
+
+        request["approvals"] = approvals
+        request["status"] = (
+            "approved"
+            if approvals
+            and all(
+                str(item.get("status") or "").upper() == "APPROVED"
+                for item in approvals
+            )
+            else "in_progress"
+        )
+        if note:
+            request["approval_note"] = note
+
+        return {
+            "request_id": request_id,
+            "status": str(request.get("status") or ""),
+            "approved_stage": matched_stage,
+        }
+
     def clear_exception(
         self,
         exception_id: str,
@@ -520,6 +590,14 @@ class ServiceOpsToolProvider(PrefixToolProvider):
                 latency_jitter_ms=60,
             ),
             ToolSpec(
+                name="service_ops.approve_request",
+                description="Approve a pending service request stage.",
+                permissions=("service_ops:write",),
+                side_effects=("service_ops_mutation",),
+                default_latency_ms=180,
+                latency_jitter_ms=40,
+            ),
+            ToolSpec(
                 name="service_ops.update_work_order_status",
                 description="Update the official service state for a work order and linked appointment.",
                 permissions=("service_ops:write",),
@@ -564,6 +642,7 @@ class ServiceOpsToolProvider(PrefixToolProvider):
             "service_ops.list_overview": self.sim.list_overview,
             "service_ops.assign_dispatch": self.sim.assign_dispatch,
             "service_ops.reschedule_dispatch": self.sim.reschedule_dispatch,
+            "service_ops.approve_request": self.sim.approve_request,
             "service_ops.update_work_order_status": self.sim.update_work_order_status,
             "service_ops.set_sla_clock": self.sim.set_sla_clock,
             "service_ops.hold_billing": self.sim.hold_billing,
