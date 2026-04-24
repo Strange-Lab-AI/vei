@@ -1841,6 +1841,7 @@ def test_branch_point_benchmark_build_writes_prebranch_dataset_and_dossiers(
     loaded = load_branch_point_benchmark_build_result(result.artifacts.root)
 
     assert list_branch_point_benchmark_models() == [
+        "heuristic_baseline",
         "jepa_latent",
         "full_context_transformer",
         "ft_transformer",

@@ -459,6 +459,63 @@ vei whatif benchmark study \
 - one Markdown overview
 - one seeded run folder per model under `studies/<label>/runs/...`
 
+### Multi-company world-model experiment
+
+The first pooled learned world-model path is `vei whatif benchmark build-multitenant`. It accepts multiple normalized company-history snapshots and builds one benchmark dataset with strict per-company time splits. The intended Enron + Dispatch shape is:
+
+- train on earlier Enron plus earlier Dispatch rows
+- validate on later but non-final rows for each company
+- test on the final tail for each company
+- generate held-out counterfactual candidates from the same final-tail decision points
+
+Candidate actions are generated from the branch event and pre-branch history only. The command writes the candidate prompt, generation model, pre-branch evidence hash, and `no_future_context=true` metadata for every generated candidate. It also writes a leakage report that checks train/heldout thread and event separation and checks that generated candidate prompts and judge dossiers do not contain recorded future-tail event markers.
+
+```bash
+vei whatif benchmark build-multitenant \
+  --input enron=/path/to/enron/context_snapshot.json \
+  --input dispatch=/path/to/dispatch/context_snapshot.json \
+  --artifacts-root _vei_out/world_model_multitenant \
+  --label enron_dispatch_world_model \
+  --candidate-mode llm \
+  --candidate-model gpt-5-mini
+
+vei whatif benchmark train \
+  --root _vei_out/world_model_multitenant/enron_dispatch_world_model \
+  --model-id full_context_transformer
+
+vei whatif benchmark judge \
+  --root _vei_out/world_model_multitenant/enron_dispatch_world_model \
+  --model gpt-4.1-mini
+
+vei whatif benchmark eval \
+  --root _vei_out/world_model_multitenant/enron_dispatch_world_model \
+  --model-id full_context_transformer \
+  --judged-rankings-path _vei_out/world_model_multitenant/enron_dispatch_world_model/judge_result.json
+
+# Optional factual comparator under the same split
+vei whatif benchmark train \
+  --root _vei_out/world_model_multitenant/enron_dispatch_world_model \
+  --model-id heuristic_baseline
+
+vei whatif benchmark eval \
+  --root _vei_out/world_model_multitenant/enron_dispatch_world_model \
+  --model-id heuristic_baseline
+```
+
+Point a Dispatch what-if at the pooled checkpoint through the existing reference backend boundary:
+
+```bash
+VEI_REFERENCE_BACKEND_CHECKPOINT=_vei_out/world_model_multitenant/enron_dispatch_world_model/model_runs/full_context_transformer/model.pt \
+  vei whatif experiment \
+    --source company_history \
+    --source-dir /path/to/dispatch/context_snapshot.json \
+    --label dispatch_reference_forecast \
+    --forecast-backend reference \
+    --counterfactual-prompt "Route the incident to an accountable owner, hold broad sends, and send one controlled status update."
+```
+
+Treat this as an offline artifact-backed experiment, not a production-proven universal CEO recommender. The strongest evidence remains factual held-out forecasting. Counterfactual rankings are decision-support signals until they are backed by human audit, expert review, or natural-experiment evidence.
+
 ### Current model state
 
 The current saved Enron public-context build uses 31 held-out cases with 4 candidate actions each across 10 case families. The fresh-clone headline path is now the shipped `full_context_transformer` reference backend under `data/enron/reference_backend/`.

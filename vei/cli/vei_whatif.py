@@ -14,6 +14,7 @@ from vei.whatif.benchmark import (
     run_branch_point_benchmark_study,
     train_branch_point_benchmark_model,
 )
+from vei.whatif.multitenant_benchmark import build_multitenant_world_model_benchmark
 from vei.whatif.research import get_research_pack, run_research_pack
 
 from .whatif_benchmark import register_benchmark_commands
@@ -48,6 +49,7 @@ __all__ = [
     "app",
     "benchmark_app",
     "build_branch_point_benchmark",
+    "build_multitenant_world_model_benchmark",
     "evaluate_branch_point_benchmark_model",
     "get_research_pack",
     "judge_branch_point_benchmark",
