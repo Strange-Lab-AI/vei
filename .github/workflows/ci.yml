@@ -26,16 +26,27 @@ jobs:
       - name: Setup
         run: make setup-full
 
-      - name: Check
+      - name: Check pull request
+        if: github.event_name == 'pull_request'
+        run: make check
+
+      - name: Check full
+        if: github.event_name != 'pull_request'
         run: make check-full
 
       - name: Git Dependency Smoke
         run: bash ./tools/git_dependency_smoke.sh "$GITHUB_WORKSPACE"
 
-      - name: Test
+      - name: Test pull request
+        if: github.event_name == 'pull_request'
+        run: make test
+
+      - name: Test full
+        if: github.event_name != 'pull_request'
         run: make test-full
 
       - name: LLM Live
+        if: github.event_name != 'pull_request'
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
@@ -46,4 +57,5 @@ jobs:
           fi
 
       - name: Dependency Audit
+        if: github.event_name != 'pull_request'
         run: make deps-audit
