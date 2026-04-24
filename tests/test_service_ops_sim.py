@@ -279,6 +279,103 @@ class TestHoldBilling:
         assert result["hold"] is False
 
 
+class TestOfficialStateUpdates:
+    def test_update_work_order_status_updates_linked_appointment(self):
+        sim = _sim()
+        result = sim.update_work_order_status(
+            "WO1", "monitoring", note="Customer service restored pending observation"
+        )
+
+        assert result == {
+            "work_order_id": "WO1",
+            "status": "monitoring",
+            "appointment_id": "APT1",
+            "appointment_status": "monitoring",
+        }
+        assert sim.work_orders["WO1"]["status"] == "monitoring"
+        assert sim.work_orders["WO1"]["status_note"] == (
+            "Customer service restored pending observation"
+        )
+        assert sim.work_orders["WO1"]["history"][-1]["previous_status"] == (
+            "pending_dispatch"
+        )
+        assert sim.appointments["APT1"]["status"] == "monitoring"
+        assert sim.appointments["APT1"]["history"][-1]["work_order_id"] == "WO1"
+
+    def test_update_work_order_status_allows_distinct_appointment_status(self):
+        sim = _sim()
+        sim.update_work_order_status(
+            "WO1",
+            "closed",
+            appointment_status="completed",
+        )
+
+        assert sim.work_orders["WO1"]["status"] == "closed"
+        assert sim.appointments["APT1"]["status"] == "completed"
+
+    def test_update_work_order_status_rejects_blank_status(self):
+        sim = _sim()
+        _expect_mcp(
+            "service_ops.invalid_status",
+            sim.update_work_order_status,
+            "WO1",
+            "",
+        )
+
+    def test_set_sla_clock_pauses_with_written_reason(self):
+        sim = _sim()
+        result = sim.set_sla_clock(
+            "B1",
+            "paused",
+            reason="Waiting on customer access confirmation",
+            note="Review again at 14:00",
+        )
+
+        assert result == {
+            "billing_case_id": "B1",
+            "sla_clock_state": "paused",
+            "reason": "Waiting on customer access confirmation",
+            "status": "sla_paused",
+        }
+        assert sim.billing_cases["B1"]["status"] == "sla_paused"
+        assert sim.billing_cases["B1"]["sla_clock_note"] == "Review again at 14:00"
+        assert sim.billing_cases["B1"]["history"][-1]["reason"] == (
+            "Waiting on customer access confirmation"
+        )
+
+    def test_set_sla_clock_resumes_case_as_active(self):
+        sim = _sim()
+        sim.set_sla_clock("B1", "paused", reason="Customer access pending")
+        result = sim.set_sla_clock("B1", "running", reason="Access confirmed")
+
+        assert result["sla_clock_state"] == "running"
+        assert result["status"] == "active"
+        assert (
+            sim.billing_cases["B1"]["history"][-1]["previous_sla_clock_state"]
+            == "paused"
+        )
+
+    def test_set_sla_clock_rejects_invalid_state(self):
+        sim = _sim()
+        _expect_mcp(
+            "service_ops.invalid_clock_state",
+            sim.set_sla_clock,
+            "B1",
+            "stopped",
+            reason="invalid state",
+        )
+
+    def test_set_sla_clock_requires_reason(self):
+        sim = _sim()
+        _expect_mcp(
+            "service_ops.missing_reason",
+            sim.set_sla_clock,
+            "B1",
+            "paused",
+            reason="",
+        )
+
+
 class TestExceptionResolution:
     def test_dispatch_mitigates_only_dispatch_exceptions(self):
         """assign_dispatch should mitigate technician_unavailable and sla_risk but not billing_dispute_open."""
@@ -338,6 +435,8 @@ class TestActionMenu:
             "service_ops.list_overview",
             "service_ops.assign_dispatch",
             "service_ops.reschedule_dispatch",
+            "service_ops.update_work_order_status",
+            "service_ops.set_sla_clock",
             "service_ops.hold_billing",
             "service_ops.clear_exception",
             "service_ops.update_policy",

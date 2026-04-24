@@ -31,6 +31,14 @@ def _default_policy() -> Dict[str, Any]:
     }
 
 
+def _append_history(record: Dict[str, Any], event: Dict[str, Any]) -> None:
+    history = record.get("history")
+    if not isinstance(history, list):
+        history = []
+        record["history"] = history
+    history.append({key: value for key, value in event.items() if value is not None})
+
+
 class ServiceOpsSim:
     """Deterministic field-service operations twin for dispatch and billing demos."""
 
@@ -96,6 +104,11 @@ class ServiceOpsSim:
             {"tool": "service_ops.list_overview", "label": "List Overview"},
             {"tool": "service_ops.assign_dispatch", "label": "Assign Dispatch"},
             {"tool": "service_ops.reschedule_dispatch", "label": "Reschedule Dispatch"},
+            {
+                "tool": "service_ops.update_work_order_status",
+                "label": "Update Work Order Status",
+            },
+            {"tool": "service_ops.set_sla_clock", "label": "Set SLA Clock"},
             {"tool": "service_ops.hold_billing", "label": "Hold Billing"},
             {"tool": "service_ops.clear_exception", "label": "Clear Exception"},
             {"tool": "service_ops.update_policy", "label": "Update Policy"},
@@ -269,6 +282,117 @@ class ServiceOpsSim:
             "status": str(billing_case.get("status", "")),
         }
 
+    def update_work_order_status(
+        self,
+        work_order_id: str,
+        status: str,
+        note: Optional[str] = None,
+        appointment_status: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        work_order = self._require(self.work_orders, work_order_id, "work order")
+        normalized_status = str(status or "").strip()
+        if not normalized_status:
+            raise MCPError(
+                "service_ops.invalid_status",
+                "Work order status cannot be blank",
+            )
+
+        previous_status = str(work_order.get("status") or "")
+        work_order["status"] = normalized_status
+        if note:
+            work_order["status_note"] = note
+        _append_history(
+            work_order,
+            {
+                "status": normalized_status,
+                "previous_status": previous_status,
+                "note": note,
+            },
+        )
+
+        appointment_id = str(work_order.get("appointment_id") or "")
+        resolved_appointment_status = ""
+        if appointment_id and appointment_id in self.appointments:
+            appointment = self.appointments[appointment_id]
+            resolved_appointment_status = (
+                str(appointment_status).strip()
+                if appointment_status is not None
+                else normalized_status
+            )
+            if not resolved_appointment_status:
+                raise MCPError(
+                    "service_ops.invalid_status",
+                    "Appointment status cannot be blank",
+                )
+            previous_appointment_status = str(appointment.get("status") or "")
+            appointment["status"] = resolved_appointment_status
+            if note:
+                appointment["status_note"] = note
+            _append_history(
+                appointment,
+                {
+                    "status": resolved_appointment_status,
+                    "previous_status": previous_appointment_status,
+                    "note": note,
+                    "work_order_id": work_order_id,
+                },
+            )
+
+        return {
+            "work_order_id": work_order_id,
+            "status": str(work_order.get("status") or ""),
+            "appointment_id": appointment_id,
+            "appointment_status": resolved_appointment_status,
+        }
+
+    def set_sla_clock(
+        self,
+        billing_case_id: str,
+        clock_state: str,
+        reason: str,
+        note: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        billing_case = self._require(
+            self.billing_cases, billing_case_id, "billing case"
+        )
+        normalized_state = str(clock_state or "").strip().lower()
+        if normalized_state not in {"running", "paused"}:
+            raise MCPError(
+                "service_ops.invalid_clock_state",
+                "SLA clock state must be running or paused",
+            )
+        normalized_reason = str(reason or "").strip()
+        if not normalized_reason:
+            raise MCPError(
+                "service_ops.missing_reason",
+                "SLA clock updates require a written reason",
+            )
+
+        previous_state = str(billing_case.get("sla_clock_state") or "")
+        billing_case["sla_clock_state"] = normalized_state
+        billing_case["sla_clock_reason"] = normalized_reason
+        if note:
+            billing_case["sla_clock_note"] = note
+        billing_case["status"] = (
+            "active" if normalized_state == "running" else "sla_paused"
+        )
+        _append_history(
+            billing_case,
+            {
+                "sla_clock_state": normalized_state,
+                "previous_sla_clock_state": previous_state,
+                "reason": normalized_reason,
+                "note": note,
+            },
+        )
+
+        return {
+            "billing_case_id": billing_case_id,
+            "sla_clock_state": str(billing_case.get("sla_clock_state") or ""),
+            "reason": str(billing_case.get("sla_clock_reason") or ""),
+            "status": str(billing_case.get("status") or ""),
+        }
+
     def clear_exception(
         self,
         exception_id: str,
@@ -396,6 +520,22 @@ class ServiceOpsToolProvider(PrefixToolProvider):
                 latency_jitter_ms=60,
             ),
             ToolSpec(
+                name="service_ops.update_work_order_status",
+                description="Update the official service state for a work order and linked appointment.",
+                permissions=("service_ops:write",),
+                side_effects=("service_ops_mutation",),
+                default_latency_ms=190,
+                latency_jitter_ms=40,
+            ),
+            ToolSpec(
+                name="service_ops.set_sla_clock",
+                description="Set the official SLA clock state and written reason for a billing case.",
+                permissions=("service_ops:write",),
+                side_effects=("service_ops_mutation",),
+                default_latency_ms=190,
+                latency_jitter_ms=40,
+            ),
+            ToolSpec(
                 name="service_ops.hold_billing",
                 description="Place or release a billing hold for a disputed customer case.",
                 permissions=("service_ops:write",),
@@ -424,6 +564,8 @@ class ServiceOpsToolProvider(PrefixToolProvider):
             "service_ops.list_overview": self.sim.list_overview,
             "service_ops.assign_dispatch": self.sim.assign_dispatch,
             "service_ops.reschedule_dispatch": self.sim.reschedule_dispatch,
+            "service_ops.update_work_order_status": self.sim.update_work_order_status,
+            "service_ops.set_sla_clock": self.sim.set_sla_clock,
             "service_ops.hold_billing": self.sim.hold_billing,
             "service_ops.clear_exception": self.sim.clear_exception,
             "service_ops.update_policy": self.sim.update_policy,

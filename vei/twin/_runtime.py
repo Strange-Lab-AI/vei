@@ -96,7 +96,7 @@ class TwinRuntime:
         self.contract_path = self.run_dir / "workspace_contract_evaluation.json"
         self.state_dir = self.run_dir / "state"
         self.artifacts_dir = self.run_dir / "artifacts"
-        self.seed = 42042
+        self.seed = int(bundle.metadata.get("experiment_seed") or 42042)
         self.started_at = _iso_now()
         self._lock = threading.RLock()
         self._pending_mirror_lock = threading.Lock()
