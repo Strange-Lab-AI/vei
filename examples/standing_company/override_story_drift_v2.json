@@ -502,7 +502,6 @@
       "title": "Baseline",
       "description": "Baseline v2 run with fragmented early evidence, local pressure to externalize the instability, and a later override audit that settles the cause.",
       "scenario_enabled": true,
-      "guardrail_enabled": false,
       "rounds": 10
     }
   ],

@@ -543,7 +543,6 @@
       "title": "Baseline",
       "description": "Baseline v2 run with fragmented early evidence, local incentives to keep the line simple, and a later roster reconciliation.",
       "scenario_enabled": true,
-      "guardrail_enabled": false,
       "rounds": 10
     }
   ],

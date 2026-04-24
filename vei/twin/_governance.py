@@ -141,26 +141,6 @@ def check_policy_profile(
     }
 
 
-def check_event_guardrail(
-    *,
-    event: GovernorIngestEvent,
-    operation_class: str,
-    approval_granted: bool,
-) -> dict[str, str] | None:
-    if approval_granted or operation_class == "read":
-        return None
-    guardrail = dict(event.payload.get("guardrail") or {})
-    if not guardrail.get("require_approval"):
-        return None
-    return {
-        "decision": "approval_required",
-        "code": str(guardrail.get("code") or "mirror.approval_required"),
-        "reason": str(
-            guardrail.get("reason") or "guardrail requires approval before this write"
-        ),
-    }
-
-
 def check_approval_rules(
     *,
     config: GovernorWorkspaceConfig,

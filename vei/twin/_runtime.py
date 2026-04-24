@@ -58,7 +58,6 @@ from ._gateway_routes import register_gateway_routes
 from ._governance import (
     check_approval_rules as _check_approval_rules,
     check_connector_safety as _check_connector_safety,
-    check_event_guardrail as _check_event_guardrail,
     check_policy_profile as _check_policy_profile,
     check_surface_access as _check_surface_access,
     connector_statuses as _connector_statuses,
@@ -290,7 +289,6 @@ class TwinRuntime:
         args: dict[str, Any],
         focus_hint: str,
         agent: ExternalAgentIdentity,
-        payload: dict[str, Any] | None = None,
     ) -> Any:
         if self.mirror is None:
             raise MCPError("mirror.unavailable", "governor runtime unavailable")
@@ -310,7 +308,6 @@ class TwinRuntime:
             resolved_tool=resolved_tool,
             focus_hint=focus_hint,
             args=dict(args),
-            payload=dict(payload or {}),
             label=external_tool,
             source_mode="proxy",
         )
@@ -771,22 +768,6 @@ class TwinRuntime:
                 reason=profile_decision["reason"],
             )
 
-        guardrail_decision = self._check_event_guardrail(
-            event=event,
-            operation_class=operation_class,
-            approval_granted=approval_granted,
-        )
-        if guardrail_decision is not None:
-            return GovernorActionPlan(
-                action=action,
-                surface=surface,
-                resolved_tool=tool_name,
-                operation_class=operation_class,
-                decision=guardrail_decision["decision"],
-                reason_code=guardrail_decision["code"],
-                reason=guardrail_decision["reason"],
-            )
-
         approval_rule_decision = self._check_approval_rules(
             tool_name=tool_name,
             surface=surface,
@@ -902,19 +883,6 @@ class TwinRuntime:
             connector_mode=self.mirror_config.connector_mode,
             tool_name=tool_name,
             surface=surface,
-            operation_class=operation_class,
-            approval_granted=approval_granted,
-        )
-
-    def _check_event_guardrail(
-        self,
-        *,
-        event: GovernorIngestEvent,
-        operation_class: str,
-        approval_granted: bool,
-    ) -> dict[str, str] | None:
-        return _check_event_guardrail(
-            event=event,
             operation_class=operation_class,
             approval_granted=approval_granted,
         )

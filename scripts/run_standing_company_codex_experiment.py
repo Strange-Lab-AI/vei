@@ -132,34 +132,11 @@ class CanonicalCauseRecordConfig(BaseModel):
     )
 
 
-class GuardrailConfig(BaseModel):
-    gated_audiences: list[Audience] = Field(
-        default_factory=lambda: ["leadership", "external"]
-    )
-    gated_tools: list[str] = Field(
-        default_factory=lambda: [
-            "mail.compose",
-            "mail.reply",
-            "docs.create",
-            "docs.update",
-            "tickets.add_comment",
-        ]
-    )
-    source_required: bool = True
-    approver_agent_id: str = "legal-counsel"
-    under_review_terms: list[str] = Field(default_factory=lambda: ["under review"])
-    ticket_audiences: dict[str, Audience] = Field(default_factory=dict)
-    approval_reason: str = (
-        "Incident-related outward explanation requires legal review before it is sent."
-    )
-
-
 class BranchConfig(BaseModel):
     name: str
     title: str
     description: str
     scenario_enabled: bool = True
-    guardrail_enabled: bool = False
     prompt_addendum: str | None = None
     rounds: int | None = None
     role_overrides: dict[str, RoleOverride] = Field(default_factory=dict)
@@ -185,7 +162,6 @@ class ExperimentConfig(BaseModel):
     default_rounds: int = 2
     round_tick_ms: int = 120000
     canonical_cause_record: CanonicalCauseRecordConfig | None = None
-    guardrail: GuardrailConfig | None = None
     truth_atoms: list[TruthAtom] = Field(default_factory=list)
     roles: list[RoleConfig] = Field(default_factory=list)
     turn_schedule: list[str] = Field(default_factory=list)
@@ -466,7 +442,6 @@ class BranchResult(BaseModel):
     agent_actions: int = 0
     runtime_run_id: str
     run_dir: str
-    guardrail_enabled: bool = False
     transcript: list[ActionRecord] = Field(default_factory=list)
     artifacts: list[ArtifactRecord] = Field(default_factory=list)
     truth_signals: TruthSignalSummary = Field(default_factory=TruthSignalSummary)
@@ -995,7 +970,6 @@ def run_branch(
             agent_actions=len(transcript),
             runtime_run_id=runtime.run_id,
             run_dir=str(runtime.run_dir),
-            guardrail_enabled=branch.guardrail_enabled,
             transcript=transcript,
             artifacts=artifacts,
             truth_signals=truth_signals,
@@ -1639,14 +1613,6 @@ def execute_action(
                 team=role.team,
                 source="standing-company-codex",
             ),
-            payload=build_guardrail_payload(
-                runtime=runtime,
-                config=config,
-                branch=branch,
-                role=role,
-                tool_name=tool.tool_name,
-                tool_args=tool_args,
-            ),
         )
         normalized_result = normalize_payload(result)
         if tool.tool_name in {"docs.list", "docs.search"}:
@@ -1741,87 +1707,6 @@ def execute_action(
 def tool_specs_for_role(role: RoleConfig) -> list[ToolSpec]:
     allowed = set(role.allowed_surfaces)
     return [tool for tool in TOOL_CATALOG if tool.surface in allowed]
-
-
-def build_guardrail_payload(
-    *,
-    runtime: TwinRuntime,
-    config: ExperimentConfig,
-    branch: BranchConfig,
-    role: RoleConfig,
-    tool_name: str,
-    tool_args: dict[str, Any],
-) -> dict[str, Any]:
-    guardrail = active_guardrail(config=config, branch=branch)
-    if guardrail is None:
-        return {}
-    if role.agent_id == guardrail.approver_agent_id:
-        return {}
-    if tool_name not in guardrail.gated_tools:
-        return {}
-    audience = audience_for_action(
-        runtime=runtime,
-        config=config,
-        tool_name=tool_name,
-        tool_args=tool_args,
-    )
-    if audience not in guardrail.gated_audiences:
-        return {}
-    return {
-        "guardrail": {
-            "require_approval": True,
-            "code": "mirror.approval_required",
-            "reason": guardrail.approval_reason,
-            "audience": audience,
-            "target_causal_question": config.target_causal_question,
-            "canonical_cause_record_title": (
-                config.canonical_cause_record.title
-                if config.canonical_cause_record is not None
-                else ""
-            ),
-        }
-    }
-
-
-def active_guardrail(
-    *,
-    config: ExperimentConfig,
-    branch: BranchConfig,
-) -> GuardrailConfig | None:
-    if not branch.guardrail_enabled:
-        return None
-    return config.guardrail
-
-
-def approver_agent_id(config: ExperimentConfig) -> str:
-    if config.guardrail is not None and config.guardrail.approver_agent_id:
-        return config.guardrail.approver_agent_id
-    return "legal-counsel"
-
-
-def audience_for_action(
-    *,
-    runtime: TwinRuntime,
-    config: ExperimentConfig,
-    tool_name: str,
-    tool_args: dict[str, Any],
-) -> Audience:
-    if tool_name == "slack.send_message":
-        return audience_for_slack(str(tool_args.get("channel") or ""))
-    if tool_name in {"mail.compose", "mail.reply"}:
-        return audience_for_mail(
-            resolve_mail_recipient(
-                runtime=runtime, tool_name=tool_name, tool_args=tool_args
-            )
-        )
-    if tool_name in {"docs.create", "docs.update"}:
-        return audience_for_doc(
-            resolve_doc_title(runtime=runtime, tool_name=tool_name, tool_args=tool_args)
-        )
-    if tool_name in {"tickets.add_comment", "tickets.update"}:
-        ticket_id = str(tool_args.get("ticket_id") or "")
-        return audience_for_ticket(ticket_id=ticket_id, config=config)
-    return "internal"
 
 
 def resolve_mail_recipient(
@@ -2273,11 +2158,6 @@ def build_agent_prompt(
             "Prefer a concrete next move that changes the live company state or the current working record."
         )
     approval_rule = ""
-    if pending_approvals and role.agent_id == approver_agent_id(config):
-        approval_rule = (
-            "A held outward update is waiting for review. "
-            "If the record is sufficient, resolve the pending approval before starting a new outward write."
-        )
     protected_docs = protected_document_titles(config=config, doc_aliases=doc_aliases)
     evidence_rule = ""
     if protected_docs:
@@ -2988,11 +2868,7 @@ def analyze_branch(
         if config.canonical_cause_record is not None
         else ""
     )
-    under_review_terms = (
-        config.guardrail.under_review_terms
-        if config.guardrail is not None
-        else ["under review"]
-    )
+    under_review_terms = ["under review"]
     proxy_by_agent: Counter[str] = Counter()
     cautious_by_agent: Counter[str] = Counter()
     causal_truth_by_agent: Counter[str] = Counter()
@@ -3381,11 +3257,7 @@ def score_truth_signals(
     citation_terms = canonical_citation_terms(config=config, doc_aliases=doc_aliases)
     causal_terms = causal_truth_terms(truth_atoms)
     source_terms = sorted(set(source_reference_terms(truth_atoms) + citation_terms))
-    under_review_terms = (
-        config.guardrail.under_review_terms
-        if config.guardrail is not None
-        else ["under review"]
-    )
+    under_review_terms = ["under review"]
     canonical_doc_id = canonical_cause_doc_id(config=config, doc_aliases=doc_aliases)
     canonical_title = (
         config.canonical_cause_record.title.lower()
@@ -3935,12 +3807,7 @@ def render_report(
         (item for item in branch_results if item.branch_name == "baseline"), None
     )
     evidence_gate = next(
-        (
-            item
-            for item in branch_results
-            if item.guardrail_enabled
-            or item.branch_name in {"guardrail", "evidence_gate"}
-        ),
+        (item for item in branch_results if item.branch_name == "evidence_gate"),
         None,
     )
     negative_control = next(
@@ -4040,9 +3907,7 @@ def audience_for_doc(title: str) -> Audience:
 
 
 def audience_for_ticket(*, ticket_id: str, config: ExperimentConfig) -> Audience:
-    guardrail = config.guardrail
-    if guardrail is not None and ticket_id in guardrail.ticket_audiences:
-        return guardrail.ticket_audiences[ticket_id]
+    del config
     return "internal"
 
 

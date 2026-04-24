@@ -620,7 +620,6 @@
       "title": "Baseline",
       "description": "Baseline v2 run with local pressure to narrow the official state and later threshold records that settle whether the pause story was supportable.",
       "scenario_enabled": true,
-      "guardrail_enabled": false,
       "rounds": 10
     },
     {
@@ -628,7 +627,6 @@
       "title": "Negative Control",
       "description": "Matched-control run with the same world and evidence timing, but neutral role goals, neutral queue wording, and neutral leadership prompts.",
       "scenario_enabled": true,
-      "guardrail_enabled": false,
       "rounds": 10,
       "role_overrides": {
         "ops-lead": {
