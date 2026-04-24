@@ -20,7 +20,12 @@ from vei.orchestrators.api import (
     OrchestratorTask,
 )
 from vei.run.api import build_run_timeline
-from vei.twin import build_customer_twin, create_twin_gateway_app, load_customer_twin
+from vei.twin import (
+    TWIN_MANIFEST_FILE,
+    build_customer_twin,
+    create_twin_gateway_app,
+    load_customer_twin,
+)
 from vei.twin.models import ContextMoldConfig
 from vei.ui.api import create_ui_app
 from vei.workforce.api import WorkforceCommandRecord, build_workforce_state
@@ -136,6 +141,25 @@ def test_build_customer_twin_creates_workspace_and_preserves_external_context(
     }
     assert "support@acme.ai" in addresses
     assert "jordan.blake@apexfinancial.example.com" in addresses
+
+
+def test_gateway_runtime_uses_bundle_experiment_seed(tmp_path: Path) -> None:
+    root = tmp_path / "seeded_customer_twin"
+    bundle = build_customer_twin(
+        root,
+        snapshot=_sample_snapshot(),
+        organization_domain="clearwater.example.com",
+        mold=ContextMoldConfig(archetype="service_ops"),
+    )
+    bundle.metadata["experiment_seed"] = 8675309
+    (root / TWIN_MANIFEST_FILE).write_text(
+        bundle.model_dump_json(indent=2),
+        encoding="utf-8",
+    )
+
+    app = create_twin_gateway_app(root)
+
+    assert app.state.runtime.seed == 8675309
 
 
 def test_build_customer_twin_normalizes_snapshot_identity_to_bundle_identity(
