@@ -419,6 +419,25 @@ vei whatif benchmark eval \
 
 The builder writes a leakage report and a data provenance report beside the dataset. Generated private company artifacts stay under `_vei_out/` and are not committed.
 
+Run a repeatable critical-decision counterfactual pass against a trained checkpoint:
+
+```bash
+vei whatif benchmark critical-decisions \
+  --input enron=_vei_out/enron/context_snapshot.json \
+  --input dispatch=_vei_out/dispatch/context_snapshot.json \
+  --input newco=_vei_out/newco/context_snapshot.json \
+  --source-build-root _vei_out/world_model_multitenant_jepa/enron_dispatch_newco \
+  --checkpoint _vei_out/world_model_multitenant_jepa/enron_dispatch_newco/model_runs/jepa_latent/model.pt \
+  --artifacts-root _vei_out/world_model_critical_decisions \
+  --label enron_dispatch_newco_critical \
+  --cases-per-tenant 4 \
+  --candidates-per-decision 10 \
+  --candidate-mode llm \
+  --candidate-model gpt-5-mini
+```
+
+That command is the reproducible CEO-decision workflow: select high-criticality branch points from branch plus pre-branch signals only, generate 8-12 concrete candidate actions per decision, save prompts/responses/evidence hashes, check future-tail leakage, score every candidate with the JEPA checkpoint, and export both CSV and Markdown ranking tables.
+
 ## Repo Checks
 
 ```bash

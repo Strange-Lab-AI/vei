@@ -605,8 +605,11 @@ def run_llm_judge_prompt(
     request: Dict[str, Any] = {
         "model": model,
         "messages": [{"role": "user", "content": prompt}],
-        "max_tokens": max_tokens,
     }
+    if model.startswith("gpt-5"):
+        request["max_completion_tokens"] = max_tokens
+    else:
+        request["max_tokens"] = max_tokens
     if response_format is not None:
         request["response_format"] = response_format
     if temperature is not None:
