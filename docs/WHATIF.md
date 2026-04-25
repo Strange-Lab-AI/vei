@@ -516,6 +516,34 @@ VEI_REFERENCE_BACKEND_CHECKPOINT=_vei_out/world_model_multitenant/enron_dispatch
 
 Treat this as an offline artifact-backed experiment, not a production-proven universal CEO recommender. The strongest evidence remains factual held-out forecasting. Counterfactual rankings are decision-support signals until they are backed by human audit, expert review, or natural-experiment evidence.
 
+### Critical-decision counterfactual runs
+
+`vei whatif benchmark critical-decisions` applies the trained pooled checkpoint to the kind of decision grid a CEO or manager can inspect. It is deliberately separate from training:
+
+- select critical branch points with deterministic pre-branch-only scoring
+- optionally restrict the pool to an existing benchmark's `test` and `heldout` split
+- generate 8-12 concrete counterfactual actions per decision
+- save the candidate prompt, raw response, candidate type, generation model, and pre-branch evidence hash
+- check that prompts, generated candidate text, and judge dossiers do not contain future-tail markers
+- score the candidates through the normal JEPA benchmark boundary
+- write `critical_decision_scores.csv` and `critical_decision_scores.md`
+
+```bash
+vei whatif benchmark critical-decisions \
+  --input dispatch=/path/to/dispatch/context_snapshot.json \
+  --input powrofyou=/path/to/powrofyou/context_snapshot.json \
+  --source-build-root _vei_out/world_model_multitenant_jepa/enron_dispatch_powrofyou \
+  --checkpoint _vei_out/world_model_multitenant_jepa/enron_dispatch_powrofyou/model_runs/jepa_latent/model.pt \
+  --artifacts-root _vei_out/world_model_critical_decisions \
+  --label dispatch_powrofyou_critical \
+  --cases-per-tenant 4 \
+  --candidates-per-decision 10 \
+  --candidate-mode llm \
+  --candidate-model gpt-5-mini
+```
+
+The selection score is not a learned outcome label and does not use the future tail. It is a repeatable way to choose promising decision points from branch-time evidence: external scope, risk/governance terms, customer or commercial terms, product/delivery terms, coordination complexity, urgency/escalation, conflict/delay, and evidence pressure. JEPA then scores candidate actions from the pre-branch state.
+
 ### Current model state
 
 The current saved Enron public-context build uses 31 held-out cases with 4 candidate actions each across 10 case families. The fresh-clone headline path is now the shipped `full_context_transformer` reference backend under `data/enron/reference_backend/`.

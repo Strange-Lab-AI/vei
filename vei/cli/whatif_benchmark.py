@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from importlib import import_module
 from pathlib import Path
 from typing import cast
@@ -10,6 +11,10 @@ from vei.context.api import build_canonical_history_readiness
 from vei.whatif.api import load_world
 from vei.whatif.benchmark import (
     list_branch_point_benchmark_models,
+)
+from vei.whatif.critical_decision_benchmark import (
+    CriticalCandidateGenerationMode,
+    run_critical_decision_benchmark,
 )
 from vei.whatif.multitenant_benchmark import (
     CandidateGenerationMode,
@@ -87,6 +92,15 @@ def _resolve_candidate_generation_mode(mode: str) -> CandidateGenerationMode:
     normalized = mode.strip().lower()
     if normalized in {"llm", "template"}:
         return cast(CandidateGenerationMode, normalized)
+    raise typer.BadParameter("candidate-mode must be one of: llm, template")
+
+
+def _resolve_critical_candidate_generation_mode(
+    mode: str,
+) -> CriticalCandidateGenerationMode:
+    normalized = mode.strip().lower()
+    if normalized in {"llm", "template"}:
+        return cast(CriticalCandidateGenerationMode, normalized)
     raise typer.BadParameter("candidate-mode must be one of: llm, template")
 
 
@@ -214,6 +228,123 @@ def register_benchmark_commands(benchmark_app: typer.Typer) -> None:
             else result.model_dump(mode="json")
         )
         emit_payload(payload, format=format)
+
+    @benchmark_app.command("critical-decisions")
+    def critical_decisions_command(
+        source_input: list[str] = typer.Option(
+            ...,
+            "--input",
+            help="Tenant context snapshot in tenant_id=/path/to/context_snapshot.json form. Repeat for each tenant.",
+        ),
+        checkpoint: Path | None = typer.Option(
+            None,
+            "--checkpoint",
+            help=(
+                "Learned JEPA checkpoint used to score candidates. Defaults to "
+                "VEI_REFERENCE_BACKEND_CHECKPOINT when set."
+            ),
+        ),
+        source_build_root: Path | None = typer.Option(
+            None,
+            "--source-build-root",
+            help=(
+                "Optional pooled benchmark root. When set, candidate decisions "
+                "are selected only from that build's test/heldout branch ids."
+            ),
+        ),
+        artifacts_root: Path = typer.Option(
+            Path("_vei_out/world_model_critical_decisions"),
+            help="Directory where critical-decision artifacts are written",
+        ),
+        label: str = typer.Option(
+            "critical_decision_counterfactuals",
+            help="Human-friendly label for this run",
+        ),
+        cases_per_tenant: int = typer.Option(
+            4,
+            min=1,
+            help="Critical decision points selected for each tenant",
+        ),
+        candidates_per_decision: int = typer.Option(
+            10,
+            min=8,
+            max=12,
+            help="Concrete counterfactual actions generated per decision",
+        ),
+        candidate_mode: str = typer.Option(
+            "llm",
+            help="Candidate generation mode: llm | template",
+        ),
+        candidate_model: str = typer.Option(
+            "gpt-5-mini",
+            help="Locked model used to generate concrete candidate actions when candidate-mode=llm",
+        ),
+        model_id: str | None = typer.Option(
+            None,
+            help="Model id for the checkpoint. Defaults to the checkpoint parent directory name.",
+        ),
+        future_horizon_events: int = typer.Option(
+            8,
+            help="Post-branch events used for the factual context row attached to each decision",
+        ),
+        max_branch_rows_per_thread: int = typer.Option(
+            32,
+            min=1,
+            help="Maximum branch rows sampled from one long thread before criticality selection",
+        ),
+        device: str | None = typer.Option(None, help="Optional device override"),
+        runtime_root: Path | None = typer.Option(
+            None,
+            help="Optional JEPA runtime root with torch installed",
+        ),
+        format: str = typer.Option("json", help="Output format: json | markdown"),
+    ) -> None:
+        """Select key decision points, generate concrete counterfactuals, and score them with JEPA."""
+
+        checkpoint_path = checkpoint
+        if checkpoint_path is None:
+            raw_checkpoint = os.environ.get("VEI_REFERENCE_BACKEND_CHECKPOINT", "")
+            if raw_checkpoint:
+                checkpoint_path = Path(raw_checkpoint)
+        if checkpoint_path is None:
+            raise typer.BadParameter(
+                "--checkpoint is required unless VEI_REFERENCE_BACKEND_CHECKPOINT is set"
+            )
+        sources = _parse_multitenant_inputs(source_input)
+        resolved_model_id = (
+            _resolve_benchmark_model_id(model_id) if model_id is not None else None
+        )
+        result = run_critical_decision_benchmark(
+            sources,
+            checkpoint_path=checkpoint_path,
+            artifacts_root=artifacts_root,
+            label=label,
+            source_build_root=source_build_root,
+            cases_per_tenant=cases_per_tenant,
+            candidates_per_decision=candidates_per_decision,
+            candidate_generation_mode=_resolve_critical_candidate_generation_mode(
+                candidate_mode
+            ),
+            candidate_model=candidate_model,
+            model_id=resolved_model_id,
+            future_horizon_events=future_horizon_events,
+            max_branch_rows_per_thread=max_branch_rows_per_thread,
+            device=device,
+            runtime_root=runtime_root,
+        )
+        if format == "markdown":
+            lines = [
+                "# Critical Decision Counterfactual Run",
+                "",
+                f"- Selected decisions: `{result.selected_decision_count}`",
+                f"- Candidates: `{result.candidate_count}`",
+                f"- CSV: `{result.artifacts.csv_path}`",
+                f"- Markdown: `{result.artifacts.markdown_path}`",
+                f"- Leakage report: `{result.artifacts.leakage_report_path}`",
+            ]
+            emit_payload("\n".join(lines), format=format)
+            return
+        emit_payload(result.model_dump(mode="json"), format=format)
 
     @benchmark_app.command("train")
     def train_benchmark_command(
