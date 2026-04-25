@@ -30,6 +30,7 @@ from vei.whatif.models import (
     WhatIfCounterfactualObjectiveEvaluation,
     WhatIfObservedForecastMetrics,
     WhatIfObservedEvidenceHeads,
+    WhatIfFutureStateHeads,
 )
 
 _RANDOM_SEED = 42042
@@ -94,6 +95,14 @@ _OBJECTIVE_TARGET_NAMES = (
     "preserve_stakeholder_trust",
     "maintain_execution_velocity",
 )
+_FUTURE_STATE_TARGET_NAMES = (
+    "regulatory_exposure",
+    "accounting_control_pressure",
+    "liquidity_stress",
+    "governance_response",
+    "evidence_control",
+    "external_confidence_pressure",
+)
 _PHASE_VALUES = ("history", "branch", "generated", "historical_future")
 _SEQUENCE_TOKEN_LIMIT = 12
 _SEQUENCE_NUMERIC_WIDTH = 12
@@ -118,6 +127,7 @@ class _RowEncoding:
     regression_target: np.ndarray | None
     business_target: np.ndarray | None
     objective_target: np.ndarray | None
+    future_state_target: np.ndarray | None
     row: WhatIfBenchmarkDatasetRow
 
 
@@ -131,6 +141,7 @@ class _BatchTensors:
     target_regression: Any | None = None
     target_business: Any | None = None
     target_objective: Any | None = None
+    target_future_state: Any | None = None
 
 
 @dataclass(frozen=True)
@@ -139,6 +150,7 @@ class _PredictionBatch:
     regression_values: np.ndarray
     business_values: np.ndarray | None = None
     objective_values: np.ndarray | None = None
+    future_state_values: np.ndarray | None = None
 
 
 @dataclass(frozen=True)
@@ -147,6 +159,7 @@ class _RowPrediction:
     regression_values: np.ndarray
     business_values: np.ndarray | None = None
     objective_values: np.ndarray | None = None
+    future_state_values: np.ndarray | None = None
 
 
 def main() -> int:
@@ -251,6 +264,7 @@ def _train_from_request(path: Path) -> WhatIfBenchmarkTrainResult:
             f"event_types={len(preprocessor.event_type_names)}",
             f"business_heads={len(_BUSINESS_TARGET_NAMES)}",
             f"objective_heads={len(_OBJECTIVE_TARGET_NAMES)}",
+            f"future_state_heads={len(_FUTURE_STATE_TARGET_NAMES)}",
         ],
         artifacts=WhatIfBenchmarkTrainArtifacts(
             root=output_root,
@@ -486,12 +500,16 @@ def _predict_from_request(path: Path) -> dict[str, Any]:
         prediction.business_values,
         fallback_evidence=evidence_heads,
     )
+    future_state_heads = preprocessor.decode_future_state(
+        prediction.future_state_values,
+    )
     return {
         "model_id": checkpoint["model_id"],
         "binary_probability": prediction.binary_probability,
         "regression_values": prediction.regression_values.tolist(),
         "evidence_heads": evidence_heads.model_dump(mode="json"),
         "business_heads": business_heads.model_dump(mode="json"),
+        "future_state_heads": future_state_heads.model_dump(mode="json"),
         "objective_scores": preprocessor.decode_objective_scores(
             prediction.objective_values
         ),
@@ -548,6 +566,8 @@ class BenchmarkPreprocessor:
         business_std: Sequence[float] | None = None,
         objective_mean: Sequence[float] | None = None,
         objective_std: Sequence[float] | None = None,
+        future_state_mean: Sequence[float] | None = None,
+        future_state_std: Sequence[float] | None = None,
     ) -> None:
         self.summary_feature_names = list(summary_feature_names)
         self.summary_index = {
@@ -597,6 +617,22 @@ class BenchmarkPreprocessor:
             ),
             dtype=np.float32,
         )
+        self.future_state_mean = np.asarray(
+            (
+                future_state_mean
+                if future_state_mean is not None
+                else np.zeros(len(_FUTURE_STATE_TARGET_NAMES))
+            ),
+            dtype=np.float32,
+        )
+        self.future_state_std = np.asarray(
+            (
+                future_state_std
+                if future_state_std is not None
+                else np.ones(len(_FUTURE_STATE_TARGET_NAMES))
+            ),
+            dtype=np.float32,
+        )
 
     @classmethod
     def from_metadata(cls, payload: dict[str, Any]) -> "BenchmarkPreprocessor":
@@ -612,6 +648,8 @@ class BenchmarkPreprocessor:
             business_std=payload.get("business_std"),
             objective_mean=payload.get("objective_mean"),
             objective_std=payload.get("objective_std"),
+            future_state_mean=payload.get("future_state_mean"),
+            future_state_std=payload.get("future_state_std"),
         )
 
     def to_metadata(self) -> dict[str, Any]:
@@ -629,6 +667,9 @@ class BenchmarkPreprocessor:
             "objective_target_names": list(_OBJECTIVE_TARGET_NAMES),
             "objective_mean": self.objective_mean.tolist(),
             "objective_std": self.objective_std.tolist(),
+            "future_state_target_names": list(_FUTURE_STATE_TARGET_NAMES),
+            "future_state_mean": self.future_state_mean.tolist(),
+            "future_state_std": self.future_state_std.tolist(),
         }
 
     def encode_row(self, row: WhatIfBenchmarkDatasetRow) -> _RowEncoding:
@@ -649,6 +690,7 @@ class BenchmarkPreprocessor:
                 regression_target=None,
                 business_target=None,
                 objective_target=None,
+                future_state_target=None,
                 row=row,
             )
         return _RowEncoding(
@@ -660,6 +702,7 @@ class BenchmarkPreprocessor:
             regression_target=self._encode_targets(row.observed_evidence_heads),
             business_target=self._encode_business(row.observed_business_outcomes),
             objective_target=self._encode_objectives(row),
+            future_state_target=self._encode_future_state(row.observed_future_state),
             row=row,
         )
 
@@ -767,6 +810,26 @@ class BenchmarkPreprocessor:
             name: round(float(values[index]), 3)
             for index, name in enumerate(_OBJECTIVE_TARGET_NAMES)
         }
+
+    def decode_future_state(
+        self,
+        future_state_values: Sequence[float] | None,
+    ) -> WhatIfFutureStateHeads:
+        if future_state_values is None:
+            return WhatIfFutureStateHeads()
+        values = np.nan_to_num(
+            (np.asarray(future_state_values, dtype=np.float32) * self.future_state_std)
+            + self.future_state_mean,
+            nan=0.0,
+            posinf=1.0,
+            neginf=0.0,
+        )
+        values = np.clip(values, 0.0, 1.0)
+        payload = {
+            name: round(float(values[index]), 3)
+            for index, name in enumerate(_FUTURE_STATE_TARGET_NAMES)
+        }
+        return WhatIfFutureStateHeads(**payload)
 
     def _encode_summary(self, features: Sequence[Any]) -> np.ndarray:
         values = np.zeros(len(self.summary_feature_names), dtype=np.float32)
@@ -949,6 +1012,13 @@ class BenchmarkPreprocessor:
         raw_values = np.asarray(values, dtype=np.float32)
         return (raw_values - self.objective_mean) / self.objective_std
 
+    def _encode_future_state(self, targets: WhatIfFutureStateHeads) -> np.ndarray:
+        raw_values = np.asarray(
+            [float(getattr(targets, name)) for name in _FUTURE_STATE_TARGET_NAMES],
+            dtype=np.float32,
+        )
+        return (raw_values - self.future_state_mean) / self.future_state_std
+
 
 def _fit_preprocessor(
     *,
@@ -1083,6 +1153,27 @@ def _fit_preprocessor(
         else np.ones(len(_OBJECTIVE_TARGET_NAMES))
     )
     objective_std = np.where(objective_std < 1e-6, 1.0, objective_std)
+    future_state_matrix = np.asarray(
+        [
+            [
+                float(getattr(row.observed_future_state, name))
+                for name in _FUTURE_STATE_TARGET_NAMES
+            ]
+            for row in train_rows
+        ],
+        dtype=np.float32,
+    )
+    future_state_mean = (
+        future_state_matrix.mean(axis=0)
+        if len(future_state_matrix)
+        else np.zeros(len(_FUTURE_STATE_TARGET_NAMES))
+    )
+    future_state_std = (
+        future_state_matrix.std(axis=0)
+        if len(future_state_matrix)
+        else np.ones(len(_FUTURE_STATE_TARGET_NAMES))
+    )
+    future_state_std = np.where(future_state_std < 1e-6, 1.0, future_state_std)
     return BenchmarkPreprocessor(
         summary_feature_names=summary_names,
         summary_mean=summary_mean.tolist(),
@@ -1095,6 +1186,8 @@ def _fit_preprocessor(
         business_std=business_std.tolist(),
         objective_mean=objective_mean.tolist(),
         objective_std=objective_std.tolist(),
+        future_state_mean=future_state_mean.tolist(),
+        future_state_std=future_state_std.tolist(),
     )
 
 
@@ -1226,7 +1319,8 @@ class TorchTrainer:
         target_dim = len(_EVIDENCE_TARGET_NAMES)
         business_dim = len(_BUSINESS_TARGET_NAMES)
         objective_dim = len(_OBJECTIVE_TARGET_NAMES)
-        latent_dim = 96
+        future_state_dim = len(_FUTURE_STATE_TARGET_NAMES)
+        latent_dim = 128
         event_type_count = max(len(self.preprocessor.event_type_names), 1)
 
         class JEPAOutcomeModel(nn.Module):
@@ -1245,7 +1339,7 @@ class TorchTrainer:
                 encoder_layer = nn.TransformerEncoderLayer(
                     d_model=latent_dim,
                     nhead=4,
-                    dim_feedforward=192,
+                    dim_feedforward=256,
                     batch_first=True,
                     dropout=0.1,
                 )
@@ -1254,19 +1348,26 @@ class TorchTrainer:
                     num_layers=2,
                 )
                 self.summary_action_encoder = nn.Sequential(
-                    nn.Linear(summary_dim + action_dim, 192),
+                    nn.Linear(summary_dim + action_dim, 256),
                     nn.ReLU(),
-                    nn.Linear(192, latent_dim),
+                    nn.Linear(256, latent_dim),
                 )
                 self.context_encoder = nn.Sequential(
-                    nn.Linear(latent_dim * 2, 192),
+                    nn.Linear(latent_dim * 2, 256),
                     nn.ReLU(),
-                    nn.Linear(192, latent_dim),
+                    nn.Linear(256, latent_dim),
                 )
                 self.target_encoder = nn.Sequential(
-                    nn.Linear(target_dim + business_dim + objective_dim + 1, 192),
+                    nn.Linear(
+                        target_dim
+                        + business_dim
+                        + objective_dim
+                        + future_state_dim
+                        + 1,
+                        256,
+                    ),
                     nn.ReLU(),
-                    nn.Linear(192, latent_dim),
+                    nn.Linear(256, latent_dim),
                 )
                 self.predictor = nn.Sequential(
                     nn.Linear(latent_dim, latent_dim),
@@ -1277,6 +1378,7 @@ class TorchTrainer:
                 self.regression_head = nn.Linear(latent_dim, target_dim)
                 self.business_head = nn.Linear(latent_dim, business_dim)
                 self.objective_head = nn.Linear(latent_dim, objective_dim)
+                self.future_state_head = nn.Linear(latent_dim, future_state_dim)
 
             def forward(
                 self,
@@ -1288,6 +1390,7 @@ class TorchTrainer:
                 target_regression: Any | None = None,
                 target_business: Any | None = None,
                 target_objective: Any | None = None,
+                target_future_state: Any | None = None,
             ) -> dict[str, Any]:
                 summary_action = self.summary_action_encoder(
                     self._concat([summary, action], dim=1)
@@ -1308,12 +1411,14 @@ class TorchTrainer:
                     "regression": self.regression_head(predicted_latent),
                     "business": self.business_head(predicted_latent),
                     "objective": self.objective_head(predicted_latent),
+                    "future_state": self.future_state_head(predicted_latent),
                 }
                 if (
                     target_binary is None
                     or target_regression is None
                     or target_business is None
                     or target_objective is None
+                    or target_future_state is None
                 ):
                     result["latent_loss"] = None
                     return result
@@ -1324,6 +1429,7 @@ class TorchTrainer:
                             target_regression,
                             target_business,
                             target_objective,
+                            target_future_state,
                         ],
                         dim=1,
                     )
@@ -1344,6 +1450,7 @@ class TorchTrainer:
         target_dim = len(_EVIDENCE_TARGET_NAMES)
         business_dim = len(_BUSINESS_TARGET_NAMES)
         objective_dim = len(_OBJECTIVE_TARGET_NAMES)
+        future_state_dim = len(_FUTURE_STATE_TARGET_NAMES)
         model_dim = 96
         event_type_count = max(len(self.preprocessor.event_type_names), 1)
 
@@ -1377,6 +1484,7 @@ class TorchTrainer:
                 self.regression_head = nn.Linear(model_dim, target_dim)
                 self.business_head = nn.Linear(model_dim, business_dim)
                 self.objective_head = nn.Linear(model_dim, objective_dim)
+                self.future_state_head = nn.Linear(model_dim, future_state_dim)
 
             def forward(
                 self,
@@ -1388,8 +1496,15 @@ class TorchTrainer:
                 target_regression: Any | None = None,
                 target_business: Any | None = None,
                 target_objective: Any | None = None,
+                target_future_state: Any | None = None,
             ) -> dict[str, Any]:
-                del target_binary, target_regression, target_business, target_objective
+                del (
+                    target_binary,
+                    target_regression,
+                    target_business,
+                    target_objective,
+                    target_future_state,
+                )
                 summary_action_token = self.summary_action_projection(
                     self._concat([summary, action], dim=1)
                 ).unsqueeze(1)
@@ -1408,6 +1523,7 @@ class TorchTrainer:
                     "regression": self.regression_head(pooled),
                     "business": self.business_head(pooled),
                     "objective": self.objective_head(pooled),
+                    "future_state": self.future_state_head(pooled),
                     "latent_loss": None,
                 }
 
@@ -1455,6 +1571,7 @@ class TorchTrainer:
                 target_regression: Any | None = None,
                 target_business: Any | None = None,
                 target_objective: Any | None = None,
+                target_future_state: Any | None = None,
             ) -> dict[str, Any]:
                 del (
                     token_categorical,
@@ -1463,6 +1580,7 @@ class TorchTrainer:
                     target_regression,
                     target_business,
                     target_objective,
+                    target_future_state,
                 )
                 features = self._concat([summary, action], dim=1)
                 indices = self._indices(features)
@@ -1476,6 +1594,7 @@ class TorchTrainer:
                     "regression": self.regression_head(pooled),
                     "business": self.business_head(pooled),
                     "objective": self.objective_head(pooled),
+                    "future_state": self.future_state_head(pooled),
                     "latent_loss": None,
                 }
 
@@ -1501,6 +1620,7 @@ class TorchTrainer:
         target_dim = len(_EVIDENCE_TARGET_NAMES)
         business_dim = len(_BUSINESS_TARGET_NAMES)
         objective_dim = len(_OBJECTIVE_TARGET_NAMES)
+        future_state_dim = len(_FUTURE_STATE_TARGET_NAMES)
         event_type_count = max(len(self.preprocessor.event_type_names), 1)
 
         class SequenceTransformerModel(nn.Module):
@@ -1524,6 +1644,7 @@ class TorchTrainer:
                 self.regression_head = nn.Linear(model_dim, target_dim)
                 self.business_head = nn.Linear(model_dim, business_dim)
                 self.objective_head = nn.Linear(model_dim, objective_dim)
+                self.future_state_head = nn.Linear(model_dim, future_state_dim)
 
             def forward(
                 self,
@@ -1535,6 +1656,7 @@ class TorchTrainer:
                 target_regression: Any | None = None,
                 target_business: Any | None = None,
                 target_objective: Any | None = None,
+                target_future_state: Any | None = None,
             ) -> dict[str, Any]:
                 del (
                     summary,
@@ -1543,6 +1665,7 @@ class TorchTrainer:
                     target_regression,
                     target_business,
                     target_objective,
+                    target_future_state,
                 )
                 tokens = (
                     self.phase_embedding(token_categorical[:, :, 0])
@@ -1557,6 +1680,7 @@ class TorchTrainer:
                     "regression": self.regression_head(pooled),
                     "business": self.business_head(pooled),
                     "objective": self.objective_head(pooled),
+                    "future_state": self.future_state_head(pooled),
                     "latent_loss": None,
                 }
 
@@ -1569,6 +1693,7 @@ class TorchTrainer:
         target_dim = len(_EVIDENCE_TARGET_NAMES)
         business_dim = len(_BUSINESS_TARGET_NAMES)
         objective_dim = len(_OBJECTIVE_TARGET_NAMES)
+        future_state_dim = len(_FUTURE_STATE_TARGET_NAMES)
         model_dim = 96
 
         class TreatmentTransformerModel(nn.Module):
@@ -1589,6 +1714,7 @@ class TorchTrainer:
                 self.regression_head = nn.Linear(model_dim, target_dim)
                 self.business_head = nn.Linear(model_dim, business_dim)
                 self.objective_head = nn.Linear(model_dim, objective_dim)
+                self.future_state_head = nn.Linear(model_dim, future_state_dim)
 
             def forward(
                 self,
@@ -1600,6 +1726,7 @@ class TorchTrainer:
                 target_regression: Any | None = None,
                 target_business: Any | None = None,
                 target_objective: Any | None = None,
+                target_future_state: Any | None = None,
             ) -> dict[str, Any]:
                 del (
                     token_categorical,
@@ -1608,6 +1735,7 @@ class TorchTrainer:
                     target_regression,
                     target_business,
                     target_objective,
+                    target_future_state,
                 )
                 summary_token = self.summary_projection(summary).unsqueeze(1)
                 feature_indices = self._indices(action)
@@ -1623,6 +1751,7 @@ class TorchTrainer:
                     "regression": self.regression_head(pooled),
                     "business": self.business_head(pooled),
                     "objective": self.objective_head(pooled),
+                    "future_state": self.future_state_head(pooled),
                     "latent_loss": None,
                 }
 
@@ -1683,6 +1812,7 @@ def _iter_batches(
             or batch_rows[0].regression_target is None
             or batch_rows[0].business_target is None
             or batch_rows[0].objective_target is None
+            or batch_rows[0].future_state_target is None
         ):
             yield _BatchTensors(
                 summary=summary,
@@ -1716,6 +1846,11 @@ def _iter_batches(
                 dtype=torch_module.float32,
                 device=device,
             ),
+            target_future_state=torch_module.tensor(
+                np.stack([row.future_state_target for row in batch_rows]),
+                dtype=torch_module.float32,
+                device=device,
+            ),
         )
 
 
@@ -1729,6 +1864,7 @@ def _model_outputs(model: Any, batch: _BatchTensors) -> dict[str, Any]:
         target_regression=batch.target_regression,
         target_business=batch.target_business,
         target_objective=batch.target_objective,
+        target_future_state=batch.target_future_state,
     )
 
 
@@ -1748,9 +1884,17 @@ def _training_loss(
     )
     business_loss = functional.mse_loss(outputs["business"], batch.target_business)
     objective_loss = functional.mse_loss(outputs["objective"], batch.target_objective)
+    future_state_loss = functional.mse_loss(
+        outputs["future_state"],
+        batch.target_future_state,
+    )
     latent_loss = outputs.get("latent_loss")
     supervised_loss = (
-        binary_loss + (0.5 * regression_loss) + business_loss + (1.25 * objective_loss)
+        binary_loss
+        + (0.5 * regression_loss)
+        + business_loss
+        + (1.25 * objective_loss)
+        + (1.35 * future_state_loss)
     )
     if latent_loss is None:
         return supervised_loss
@@ -1792,12 +1936,18 @@ def predict_rows(
                 if outputs.get("objective") is not None
                 else None
             )
+            future_state = (
+                outputs.get("future_state").detach().cpu().numpy()
+                if outputs.get("future_state") is not None
+                else None
+            )
             batches.append(
                 _PredictionBatch(
                     binary_probability=probability,
                     regression_values=regression,
                     business_values=business,
                     objective_values=objective,
+                    future_state_values=future_state,
                 )
             )
     return batches
@@ -1830,6 +1980,9 @@ def _compute_observed_metrics(
     objective_errors: dict[str, list[float]] = {
         pack.pack_id: [] for pack in list_business_objective_packs()
     }
+    future_state_errors: dict[str, list[float]] = {
+        name: [] for name in _FUTURE_STATE_TARGET_NAMES
+    }
 
     flat_predictions = _flatten_prediction_batches(predictions)
     for row, predicted in zip(rows, flat_predictions, strict=False):
@@ -1842,6 +1995,9 @@ def _compute_observed_metrics(
         )
         predicted_objective_scores = preprocessor.decode_objective_scores(
             predicted.objective_values
+        )
+        predicted_future_state = preprocessor.decode_future_state(
+            predicted.future_state_values
         )
         for name in _EVIDENCE_TARGET_NAMES:
             actual_regression[name].append(float(getattr(actual_targets, name)))
@@ -1876,6 +2032,14 @@ def _compute_observed_metrics(
             objective_errors[pack.pack_id].append(
                 abs(actual_score.overall_score - predicted_overall)
             )
+        actual_future_state = row.row.observed_future_state
+        for name in future_state_errors:
+            future_state_errors[name].append(
+                abs(
+                    float(getattr(actual_future_state, name))
+                    - float(getattr(predicted_future_state, name))
+                )
+            )
     return WhatIfObservedForecastMetrics(
         auroc_any_external_spread=_auroc(actual_binary, predicted_binary),
         brier_any_external_spread=round(
@@ -1896,6 +2060,10 @@ def _compute_observed_metrics(
         objective_score_mae={
             key: round(sum(values) / max(len(values), 1), 3)
             for key, values in objective_errors.items()
+        },
+        future_state_head_mae={
+            key: round(sum(values) / max(len(values), 1), 3)
+            for key, values in future_state_errors.items()
         },
     )
 
@@ -2282,6 +2450,11 @@ def _flatten_prediction_batches(
                     objective_values=(
                         np.asarray(batch.objective_values[index])
                         if batch.objective_values is not None
+                        else None
+                    ),
+                    future_state_values=(
+                        np.asarray(batch.future_state_values[index])
+                        if batch.future_state_values is not None
                         else None
                     ),
                 )

@@ -11,6 +11,7 @@ from .models import (
     WhatIfBusinessObjectiveScore,
     WhatIfBusinessOutcomeHeads,
     WhatIfEvent,
+    WhatIfFutureStateHeads,
     WhatIfJudgeRubric,
     WhatIfObservedEvidenceHeads,
 )
@@ -228,6 +229,156 @@ def summarize_observed_evidence(
     )
 
 
+def summarize_future_state_heads(
+    *,
+    future_events: Sequence[WhatIfEvent],
+    evidence: WhatIfObservedEvidenceHeads,
+) -> WhatIfFutureStateHeads:
+    """Summarize the recorded future tail into broad state targets.
+
+    These are learned outcome labels, not inference-time rules. They let the
+    world model learn that some futures are regulatory/accounting/liquidity
+    regimes where review and governance activity can be protective rather than
+    mere execution drag.
+    """
+
+    if not future_events:
+        return WhatIfFutureStateHeads()
+
+    future_text = " ".join(_event_text(event) for event in future_events)
+    regulatory_hits = _keyword_count(
+        future_text,
+        (
+            "sec",
+            "regulator",
+            "regulatory",
+            "investigation",
+            "formal investigation",
+            "subpoena",
+            "consent",
+            "permission",
+            "privacy",
+            "compliance",
+        ),
+    )
+    accounting_hits = _keyword_count(
+        future_text,
+        (
+            "accounting",
+            "audit",
+            "auditor",
+            "controller",
+            "ledger",
+            "reconciliation",
+            "restatement",
+            "q3",
+            "third quarter",
+            "non-recurring",
+            "charge",
+            "trial balance",
+        ),
+    )
+    liquidity_hits = _keyword_count(
+        future_text,
+        (
+            "liquidity",
+            "credit",
+            "downgrade",
+            "moody",
+            "fitch",
+            "debt",
+            "cash",
+            "treasury",
+            "bankruptcy",
+            "stock",
+            "runway",
+            "fundraising",
+            "investor",
+        ),
+    )
+    governance_hits = _keyword_count(
+        future_text,
+        (
+            "board",
+            "committee",
+            "executive",
+            "ceo",
+            "cfo",
+            "gc",
+            "general counsel",
+            "outside counsel",
+            "legal",
+            "approval",
+            "gate",
+        ),
+    )
+    evidence_hits = _keyword_count(
+        future_text,
+        (
+            "document",
+            "evidence",
+            "packet",
+            "inventory",
+            "review",
+            "reconcile",
+            "memo",
+            "minutes",
+            "data room",
+            "vsa",
+            "soc 2",
+            "dashboard",
+        ),
+    )
+    confidence_hits = _keyword_count(
+        future_text,
+        (
+            "investor",
+            "creditor",
+            "client",
+            "customer",
+            "downgrade",
+            "stock",
+            "press",
+            "public",
+            "external",
+            "trust",
+            "confidence",
+        ),
+    )
+    return WhatIfFutureStateHeads(
+        regulatory_exposure=_clamp(
+            _count_norm(regulatory_hits, 4)
+            + (_count_norm(evidence.legal_follow_up_count, 6) * 0.25)
+            + (_count_norm(evidence.outside_attachment_spread_count, 4) * 0.20)
+        ),
+        accounting_control_pressure=_clamp(
+            _count_norm(accounting_hits, 4)
+            + (_count_norm(evidence.review_loop_count, 8) * 0.25)
+            + (_count_norm(evidence.markup_loop_count, 6) * 0.15)
+        ),
+        liquidity_stress=_clamp(
+            _count_norm(liquidity_hits, 5)
+            + (_count_norm(evidence.urgency_spike_count, 5) * 0.20)
+            + (_count_norm(evidence.executive_escalation_count, 4) * 0.15)
+        ),
+        governance_response=_clamp(
+            _count_norm(governance_hits, 5)
+            + (_count_norm(evidence.executive_mention_count, 6) * 0.20)
+            + (_count_norm(evidence.cross_functional_loop_count, 6) * 0.15)
+        ),
+        evidence_control=_clamp(
+            _count_norm(evidence_hits, 6)
+            + (_count_norm(evidence.review_loop_count, 8) * 0.25)
+            + (_count_norm(evidence.commitment_clarity_count, 5) * 0.20)
+        ),
+        external_confidence_pressure=_clamp(
+            _count_norm(confidence_hits, 5)
+            + (_count_norm(evidence.outside_recipient_count, 12) * 0.20)
+            + (_count_norm(evidence.blame_pressure_count, 5) * 0.15)
+        ),
+    )
+
+
 def evidence_to_business_outcomes(
     evidence: WhatIfObservedEvidenceHeads,
 ) -> WhatIfBusinessOutcomeHeads:
@@ -416,6 +567,10 @@ def _event_participants(event: WhatIfEvent) -> set[str]:
 def _cross_functional_marker_count(text: str) -> int:
     counts = Counter(marker for marker in _CROSS_FUNCTIONAL_MARKERS if marker in text)
     return len(counts)
+
+
+def _keyword_count(text: str, keywords: Sequence[str]) -> int:
+    return sum(1 for keyword in keywords if keyword in text)
 
 
 def _has_any(text: str, terms: Sequence[str]) -> bool:

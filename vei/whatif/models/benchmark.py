@@ -90,6 +90,15 @@ class WhatIfBusinessOutcomeHeads(BaseModel):
     execution_drag: float = 0.0
 
 
+class WhatIfFutureStateHeads(BaseModel):
+    regulatory_exposure: float = 0.0
+    accounting_control_pressure: float = 0.0
+    liquidity_stress: float = 0.0
+    governance_response: float = 0.0
+    evidence_control: float = 0.0
+    external_confidence_pressure: float = 0.0
+
+
 class WhatIfBusinessObjectivePack(BaseModel):
     pack_id: WhatIfBusinessObjectivePackId
     title: str
@@ -176,6 +185,9 @@ class WhatIfBenchmarkDatasetRow(BaseModel):
     observed_business_outcomes: WhatIfBusinessOutcomeHeads = Field(
         default_factory=WhatIfBusinessOutcomeHeads
     )
+    observed_future_state: WhatIfFutureStateHeads = Field(
+        default_factory=WhatIfFutureStateHeads
+    )
     observed_targets: WhatIfObservedOutcomeTargets = Field(
         default_factory=WhatIfObservedOutcomeTargets
     )
@@ -257,6 +269,7 @@ class WhatIfObservedForecastMetrics(BaseModel):
     evidence_head_mae: dict[str, float] = Field(default_factory=dict)
     business_head_mae: dict[str, float] = Field(default_factory=dict)
     objective_score_mae: dict[str, float] = Field(default_factory=dict)
+    future_state_head_mae: dict[str, float] = Field(default_factory=dict)
 
 
 class WhatIfBenchmarkTrainArtifacts(BaseModel):
@@ -491,6 +504,7 @@ __all__ = [
     "WhatIfBusinessObjectivePackId",
     "WhatIfBusinessObjectiveScore",
     "WhatIfBusinessOutcomeHeads",
+    "WhatIfFutureStateHeads",
     "WhatIfCoordinationBreadth",
     "WhatIfCounterfactualCandidatePrediction",
     "WhatIfCounterfactualObjectiveEvaluation",

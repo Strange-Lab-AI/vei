@@ -24,6 +24,7 @@ from .benchmark import (
 )
 from .benchmark_business import (
     evidence_to_business_outcomes,
+    summarize_future_state_heads,
     summarize_observed_evidence,
 )
 from .corpus import event_reference
@@ -475,6 +476,10 @@ def _row_candidate_from_branch(
         branch_event=branch_event,
         future_events=future_events,
     )
+    future_state = summarize_future_state_heads(
+        future_events=future_events,
+        evidence=evidence,
+    )
     targets = summarize_observed_targets(
         branch_event=branch_event,
         future_events=future_events,
@@ -488,6 +493,7 @@ def _row_candidate_from_branch(
         contract=contract,
         observed_evidence_heads=evidence,
         observed_business_outcomes=evidence_to_business_outcomes(evidence),
+        observed_future_state=future_state,
         observed_targets=targets,
         observed_outcome_signals=outcome_targets_to_signals(targets),
     )

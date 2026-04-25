@@ -9,6 +9,7 @@ from typing import Sequence
 
 from .benchmark_business import (
     evidence_to_business_outcomes,
+    summarize_future_state_heads,
     summarize_observed_evidence,
 )
 from ._benchmark_constants import (
@@ -205,6 +206,10 @@ def build_branch_point_benchmark(
             future_events=future_events,
         )
         business = evidence_to_business_outcomes(evidence)
+        future_state = summarize_future_state_heads(
+            future_events=future_events,
+            evidence=evidence,
+        )
         row = WhatIfBenchmarkDatasetRow(
             row_id=f"{thread.thread_id}:{branch_event.event_id}",
             split="train",
@@ -213,6 +218,7 @@ def build_branch_point_benchmark(
             contract=contract,
             observed_evidence_heads=evidence,
             observed_business_outcomes=business,
+            observed_future_state=future_state,
             observed_targets=targets,
             observed_outcome_signals=outcome_targets_to_signals(targets),
         )
