@@ -28,6 +28,10 @@ except ImportError:
     HAS_OPENAI = False
 
 
+def _requires_codex_session(model: str) -> bool:
+    return "codex" in model.strip().lower()
+
+
 def load_trace(artifacts_dir: Path) -> List[Dict[str, Any]]:
     """Load trace.jsonl from artifacts directory."""
     return load_trace_records(artifacts_dir)
@@ -598,6 +602,11 @@ def run_llm_judge_prompt(
     temperature: float | None = None,
     json_mode: bool = False,
 ) -> str:
+    if _requires_codex_session(model):
+        raise RuntimeError(
+            f"{model} is a Codex-session model. Exercise it through a Codex "
+            "session or subagent, not through a provider API key."
+        )
     if not HAS_OPENAI:
         raise RuntimeError("OpenAI client is not available")
     client = OpenAI()

@@ -198,12 +198,18 @@ def register_benchmark_commands(benchmark_app: typer.Typer) -> None:
             ),
         ),
         candidate_mode: str = typer.Option(
-            "llm",
-            help="Candidate generation mode: llm | template",
+            "template",
+            help=(
+                "Candidate generation mode: template | llm. API LLM mode is "
+                "explicit opt-in; Codex-session models must be tested through Codex."
+            ),
         ),
         candidate_model: str = typer.Option(
             "gpt-5-mini",
-            help="Locked model used to generate broad candidate actions when candidate-mode=llm",
+            help=(
+                "Locked API model used to generate broad candidate actions when "
+                "candidate-mode=llm"
+            ),
         ),
         format: str = typer.Option("json", help="Output format: json | markdown"),
     ) -> None:
@@ -272,12 +278,18 @@ def register_benchmark_commands(benchmark_app: typer.Typer) -> None:
             help="Concrete counterfactual actions generated per decision",
         ),
         candidate_mode: str = typer.Option(
-            "llm",
-            help="Candidate generation mode: llm | template",
+            "template",
+            help=(
+                "Candidate generation mode: template | llm. API LLM mode is "
+                "explicit opt-in; Codex-session models must be tested through Codex."
+            ),
         ),
         candidate_model: str = typer.Option(
             "gpt-5-mini",
-            help="Locked model used to generate concrete candidate actions when candidate-mode=llm",
+            help=(
+                "Locked API model used to generate concrete candidate actions when "
+                "candidate-mode=llm"
+            ),
         ),
         model_id: str | None = typer.Option(
             None,

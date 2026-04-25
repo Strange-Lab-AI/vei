@@ -6,9 +6,32 @@ Use `docs/ENRON_BUSINESS_OUTCOME_BENCHMARK.md` for the specific Enron benchmark 
 
 ## What Is and Isn't Learned
 
-VEI today is a deterministic enterprise simulator, governed twin, and replay platform with a reference learned path. It is not a finished learned world model. The reference backend (`vei.dynamics.backends.reference`) is a real PyTorch model trained on canonical event sequences. The heuristic baseline is a tag-driven heuristic, not a learned model. The repo-owned Enron benchmark is the shipped flagship learned path; the multi-tenant Enron + Dispatch builder is the first pooled learned world-model experiment and writes its artifacts under `_vei_out/world_model_multitenant/`. Clearwater workflow families stay in the repo as kernel and workflow smoke tests. See `docs/ARCHITECTURE.md` for the full breakdown.
+VEI today is a deterministic enterprise simulator, governed twin, replay
+platform, and learned forecasting workbench. It is not a finished universal CEO
+recommender. The reference backend (`vei.dynamics.backends.reference`) is a real
+PyTorch model trained on canonical event sequences. The heuristic baseline is a
+tag-driven heuristic, not a learned model. The repo-owned Enron benchmark is the
+shipped flagship learned path; the multi-tenant benchmark is the pooled
+world-model experiment. Clearwater workflow families stay in the repo as
+kernel and workflow smoke tests. See `docs/ARCHITECTURE.md` for the full
+breakdown.
 
-The shipped Enron reference checkpoint currently reports factual next-event AUROC `0.787817`, Brier `0.332025`, and calibration ECE `0.373951`. Use those numbers when you need the fresh-clone learned headline for the thicker Enron timeline.
+The world-model benchmark turns each company archive into timestamped events,
+then learns rows of the form:
+
+```text
+state up to time T + action at time T -> future state after T
+```
+
+The shipped Enron reference checkpoint currently reports factual next-event
+AUROC `0.787817`, Brier `0.332025`, and calibration ECE `0.373951`. The latest
+local pooled JEPA run over Enron, Dispatch, and a private startup archive built
+`59,920` canonical events and `17,602` eligible branch rows. It was much better
+calibrated than the heuristic baseline on external spread (Brier `0.003` vs
+`0.547`, ECE `0.002` vs `0.688`) and improved all five business-head MAEs. Its
+external-spread AUROC was lower than the heuristic, so the claim is deliberately
+narrow: factual calibration and business-head regression improved, while
+counterfactual rankings remain decision support.
 
 ## Layer 1: Factual forecast metrics
 
@@ -45,7 +68,9 @@ The judge does **not** see rollout futures, model predictions, or any post-branc
 
 The judge performs **pairwise comparisons** over the candidate set (for 4 candidates, 6 pairs). For each pair it returns a preferred candidate, confidence, evidence references, and rationale. VEI aggregates the pairwise wins into a total ordering.
 
-The call uses `temperature=0.0` and `json_mode=true`. Default model is `gpt-4.1-mini`.
+The call uses `temperature=0.0` and `json_mode=true`. Default model is
+`gpt-4.1-mini`. Codex-session models are not called through provider API keys;
+when a Codex-only model is being tested, run that test through Codex itself.
 
 ### Uncertainty detection
 

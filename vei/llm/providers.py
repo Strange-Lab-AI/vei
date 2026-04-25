@@ -37,6 +37,10 @@ _OPENAI_DEFAULT_PRICING_USD_PER_1M: dict[str, dict[str, float]] = {
 }
 
 
+def _is_codex_session_model(model: str) -> bool:
+    return "codex" in (model or "").strip().lower()
+
+
 @dataclass
 class PlanUsage:
     provider: str
@@ -80,6 +84,8 @@ def auto_provider_for_model(model: str, explicit: Optional[str] = None) -> str:
     if explicit:
         return explicit.strip().lower()
     m = (model or "").strip().lower()
+    if _is_codex_session_model(m):
+        return "codex"
     if m.startswith("claude-"):
         return "anthropic"
     if m.startswith("gemini-") or m.startswith("models/gemini"):
@@ -172,6 +178,11 @@ async def _openai_plan(
     api_key: Optional[str] = None,
 ) -> PlanResult:
     """OpenAI provider. Uses Responses API for gpt-5, Chat Completions for others."""
+    if _is_codex_session_model(model):
+        raise RuntimeError(
+            f"{model} is a Codex-session model. Use provider='codex' so the "
+            "request runs through Codex instead of an OpenAI API key."
+        )
     if AsyncOpenAI is None:
         raise RuntimeError("openai SDK not installed; install with extras [llm]")
 

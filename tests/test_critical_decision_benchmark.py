@@ -166,6 +166,7 @@ def test_critical_decision_cli_wires_inputs_and_checkpoint(
     def fake_run(*_args: object, **kwargs: object) -> CriticalDecisionRunResult:
         assert kwargs["checkpoint_path"] == tmp_path / "model.pt"
         assert kwargs["candidates_per_decision"] == 10
+        assert kwargs["candidate_generation_mode"] == "template"
         root = tmp_path / "critical"
         root.mkdir(parents=True, exist_ok=True)
         return CriticalDecisionRunResult(
@@ -203,8 +204,6 @@ def test_critical_decision_cli_wires_inputs_and_checkpoint(
             str(tmp_path / "critical"),
             "--label",
             "critical_cli_fixture",
-            "--candidate-mode",
-            "template",
         ],
     )
 

@@ -309,16 +309,13 @@ def test_multitenant_benchmark_cli_builds_from_multiple_context_inputs(
             "pooled_cli_fixture",
             "--heldout-cases-per-tenant",
             "1",
-            "--candidate-mode",
-            "template",
-            "--candidate-model",
-            "template-fixture",
         ],
     )
 
     assert result.exit_code == 0, result.output
     payload = json.loads(result.output)
     assert payload["dataset"]["metadata"]["benchmark_kind"] == "multitenant_world_model"
+    assert payload["dataset"]["metadata"]["candidate_generation_mode"] == "template"
     assert payload["dataset"]["split_row_counts"]["heldout"] == 2
 
 

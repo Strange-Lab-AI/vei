@@ -252,19 +252,33 @@ All API calls are read-only. No data is written back. Tokens stay in your `.env`
 
 ## Is It a World Model?
 
-Honest answer: **not yet, but it's the training ground for one.**
+Honest answer: **there is now an early learned world-model path, but it is not
+yet a production-proven universal recommender.**
 
-A "world model" in the ML/reinforcement learning sense is a *learned* model that predicts future states given actions. You show it (state, action) pairs and it learns the transition dynamics — then it can generalize to states it hasn't seen.
+A "world model" in the ML/reinforcement learning sense is a *learned* model
+that predicts future states given actions. You show it `(state, action,
+future-state)` examples and it learns transition dynamics it can try to
+generalize.
 
-VEI today is a **simulation**: a hand-authored, rule-based, deterministic engine. It encodes how enterprise systems work through explicit transition rules. Send a Slack message and the ticket queue updates because there's a rule connecting them. Suspend an OAuth app and the security case progresses because that causality is authored.
+VEI still has a deterministic simulator: a hand-authored engine for enterprise
+systems, contracts, replay, and generated training trajectories. But the
+company-history path also trains real learned models from canonical event
+timelines. For each branch point, the learned benchmark asks: given the company
+state up to time `T` and an action at `T`, what happens after `T`?
 
-The relationship between VEI-the-simulation and a future VEI-the-world-model is like the relationship between a physics engine and a physics-from-video model:
+The current learned path works like this:
 
-1. **The simulation generates unlimited training data** — every run produces a full trajectory of (state, action, next-state) triples across all enterprise surfaces, with contract scores as reward signals
-2. **The synthesis layer packages this data** — conversations, trajectories, and demonstrations in formats ready for fine-tuning
-3. **The RL layer provides the gym interface** — a Gymnasium-compatible environment wrapper with observation/action spaces
+1. **Canonicalize company data** — email, tickets, docs, ClickUp, and other work records become timestamped events.
+2. **Build branch rows** — each row contains pre-branch state, a branch action, and the observed future tail.
+3. **Train the model** — the JEPA benchmark predicts future evidence and business heads, not just one scalar.
+4. **Score decisions** — candidate actions are generated from pre-branch context only, then ranked from the predicted future heads.
 
-So the path to an actual world model is: run thousands of scenarios through VEI, collect the trajectories, and train a model that learns the transition function. The simulation is the ground truth that bootstraps the learned model. Once the learned model is good enough, you could swap it in as a faster/cheaper prediction engine underneath the same API surface.
+The latest local pooled JEPA run over Enron, Dispatch, and a private startup
+archive was better calibrated than the heuristic baseline and improved all five
+business-head MAEs. That is evidence of useful factual forecasting. It is not
+proof that every counterfactual ranking is causally true; those rankings should
+be treated as decision-support outputs until backed by human, expert, or
+natural-experiment audit.
 
 What makes VEI more than a toy simulation is the *coherence* — changing one surface genuinely affects others in plausible ways, the contracts grade whether those ripple effects happened correctly, and the whole thing is deterministic and replayable. That coherence is what makes the generated training data valuable rather than random.
 

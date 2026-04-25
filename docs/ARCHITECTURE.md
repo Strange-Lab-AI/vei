@@ -345,13 +345,13 @@ VEI keeps the current router twins, but the public ontology now groups them as f
 
 ## What Is and Isn't Learned
 
-VEI today is a deterministic enterprise simulator, governed twin, and replay platform with a reference learned path. It is not a finished learned world model.
+VEI today is a deterministic enterprise simulator, governed twin, replay platform, and learned forecasting workbench. It is not a finished universal CEO recommender.
 
 **What is learned (in-repo, under `vei.dynamics`):**
 
 - The reference backend (`vei.dynamics.backends.reference`) absorbs the existing `benchmark_bridge` trainer: a real PyTorch model trained on canonical event sequences with AUROC, ECE, and held-out case evaluation.
 - Training reads only `CanonicalEvent` streams — never raw provider payloads.
-- `vei whatif benchmark build-multitenant` can now build the first pooled learned world-model experiment from multiple company-history snapshots, with per-tenant temporal holdouts and LLM-generated candidate actions restricted to pre-branch context. This is an offline benchmark/training path, not an always-on CEO recommender.
+- `vei whatif benchmark build-multitenant` builds the pooled learned world-model experiment from multiple company-history snapshots, with per-tenant temporal holdouts and candidate actions restricted to pre-branch context. Deterministic template generation is the default; API-backed LLM generation is explicit opt-in. Codex-session models are tested through Codex, not provider API keys. This is an offline benchmark/training path, not an always-on CEO recommender.
 
 **What is heuristic (not learned):**
 

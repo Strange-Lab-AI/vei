@@ -461,14 +461,28 @@ vei whatif benchmark study \
 
 ### Multi-company world-model experiment
 
-The first pooled learned world-model path is `vei whatif benchmark build-multitenant`. It accepts multiple normalized company-history snapshots and builds one benchmark dataset with strict per-company time splits. The intended Enron + Dispatch shape is:
+The pooled learned world-model path is `vei whatif benchmark build-multitenant`.
+It accepts multiple normalized company-history snapshots and builds one dataset
+with strict per-company time splits. A typical Enron + Dispatch + new-company
+run is:
 
-- train on earlier Enron plus earlier Dispatch rows
-- validate on later but non-final rows for each company
-- test on the final tail for each company
-- generate held-out counterfactual candidates from the same final-tail decision points
+- train on earlier rows from every company
+- validate on later but non-final rows for every company
+- test on the final tail for every company
+- generate held-out decision cases from final-tail branch points
 
-Candidate actions are generated from the branch event and pre-branch history only. The command writes the candidate prompt, generation model, pre-branch evidence hash, and `no_future_context=true` metadata for every generated candidate. It also writes a leakage report that checks train/heldout thread and event separation and checks that generated candidate prompts and judge dossiers do not contain recorded future-tail event markers.
+Candidate actions are generated from the branch event and pre-branch history
+only. The command writes the candidate prompt, generation model, pre-branch
+evidence hash, and `no_future_context=true` metadata for every generated
+candidate. It also writes a leakage report that checks train/heldout thread and
+event separation and checks that generated candidate prompts and judge dossiers
+do not contain recorded future-tail event markers.
+
+The default `template` candidate mode is deterministic and CI-safe. API-backed
+LLM generation is available as an explicit opt-in with
+`--candidate-mode llm --candidate-model <api-model>`. Codex-session models such
+as `gpt-5.3-codex-spark` should be tested through Codex sessions or subagents,
+not through provider API keys.
 
 ```bash
 vei whatif benchmark build-multitenant \
@@ -476,8 +490,7 @@ vei whatif benchmark build-multitenant \
   --input dispatch=/path/to/dispatch/context_snapshot.json \
   --artifacts-root _vei_out/world_model_multitenant \
   --label enron_dispatch_world_model \
-  --candidate-mode llm \
-  --candidate-model gpt-5-mini
+  --candidate-mode template
 
 vei whatif benchmark train \
   --root _vei_out/world_model_multitenant/enron_dispatch_world_model \
@@ -518,7 +531,9 @@ Treat this as an offline artifact-backed experiment, not a production-proven uni
 
 ### Critical-decision counterfactual runs
 
-`vei whatif benchmark critical-decisions` applies the trained pooled checkpoint to the kind of decision grid a CEO or manager can inspect. It is deliberately separate from training:
+`vei whatif benchmark critical-decisions` applies the trained pooled checkpoint
+to the kind of decision grid a CEO or manager can inspect. It is deliberately
+separate from training:
 
 - select critical branch points with deterministic pre-branch-only scoring
 - optionally restrict the pool to an existing benchmark's `test` and `heldout` split
@@ -531,34 +546,39 @@ Treat this as an offline artifact-backed experiment, not a production-proven uni
 ```bash
 vei whatif benchmark critical-decisions \
   --input dispatch=/path/to/dispatch/context_snapshot.json \
-  --input powrofyou=/path/to/powrofyou/context_snapshot.json \
-  --source-build-root _vei_out/world_model_multitenant_jepa/enron_dispatch_powrofyou \
-  --checkpoint _vei_out/world_model_multitenant_jepa/enron_dispatch_powrofyou/model_runs/jepa_latent/model.pt \
+  --input newco=/path/to/newco/context_snapshot.json \
+  --source-build-root _vei_out/world_model_multitenant_jepa/enron_dispatch_newco \
+  --checkpoint _vei_out/world_model_multitenant_jepa/enron_dispatch_newco/model_runs/jepa_latent/model.pt \
   --artifacts-root _vei_out/world_model_critical_decisions \
-  --label dispatch_powrofyou_critical \
+  --label dispatch_newco_critical \
   --cases-per-tenant 4 \
   --candidates-per-decision 10 \
-  --candidate-mode llm \
-  --candidate-model gpt-5-mini
+  --candidate-mode template
 ```
 
 The selection score is not a learned outcome label and does not use the future tail. It is a repeatable way to choose promising decision points from branch-time evidence: external scope, risk/governance terms, customer or commercial terms, product/delivery terms, coordination complexity, urgency/escalation, conflict/delay, and evidence pressure. JEPA then scores candidate actions from the pre-branch state.
 
 ### Current model state
 
-The current saved Enron public-context build uses 31 held-out cases with 4 candidate actions each across 10 case families. The fresh-clone headline path is now the shipped `full_context_transformer` reference backend under `data/enron/reference_backend/`.
+The fresh-clone learned path is the shipped `full_context_transformer`
+reference backend under `data/enron/reference_backend/`. It reports factual
+next-event AUROC `0.787817`, Brier `0.332025`, and calibration ECE `0.373951`
+on the held-out Enron validation split.
 
-The shipped reference checkpoint currently reports factual next-event AUROC `0.787817`, Brier `0.332025`, and calibration ECE `0.373951` on the held-out Enron validation split. That is the honest baseline for the thicker Enron timeline that now ships in the repo.
+The latest local pooled JEPA run combined Enron, Dispatch, and a private startup
+archive. It canonicalized `59,920` events, built `17,602` eligible branch rows,
+trained on `14,655` train/validation rows, and tested on `2,641` held-out rows.
+Against the heuristic baseline:
 
-The optional matched-input research study still compares the JEPA path against the same Enron benchmark contract. On the current 5-seed, 2-epoch rerun, the held-out decision checks came out like this:
+- external-spread calibration improved sharply: Brier `0.003` vs `0.547`, ECE `0.002` vs `0.688`
+- all five business-head MAEs improved: enterprise risk, commercial position, org strain, stakeholder trust, and execution drag
+- AUROC on the rare external-spread label was lower than the heuristic, so the result is not "better on every metric"
 
-- `jepa_latent`: `80.2/120` mean, `0.668 +/- 0.012`
-- `full_context_transformer`: `79.4/120` mean, `0.662 +/- 0.031`
-- `treatment_transformer`: `68.2/120` mean, `0.568 +/- 0.117`
-
-On the factual question of whether anything goes outside after the branch point, all three models stayed tightly grouped around `0.98` AUROC: `0.981` for `jepa_latent`, `0.982` for `full_context_transformer`, and `0.980` for `treatment_transformer`.
-
-The main point is that the fair rerun still favors the JEPA-style path on the Enron decision checks once the models read the same pre-branch contract and the result is averaged across seeds, while the treatment transformer shows the widest spread from seed to seed.
+The latest local critical-decision run selected 12 decisions and scored 120
+candidate actions. Leakage checks passed for train/test separation and for
+future-tail exclusion from prompts, generated candidates, and judge dossiers.
+Those rankings are useful decision-support outputs, not causal proof of what
+would definitely have happened.
 
 ### Important constraint
 

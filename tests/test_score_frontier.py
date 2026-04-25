@@ -283,6 +283,19 @@ def test_llm_judge_communication_uses_model_and_falls_back(
     assert frontier._llm_judge_communication([], {}) == pytest.approx(0.5)
 
 
+def test_llm_judge_prompt_rejects_codex_session_models(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(frontier, "HAS_OPENAI", True)
+
+    with pytest.raises(RuntimeError, match="Codex-session model"):
+        frontier.run_llm_judge_prompt(
+            "score this",
+            model="gpt-5.3-codex-spark",
+            max_tokens=8,
+        )
+
+
 def test_compute_frontier_score_builds_composite_and_handles_empty_trace(
     tmp_path: Path,
 ) -> None:

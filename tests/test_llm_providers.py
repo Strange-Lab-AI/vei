@@ -61,6 +61,46 @@ def test_plan_once_with_usage_supports_codex_provider(monkeypatch) -> None:
     assert recorded["timeout_s"] == 240
 
 
+def test_codex_session_models_route_to_codex_not_openai(monkeypatch) -> None:
+    recorded: dict[str, object] = {}
+
+    def fake_run_codex_json(**kwargs: object) -> dict[str, object]:
+        recorded.update(kwargs)
+        return {"tool": "tickets.get", "args": {"ticket_id": "TCK-1"}}
+
+    monkeypatch.setattr(providers, "run_codex_json", fake_run_codex_json)
+
+    result = asyncio.run(
+        providers.plan_once_with_usage(
+            provider="auto",
+            model="gpt-5.3-codex-spark",
+            system="system prompt",
+            user="user prompt",
+        )
+    )
+
+    assert result.usage.provider == "codex"
+    assert recorded["model"] == "gpt-5.3-codex-spark"
+
+
+def test_openai_provider_rejects_codex_session_model() -> None:
+    assert providers.auto_provider_for_model("gpt-5.3-codex-spark") == "codex"
+
+    try:
+        asyncio.run(
+            providers.plan_once_with_usage(
+                provider="openai",
+                model="gpt-5.3-codex-spark",
+                system="system prompt",
+                user="user prompt",
+            )
+        )
+    except RuntimeError as exc:
+        assert "Codex-session model" in str(exc)
+    else:  # pragma: no cover
+        raise AssertionError("expected Codex-session model guard")
+
+
 def test_codex_schema_normalizer_closes_objects_and_requires_all_keys() -> None:
     normalized = codex_cli._normalize_output_schema(
         {

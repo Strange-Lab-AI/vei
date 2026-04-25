@@ -364,15 +364,25 @@ The canonical files are:
 
 ### Learned world-model benchmarks
 
-The pooled learned path uses the same canonical timeline files, but turns them into branch-point training rows. Each row is:
+The learned path starts from the same canonical timeline files as the rest of
+VEI. It turns emails, tickets, ClickUp items, docs, and other dated work records
+into one event spine, then builds training rows that look like this:
 
 ```text
 pre-branch company state + candidate action -> observed future state
 ```
 
-For factual rows, the candidate action is the historical branch event and the target is the recorded future tail after that event. For held-out decision cases, candidate actions are generated from pre-branch context only, then scored by the trained model.
+For factual rows, the candidate action is the historical branch event and the
+target is what actually happened next. For decision cases, candidate actions are
+created from pre-branch context only, then scored by the trained model. The
+model is never supposed to see the recorded future when proposing or scoring
+those candidates.
 
-The JEPA benchmark model does not predict one magic number directly. It predicts a bundle of future evidence, business, objective, and macro-state heads. The single score shown in ranking tables is a convenience score computed from those predicted heads for a chosen objective.
+The JEPA benchmark model does not predict one magic number directly. It predicts
+a bundle of future heads: evidence flow, business risk, stakeholder trust,
+execution drag, governance pressure, and related signals. The single number in
+ranking tables is a convenience score computed from those predicted heads for a
+chosen objective.
 
 The current score flow is:
 
@@ -389,6 +399,16 @@ The predicted heads include:
 - business heads: `enterprise_risk`, `commercial_position_proxy`, `org_strain_proxy`, `stakeholder_trust`, `execution_drag`
 - future-state heads: `regulatory_exposure`, `accounting_control_pressure`, `liquidity_stress`, `governance_response`, `evidence_control`, `external_confidence_pressure`
 - objective scores such as `minimize_enterprise_risk`, `protect_commercial_position`, `reduce_org_strain`, `preserve_stakeholder_trust`, and `maintain_execution_velocity`
+
+In the latest local pooled run, the benchmark combined Enron, Dispatch, and a
+private startup archive into `59,920` canonical events and `17,602` eligible
+branch rows. The final JEPA run trained on `14,655` train/validation rows and
+tested on `2,641` held-out rows. It was much better calibrated than the heuristic
+baseline on the external-spread forecast (Brier `0.003` vs `0.547`, ECE `0.002`
+vs `0.688`) and had lower MAE on all five business heads. The heuristic still
+had higher AUROC on the rare external-spread label, so the honest read is:
+JEPA is the better calibrated factual forecaster in this run, but ranking
+counterfactual actions remains decision support, not causal proof.
 
 Build a pooled benchmark from multiple company-history bundles:
 
@@ -432,11 +452,22 @@ vei whatif benchmark critical-decisions \
   --label enron_dispatch_newco_critical \
   --cases-per-tenant 4 \
   --candidates-per-decision 10 \
-  --candidate-mode llm \
-  --candidate-model gpt-5-mini
+  --candidate-mode template
 ```
 
-That command is the reproducible CEO-decision workflow: select high-criticality branch points from branch plus pre-branch signals only, generate 8-12 concrete candidate actions per decision, save prompts/responses/evidence hashes, check future-tail leakage, score every candidate with the JEPA checkpoint, and export both CSV and Markdown ranking tables.
+That command is the reproducible CEO-decision workflow: select high-criticality
+branch points from branch plus pre-branch signals only, generate 8-12 concrete
+candidate actions per decision, save prompts/responses/evidence hashes, check
+future-tail leakage, score every candidate with the JEPA checkpoint, and export
+both CSV and Markdown ranking tables. The latest local critical-decision run
+selected 12 decisions, scored 120 candidate actions, and passed the leakage
+checks for future-tail prompts, generated candidates, judge dossiers, and train
+split separation.
+
+Use `--candidate-mode llm --candidate-model <api-model>` only when you want the
+CLI to call an API-available model directly. Codex-session models such as
+`gpt-5.3-codex-spark` should be tested through Codex sessions or subagents, not
+through provider API keys.
 
 ## Repo Checks
 
