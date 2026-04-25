@@ -18,6 +18,7 @@ from vei.score_common import (
     load_trace_records,
     trace_summary,
 )
+from vei.llm.codex_cli import run_codex_json
 
 # Optional LLM-as-judge import (graceful degradation if not available)
 try:
@@ -30,6 +31,35 @@ except ImportError:
 
 def _requires_codex_session(model: str) -> bool:
     return "codex" in model.strip().lower()
+
+
+def _run_codex_prompt(
+    prompt: str,
+    *,
+    model: str,
+    json_mode: bool,
+) -> str:
+    instruction = (
+        "Return the final answer as the `content` string. The content string "
+        "itself must be valid JSON, with no markdown fences or commentary."
+        if json_mode
+        else "Return the final answer as the `content` string, with no markdown fences."
+    )
+    payload = run_codex_json(
+        model=model,
+        prompt=f"{prompt}\n\n{instruction}",
+        output_schema={
+            "type": "object",
+            "properties": {"content": {"type": "string"}},
+            "required": ["content"],
+            "additionalProperties": False,
+        },
+        cwd=Path.cwd(),
+    )
+    content = str(payload.get("content") or "").strip()
+    if not content:
+        raise RuntimeError("Codex returned empty content")
+    return content
 
 
 def load_trace(artifacts_dir: Path) -> List[Dict[str, Any]]:
@@ -603,10 +633,7 @@ def run_llm_judge_prompt(
     json_mode: bool = False,
 ) -> str:
     if _requires_codex_session(model):
-        raise RuntimeError(
-            f"{model} is a Codex-session model. Exercise it through a Codex "
-            "session or subagent, not through a provider API key."
-        )
+        return _run_codex_prompt(prompt, model=model, json_mode=json_mode)
     if not HAS_OPENAI:
         raise RuntimeError("OpenAI client is not available")
     client = OpenAI()
@@ -628,3 +655,32 @@ def run_llm_judge_prompt(
     if content is None:
         raise RuntimeError("judge returned empty content")
     return content.strip()
+
+
+def run_llm_json_prompt(
+    prompt: str,
+    *,
+    model: str,
+    max_tokens: int,
+    output_schema: dict[str, Any],
+    temperature: float | None = None,
+) -> dict[str, Any]:
+    if _requires_codex_session(model):
+        payload = run_codex_json(
+            model=model,
+            prompt=prompt,
+            output_schema=output_schema,
+            cwd=Path.cwd(),
+        )
+        return dict(payload)
+    raw = run_llm_judge_prompt(
+        prompt,
+        model=model,
+        max_tokens=max_tokens,
+        temperature=temperature,
+        json_mode=True,
+    )
+    payload = json.loads(raw)
+    if not isinstance(payload, dict):
+        raise RuntimeError("LLM returned JSON that was not an object")
+    return payload

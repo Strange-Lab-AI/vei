@@ -404,9 +404,10 @@ In the latest local pooled run, the benchmark combined Enron, Dispatch, and a
 private startup archive into `59,920` canonical events and `17,602` eligible
 branch rows. The final JEPA run trained on `14,655` train/validation rows and
 tested on `2,641` held-out rows. It was much better calibrated than the heuristic
-baseline on the external-spread forecast (Brier `0.003` vs `0.547`, ECE `0.002`
-vs `0.688`) and had lower MAE on all five business heads. The heuristic still
-had higher AUROC on the rare external-spread label, so the honest read is:
+baseline on the external-spread forecast (Brier `0.00135` vs `0.54745`, ECE
+`0.00567` vs `0.68841`) and had lower MAE on all five business heads. The
+heuristic still had higher AUROC on the rare external-spread label (`0.92389` vs
+JEPA `0.89231`), so the honest read is:
 JEPA is the better calibrated factual forecaster in this run, but ranking
 counterfactual actions remains decision support, not causal proof.
 
@@ -460,14 +461,14 @@ branch points from branch plus pre-branch signals only, generate 8-12 concrete
 candidate actions per decision, save prompts/responses/evidence hashes, check
 future-tail leakage, score every candidate with the JEPA checkpoint, and export
 both CSV and Markdown ranking tables. The latest local critical-decision run
-selected 12 decisions, scored 120 candidate actions, and passed the leakage
-checks for future-tail prompts, generated candidates, judge dossiers, and train
-split separation.
+selected 12 decisions, generated 120 live Codex-backed candidate actions with
+`gpt-5.3-codex-spark`, scored them with the JEPA checkpoint, and passed the
+leakage checks for future-tail prompts, generated candidates, judge dossiers,
+and train split separation.
 
-Use `--candidate-mode llm --candidate-model <api-model>` only when you want the
-CLI to call an API-available model directly. Codex-session models such as
-`gpt-5.3-codex-spark` should be tested through Codex sessions or subagents, not
-through provider API keys.
+Use `--candidate-mode llm` when you want live LLM-generated candidates. Ordinary
+API-available models still use the direct API path. Codex-session models such as
+`gpt-5.3-codex-spark` route through Codex instead of provider API keys.
 
 ## Repo Checks
 

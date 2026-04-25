@@ -9,7 +9,7 @@ from typing import Any, Literal, Sequence
 
 from pydantic import BaseModel, Field
 
-from ..score_frontier import run_llm_judge_prompt
+from ..score_frontier import run_llm_json_prompt
 from ._benchmark_dossiers import build_dossier_files as _write_case_dossiers
 from ._benchmark_utils import slug as _slug
 from ._benchmark_utils import write_jsonl as _write_jsonl
@@ -735,14 +735,13 @@ def _generate_candidates_for_item(
         history=[event_reference(event) for event in item.history_events[-8:]],
     )
     if mode == "llm":
-        raw = run_llm_judge_prompt(
+        payload = run_llm_json_prompt(
             prompt,
             model=model,
             max_tokens=1600,
+            output_schema=_candidate_generation_schema(),
             temperature=0.0,
-            json_mode=True,
         )
-        payload = json.loads(raw)
         proposals = list(payload.get("candidates") or [])
         source = "llm"
     else:
@@ -774,6 +773,34 @@ def _generate_candidates_for_item(
             "no_future_context": True,
             "candidate_ids": [candidate.candidate_id for candidate in candidates],
         },
+    }
+
+
+def _candidate_generation_schema() -> dict[str, Any]:
+    return {
+        "type": "object",
+        "properties": {
+            "candidates": {
+                "type": "array",
+                "minItems": len(_REQUIRED_POSTURES),
+                "maxItems": len(_REQUIRED_POSTURES),
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "posture": {
+                            "type": "string",
+                            "enum": list(_REQUIRED_POSTURES),
+                        },
+                        "label": {"type": "string"},
+                        "prompt": {"type": "string"},
+                    },
+                    "required": ["posture", "label", "prompt"],
+                    "additionalProperties": False,
+                },
+            }
+        },
+        "required": ["candidates"],
+        "additionalProperties": False,
     }
 
 

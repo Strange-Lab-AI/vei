@@ -283,17 +283,57 @@ def test_llm_judge_communication_uses_model_and_falls_back(
     assert frontier._llm_judge_communication([], {}) == pytest.approx(0.5)
 
 
-def test_llm_judge_prompt_rejects_codex_session_models(
+def test_llm_judge_prompt_routes_codex_session_models_through_codex(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr(frontier, "HAS_OPENAI", True)
+    calls: list[dict[str, object]] = []
 
-    with pytest.raises(RuntimeError, match="Codex-session model"):
-        frontier.run_llm_judge_prompt(
-            "score this",
-            model="gpt-5.3-codex-spark",
-            max_tokens=8,
-        )
+    def fake_run_codex_json(**kwargs: object) -> dict[str, object]:
+        calls.append(dict(kwargs))
+        return {"content": '{"ok": true}'}
+
+    monkeypatch.setattr(frontier, "run_codex_json", fake_run_codex_json)
+
+    result = frontier.run_llm_judge_prompt(
+        "score this",
+        model="gpt-5.3-codex-spark",
+        max_tokens=8,
+        json_mode=True,
+    )
+
+    assert result == '{"ok": true}'
+    assert calls
+    assert calls[0]["model"] == "gpt-5.3-codex-spark"
+    assert "valid JSON" in str(calls[0]["prompt"])
+
+
+def test_llm_json_prompt_routes_codex_with_schema(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[dict[str, object]] = []
+    schema = {
+        "type": "object",
+        "properties": {"ok": {"type": "boolean"}},
+        "required": ["ok"],
+        "additionalProperties": False,
+    }
+
+    def fake_run_codex_json(**kwargs: object) -> dict[str, object]:
+        calls.append(dict(kwargs))
+        return {"ok": True}
+
+    monkeypatch.setattr(frontier, "run_codex_json", fake_run_codex_json)
+
+    result = frontier.run_llm_json_prompt(
+        "return ok",
+        model="gpt-5.3-codex-spark",
+        max_tokens=8,
+        output_schema=schema,
+    )
+
+    assert result == {"ok": True}
+    assert calls[0]["model"] == "gpt-5.3-codex-spark"
+    assert calls[0]["output_schema"] == schema
 
 
 def test_compute_frontier_score_builds_composite_and_handles_empty_trace(
