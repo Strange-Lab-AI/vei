@@ -66,7 +66,11 @@ def _parse_multitenant_inputs(entries: list[str]) -> list[MultiTenantBenchmarkSo
                 f"tenant {tenant_id.strip()!r} is not ready for world-model training "
                 f"(readiness_label={label}). {notes}".strip()
             )
-        world = load_world(source="company_history", source_dir=path)
+        world = load_world(
+            source="company_history",
+            source_dir=path,
+            include_situation_graph=False,
+        )
         sources.append(
             MultiTenantBenchmarkSource(
                 tenant_id=tenant_id.strip(),
@@ -171,6 +175,14 @@ def register_benchmark_commands(benchmark_app: typer.Typer) -> None:
             6,
             help="Post-branch events used as the finite factual forecast horizon",
         ),
+        max_branch_rows_per_thread: int = typer.Option(
+            24,
+            min=1,
+            help=(
+                "Maximum branch rows sampled from one long thread. Keeps large "
+                "mailbox threads from dominating the benchmark."
+            ),
+        ),
         candidate_mode: str = typer.Option(
             "llm",
             help="Candidate generation mode: llm | template",
@@ -194,6 +206,7 @@ def register_benchmark_commands(benchmark_app: typer.Typer) -> None:
             ),
             candidate_model=candidate_model,
             future_horizon_events=future_horizon_events,
+            max_branch_rows_per_thread=max_branch_rows_per_thread,
         )
         payload = (
             render_benchmark_build(result)
@@ -215,6 +228,22 @@ def register_benchmark_commands(benchmark_app: typer.Typer) -> None:
             None,
             help="Optional JEPA runtime root with torch installed",
         ),
+        train_split: list[str] | None = typer.Option(
+            None,
+            "--train-split",
+            help=(
+                "Dataset split to use for fitting. Repeat to final-fit on more "
+                "history, e.g. --train-split train --train-split validation."
+            ),
+        ),
+        validation_split: list[str] | None = typer.Option(
+            None,
+            "--validation-split",
+            help=(
+                "Dataset split used for validation loss. Repeat if needed. "
+                "Defaults to validation."
+            ),
+        ),
         format: str = typer.Option("json", help="Output format: json | markdown"),
     ) -> None:
         """Train one benchmark model family against observed Enron futures."""
@@ -229,6 +258,8 @@ def register_benchmark_commands(benchmark_app: typer.Typer) -> None:
             seed=seed,
             device=device,
             runtime_root=runtime_root,
+            train_splits=train_split,
+            validation_splits=validation_split,
         )
         payload = (
             render_benchmark_train(result)

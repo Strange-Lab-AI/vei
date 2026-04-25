@@ -27,6 +27,8 @@ def run_branch_point_benchmark_training(
     device: str | None = None,
     runtime_root: str | Path | None = None,
     output_root: str | Path | None = None,
+    train_splits: list[str] | None = None,
+    validation_splits: list[str] | None = None,
 ) -> WhatIfBenchmarkTrainResult:
     model_root = (
         Path(output_root).expanduser().resolve()
@@ -43,6 +45,8 @@ def run_branch_point_benchmark_training(
         "learning_rate": float(learning_rate),
         "seed": int(seed),
         "device": device or "",
+        "train_splits": list(train_splits or ["train"]),
+        "validation_splits": list(validation_splits or ["validation"]),
     }
     response_path = _run_bridge_command(
         command_name="train",

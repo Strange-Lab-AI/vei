@@ -101,9 +101,12 @@ def build_multitenant_world_model_benchmark(
     candidate_generation_mode: CandidateGenerationMode = "llm",
     candidate_model: str = "gpt-5-mini",
     future_horizon_events: int = 6,
+    max_branch_rows_per_thread: int = 24,
 ) -> WhatIfBenchmarkBuildResult:
     if not sources:
         raise ValueError("at least one source is required")
+    if max_branch_rows_per_thread < 1:
+        raise ValueError("max_branch_rows_per_thread must be at least 1")
 
     root = Path(artifacts_root).expanduser().resolve() / _slug(label)
     root.mkdir(parents=True, exist_ok=True)
@@ -111,6 +114,7 @@ def build_multitenant_world_model_benchmark(
     heldout_cases_path = root / "heldout_cases.json"
     judge_template_path = root / "judged_ranking_template.json"
     audit_template_path = root / "audit_record_template.json"
+    data_provenance_path = root / "data_provenance_report.json"
     dossier_root = root / "dossiers"
     dataset_root = root / "dataset"
     dataset_root.mkdir(parents=True, exist_ok=True)
@@ -129,12 +133,24 @@ def build_multitenant_world_model_benchmark(
         "tenants": {},
         "candidate_cases": [],
     }
+    provenance_manifest: dict[str, Any] = {
+        "label": label,
+        "benchmark_kind": "multitenant_world_model",
+        "max_branch_rows_per_thread": max_branch_rows_per_thread,
+        "notes": [
+            "Canonical event counts are loaded from the already-materialized context snapshot.",
+            "Eligible branch rows require at least one pre-branch event and at least one future event in the same thread.",
+            "Heldout rows are final-tail test rows duplicated into the heldout split for counterfactual scoring.",
+        ],
+        "tenants": {},
+    }
 
     for source in sources:
         _validate_source_readiness(source)
         tenant_rows = _build_tenant_rows(
             source,
             future_horizon_events=future_horizon_events,
+            max_branch_rows_per_thread=max_branch_rows_per_thread,
         )
         if not tenant_rows:
             raise ValueError(f"no eligible branch rows for tenant {source.tenant_id!r}")
@@ -142,6 +158,9 @@ def build_multitenant_world_model_benchmark(
             tenant_rows,
             heldout_cases_per_tenant=heldout_cases_per_tenant,
         )
+        tenant_split_counts = {
+            split_name: len(rows) for split_name, rows in tenant_splits.items()
+        }
         for split_name, rows in tenant_splits.items():
             split_rows[split_name].extend(rows)
         heldout_candidates.extend(tenant_heldout)
@@ -149,12 +168,18 @@ def build_multitenant_world_model_benchmark(
             "display_name": source.display_name
             or source.world.summary.organization_name,
             "row_count": len(tenant_rows),
-            "split_counts": {
-                split_name: len(rows) for split_name, rows in tenant_splits.items()
-            },
+            "split_counts": tenant_split_counts,
             "heldout_case_count": len(tenant_heldout),
             "future_horizon_events": future_horizon_events,
         }
+        provenance_manifest["tenants"][source.tenant_id] = _tenant_provenance_payload(
+            source=source,
+            eligible_branch_rows=len(tenant_rows),
+            split_counts=tenant_split_counts,
+            heldout_case_count=len(tenant_heldout),
+            future_horizon_events=future_horizon_events,
+            max_branch_rows_per_thread=max_branch_rows_per_thread,
+        )
 
     benchmark_cases: list[WhatIfBenchmarkCase] = []
     heldout_rows: list[WhatIfBenchmarkDatasetRow] = []
@@ -255,6 +280,12 @@ def build_multitenant_world_model_benchmark(
         json.dumps(candidate_manifest, indent=2),
         encoding="utf-8",
     )
+    provenance_manifest["dataset_split_counts"] = split_counts
+    provenance_manifest["tenant_count"] = len(sources)
+    data_provenance_path.write_text(
+        json.dumps(provenance_manifest, indent=2),
+        encoding="utf-8",
+    )
 
     dataset_manifest = WhatIfBenchmarkDatasetManifest(
         root=dataset_root,
@@ -271,8 +302,10 @@ def build_multitenant_world_model_benchmark(
             "candidate_model": candidate_model,
             "heldout_cases_per_tenant": heldout_cases_per_tenant,
             "future_horizon_events": future_horizon_events,
+            "max_branch_rows_per_thread": max_branch_rows_per_thread,
             "candidate_generation_manifest_path": str(candidate_manifest_path),
             "leakage_report_path": str(leakage_path),
+            "data_provenance_report_path": str(data_provenance_path),
         },
     )
     (dataset_root / "dataset_manifest.json").write_text(
@@ -296,6 +329,8 @@ def build_multitenant_world_model_benchmark(
             "benchmark_kind": "multitenant_world_model",
             "candidate_generation_manifest_path": str(candidate_manifest_path),
             "leakage_report_path": str(leakage_path),
+            "data_provenance_report_path": str(data_provenance_path),
+            "max_branch_rows_per_thread": max_branch_rows_per_thread,
         },
     )
     build_path.write_text(result.model_dump_json(indent=2), encoding="utf-8")
@@ -364,6 +399,81 @@ def _validate_source_readiness(source: MultiTenantBenchmarkSource) -> None:
     )
 
 
+def _tenant_provenance_payload(
+    *,
+    source: MultiTenantBenchmarkSource,
+    eligible_branch_rows: int,
+    split_counts: dict[str, int],
+    heldout_case_count: int,
+    future_horizon_events: int,
+    max_branch_rows_per_thread: int,
+) -> dict[str, Any]:
+    source_count_total = 0
+    source_records = _source_record_counts(source)
+    for record in source_records:
+        counts = record.get("record_counts") or {}
+        if isinstance(counts, dict):
+            source_count_total += sum(
+                int(value) for value in counts.values() if isinstance(value, int)
+            )
+    used_split_rows = sum(split_counts.values())
+    return {
+        "display_name": source.display_name
+        or source.world.summary.organization_name
+        or source.tenant_id,
+        "readiness": source.readiness,
+        "source_record_counts": source_records,
+        "source_record_count_total": source_count_total,
+        "canonical_event_count": source.world.summary.event_count,
+        "canonical_thread_count": source.world.summary.thread_count,
+        "canonical_actor_count": source.world.summary.actor_count,
+        "eligible_branch_rows": eligible_branch_rows,
+        "split_counts": split_counts,
+        "heldout_case_count": heldout_case_count,
+        "dropped_by_temporal_split": max(0, eligible_branch_rows - used_split_rows),
+        "future_horizon_events": future_horizon_events,
+        "max_branch_rows_per_thread": max_branch_rows_per_thread,
+    }
+
+
+def _source_record_counts(source: MultiTenantBenchmarkSource) -> list[dict[str, Any]]:
+    snapshot_path = _context_snapshot_path(source.world.source_dir)
+    if snapshot_path is None:
+        return []
+    try:
+        payload = json.loads(snapshot_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return []
+    source_payloads = payload.get("sources")
+    if not isinstance(source_payloads, list):
+        return []
+    records: list[dict[str, Any]] = []
+    for item in source_payloads:
+        if not isinstance(item, dict):
+            continue
+        record_counts = item.get("record_counts")
+        records.append(
+            {
+                "provider": item.get("provider") or "",
+                "status": item.get("status") or "",
+                "record_counts": (
+                    record_counts if isinstance(record_counts, dict) else {}
+                ),
+            }
+        )
+    return records
+
+
+def _context_snapshot_path(path: Path) -> Path | None:
+    candidate = Path(path).expanduser()
+    if candidate.is_file():
+        return candidate
+    context_path = candidate / "context_snapshot.json"
+    if context_path.is_file():
+        return context_path
+    return None
+
+
 def validate_candidate_diversity(
     candidates: Sequence[WhatIfBenchmarkCandidate],
 ) -> None:
@@ -401,6 +511,7 @@ def _build_tenant_rows(
     source: MultiTenantBenchmarkSource,
     *,
     future_horizon_events: int,
+    max_branch_rows_per_thread: int,
 ) -> list[_RowCandidate]:
     events_by_thread = _group_events_by_thread(source.world.events)
     thread_subjects = {
@@ -410,7 +521,10 @@ def _build_tenant_rows(
     for raw_thread_id, timeline in events_by_thread.items():
         if len(timeline) < 3:
             continue
-        for branch_index in range(1, len(timeline) - 1):
+        for branch_index in _branch_indices_for_timeline(
+            len(timeline),
+            max_branch_rows_per_thread=max_branch_rows_per_thread,
+        ):
             branch_event = timeline[branch_index]
             history_events = list(timeline[:branch_index])
             if future_horizon_events > 0:
@@ -506,12 +620,39 @@ def _row_candidate_from_branch(
         row=row,
         branch_event=normalized_branch,
         raw_branch_event_id=branch_event.event_id,
-        history_events=list(history_events),
+        history_events=list(history_events[-8:]),
         future_events=list(future_events),
         subject=subject,
         branch_timestamp_ms=branch_event.timestamp_ms,
         target_end_timestamp_ms=max(event.timestamp_ms for event in future_events),
     )
+
+
+def _branch_indices_for_timeline(
+    event_count: int,
+    *,
+    max_branch_rows_per_thread: int,
+) -> list[int]:
+    if event_count < 3:
+        return []
+    branch_indices = list(range(1, event_count - 1))
+    if len(branch_indices) <= max_branch_rows_per_thread:
+        return branch_indices
+    if max_branch_rows_per_thread == 1:
+        return [branch_indices[-1]]
+
+    sampled: list[int] = []
+    last_index = len(branch_indices) - 1
+    for sample_index in range(max_branch_rows_per_thread):
+        raw_position = round(
+            sample_index * last_index / max(max_branch_rows_per_thread - 1, 1)
+        )
+        branch_index = branch_indices[raw_position]
+        if branch_index not in sampled:
+            sampled.append(branch_index)
+    if sampled[-1] != branch_indices[-1]:
+        sampled[-1] = branch_indices[-1]
+    return sampled
 
 
 def _split_tenant_rows(

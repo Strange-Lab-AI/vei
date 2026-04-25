@@ -131,6 +131,7 @@ def load_world(
     custodian_filter: Sequence[str] | None = None,
     max_events: int | None = None,
     include_content: bool = False,
+    include_situation_graph: bool = True,
 ) -> WhatIfWorld:
     if source_dir is None and rosetta_dir is None:
         raise ValueError("source_dir is required")
@@ -166,6 +167,7 @@ def load_world(
             time_window=time_window,
             max_events=max_events,
             include_content=include_content,
+            include_situation_graph=include_situation_graph,
         )
     raise ValueError(f"unsupported what-if source: {source}")
 

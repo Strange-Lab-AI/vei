@@ -11,6 +11,7 @@ from vei.cli import whatif_benchmark as benchmark_cli
 from vei.cli.vei import app as cli_app
 from vei.context.canonical_history import CanonicalHistoryReadinessReport
 from vei.whatif.corpus import build_thread_summaries
+from vei.whatif import benchmark_bridge as benchmark_bridge_runtime
 from vei.whatif.benchmark import (
     evaluate_branch_point_benchmark_model,
     load_branch_point_benchmark_build_result,
@@ -46,12 +47,24 @@ def test_multitenant_benchmark_uses_temporal_holdouts_without_prompt_leakage(
         organization_domain="enron.com",
         start_ms=1_000_000,
     )
+    enron_world = _with_context_snapshot(
+        enron_world,
+        tmp_path / "enron_snapshot",
+        provider="mail",
+        record_counts={"messages": 18, "threads": 6},
+    )
     dispatch_world = _tenant_world(
         tmp_path=tmp_path,
         tenant_id="dispatch",
         organization_name="Dispatch",
         organization_domain="dispatch.example",
         start_ms=2_000_000,
+    )
+    dispatch_world = _with_context_snapshot(
+        dispatch_world,
+        tmp_path / "dispatch_snapshot",
+        provider="clickup",
+        record_counts={"tasks": 6},
     )
 
     result = build_multitenant_world_model_benchmark(
@@ -133,6 +146,20 @@ def test_multitenant_benchmark_uses_temporal_holdouts_without_prompt_leakage(
         assert "future tail marker" not in prompt
         assert item["pre_branch_evidence_sha256"]
 
+    provenance_report = json.loads(
+        Path(result.dataset.metadata["data_provenance_report_path"]).read_text(
+            encoding="utf-8"
+        )
+    )
+    assert provenance_report["dataset_split_counts"] == result.dataset.split_row_counts
+    assert (
+        provenance_report["tenants"]["enron"]["source_record_counts"][0][
+            "record_counts"
+        ]["messages"]
+        == 18
+    )
+    assert provenance_report["tenants"]["dispatch"]["canonical_event_count"] == 18
+
 
 def test_multitenant_benchmark_uses_rolling_branch_rows_from_long_threads(
     tmp_path: Path,
@@ -180,6 +207,47 @@ def test_multitenant_benchmark_uses_rolling_branch_rows_from_long_threads(
     assert fit_branch_event_ids.isdisjoint(heldout_branch_event_ids)
 
 
+def test_multitenant_benchmark_caps_branch_rows_from_very_long_threads(
+    tmp_path: Path,
+) -> None:
+    world = _tenant_world(
+        tmp_path=tmp_path,
+        tenant_id="powrofyou",
+        organization_name="Powr of You",
+        organization_domain="powrofyou.com",
+        start_ms=3_000_000,
+        event_count_per_thread=50,
+    )
+
+    result = build_multitenant_world_model_benchmark(
+        [
+            MultiTenantBenchmarkSource(
+                tenant_id="powrofyou",
+                world=world,
+                display_name="Powr of You",
+            ),
+        ],
+        artifacts_root=tmp_path / "world_model_multitenant",
+        label="capped_long_thread_fixture",
+        heldout_cases_per_tenant=1,
+        candidate_generation_mode="template",
+        candidate_model="template-fixture",
+        max_branch_rows_per_thread=5,
+    )
+
+    split_counts = result.dataset.split_row_counts
+    assert (
+        split_counts["train"] + split_counts["validation"] + split_counts["test"] <= 30
+    )
+    assert result.dataset.metadata["max_branch_rows_per_thread"] == 5
+    provenance_report = json.loads(
+        Path(result.dataset.metadata["data_provenance_report_path"]).read_text(
+            encoding="utf-8"
+        )
+    )
+    assert provenance_report["tenants"]["powrofyou"]["max_branch_rows_per_thread"] == 5
+
+
 def test_multitenant_benchmark_cli_builds_from_multiple_context_inputs(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -201,8 +269,14 @@ def test_multitenant_benchmark_cli_builds_from_multiple_context_inputs(
         ),
     }
 
-    def fake_load_world(*, source: str, source_dir: Path) -> WhatIfWorld:
+    def fake_load_world(
+        *,
+        source: str,
+        source_dir: Path,
+        include_situation_graph: bool = True,
+    ) -> WhatIfWorld:
         assert source == "company_history"
+        assert include_situation_graph is False
         return worlds[source_dir.name]
 
     monkeypatch.setattr(benchmark_cli, "load_world", fake_load_world)
@@ -325,6 +399,8 @@ def test_multitenant_benchmark_uses_existing_train_and_eval_boundary(
         loaded = load_branch_point_benchmark_build_result(str(kwargs["build_root"]))
         assert loaded.dataset.metadata["benchmark_kind"] == "multitenant_world_model"
         assert loaded.dataset.split_row_counts["test"] == 2
+        train_splits = list(kwargs.get("train_splits") or ["train"])
+        validation_splits = list(kwargs.get("validation_splits") or ["validation"])
         output_root = kwargs.get("output_root")
         model_id = str(kwargs["model_id"])
         model_root = (
@@ -347,8 +423,14 @@ def test_multitenant_benchmark_uses_existing_train_and_eval_boundary(
             train_loss=0.1,
             validation_loss=0.2,
             epoch_count=1,
-            train_row_count=loaded.dataset.split_row_counts["train"],
-            validation_row_count=loaded.dataset.split_row_counts["validation"],
+            train_row_count=sum(
+                loaded.dataset.split_row_counts[split_name]
+                for split_name in train_splits
+            ),
+            validation_row_count=sum(
+                loaded.dataset.split_row_counts[split_name]
+                for split_name in validation_splits
+            ),
             artifacts=artifacts,
         )
         artifacts.train_result_path.write_text(
@@ -403,14 +485,36 @@ def test_multitenant_benchmark_uses_existing_train_and_eval_boundary(
         build.artifacts.root,
         model_id="full_context_transformer",
         epochs=1,
+        train_splits=["train", "validation"],
+        validation_splits=["test"],
     )
     eval_result = evaluate_branch_point_benchmark_model(
         build.artifacts.root,
         model_id="full_context_transformer",
     )
 
-    assert train_result.train_row_count == 8
+    assert train_result.train_row_count == 10
+    assert train_result.validation_row_count == 2
     assert eval_result.observed_metrics.auroc_any_external_spread == 0.75
+
+
+def test_benchmark_split_parser_prevents_training_on_test_split() -> None:
+    assert benchmark_bridge_runtime._dataset_split_names(
+        ["train", "validation"],
+        default=("train",),
+        allowed=("train", "validation"),
+    ) == ["train", "validation"]
+    assert benchmark_bridge_runtime._dataset_split_names(
+        "test",
+        default=("validation",),
+        allowed=("validation", "test"),
+    ) == ["test"]
+    with pytest.raises(ValueError, match="unsupported dataset split"):
+        benchmark_bridge_runtime._dataset_split_names(
+            "test",
+            default=("train",),
+            allowed=("train", "validation"),
+        )
 
 
 def test_multitenant_benchmark_can_eval_heuristic_baseline_comparator(
@@ -582,6 +686,31 @@ def _tenant_world(
         threads=threads,
         events=ordered,
     )
+
+
+def _with_context_snapshot(
+    world: WhatIfWorld,
+    path: Path,
+    *,
+    provider: str,
+    record_counts: dict[str, int],
+) -> WhatIfWorld:
+    path.mkdir(parents=True, exist_ok=True)
+    (path / "context_snapshot.json").write_text(
+        json.dumps(
+            {
+                "sources": [
+                    {
+                        "provider": provider,
+                        "status": "ok",
+                        "record_counts": record_counts,
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+    return world.model_copy(update={"source_dir": path / "context_snapshot.json"})
 
 
 def _event(

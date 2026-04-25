@@ -73,6 +73,7 @@ def load_company_history_world(
     time_window: tuple[str, str] | None = None,
     max_events: int | None = None,
     include_content: bool = False,
+    include_situation_graph: bool = True,
 ) -> WhatIfWorld:
     resolved_source_dir = Path(source_dir).expanduser().resolve()
     canonical_world = load_company_history_world_from_canonical(
@@ -81,6 +82,7 @@ def load_company_history_world(
         time_window=time_window,
         max_events=max_events,
         include_content=include_content,
+        include_situation_graph=include_situation_graph,
     )
     if canonical_world is not None:
         return canonical_world
@@ -122,10 +124,14 @@ def load_company_history_world(
         organization_domain=organization_domain,
     )
     cases = build_case_summaries(events)
-    situation_graph = build_situation_graph(
-        threads=threads,
-        cases=cases,
-        events=events,
+    situation_graph = (
+        build_situation_graph(
+            threads=threads,
+            cases=cases,
+            events=events,
+        )
+        if include_situation_graph
+        else None
     )
     summary = WhatIfWorldSummary(
         source="company_history",
@@ -174,6 +180,7 @@ def load_company_history_world_from_canonical(
     time_window: tuple[str, str] | None = None,
     max_events: int | None = None,
     include_content: bool = False,
+    include_situation_graph: bool = True,
 ) -> WhatIfWorld | None:
     resolved_source_dir = Path(source_dir).expanduser().resolve()
     bundle = load_canonical_history_bundle(resolved_source_dir)
@@ -212,10 +219,14 @@ def load_company_history_world_from_canonical(
         organization_domain=organization_domain,
     )
     cases = build_case_summaries(events)
-    situation_graph = build_situation_graph(
-        threads=threads,
-        cases=cases,
-        events=events,
+    situation_graph = (
+        build_situation_graph(
+            threads=threads,
+            cases=cases,
+            events=events,
+        )
+        if include_situation_graph
+        else None
     )
     summary = WhatIfWorldSummary(
         source="company_history",

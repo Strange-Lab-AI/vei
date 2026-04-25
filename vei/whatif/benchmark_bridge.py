@@ -201,9 +201,21 @@ def _train_from_request(path: Path) -> WhatIfBenchmarkTrainResult:
 
     build = load_branch_point_benchmark_build_result(request["build_root"])
     dataset = _load_dataset_rows(build.dataset.split_paths)
+    train_split_names = _dataset_split_names(
+        request.get("train_splits"),
+        default=("train",),
+        allowed=("train", "validation"),
+    )
+    validation_split_names = _dataset_split_names(
+        request.get("validation_splits"),
+        default=("validation",),
+        allowed=("validation", "test"),
+    )
+    source_train_rows = _rows_for_splits(dataset, train_split_names)
+    source_validation_rows = _rows_for_splits(dataset, validation_split_names)
     preprocessor = _fit_preprocessor(
-        train_rows=dataset["train"],
-        validation_rows=dataset["validation"],
+        train_rows=source_train_rows,
+        validation_rows=source_validation_rows,
         test_rows=dataset["test"],
         heldout_rows=dataset["heldout"],
         cases=build.cases,
@@ -214,10 +226,14 @@ def _train_from_request(path: Path) -> WhatIfBenchmarkTrainResult:
             build=build,
             dataset=dataset,
             preprocessor=preprocessor,
+            train_row_count=len(source_train_rows),
+            validation_row_count=len(source_validation_rows),
+            train_split_names=train_split_names,
+            validation_split_names=validation_split_names,
         )
 
-    train_rows = [preprocessor.encode_row(row) for row in dataset["train"]]
-    validation_rows = [preprocessor.encode_row(row) for row in dataset["validation"]]
+    train_rows = [preprocessor.encode_row(row) for row in source_train_rows]
+    validation_rows = [preprocessor.encode_row(row) for row in source_validation_rows]
 
     config = _TrainConfig(
         epochs=int(request.get("epochs", 12)),
@@ -259,6 +275,10 @@ def _train_from_request(path: Path) -> WhatIfBenchmarkTrainResult:
         notes=[
             f"device={config.device}",
             f"seed={config.seed}",
+            f"train_splits={','.join(train_split_names)}",
+            f"validation_splits={','.join(validation_split_names)}",
+            f"test_rows={len(dataset['test'])}",
+            f"heldout_rows={len(dataset['heldout'])}",
             f"summary_features={len(preprocessor.summary_feature_names)}",
             f"action_tags={len(preprocessor.action_tag_names)}",
             f"event_types={len(preprocessor.event_type_names)}",
@@ -359,6 +379,10 @@ def _train_heuristic_baseline(
     build,
     dataset: dict[str, list[WhatIfBenchmarkDatasetRow]],
     preprocessor: "BenchmarkPreprocessor",
+    train_row_count: int | None = None,
+    validation_row_count: int | None = None,
+    train_split_names: Sequence[str] = ("train",),
+    validation_split_names: Sequence[str] = ("validation",),
 ) -> WhatIfBenchmarkTrainResult:
     model_path = output_root / "model.pt"
     metadata_path = output_root / "metadata.json"
@@ -383,10 +407,18 @@ def _train_heuristic_baseline(
         train_loss=0.0,
         validation_loss=0.0,
         epoch_count=0,
-        train_row_count=len(dataset["train"]),
-        validation_row_count=len(dataset["validation"]),
+        train_row_count=(
+            train_row_count if train_row_count is not None else len(dataset["train"])
+        ),
+        validation_row_count=(
+            validation_row_count
+            if validation_row_count is not None
+            else len(dataset["validation"])
+        ),
         notes=[
             "heuristic_baseline uses action-schema rules and trains no weights",
+            f"train_splits={','.join(train_split_names)}",
+            f"validation_splits={','.join(validation_split_names)}",
             f"test_rows={len(dataset['test'])}",
             f"heldout_rows={len(dataset['heldout'])}",
         ],
@@ -529,6 +561,52 @@ def _load_dataset_rows(
             rows.append(WhatIfBenchmarkDatasetRow.model_validate_json(line))
         result[split_name] = rows
     return result
+
+
+def _dataset_split_names(
+    raw: Any,
+    *,
+    default: Sequence[str],
+    allowed: Sequence[str],
+) -> list[str]:
+    if raw is None or raw == "":
+        values = list(default)
+    elif isinstance(raw, str):
+        values = [part.strip() for part in raw.split(",")]
+    elif isinstance(raw, Sequence):
+        values = []
+        for item in raw:
+            values.extend(str(item).split(","))
+        values = [part.strip() for part in values]
+    else:
+        raise ValueError("dataset split names must be a string or sequence")
+
+    allowed_set = set(allowed)
+
+    result: list[str] = []
+    for value in values:
+        if not value:
+            continue
+        if value not in allowed_set:
+            choices = ", ".join(sorted(allowed_set))
+            raise ValueError(
+                f"unsupported dataset split {value!r}; choose one of: {choices}"
+            )
+        if value not in result:
+            result.append(value)
+    if not result:
+        raise ValueError("at least one dataset split is required")
+    return result
+
+
+def _rows_for_splits(
+    dataset: dict[str, list[WhatIfBenchmarkDatasetRow]],
+    split_names: Sequence[str],
+) -> list[WhatIfBenchmarkDatasetRow]:
+    rows: list[WhatIfBenchmarkDatasetRow] = []
+    for split_name in split_names:
+        rows.extend(dataset.get(split_name, []))
+    return rows
 
 
 def load_checkpoint(path: Path) -> dict[str, Any]:

@@ -373,6 +373,8 @@ def train_branch_point_benchmark_model(
     device: str | None = None,
     runtime_root: str | Path | None = None,
     output_root: str | Path | None = None,
+    train_splits: list[str] | None = None,
+    validation_splits: list[str] | None = None,
 ) -> WhatIfBenchmarkTrainResult:
     return run_branch_point_benchmark_training(
         build_root=root,
@@ -384,6 +386,8 @@ def train_branch_point_benchmark_model(
         device=device,
         runtime_root=runtime_root,
         output_root=output_root,
+        train_splits=train_splits,
+        validation_splits=validation_splits,
     )
 
 
