@@ -478,11 +478,10 @@ candidate. It also writes a leakage report that checks train/heldout thread and
 event separation and checks that generated candidate prompts and judge dossiers
 do not contain recorded future-tail event markers.
 
-The default `template` candidate mode is deterministic and CI-safe. API-backed
-LLM generation is available as an explicit opt-in with
-`--candidate-mode llm --candidate-model <api-model>`. Codex-session models such
-as `gpt-5.3-codex-spark` should be tested through Codex sessions or subagents,
-not through provider API keys.
+The default `template` candidate mode is deterministic and CI-safe. Live LLM
+generation is available as an explicit opt-in with `--candidate-mode llm`.
+Ordinary API-available models use the direct API path. Codex-session models such
+as `gpt-5.3-codex-spark` route through Codex instead of provider API keys.
 
 ```bash
 vei whatif benchmark build-multitenant \
@@ -570,15 +569,17 @@ archive. It canonicalized `59,920` events, built `17,602` eligible branch rows,
 trained on `14,655` train/validation rows, and tested on `2,641` held-out rows.
 Against the heuristic baseline:
 
-- external-spread calibration improved sharply: Brier `0.003` vs `0.547`, ECE `0.002` vs `0.688`
+- external-spread calibration improved sharply: Brier `0.00135` vs `0.54745`, ECE `0.00567` vs `0.68841`
 - all five business-head MAEs improved: enterprise risk, commercial position, org strain, stakeholder trust, and execution drag
-- AUROC on the rare external-spread label was lower than the heuristic, so the result is not "better on every metric"
+- AUROC on the rare external-spread label was lower than the heuristic (`0.89231` vs `0.92389`), so the result is not "better on every metric"
 
 The latest local critical-decision run selected 12 decisions and scored 120
-candidate actions. Leakage checks passed for train/test separation and for
-future-tail exclusion from prompts, generated candidates, and judge dossiers.
-Those rankings are useful decision-support outputs, not causal proof of what
-would definitely have happened.
+candidate actions. The latest live run used structured Codex generation with
+`gpt-5.3-codex-spark` and produced all 12 candidate sets through the LLM path
+with no template fallback. Leakage checks passed for train/test separation and
+for future-tail exclusion from prompts, generated candidates, and judge
+dossiers. Those rankings are useful decision-support outputs, not causal proof
+of what would definitely have happened.
 
 ### Important constraint
 

@@ -11,7 +11,7 @@ from typing import Any, Literal, Sequence, cast
 
 from pydantic import BaseModel, Field
 
-from ..score_frontier import run_llm_judge_prompt
+from ..score_frontier import run_llm_json_prompt
 from ._benchmark_dossiers import build_dossier_files as _write_case_dossiers
 from ._benchmark_utils import slug as _slug
 from ._benchmark_utils import write_jsonl as _write_jsonl
@@ -836,14 +836,16 @@ def _generate_candidates_for_critical_decision(
     payloads: list[dict[str, Any]]
     if mode == "llm":
         try:
-            raw_response = run_llm_judge_prompt(
+            payload = run_llm_json_prompt(
                 prompt,
                 model=model,
                 max_tokens=3600,
+                output_schema=_critical_candidate_generation_schema(
+                    candidates_per_decision
+                ),
                 temperature=None if model.startswith("gpt-5") else 0.0,
-                json_mode=True,
             )
-            payload = json.loads(raw_response)
+            raw_response = json.dumps(payload, indent=2, sort_keys=True)
             payloads = list(payload.get("candidates") or [])
             source = "llm"
         except Exception as exc:  # pragma: no cover - exercised in live runs.
@@ -903,6 +905,39 @@ def _generate_candidates_for_critical_decision(
             ],
         },
     )
+
+
+def _critical_candidate_generation_schema(
+    candidates_per_decision: int,
+) -> dict[str, Any]:
+    candidate_types = [
+        spec.candidate_type for spec in _candidate_type_specs(candidates_per_decision)
+    ]
+    return {
+        "type": "object",
+        "properties": {
+            "candidates": {
+                "type": "array",
+                "minItems": candidates_per_decision,
+                "maxItems": candidates_per_decision,
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "candidate_type": {
+                            "type": "string",
+                            "enum": candidate_types,
+                        },
+                        "label": {"type": "string"},
+                        "action": {"type": "string"},
+                    },
+                    "required": ["candidate_type", "label", "action"],
+                    "additionalProperties": False,
+                },
+            }
+        },
+        "required": ["candidates"],
+        "additionalProperties": False,
+    }
 
 
 def _candidates_from_payloads(

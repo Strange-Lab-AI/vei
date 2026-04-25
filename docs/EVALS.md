@@ -27,11 +27,11 @@ The shipped Enron reference checkpoint currently reports factual next-event
 AUROC `0.787817`, Brier `0.332025`, and calibration ECE `0.373951`. The latest
 local pooled JEPA run over Enron, Dispatch, and a private startup archive built
 `59,920` canonical events and `17,602` eligible branch rows. It was much better
-calibrated than the heuristic baseline on external spread (Brier `0.003` vs
-`0.547`, ECE `0.002` vs `0.688`) and improved all five business-head MAEs. Its
-external-spread AUROC was lower than the heuristic, so the claim is deliberately
-narrow: factual calibration and business-head regression improved, while
-counterfactual rankings remain decision support.
+calibrated than the heuristic baseline on external spread (Brier `0.00135` vs
+`0.54745`, ECE `0.00567` vs `0.68841`) and improved all five business-head MAEs.
+Its external-spread AUROC was lower than the heuristic (`0.89231` vs `0.92389`),
+so the claim is deliberately narrow: factual calibration and business-head
+regression improved, while counterfactual rankings remain decision support.
 
 ## Layer 1: Factual forecast metrics
 
