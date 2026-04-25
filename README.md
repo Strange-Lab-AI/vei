@@ -362,6 +362,63 @@ The canonical files are:
 - `episode_manifest.json` for the saved what-if workspace manifest
 - `whatif_public_context.json` for the saved public-context sidecar written into every saved what-if workspace
 
+### Learned world-model benchmarks
+
+The pooled learned path uses the same canonical timeline files, but turns them into branch-point training rows. Each row is:
+
+```text
+pre-branch company state + candidate action -> observed future state
+```
+
+For factual rows, the candidate action is the historical branch event and the target is the recorded future tail after that event. For held-out decision cases, candidate actions are generated from pre-branch context only, then scored by the trained model.
+
+The JEPA benchmark model does not predict one magic number directly. It predicts a bundle of future evidence, business, objective, and macro-state heads. The single score shown in ranking tables is a convenience score computed from those predicted heads for a chosen objective.
+
+The current score flow is:
+
+```text
+candidate action
++ pre-branch company state
+-> JEPA predicts likely future heads
+-> objective pack converts those heads into a ranking score
+```
+
+The predicted heads include:
+
+- evidence heads such as outside spread, legal follow-up, review loops, participant fanout, delays, reassurance, blame pressure, and commitment clarity
+- business heads: `enterprise_risk`, `commercial_position_proxy`, `org_strain_proxy`, `stakeholder_trust`, `execution_drag`
+- future-state heads: `regulatory_exposure`, `accounting_control_pressure`, `liquidity_stress`, `governance_response`, `evidence_control`, `external_confidence_pressure`
+- objective scores such as `minimize_enterprise_risk`, `protect_commercial_position`, `reduce_org_strain`, `preserve_stakeholder_trust`, and `maintain_execution_velocity`
+
+Build a pooled benchmark from multiple company-history bundles:
+
+```bash
+vei whatif benchmark build-multitenant \
+  --input enron=_vei_out/enron/context_snapshot.json \
+  --input dispatch=_vei_out/dispatch/context_snapshot.json \
+  --input newco=_vei_out/newco/context_snapshot.json \
+  --artifacts-root _vei_out/world_model_multitenant_jepa \
+  --label enron_dispatch_newco \
+  --candidate-mode template
+```
+
+Train JEPA on earlier history and keep the final tail for proof:
+
+```bash
+vei whatif benchmark train \
+  --root _vei_out/world_model_multitenant_jepa/enron_dispatch_newco \
+  --model-id jepa_latent \
+  --train-split train \
+  --train-split validation \
+  --validation-split test
+
+vei whatif benchmark eval \
+  --root _vei_out/world_model_multitenant_jepa/enron_dispatch_newco \
+  --model-id jepa_latent
+```
+
+The builder writes a leakage report and a data provenance report beside the dataset. Generated private company artifacts stay under `_vei_out/` and are not committed.
+
 ## Repo Checks
 
 ```bash
