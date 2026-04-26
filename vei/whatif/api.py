@@ -43,6 +43,12 @@ from .critical_decision_benchmark import (
     run_critical_decision_benchmark,
     validate_critical_candidate_diversity,
 )
+from .news_state_points import (
+    NewsStatePointCandidateInput,
+    NewsStatePointRunResult,
+    build_news_state_point,
+    run_news_state_point_counterfactual,
+)
 from .models import (
     WhatIfActionSchema,
     WhatIfAuditRecord,
@@ -139,9 +145,12 @@ __all__ = [
     "build_critical_decision_benchmark",
     "build_decision_scene",
     "build_multitenant_world_model_benchmark",
+    "build_news_state_point",
     "build_saved_decision_scene",
     "build_public_context",
     "CriticalDecisionRunResult",
+    "NewsStatePointCandidateInput",
+    "NewsStatePointRunResult",
     "MACRO_CALIBRATION_METRICS",
     "MACRO_CALIBRATION_REPORT_PATH",
     "attach_macro_outcomes_to_forecast_result",
@@ -203,6 +212,7 @@ __all__ = [
     "run_critical_decision_benchmark",
     "run_ejepa_counterfactual",
     "run_llm_counterfactual",
+    "run_news_state_point_counterfactual",
     "run_ranked_counterfactual_experiment",
     "run_research_pack",
     "run_whatif",

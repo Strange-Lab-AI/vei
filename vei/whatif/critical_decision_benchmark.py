@@ -4,7 +4,7 @@ import csv
 import json
 import shutil
 from collections import Counter, defaultdict
-from dataclasses import dataclass
+from dataclasses import dataclass, field as dataclass_field
 from hashlib import sha256
 from pathlib import Path
 from typing import Any, Literal, Sequence, cast
@@ -169,6 +169,17 @@ class _CandidateTypeSpec:
 
 
 @dataclass(frozen=True)
+class _DecisionObjectivePolicy:
+    policy_id: str
+    summary: str
+    ranking_basis: str
+    base_weight: float
+    trust_weight: float = 0.0
+    velocity_weight: float = 0.0
+    action_adjustments: dict[str, float] = dataclass_field(default_factory=dict)
+
+
+@dataclass(frozen=True)
 class _CriticalDecisionItem:
     row_candidate: _RowCandidate
     category: str
@@ -247,6 +258,125 @@ _CANDIDATE_TYPE_SPECS: tuple[_CandidateTypeSpec, ...] = (
         "Open cross-functional war room",
         "Create a time-boxed cross-functional coordination room with daily decisions, owner handoffs, and stakeholder updates.",
     ),
+)
+_NEWS_CANDIDATE_TYPE_SPECS: tuple[_CandidateTypeSpec, ...] = (
+    _CandidateTypeSpec(
+        "assign_owner_fix_path",
+        "Assign investigation owner",
+        "Name one accountable editor, analyst, agency owner, or desk lead; "
+        "launch a concrete investigation path; and require a close-the-loop "
+        "evidence note tied to the decision.",
+    ),
+    _CandidateTypeSpec(
+        "customer_status_note",
+        "Publish public advisory",
+        "Issue a public advisory, warning, or stakeholder bulletin that tells "
+        "readers what to do or watch for, while clearly separating confirmed "
+        "facts from uncertainty.",
+    ),
+    _CandidateTypeSpec(
+        "product_triage_queue",
+        "Launch policy or market triage",
+        "Move the item into a policy, market-intelligence, legal, or public-risk "
+        "triage lane with severity, affected actors, owner, and next review time.",
+    ),
+    _CandidateTypeSpec(
+        "fast_ship_low_risk",
+        "Publish narrow factual update",
+        "Move quickly with the smallest verified public update, narrow claims, "
+        "a correction path, and no unsupported extrapolation.",
+    ),
+    _CandidateTypeSpec(
+        "expert_review_gate",
+        "Escalate to expert desk",
+        "Escalate to a subject-matter expert desk, local correspondent, market "
+        "specialist, policy analyst, or legal reviewer with a specific question "
+        "they must answer before the next action.",
+    ),
+    _CandidateTypeSpec(
+        "hold_compliance_review",
+        "Hold pending source review",
+        "Hold publication or response until source credibility, defamation, "
+        "safety, and accountable editor or leadership approval are clear. This "
+        "is the defensive option; do not make every candidate look like this.",
+    ),
+    _CandidateTypeSpec(
+        "executive_escalation",
+        "Choose editorial or leadership stance",
+        "Escalate to a senior editor, agency head, campaign leader, or business "
+        "leader to choose an explicit stance: warn, mobilize, investigate, "
+        "publish, campaign, defer, or stay neutral.",
+    ),
+    _CandidateTypeSpec(
+        "narrow_pilot",
+        "Launch monitoring watch",
+        "Start a time-boxed monitoring watch for follow-up coverage, market "
+        "movement, public reaction, agency response, or regional spread; define "
+        "signals that trigger escalation.",
+    ),
+    _CandidateTypeSpec(
+        "commercial_reset",
+        "Issue market or policy risk memo",
+        "Send a concrete market, policy, customer, or public-risk memo that "
+        "states implications, recommended posture, and what changes if the "
+        "signal strengthens or weakens.",
+    ),
+    _CandidateTypeSpec(
+        "decision_log_evidence",
+        "Map actors and networks",
+        "Build an actor, institution, geography, or press-network map showing "
+        "who is affected, who can verify, and which relationships or follow-up "
+        "signals matter.",
+    ),
+    _CandidateTypeSpec(
+        "data_privacy_red_team",
+        "Red-team public harm",
+        "Stress-test the response for misinformation, panic, retaliation, "
+        "privacy, safety, source reliability, and public-trust failure modes "
+        "before acting.",
+    ),
+    _CandidateTypeSpec(
+        "cross_function_war_room",
+        "Coordinate external institutions",
+        "Coordinate with external institutions such as agencies, local desks, "
+        "market participants, civic groups, or expert bodies; define what each "
+        "party should do next.",
+    ),
+)
+_BALANCED_BUSINESS_POLICY = _DecisionObjectivePolicy(
+    policy_id="balanced_business_v1",
+    summary=(
+        "Balanced business objective: rank raw JEPA objective predictions across "
+        "risk, commercial position, org strain, stakeholder trust, and velocity."
+    ),
+    ranking_basis="balanced_ceo_score",
+    base_weight=1.0,
+)
+_ACTIVE_NEWS_PUBLIC_WORLD_POLICY = _DecisionObjectivePolicy(
+    policy_id="active_news_public_world_v1",
+    summary=(
+        "Historical news objective: rank JEPA predictions through a public-world "
+        "usefulness lens so close calls include active advisories, watches, "
+        "actor maps, policy memos, coordination, and narrow verified updates."
+    ),
+    ranking_basis="strategic_usefulness_score",
+    base_weight=0.90,
+    trust_weight=0.04,
+    velocity_weight=0.06,
+    action_adjustments={
+        "assign_owner_fix_path": 0.01,
+        "customer_status_note": 0.07,
+        "product_triage_queue": 0.035,
+        "fast_ship_low_risk": 0.07,
+        "expert_review_gate": 0.02,
+        "hold_compliance_review": -0.06,
+        "executive_escalation": 0.055,
+        "narrow_pilot": 0.065,
+        "commercial_reset": 0.065,
+        "decision_log_evidence": 0.055,
+        "data_privacy_red_team": 0.025,
+        "cross_function_war_room": 0.07,
+    },
 )
 
 
@@ -610,15 +740,27 @@ def build_critical_candidate_generation_prompt(
         )
         for event in row_item.history_events[-8:]
     ]
+    is_news = _is_historical_news_row(row_item)
+    role_lines = _candidate_generation_role_lines(is_news=is_news)
     candidate_lines = [
         f"- {spec.candidate_type}: {spec.instruction}"
-        for spec in _candidate_type_specs(candidates_per_decision)
+        for spec in _candidate_type_specs(
+            candidates_per_decision,
+            news_mode=is_news,
+        )
     ]
     return "\n".join(
         [
-            "You are generating concrete CEO decision options for a historical business branch point.",
+            *role_lines,
+            "",
+            "World-model and objective boundary:",
+            "JEPA will later predict likely future heads for each candidate. The objective/ranking layer decides what useful means for this run.",
+            "Do not optimize every candidate for the lowest immediate risk. Generate a broad choice set so the objective can compare defensive, active, fast, escalated, and monitoring paths.",
+            *_candidate_objective_policy_lines(is_news=is_news),
+            "",
             "Use only the pre-branch evidence below. Do not infer from, mention, or rely on any recorded future outcome.",
             "Make each option operationally specific enough that a manager could choose it.",
+            "Do not use placeholder tokens such as <PRIVATE_PERSON>, TBD, or unnamed owner; use a concrete role title when evidence has no name.",
             "",
             f"Tenant: {row_item.display_name}",
             f"Decision category: {item.category}",
@@ -645,6 +787,50 @@ def build_critical_candidate_generation_prompt(
             "Return this JSON shape only:",
             '{"candidates":[{"candidate_type":"assign_owner_fix_path","label":"...","action":"..."}]}',
         ]
+    )
+
+
+def _candidate_generation_role_lines(*, is_news: bool) -> list[str]:
+    if not is_news:
+        return [
+            "You are generating concrete CEO decision options for a historical business branch point."
+        ]
+    return [
+        "You are generating concrete public-world response options for a historical news branch point.",
+        "This tenant is an OCR newspaper corpus wrapped in VEI event surfaces for forecasting.",
+        "Treat OCR errors, malformed text, event ids, and VEI branch ids as source noise.",
+        "Do not propose fixing OCR, ingestion, UI, pipeline, data feeds, or product tooling.",
+        "The decision-maker may be a newsroom, public agency, business leader, campaign, or analyst.",
+        "Respond to the underlying public event, not to the technical wrapper around the event.",
+        "The candidate_type identifiers are generic; interpret them as public-world action postures.",
+        "Make the option set strategically useful: include warnings, watches, actor maps, market/policy memos, stance decisions, and coordination moves.",
+        "At least half the candidates must be active strategic actions, not verification, holding, logging, or compliance review.",
+        "Use defensive source-verification actions only where they compete against stronger active alternatives.",
+    ]
+
+
+def _candidate_objective_policy_lines(*, is_news: bool) -> list[str]:
+    if is_news:
+        return [
+            "Objective for this news run: maximize useful public-world action under uncertainty, not just source-risk minimization.",
+            "Candidate policy: include advisories, watches, actor maps, policy or market memos, coordination moves, explicit stance choices, narrow verified updates, and one true hold/defer option.",
+        ]
+    return [
+        "Objective for this company run: compare risk, trust, speed, commercial position, and organizational strain rather than assuming caution is always best.",
+        "Candidate policy: include hold/review, narrow owner-led action, stakeholder communication, fast execution, expert escalation, pilot, commercial reset, evidence logging, red-team, and cross-functional coordination options.",
+    ]
+
+
+def _is_historical_news_row(row_candidate: _RowCandidate) -> bool:
+    summary = row_candidate.world.summary
+    name = summary.organization_name.strip().lower()
+    domain = summary.organization_domain.strip().lower()
+    source = summary.source.strip().lower()
+    return (
+        "historical-news" in domain
+        or "pleias" in name
+        or "historical news" in name
+        or source == "news"
     )
 
 
@@ -713,23 +899,31 @@ def _select_critical_decisions(
     category_counts: Counter[str] = Counter()
     selected: list[_CriticalDecisionItem] = []
     seen_threads: set[str] = set()
+    seen_case_ids: set[str] = set()
     category_cap = max(1, (limit + 1) // 2)
     for item in scored:
-        if item.row_candidate.row.thread_id in seen_threads:
+        case_id = item.row_candidate.row.contract.case_id
+        if item.row_candidate.row.thread_id in seen_threads or case_id in seen_case_ids:
             continue
         if category_counts[item.category] >= category_cap:
             continue
         selected.append(item)
         seen_threads.add(item.row_candidate.row.thread_id)
+        seen_case_ids.add(case_id)
         category_counts[item.category] += 1
         if len(selected) >= limit:
             break
     if len(selected) < limit:
         for item in scored:
-            if item.row_candidate.row.thread_id in seen_threads:
+            case_id = item.row_candidate.row.contract.case_id
+            if (
+                item.row_candidate.row.thread_id in seen_threads
+                or case_id in seen_case_ids
+            ):
                 continue
             selected.append(item)
             seen_threads.add(item.row_candidate.row.thread_id)
+            seen_case_ids.add(case_id)
             if len(selected) >= limit:
                 break
     return [
@@ -1304,6 +1498,7 @@ def _export_scored_rows(
     rows: list[dict[str, Any]] = []
     for case_eval in eval_result.cases:
         selection = selection_by_case.get(case_eval.case.case_id, {})
+        objective_policy = _objective_policy_for_selection(selection)
         candidate_map: dict[str, dict[str, Any]] = {}
         for objective in case_eval.objectives:
             pack_id = objective.objective_pack.pack_id
@@ -1321,7 +1516,7 @@ def _export_scored_rows(
                 entry["objective_scores"][
                     pack_id
                 ] = candidate_prediction.predicted_objective_score.overall_score
-        ranked_entries = sorted(
+        balanced_ranked_entries = sorted(
             candidate_map.values(),
             key=lambda entry: (
                 -_balanced_score(entry["objective_scores"]),
@@ -1329,11 +1524,47 @@ def _export_scored_rows(
                 entry["candidate"].label.lower(),
             ),
         )
-        for rank, entry in enumerate(ranked_entries, start=1):
+        balanced_ranks = {
+            entry["candidate"].candidate_id: rank
+            for rank, entry in enumerate(balanced_ranked_entries, start=1)
+        }
+        strategic_ranked_entries = sorted(
+            candidate_map.values(),
+            key=lambda entry: (
+                -_objective_policy_score(
+                    balanced_score=_balanced_score(entry["objective_scores"]),
+                    objective_scores=entry["objective_scores"],
+                    candidate_type=str(
+                        entry["candidate"].metadata.get("candidate_type", "")
+                    ),
+                    policy=objective_policy,
+                ),
+                entry["business"].enterprise_risk,
+                entry["candidate"].label.lower(),
+            ),
+        )
+        strategic_ranks = {
+            entry["candidate"].candidate_id: rank
+            for rank, entry in enumerate(strategic_ranked_entries, start=1)
+        }
+        output_entries = (
+            strategic_ranked_entries
+            if objective_policy.ranking_basis != "balanced_ceo_score"
+            else balanced_ranked_entries
+        )
+        for entry in output_entries:
             candidate = entry["candidate"]
             business = entry["business"]
             evidence = entry["evidence"]
             objective_scores = entry["objective_scores"]
+            balanced_score = _balanced_score(objective_scores)
+            candidate_type = str(candidate.metadata.get("candidate_type", ""))
+            strategic_score = _objective_policy_score(
+                balanced_score=balanced_score,
+                objective_scores=objective_scores,
+                candidate_type=candidate_type,
+                policy=objective_policy,
+            )
             row = {
                 "tenant_id": selection.get("tenant_id", ""),
                 "tenant": selection.get("display_name", ""),
@@ -1349,12 +1580,21 @@ def _export_scored_rows(
                 "branch_subject": selection.get("branch_subject", ""),
                 "criticality_score": selection.get("criticality_score", 0.0),
                 "selection_reason": selection.get("selection_reason", ""),
-                "candidate_rank": rank,
+                "candidate_rank": balanced_ranks[candidate.candidate_id],
+                "strategic_candidate_rank": strategic_ranks[candidate.candidate_id],
                 "candidate_id": candidate.candidate_id,
                 "candidate_label": candidate.label,
-                "candidate_type": candidate.metadata.get("candidate_type", ""),
+                "candidate_type": candidate_type,
                 "candidate_action": candidate.prompt,
-                "balanced_ceo_score": _balanced_score(objective_scores),
+                "balanced_ceo_score": balanced_score,
+                "strategic_usefulness_score": strategic_score,
+                "strategic_action_adjustment": _objective_policy_action_adjustment(
+                    candidate_type,
+                    policy=objective_policy,
+                ),
+                "objective_policy_id": objective_policy.policy_id,
+                "objective_policy_summary": objective_policy.summary,
+                "ranking_basis": objective_policy.ranking_basis,
                 "minimize_enterprise_risk": objective_scores.get(
                     "minimize_enterprise_risk", 0.0
                 ),
@@ -1409,20 +1649,54 @@ def _write_markdown_scores(rows: Sequence[dict[str, Any]], path: Path) -> None:
         "",
         "Selection is deterministic and uses only branch plus pre-branch context. Candidate prompts and LLM/template outputs are saved beside this file.",
         "",
-        "## Top JEPA-Ranked Action Per Decision",
+        "JEPA predicts future heads for each candidate. The selected objective policy and candidate policy define what counts as useful, so the ranking should not be read as one universal model preference.",
         "",
-        "| Tenant | Decision | Why Selected | Top Action | Balanced Score | Risk | Trust | Drag |",
-        "|---|---|---|---|---:|---:|---:|---:|",
+        "`balanced_ceo_score` is the raw JEPA-balanced outcome score. `strategic_usefulness_score` is an objective-policy score. For historical news tenants, the active public-world policy keeps the JEPA predictions but breaks close calls toward useful action so recommendations do not collapse into only hold/review.",
+        "",
+        "## Top Strategic-Usefulness Action Per Decision",
+        "",
+        "| Tenant | Decision | Why Selected | Top Action | Strategic | Balanced | Risk | Trust | Drag |",
+        "|---|---|---|---|---:|---:|---:|---:|---:|",
     ]
     for case_rows in grouped.values():
-        top = sorted(case_rows, key=lambda row: int(row["candidate_rank"]))[0]
+        top = sorted(
+            case_rows,
+            key=lambda row: int(
+                row.get("strategic_candidate_rank", row["candidate_rank"])
+            ),
+        )[0]
         lines.append(
-            "| {tenant} | {decision} | {reason} | {action} | {score:.3f} | {risk:.3f} | {trust:.3f} | {drag:.3f} |".format(
+            "| {tenant} | {decision} | {reason} | {action} | {strategic:.3f} | {balanced:.3f} | {risk:.3f} | {trust:.3f} | {drag:.3f} |".format(
                 tenant=_md(top["tenant"]),
                 decision=_md(top["branch_subject"] or top["decision_title"]),
                 reason=_md(top["selection_reason"]),
                 action=_md(top["candidate_label"]),
-                score=float(top["balanced_ceo_score"]),
+                strategic=float(top["strategic_usefulness_score"]),
+                balanced=float(top["balanced_ceo_score"]),
+                risk=float(top["enterprise_risk"]),
+                trust=float(top["stakeholder_trust"]),
+                drag=float(top["execution_drag"]),
+            )
+        )
+    lines.extend(
+        [
+            "",
+            "## Top Raw JEPA-Balanced Action Per Decision",
+            "",
+            "| Tenant | Decision | Why Selected | Top Action | Balanced | Strategic | Risk | Trust | Drag |",
+            "|---|---|---|---|---:|---:|---:|---:|---:|",
+        ]
+    )
+    for case_rows in grouped.values():
+        top = sorted(case_rows, key=lambda row: int(row["candidate_rank"]))[0]
+        lines.append(
+            "| {tenant} | {decision} | {reason} | {action} | {balanced:.3f} | {strategic:.3f} | {risk:.3f} | {trust:.3f} | {drag:.3f} |".format(
+                tenant=_md(top["tenant"]),
+                decision=_md(top["branch_subject"] or top["decision_title"]),
+                reason=_md(top["selection_reason"]),
+                action=_md(top["candidate_label"]),
+                balanced=float(top["balanced_ceo_score"]),
+                strategic=float(top["strategic_usefulness_score"]),
                 risk=float(top["enterprise_risk"]),
                 trust=float(top["stakeholder_trust"]),
                 drag=float(top["execution_drag"]),
@@ -1430,7 +1704,12 @@ def _write_markdown_scores(rows: Sequence[dict[str, Any]], path: Path) -> None:
         )
     lines.extend(["", "## Candidate Grid", ""])
     for case_id, case_rows in grouped.items():
-        ordered = sorted(case_rows, key=lambda row: int(row["candidate_rank"]))
+        ordered = sorted(
+            case_rows,
+            key=lambda row: int(
+                row.get("strategic_candidate_rank", row["candidate_rank"])
+            ),
+        )
         first = ordered[0]
         lines.extend(
             [
@@ -1438,18 +1717,24 @@ def _write_markdown_scores(rows: Sequence[dict[str, Any]], path: Path) -> None:
                 "",
                 f"- Case: `{case_id}`",
                 f"- Category: `{first['decision_category']}`",
+                f"- Objective policy: `{first.get('objective_policy_id', '')}`",
                 f"- Selected because: {first['selection_reason']}",
                 "",
-                "| Rank | Candidate | Action | Balanced | Risk Obj | Commercial | Trust | Velocity |",
-                "|---:|---|---|---:|---:|---:|---:|---:|",
+                "| Strategic Rank | Balanced Rank | Candidate | Action | Strategic | Balanced | Risk Obj | Commercial | Trust | Velocity |",
+                "|---:|---:|---|---|---:|---:|---:|---:|---:|---:|",
             ]
         )
         for row in ordered:
             lines.append(
-                "| {rank} | {label} | {action} | {balanced:.3f} | {risk_obj:.3f} | {commercial:.3f} | {trust:.3f} | {velocity:.3f} |".format(
-                    rank=row["candidate_rank"],
+                "| {strategic_rank} | {balanced_rank} | {label} | {action} | {strategic:.3f} | {balanced:.3f} | {risk_obj:.3f} | {commercial:.3f} | {trust:.3f} | {velocity:.3f} |".format(
+                    strategic_rank=row.get(
+                        "strategic_candidate_rank",
+                        row["candidate_rank"],
+                    ),
+                    balanced_rank=row["candidate_rank"],
                     label=_md(row["candidate_label"]),
                     action=_md(row["candidate_action"]),
+                    strategic=float(row["strategic_usefulness_score"]),
                     balanced=float(row["balanced_ceo_score"]),
                     risk_obj=float(row["minimize_enterprise_risk"]),
                     commercial=float(row["protect_commercial_position"]),
@@ -1600,9 +1885,14 @@ def _resolve_model_id(
     return "jepa_latent"
 
 
-def _candidate_type_specs(count: int) -> tuple[_CandidateTypeSpec, ...]:
+def _candidate_type_specs(
+    count: int,
+    *,
+    news_mode: bool = False,
+) -> tuple[_CandidateTypeSpec, ...]:
     _validate_candidate_count(count)
-    return _CANDIDATE_TYPE_SPECS[:count]
+    specs = _NEWS_CANDIDATE_TYPE_SPECS if news_mode else _CANDIDATE_TYPE_SPECS
+    return specs[:count]
 
 
 def _validate_candidate_count(count: int) -> None:
@@ -1631,6 +1921,74 @@ def _balanced_score(objective_scores: dict[str, float]) -> float:
         numerator += float(objective_scores[pack_id]) * weight
         denominator += weight
     return round(numerator / max(denominator, 1e-9), 6)
+
+
+def _objective_policy_score(
+    *,
+    balanced_score: float,
+    objective_scores: dict[str, float],
+    candidate_type: str,
+    policy: _DecisionObjectivePolicy,
+) -> float:
+    if policy.ranking_basis == "balanced_ceo_score":
+        return round(float(balanced_score), 6)
+    trust = float(objective_scores.get("preserve_stakeholder_trust", 0.0))
+    velocity = float(objective_scores.get("maintain_execution_velocity", 0.0))
+    adjustment = _objective_policy_action_adjustment(
+        candidate_type,
+        policy=policy,
+    )
+    score = (
+        (float(balanced_score) * policy.base_weight)
+        + (trust * policy.trust_weight)
+        + (velocity * policy.velocity_weight)
+    )
+    return round(max(0.0, min(1.0, score + adjustment)), 6)
+
+
+def _news_strategic_usefulness_score(
+    *,
+    balanced_score: float,
+    objective_scores: dict[str, float],
+    candidate_type: str,
+    is_news: bool,
+) -> float:
+    policy = _ACTIVE_NEWS_PUBLIC_WORLD_POLICY if is_news else _BALANCED_BUSINESS_POLICY
+    return _objective_policy_score(
+        balanced_score=balanced_score,
+        objective_scores=objective_scores,
+        candidate_type=candidate_type,
+        policy=policy,
+    )
+
+
+def _objective_policy_action_adjustment(
+    candidate_type: str,
+    *,
+    policy: _DecisionObjectivePolicy,
+) -> float:
+    return policy.action_adjustments.get(candidate_type, 0.0)
+
+
+def _objective_policy_for_selection(
+    selection: dict[str, Any],
+) -> _DecisionObjectivePolicy:
+    if _selection_is_historical_news(selection):
+        return _ACTIVE_NEWS_PUBLIC_WORLD_POLICY
+    return _BALANCED_BUSINESS_POLICY
+
+
+def _selection_is_historical_news(selection: dict[str, Any]) -> bool:
+    tenant_id = str(selection.get("tenant_id") or "").lower()
+    display_name = str(selection.get("display_name") or "").lower()
+    return (
+        "news" in tenant_id
+        or "pleias" in tenant_id
+        or "americanstories" in tenant_id
+        or "news" in display_name
+        or "pleias" in display_name
+        or "americanstories" in display_name
+    )
 
 
 def _pre_branch_evidence_hash(

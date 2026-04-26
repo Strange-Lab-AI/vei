@@ -14,6 +14,7 @@ from vei.whatif.corpus import build_thread_summaries
 from vei.whatif.critical_decision_benchmark import (
     CriticalDecisionRunArtifacts,
     CriticalDecisionRunResult,
+    _news_strategic_usefulness_score,
     build_critical_decision_benchmark,
     validate_critical_candidate_diversity,
 )
@@ -80,6 +81,9 @@ def test_critical_decision_benchmark_is_replicable_and_prebranch_only(
         row["no_future_context_for_selection"] is True for row in selection_manifest
     )
     assert all(row["criticality_score"] > 0 for row in selection_manifest)
+    assert len({row["case_id"] for row in selection_manifest}) == len(
+        selection_manifest
+    )
 
     leakage = json.loads(
         result.artifacts.leakage_report_path.read_text(encoding="utf-8")
@@ -89,6 +93,79 @@ def test_critical_decision_benchmark_is_replicable_and_prebranch_only(
         assert case["candidate_prompt_future_marker_hits"] == []
         assert case["candidate_output_future_marker_hits"] == []
         assert case["judge_dossier_future_marker_hits"] == []
+
+
+def test_historical_news_candidate_prompt_targets_public_actions(
+    tmp_path: Path,
+) -> None:
+    world = _tenant_world(
+        tmp_path=tmp_path,
+        tenant_id="pleias",
+        organization_name="PleIAs Historical News Sample",
+        organization_domain="historical-news.local",
+        start_ms=4_000_000,
+    )
+
+    _build, result = build_critical_decision_benchmark(
+        [
+            MultiTenantBenchmarkSource(
+                tenant_id="pleias_news",
+                world=world,
+                display_name="PleIAs News",
+            )
+        ],
+        artifacts_root=tmp_path / "critical_decisions",
+        label="news_prompt_fixture",
+        cases_per_tenant=1,
+        candidates_per_decision=10,
+        candidate_generation_mode="template",
+        candidate_model="template-fixture",
+    )
+
+    manifest = json.loads(
+        result.artifacts.candidate_manifest_path.read_text(encoding="utf-8")
+    )
+    prompt = Path(manifest[0]["prompt_path"]).read_text(encoding="utf-8")
+
+    assert "historical news branch point" in prompt
+    assert "World-model and objective boundary" in prompt
+    assert "JEPA will later predict likely future heads" in prompt
+    assert "The objective/ranking layer decides what useful means" in prompt
+    assert "Do not optimize every candidate for the lowest immediate risk" in prompt
+    assert "Treat OCR errors" in prompt
+    assert "Do not propose fixing OCR, ingestion, UI, pipeline" in prompt
+    assert "public-world action postures" in prompt
+    assert "maximize useful public-world action under uncertainty" in prompt
+    assert "At least half the candidates must be active strategic actions" in prompt
+    assert "Issue a public advisory, warning, or stakeholder bulletin" in prompt
+    assert "Build an actor, institution, geography, or press-network map" in prompt
+    assert "Do not use placeholder tokens" in prompt
+    assert "future tail marker" not in prompt
+
+
+def test_news_strategic_score_breaks_close_calls_toward_active_actions() -> None:
+    objective_scores = {
+        "minimize_enterprise_risk": 0.66,
+        "protect_commercial_position": 0.49,
+        "reduce_org_strain": 0.66,
+        "preserve_stakeholder_trust": 0.39,
+        "maintain_execution_velocity": 0.63,
+    }
+
+    hold_score = _news_strategic_usefulness_score(
+        balanced_score=0.594,
+        objective_scores=objective_scores,
+        candidate_type="hold_compliance_review",
+        is_news=True,
+    )
+    advisory_score = _news_strategic_usefulness_score(
+        balanced_score=0.576,
+        objective_scores=objective_scores,
+        candidate_type="customer_status_note",
+        is_news=True,
+    )
+
+    assert advisory_score > hold_score
 
 
 def test_critical_candidate_diversity_rejects_minor_variants() -> None:

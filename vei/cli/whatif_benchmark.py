@@ -20,6 +20,10 @@ from vei.whatif.multitenant_benchmark import (
     CandidateGenerationMode,
     MultiTenantBenchmarkSource,
 )
+from vei.whatif.news_state_points import (
+    NewsStatePointCandidateInput,
+    run_news_state_point_counterfactual,
+)
 from vei.whatif.render import (
     render_benchmark_build,
     render_benchmark_eval,
@@ -102,6 +106,33 @@ def _resolve_critical_candidate_generation_mode(
     if normalized in {"llm", "template"}:
         return cast(CriticalCandidateGenerationMode, normalized)
     raise typer.BadParameter("candidate-mode must be one of: llm, template")
+
+
+def _parse_news_state_point_candidates(
+    entries: list[str],
+) -> list[NewsStatePointCandidateInput]:
+    candidates: list[NewsStatePointCandidateInput] = []
+    for index, entry in enumerate(entries, start=1):
+        parts = [part.strip() for part in entry.split("::")]
+        if len(parts) == 3 and all(parts):
+            candidate_type, label, action = parts
+        elif len(parts) == 2 and all(parts):
+            candidate_type = ""
+            label, action = parts
+        else:
+            candidate_type = ""
+            action = entry.strip()
+            label = f"Candidate {index}"
+        if not action:
+            raise typer.BadParameter("--candidate entries must include action text")
+        candidates.append(
+            NewsStatePointCandidateInput(
+                label=label,
+                action=action,
+                candidate_type=candidate_type,
+            )
+        )
+    return candidates
 
 
 def register_benchmark_commands(benchmark_app: typer.Typer) -> None:
@@ -353,6 +384,113 @@ def register_benchmark_commands(benchmark_app: typer.Typer) -> None:
                 f"- CSV: `{result.artifacts.csv_path}`",
                 f"- Markdown: `{result.artifacts.markdown_path}`",
                 f"- Leakage report: `{result.artifacts.leakage_report_path}`",
+            ]
+            emit_payload("\n".join(lines), format=format)
+            return
+        emit_payload(result.model_dump(mode="json"), format=format)
+
+    @benchmark_app.command("news-state-point")
+    def news_state_point_command(
+        source_input: list[str] = typer.Option(
+            ...,
+            "--input",
+            help="One news context snapshot in tenant_id=/path/to/context_snapshot.json form.",
+        ),
+        checkpoint: Path | None = typer.Option(
+            None,
+            "--checkpoint",
+            help=(
+                "Learned JEPA checkpoint used to score candidates. Defaults to "
+                "VEI_REFERENCE_BACKEND_CHECKPOINT when set."
+            ),
+        ),
+        artifacts_root: Path = typer.Option(
+            Path("_vei_out/news_world_model/state_points"),
+            help="Directory where news state-point artifacts are written",
+        ),
+        label: str = typer.Option(
+            "news_state_point",
+            help="Human-friendly label for this run",
+        ),
+        topic: str = typer.Option(
+            ...,
+            help="Topic/state slice to build, e.g. banking_markets",
+        ),
+        as_of: str = typer.Option(
+            ...,
+            "--as-of",
+            help="As-of date or timestamp used to build the pre-branch dossier",
+        ),
+        candidate: list[str] = typer.Option(
+            ...,
+            "--candidate",
+            help=(
+                "Human action to score. Use 'label::action' or "
+                "'candidate_type::label::action'. Repeat for multiple actions."
+            ),
+        ),
+        future_horizon_days: int = typer.Option(
+            90,
+            min=1,
+            help="Recorded future horizon used only for observed target context",
+        ),
+        max_history_events: int = typer.Option(
+            240,
+            min=1,
+            help="Maximum topic-matched pre-as-of events included in the state row",
+        ),
+        max_evidence_events: int = typer.Option(
+            12,
+            min=1,
+            help="Maximum evidence events shown in the state dossier",
+        ),
+        device: str | None = typer.Option(None, help="Optional device override"),
+        runtime_root: Path | None = typer.Option(
+            None,
+            help="Optional JEPA runtime root with torch installed",
+        ),
+        format: str = typer.Option("json", help="Output format: json | markdown"),
+    ) -> None:
+        """Score human-supplied actions from an as-of news/history state point."""
+
+        checkpoint_path = checkpoint
+        if checkpoint_path is None:
+            raw_checkpoint = os.environ.get("VEI_REFERENCE_BACKEND_CHECKPOINT", "")
+            if raw_checkpoint:
+                checkpoint_path = Path(raw_checkpoint)
+        if checkpoint_path is None:
+            raise typer.BadParameter(
+                "--checkpoint is required unless VEI_REFERENCE_BACKEND_CHECKPOINT is set"
+            )
+        sources = _parse_multitenant_inputs(source_input)
+        if len(sources) != 1:
+            raise typer.BadParameter("news-state-point expects exactly one --input")
+        result = run_news_state_point_counterfactual(
+            sources[0].world,
+            checkpoint_path=checkpoint_path,
+            artifacts_root=artifacts_root,
+            label=label,
+            topic=topic,
+            as_of=as_of,
+            candidates=_parse_news_state_point_candidates(candidate),
+            future_horizon_days=future_horizon_days,
+            max_history_events=max_history_events,
+            max_evidence_events=max_evidence_events,
+            device=device,
+            runtime_root=runtime_root,
+        )
+        if format == "markdown":
+            lines = [
+                "# News State-Point Counterfactual Run",
+                "",
+                f"- Topic: `{result.topic}`",
+                f"- As of: `{result.as_of}`",
+                f"- Synthetic state point: `{result.state_event_id}`",
+                f"- History events: `{result.history_event_count}`",
+                f"- Future horizon events: `{result.future_event_count}`",
+                f"- Candidates: `{result.candidate_count}`",
+                f"- CSV: `{result.artifacts.result_csv_path}`",
+                f"- Markdown: `{result.artifacts.result_markdown_path}`",
             ]
             emit_payload("\n".join(lines), format=format)
             return
