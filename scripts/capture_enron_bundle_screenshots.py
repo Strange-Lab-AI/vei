@@ -1,14 +1,12 @@
 from __future__ import annotations
 
 import argparse
-import json
 import requests
 import socket
 import subprocess
 import sys
 import time
 from contextlib import closing
-from datetime import UTC, datetime
 from pathlib import Path
 
 try:
@@ -18,11 +16,6 @@ except ModuleNotFoundError:  # pragma: no cover - optional dependency
     Page = object  # type: ignore[assignment]
 
 try:
-    from PIL import Image
-except ModuleNotFoundError:  # pragma: no cover - optional dependency
-    Image = None  # type: ignore[assignment]
-
-try:
     from scripts.enron_example_specs import bundle_specs
 except ModuleNotFoundError:
     sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -30,9 +23,6 @@ except ModuleNotFoundError:
 
 
 ASSETS_ROOT = Path("docs/assets/enron-whatif")
-MANIFEST_PATH = ASSETS_ROOT / "enron-bundle-screenshots.json"
-PROOF_GRID_PATH = ASSETS_ROOT / "enron-proof-grid.png"
-NARRATIVE_GRID_PATH = ASSETS_ROOT / "enron-narrative-grid.png"
 VIEWPORT = {"width": 1680, "height": 2200}
 
 
@@ -130,9 +120,7 @@ def _run_saved_ranking(page: Page) -> None:
 def _bundle_targets(bundle_slug: str) -> dict[str, Path]:
     stem = bundle_slug.removeprefix("enron-")
     return {
-        "scene": ASSETS_ROOT / f"{stem}-scene.png",
         "forecast": ASSETS_ROOT / f"{stem}-forecast.png",
-        "macro": ASSETS_ROOT / f"{stem}-macro.png",
         "ranking": ASSETS_ROOT / f"{stem}-ranking.png",
     }
 
@@ -160,9 +148,6 @@ def _capture_bundle(bundle_slug: str, workspace_root: Path) -> dict[str, str]:
             _open_whatif_view(page)
 
             bundle_targets = _bundle_targets(bundle_slug)
-            _capture_locator(
-                page, "#whatif-selection .whatif-scene-shell", bundle_targets["scene"]
-            )
 
             if bundle_slug == "enron-master-agreement-public-context":
                 generic_targets = _generic_master_targets()
@@ -183,12 +168,6 @@ def _capture_bundle(bundle_slug: str, workspace_root: Path) -> dict[str, str]:
                 "#whatif-experiment-result .whatif-scene-panel.is-business-change",
                 bundle_targets["forecast"],
                 nth=0,
-            )
-            _capture_locator(
-                page,
-                "#whatif-experiment-result .whatif-scene-panel.is-business-change",
-                bundle_targets["macro"],
-                nth=1,
             )
 
             if bundle_slug == "enron-master-agreement-public-context":
@@ -229,35 +208,6 @@ def _capture_bundle(bundle_slug: str, workspace_root: Path) -> dict[str, str]:
     return {name: str(path) for name, path in _bundle_targets(bundle_slug).items()}
 
 
-def _write_grid(specs, *, target_path: Path) -> None:
-    if Image is None:
-        return
-    scene_paths = [
-        _bundle_targets(spec.bundle_slug)["scene"]
-        for spec in specs
-        if _bundle_targets(spec.bundle_slug)["scene"].exists()
-    ]
-    if not scene_paths:
-        return
-    images = [Image.open(path).convert("RGB") for path in scene_paths]
-    try:
-        tile_width = min(image.width for image in images)
-        tile_height = min(image.height for image in images)
-        columns = 2 if len(images) > 2 else len(images)
-        rows = (len(images) + columns - 1) // columns
-        canvas = Image.new("RGB", (tile_width * columns, tile_height * rows), "white")
-        for index, image in enumerate(images):
-            resized = image.resize((tile_width, tile_height))
-            x = (index % columns) * tile_width
-            y = (index // columns) * tile_height
-            canvas.paste(resized, (x, y))
-        target_path.parent.mkdir(parents=True, exist_ok=True)
-        canvas.save(target_path)
-    finally:
-        for image in images:
-            image.close()
-
-
 def main() -> None:
     if sync_playwright is None:
         raise SystemExit(
@@ -276,45 +226,10 @@ def main() -> None:
         raise SystemExit("No matching Enron bundles were selected.")
 
     ASSETS_ROOT.mkdir(parents=True, exist_ok=True)
-    manifest_bundles: list[dict[str, object]] = []
     for spec in specs:
         workspace_root = spec.output_root / "workspace"
-        screenshots = _capture_bundle(spec.bundle_slug, workspace_root)
-        manifest_bundles.append(
-            {
-                "bundle_slug": spec.bundle_slug,
-                "role": spec.role,
-                "workspace_root": str(workspace_root),
-                "screenshots": screenshots,
-            }
-        )
+        _capture_bundle(spec.bundle_slug, workspace_root)
         print(f"Captured screenshots for {spec.bundle_slug}")
-
-    _write_grid(
-        [spec for spec in specs if spec.role == "proof"],
-        target_path=PROOF_GRID_PATH,
-    )
-    _write_grid(
-        [spec for spec in specs if spec.role == "narrative"],
-        target_path=NARRATIVE_GRID_PATH,
-    )
-
-    MANIFEST_PATH.write_text(
-        json.dumps(
-            {
-                "generated_at": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
-                "bundles": manifest_bundles,
-                "grids": {
-                    "proof": str(PROOF_GRID_PATH),
-                    "narrative": str(NARRATIVE_GRID_PATH),
-                },
-            },
-            indent=2,
-        )
-        + "\n",
-        encoding="utf-8",
-    )
-    print(f"Wrote screenshot manifest to {MANIFEST_PATH}")
 
 
 if __name__ == "__main__":

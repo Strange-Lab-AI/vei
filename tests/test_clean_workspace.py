@@ -21,6 +21,7 @@ def test_clean_workspace_dry_run_keeps_files_in_place(tmp_path: Path) -> None:
     (tmp_path / "_vei_out" / "quickstart").mkdir(parents=True)
     (tmp_path / "_vei_out" / "llm_live" / "latest").mkdir(parents=True)
     (tmp_path / "_vei_out" / "datasets").mkdir(parents=True)
+    (tmp_path / "_vei_out" / "world_model_current").mkdir(parents=True)
 
     result = _run_clean(tmp_path, "--dry-run")
 
@@ -30,6 +31,7 @@ def test_clean_workspace_dry_run_keeps_files_in_place(tmp_path: Path) -> None:
     assert (tmp_path / "_vei_out" / "quickstart").exists()
     assert (tmp_path / "_vei_out" / "llm_live" / "latest").exists()
     assert (tmp_path / "_vei_out" / "datasets").exists()
+    assert (tmp_path / "_vei_out" / "world_model_current").exists()
 
 
 def test_clean_workspace_removes_local_generated_outputs(tmp_path: Path) -> None:
@@ -46,6 +48,11 @@ def test_clean_workspace_removes_local_generated_outputs(tmp_path: Path) -> None
     (tmp_path / "_vei_out" / "llm_live" / "latest").mkdir(parents=True)
     (tmp_path / "_vei_out" / "llm_live" / "debug_run").mkdir(parents=True)
     (tmp_path / "_vei_out" / "datasets" / "latest").mkdir(parents=True)
+    (tmp_path / "_vei_out" / "world_model_current").mkdir(parents=True)
+    (tmp_path / "_vei_out" / "world_model_current" / "latest.csv").write_text(
+        "score\n",
+        encoding="utf-8",
+    )
     (tmp_path / "docs" / "examples" / "workspace" / ".artifacts").mkdir(parents=True)
     (tmp_path / ".venv" / "lib" / "__pycache__").mkdir(parents=True)
     (tmp_path / ".venv" / "lib" / "__pycache__" / "keep.pyc").write_bytes(b"pyc")
@@ -60,11 +67,36 @@ def test_clean_workspace_removes_local_generated_outputs(tmp_path: Path) -> None
     assert not (tmp_path / ".coverage.integration").exists()
     assert not (tmp_path / "pkg" / "__pycache__").exists()
     assert not (tmp_path / "pkg" / ".DS_Store").exists()
+    assert (tmp_path / "_vei_out" / "quickstart").exists()
+    assert (tmp_path / "_vei_out" / "dispatch_whatif").exists()
+    assert (tmp_path / "_vei_out" / "llm_live" / "debug_run").exists()
+    assert (tmp_path / "_vei_out" / "llm_live" / "latest").exists()
+    assert (tmp_path / "_vei_out" / "datasets").exists()
+    assert (tmp_path / "_vei_out" / "world_model_current" / "latest.csv").exists()
+    assert (tmp_path / "docs" / "examples" / "workspace" / ".artifacts").exists()
+    assert (tmp_path / ".venv" / "lib" / "__pycache__").exists()
+    assert "Kept useful local outputs:" not in result.stdout
+
+
+def test_clean_workspace_hard_prunes_old_vei_runs(tmp_path: Path) -> None:
+    (tmp_path / "_vei_out" / "quickstart").mkdir(parents=True)
+    (tmp_path / "_vei_out" / "dispatch_whatif").mkdir(parents=True)
+    (tmp_path / "_vei_out" / "llm_live" / "latest").mkdir(parents=True)
+    (tmp_path / "_vei_out" / "llm_live" / "debug_run").mkdir(parents=True)
+    (tmp_path / "_vei_out" / "datasets" / "latest").mkdir(parents=True)
+    (tmp_path / "_vei_out" / "world_model_current").mkdir(parents=True)
+    (tmp_path / "_vei_out" / "world_model_current" / "latest.csv").write_text(
+        "score\n",
+        encoding="utf-8",
+    )
+
+    result = _run_clean(tmp_path, "--hard")
+
+    assert result.returncode == 0, result.stderr
     assert not (tmp_path / "_vei_out" / "quickstart").exists()
     assert not (tmp_path / "_vei_out" / "dispatch_whatif").exists()
     assert not (tmp_path / "_vei_out" / "llm_live" / "debug_run").exists()
     assert (tmp_path / "_vei_out" / "llm_live" / "latest").exists()
     assert (tmp_path / "_vei_out" / "datasets").exists()
-    assert (tmp_path / "docs" / "examples" / "workspace" / ".artifacts").exists()
-    assert (tmp_path / ".venv" / "lib" / "__pycache__").exists()
+    assert (tmp_path / "_vei_out" / "world_model_current" / "latest.csv").exists()
     assert "Kept useful local outputs:" in result.stdout

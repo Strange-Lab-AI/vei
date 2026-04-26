@@ -487,37 +487,44 @@ as `gpt-5.3-codex-spark` route through Codex instead of provider API keys.
 vei whatif benchmark build-multitenant \
   --input enron=/path/to/enron/context_snapshot.json \
   --input dispatch=/path/to/dispatch/context_snapshot.json \
-  --artifacts-root _vei_out/world_model_multitenant \
-  --label enron_dispatch_world_model \
+  --input powrofyou=/path/to/powrofyou/context_snapshot.json \
+  --artifacts-root _vei_out/world_model_multitenant_jepa \
+  --label enron_dispatch_powrofyou \
+  --heldout-cases-per-tenant 4 \
+  --future-horizon-events 12 \
+  --max-branch-rows-per-thread 24 \
   --candidate-mode template
 
 vei whatif benchmark train \
-  --root _vei_out/world_model_multitenant/enron_dispatch_world_model \
-  --model-id full_context_transformer
-
-vei whatif benchmark judge \
-  --root _vei_out/world_model_multitenant/enron_dispatch_world_model \
-  --model gpt-4.1-mini
+  --root _vei_out/world_model_multitenant_jepa/enron_dispatch_powrofyou \
+  --model-id jepa_latent \
+  --epochs 10 \
+  --batch-size 128 \
+  --train-split train \
+  --train-split validation \
+  --validation-split test
 
 vei whatif benchmark eval \
-  --root _vei_out/world_model_multitenant/enron_dispatch_world_model \
-  --model-id full_context_transformer \
-  --judged-rankings-path _vei_out/world_model_multitenant/enron_dispatch_world_model/judge_result.json
+  --root _vei_out/world_model_multitenant_jepa/enron_dispatch_powrofyou \
+  --model-id jepa_latent
 
 # Optional factual comparator under the same split
 vei whatif benchmark train \
-  --root _vei_out/world_model_multitenant/enron_dispatch_world_model \
-  --model-id heuristic_baseline
+  --root _vei_out/world_model_multitenant_jepa/enron_dispatch_powrofyou \
+  --model-id heuristic_baseline \
+  --train-split train \
+  --train-split validation \
+  --validation-split test
 
 vei whatif benchmark eval \
-  --root _vei_out/world_model_multitenant/enron_dispatch_world_model \
+  --root _vei_out/world_model_multitenant_jepa/enron_dispatch_powrofyou \
   --model-id heuristic_baseline
 ```
 
 Point a Dispatch what-if at the pooled checkpoint through the existing reference backend boundary:
 
 ```bash
-VEI_REFERENCE_BACKEND_CHECKPOINT=_vei_out/world_model_multitenant/enron_dispatch_world_model/model_runs/full_context_transformer/model.pt \
+VEI_REFERENCE_BACKEND_CHECKPOINT=_vei_out/world_model_multitenant_jepa/enron_dispatch_powrofyou/model_runs/jepa_latent/model.pt \
   vei whatif experiment \
     --source company_history \
     --source-dir /path/to/dispatch/context_snapshot.json \
@@ -556,6 +563,14 @@ vei whatif benchmark critical-decisions \
 ```
 
 The selection score is not a learned outcome label and does not use the future tail. It is a repeatable way to choose promising decision points from branch-time evidence: external scope, risk/governance terms, customer or commercial terms, product/delivery terms, coordination complexity, urgency/escalation, conflict/delay, and evidence pressure. JEPA then scores candidate actions from the pre-branch state.
+
+For local exploratory runs, keep the current shareable MD/CSV exports under
+`_vei_out/world_model_current/`. The lower-level benchmark, checkpoint, and
+critical-decision folders are provenance and rerun material. Use
+`make clean-workspace` for cache/build cleanup that leaves `_vei_out/` in place.
+Use `make clean-workspace-hard` to prune old generated runs while preserving
+`_vei_out/world_model_current/`, `_vei_out/datasets/`, and
+`_vei_out/llm_live/latest/`.
 
 ### Current model state
 

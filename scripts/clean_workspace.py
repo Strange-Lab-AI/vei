@@ -24,7 +24,7 @@ _ROOT_DIRS = (
 )
 _ROOT_FILES = (".coverage",)
 _ROOT_GLOBS = (".coverage.*",)
-_PRESERVED_VEI_OUT_DIRS = ("datasets",)
+_PRESERVED_VEI_OUT_DIRS = ("datasets", "world_model_current")
 _PRESERVED_LLM_LIVE_DIRS = ("latest",)
 _SKIP_RECURSIVE_DIRS = {".git", ".venv"}
 
@@ -49,6 +49,14 @@ def _parse_args() -> argparse.Namespace:
         "--dry-run",
         action="store_true",
         help="Show what would be removed without deleting anything.",
+    )
+    parser.add_argument(
+        "--hard",
+        action="store_true",
+        help=(
+            "Also prune old generated _vei_out runs. Keeps datasets, "
+            "world_model_current, and llm_live/latest."
+        ),
     )
     return parser.parse_args()
 
@@ -142,10 +150,14 @@ def _clean_recursive_caches(root: Path, *, dry_run: bool) -> tuple[Path, ...]:
     return tuple(removed)
 
 
-def clean_workspace(root: Path, *, dry_run: bool) -> CleanupReport:
+def clean_workspace(root: Path, *, dry_run: bool, hard: bool = False) -> CleanupReport:
     root = root.resolve()
     root_removed = list(_clean_root_outputs(root, dry_run=dry_run))
-    vei_out_report = _clean_vei_out(root, dry_run=dry_run)
+    vei_out_report = (
+        _clean_vei_out(root, dry_run=dry_run)
+        if hard
+        else CleanupReport(removed=(), preserved=())
+    )
     recursive_removed = list(_clean_recursive_caches(root, dry_run=dry_run))
     removed = tuple(root_removed + list(vei_out_report.removed) + recursive_removed)
     preserved = vei_out_report.preserved
@@ -170,7 +182,7 @@ def _print_report(report: CleanupReport, *, root: Path, dry_run: bool) -> None:
 def main() -> None:
     args = _parse_args()
     root = args.root.resolve()
-    report = clean_workspace(root, dry_run=args.dry_run)
+    report = clean_workspace(root, dry_run=args.dry_run, hard=args.hard)
     _print_report(report, root=root, dry_run=args.dry_run)
 
 

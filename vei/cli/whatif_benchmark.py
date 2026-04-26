@@ -205,11 +205,11 @@ def register_benchmark_commands(benchmark_app: typer.Typer) -> None:
             help="Tenant context snapshot in tenant_id=/path/to/context_snapshot.json form. Repeat for each tenant.",
         ),
         artifacts_root: Path = typer.Option(
-            Path("_vei_out/world_model_multitenant"),
+            Path("_vei_out/world_model_multitenant_jepa"),
             help="Directory where multi-tenant benchmark artifacts are written",
         ),
         label: str = typer.Option(
-            "enron_dispatch_world_model",
+            "pooled_world_model",
             help="Human-friendly label for this benchmark build",
         ),
         heldout_cases_per_tenant: int = typer.Option(

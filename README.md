@@ -479,9 +479,11 @@ make check-full
 make test-full
 make llm-live
 make clean-workspace
+make clean-workspace-hard-dry-run
+make clean-workspace-hard
 ```
 
-`make check` and `make test` are the fast local loop. `make test` skips tests marked `slow`. `make check-full` and `make test-full` match the stricter CI path with whole-repo security scans, the full slow suite, and coverage. `make llm-live` needs live keys. `make clean-workspace` clears local generated clutter such as `_vei_out/` runs, repo-root `.artifacts/`, build folders, caches, and bytecode. It keeps `_vei_out/datasets/` and `_vei_out/llm_live/latest/` when those are present. Use `make clean-workspace-dry-run` when you want to preview the delete list.
+`make check` and `make test` are the fast local loop. `make test` skips tests marked `slow`. `make check-full` and `make test-full` match the stricter CI path with whole-repo security scans, the full slow suite, and coverage. `make llm-live` needs live keys. `make clean-workspace` clears low-risk local clutter such as repo-root `.artifacts/`, build folders, caches, and bytecode. It leaves `_vei_out/` runs alone. Use `make clean-workspace-hard-dry-run` to preview pruning old `_vei_out/` runs; `make clean-workspace-hard` keeps `_vei_out/datasets/`, `_vei_out/world_model_current/`, and `_vei_out/llm_live/latest/` when those are present.
 
 ## Docs
 

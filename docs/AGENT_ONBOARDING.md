@@ -401,9 +401,13 @@ After large runs, inspect before deleting:
 ```bash
 du -sh _vei_out
 make clean-workspace-dry-run
+make clean-workspace-hard-dry-run
 git status --short --branch
 ```
 
-Do not blindly remove the current model checkpoint, critical-decision CSV/MD, or
-canonical private snapshots. Delete stale `_vei_out/` runs selectively and keep
-the source zip or archive when the user asked to preserve it.
+Use `make clean-workspace` for low-risk cache/build cleanup. It leaves `_vei_out`
+runs alone. Use `make clean-workspace-hard` only when the user approves a
+cutover that discards old generated VEI runs; it preserves
+`_vei_out/world_model_current/`, `_vei_out/datasets/`, and
+`_vei_out/llm_live/latest/`. Keep source zips or archives outside `_vei_out`
+when the user asked to preserve them.
