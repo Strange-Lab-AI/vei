@@ -490,6 +490,7 @@ make clean-workspace-hard
 - [docs/AGENT_ONBOARDING.md](docs/AGENT_ONBOARDING.md) for a fast repo briefing, command checklist, and module-boundary rules
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the module map, capability domains, and knowledge layer
 - [docs/WHATIF.md](docs/WHATIF.md) for the historical replay and comparison flow
+- [docs/RL_GYM.md](docs/RL_GYM.md) for the scoped RL-training plan over deterministic process contracts
 - [docs/OVERVIEW.md](docs/OVERVIEW.md) for the product framing, including the knowledge brain layer
 - [docs/examples/enron-master-agreement-public-context/README.md](docs/examples/enron-master-agreement-public-context/README.md) for the repo-owned Enron example
 - [docs/examples/clearwater-dispatch-recovery/README.md](docs/examples/clearwater-dispatch-recovery/README.md) for a repo-owned synthetic Clearwater example

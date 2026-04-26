@@ -24,6 +24,7 @@ Read these next when needed:
 
 - `README.md` for setup and operator flows
 - `docs/ARCHITECTURE.md` for the module map and runtime shape
+- `docs/RL_GYM.md` for the scoped contract-only RL-training plan
 - `AGENTS.md` for repo policy, eval runners, and validation expectations
 - `Makefile` and `.agents.yml` before changing gates or CI behavior
 
