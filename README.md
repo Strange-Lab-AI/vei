@@ -396,7 +396,8 @@ mean(1-risk, commercial position, 1-strain, trust, 1-drag)
 
 Use that score as a sorting aid, not as proof that the JEPA learned a universal
 CEO preference. The more important output is the predicted future vector, its
-delta versus the baseline action, and the Pareto/tradeoff set.
+delta versus the baseline action, the Pareto/frontier set, and the concrete
+success/failure observables for checking the branch later.
 
 The current score flow is:
 
@@ -405,7 +406,7 @@ candidate action
 + doctrine text
 + pre-branch company state
 -> JEPA predicts likely future heads
--> Pareto/tradeoff report, with optional operator objective views
+-> frontier/tradeoff report, with optional operator objective views
 ```
 
 The predicted heads include:
@@ -414,6 +415,20 @@ The predicted heads include:
 - business heads: `enterprise_risk`, `commercial_position_proxy`, `org_strain_proxy`, `stakeholder_trust`, `execution_drag`
 - future-state heads: `regulatory_exposure`, `accounting_control_pressure`, `liquidity_stress`, `governance_response`, `evidence_control`, `external_confidence_pressure`
 - optional reporting views such as risk-minimization or trust-preservation, computed from predicted futures rather than trained as factual targets
+
+Strategic-state-point exports now split the layers explicitly:
+
+- JEPA prediction: `predicted_future_vector`, `operator_utility_heads`,
+  `domain_risk_heads`, `telemetry_heads`, and checkpoint/encoder/probe
+  provenance.
+- Latent comparison: `latent_future_id`, baseline-relative latent distances,
+  and nearest-candidate latent distance when the checkpoint exposes JEPA latent
+  futures.
+- Frontier/readout: `pareto_frontier_group`, `frontier_rank`,
+  `operator_score_rank`, and `display_rank`. The display order puts Pareto
+  frontier options first; the score rank remains only the fixed operator lens.
+- Decision loop: `success_observable`, `failure_observable`, `time_to_signal`,
+  `next_decision_trigger`, and `falsifying_evidence`.
 
 The latest local pooled action-conditioned JEPA run combined the Enron Rosetta
 sample, Dispatch, Powr of You, and a small AmericanStories historical-news

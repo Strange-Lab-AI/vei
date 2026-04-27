@@ -311,6 +311,19 @@ The fields named `predicted_*` are JEPA outputs. The field named
 `balanced_operator_score` is a fixed reporting readout over predicted heads, not
 a learned JEPA preference.
 
+Read the result in layers:
+
+- `predicted_future_vector`, `operator_utility_heads`, `domain_risk_heads`, and
+  `telemetry_heads` are the model-facing future readout.
+- `latent_future_id` and the latent distance columns compare the JEPA-predicted
+  branch futures when the checkpoint exposes them.
+- `pareto_frontier_group`, `frontier_rank`, `operator_score_rank`, and
+  `display_rank` are report ordering fields. Display rank puts frontier options
+  first; operator score rank is only the fixed score order.
+- `success_observable`, `failure_observable`, `time_to_signal`,
+  `next_decision_trigger`, and `falsifying_evidence` are generated before
+  scoring so the branch can be checked later.
+
 The alternate user path is interactive: show the state dossier and proposed
 decisions to the user, let them edit or replace the decision/action set, then
 score the final actions through this same state-point path.
@@ -350,15 +363,16 @@ Primary outputs:
 
 When reporting results, show the decision point, why it was selected, the
 candidate actions, the JEPA-predicted future vector, the delta versus the
-baseline action, tradeoffs, the optional operator score/rank, generation source,
-and leakage status.
+baseline action, frontier membership, score rank, concrete observables,
+generation source, and leakage status.
 
 For all runs, report the learned future vector before any optional operator lens:
 
 - predicted risk, commercial, strain, trust, drag, external-spread, fanout, and
   related heads are JEPA outputs.
-- `is_pareto_efficient`, predicted deltas versus the baseline action, and
-  tradeoff summaries are model-facing comparison aids.
+- `is_pareto_efficient`, `pareto_frontier_group`, predicted deltas versus the
+  baseline action, latent distances, and tradeoff summaries are model-facing
+  comparison aids.
 - `balanced_operator_score`, older `balanced_ceo_score`,
   `strategic_usefulness_score`, `objective_policy_summary`, and
   `operator_policy_basis` are optional audit/reporting lenses. They are useful
