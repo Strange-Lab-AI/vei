@@ -823,14 +823,20 @@ def _write_casebook_overview() -> None:
     proof_specs = [spec for spec in bundle_specs() if spec.role == "proof"]
     narrative_specs = [spec for spec in bundle_specs() if spec.role == "narrative"]
     lines = [
-        "# Enron Casebook",
+        "<!-- BEGIN GENERATED ENRON CASES -->",
+        "## Saved Examples",
         "",
-        "The Enron surface is split into two layers.",
+        "Start with the Master Agreement example. It is the clearest fresh-clone",
+        "walkthrough:",
         "",
-        "- `proof`: the technical flagship cases with the clearest downstream tails or operational forks",
-        "- `narrative`: the strongest governance and disclosure stories for essay, demo, and presentation use",
+        "```bash",
+        "vei ui serve \\",
+        "  --root docs/examples/enron-master-agreement-public-context/workspace \\",
+        "  --host 127.0.0.1 \\",
+        "  --port 3055",
+        "```",
         "",
-        "## Proof examples",
+        "### Proof examples",
         "",
     ]
     for spec in proof_specs:
@@ -841,7 +847,7 @@ def _write_casebook_overview() -> None:
                 f"  - What actually happened: {spec.actual_happened}",
             ]
         )
-    lines.extend(["", "## Narrative examples", ""])
+    lines.extend(["", "### Narrative examples", ""])
     for spec in narrative_specs:
         lines.extend(
             [
@@ -850,21 +856,20 @@ def _write_casebook_overview() -> None:
                 f"  - What actually happened: {spec.actual_happened}",
             ]
         )
-    lines.extend(
-        [
-            "",
-            "## Public reading order",
-            "",
-            "- Start with Master Agreement for the long-tail technical proof.",
-            "- Use Baxter, PG&E, California, and Braveheart to show range across communication, commercial, regulatory, and accounting forks.",
-            "- Use Watkins, Q3 disclosure review, and Skilling resignation materials as the narrative governance set.",
-            "",
-        ]
-    )
-    Path("docs/ENRON_CASEBOOK.md").write_text(
-        "\n".join(lines),
-        encoding="utf-8",
-    )
+    lines.extend(["<!-- END GENERATED ENRON CASES -->", ""])
+    section = "\n".join(lines)
+    target = Path("docs/ENRON_EXAMPLE.md")
+    if not target.exists():
+        target.write_text(section, encoding="utf-8")
+        return
+    text = target.read_text(encoding="utf-8")
+    start = "<!-- BEGIN GENERATED ENRON CASES -->"
+    end = "<!-- END GENERATED ENRON CASES -->"
+    if start not in text or end not in text:
+        return
+    before, rest = text.split(start, 1)
+    _, after = rest.split(end, 1)
+    target.write_text(before + section + after.lstrip("\n"), encoding="utf-8")
 
 
 def _history_dimension_labels(

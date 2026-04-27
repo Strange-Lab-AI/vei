@@ -1,5 +1,10 @@
 # Historical What-Ifs
 
+This is the command and implementation reference for replay, forecasting, and
+strategic state-point runs. Use [ENRON_EXAMPLE.md](ENRON_EXAMPLE.md) for the
+public company example and [NEWS_EXAMPLE.md](NEWS_EXAMPLE.md) for the public
+news-timeline example.
+
 VEI now supports a company-history historical what-if workflow for archive-backed datasets such as the Enron Rosetta event tables and normalized multi-source context snapshots.
 
 Install the learned runtime when you want the repo-owned Enron examples to open with the shipped reference forecast from a fresh clone:
@@ -151,7 +156,7 @@ Optional sidecars are validated when present:
 - `whatif_ejepa_result.json`, `whatif_reference_result.json`, or `whatif_heuristic_baseline_result.json`: saved forecast result
 - `whatif_business_state_comparison.json` + `whatif_business_state_comparison.md`: ranked comparison payload and summary when the ranked path is saved
 
-For Enron, VEI now ships the saved example surface plus a small checked-in Rosetta sample. The sample lives under `data/enron/rosetta/`, the full archive is an optional download fetched with `make fetch-enron-full`, the public-company fixture lives under `vei/whatif/fixtures/enron_public_context`, the curated public-record fixture lives under `vei/whatif/fixtures/enron_record_history`, and the helper docs live in [ENRON_DATASET.md](ENRON_DATASET.md) and [ROSETTA_SOURCE.md](ROSETTA_SOURCE.md). Refresh the public fixture with `python scripts/prepare_enron_public_context.py`, fetch and verify the full archive with `make fetch-enron-full` plus `python scripts/check_rosetta_archive.py`, and refresh screenshots with `python scripts/capture_enron_bundle_screenshots.py`.
+For Enron, VEI now ships the saved example surface plus a small checked-in Rosetta sample. The sample lives under `data/enron/rosetta/`, the full archive is an optional download fetched with `make fetch-enron-full`, the public-company fixture lives under `vei/whatif/fixtures/enron_public_context`, the curated public-record fixture lives under `vei/whatif/fixtures/enron_record_history`, and the public example doc is [ENRON_EXAMPLE.md](ENRON_EXAMPLE.md). Refresh the public fixture with `python scripts/prepare_enron_public_context.py`, fetch and verify the full archive with `make fetch-enron-full` plus `python scripts/check_rosetta_archive.py`, and refresh screenshots with `python scripts/capture_enron_bundle_screenshots.py`.
 
 The current Enron public context carries 11 dated financial checkpoints, 21 dated public news events, 986 daily stock rows, 7 credit events, and 1 FERC timeline event across 24 archived public source files. The curated public-record fixture adds dated filings, disclosures, hearing records, and exhibit-style records into the same saved canonical timeline. VEI slices those rows to the active Enron window and then to the chosen branch date before they are shown in Studio, written into the saved episode manifest, attached to the saved bundle, or added to benchmark dossiers.
 
@@ -622,9 +627,10 @@ final held-out cases. Against the heuristic baseline:
 The latest local strategic state-point run selected `12` LLM-proposed decisions
 and scored `96` candidate actions under
 `_vei_out/world_model_strategic_state_points/enron_dispatch_powr_news_llm_statepoints_20260426/`.
-It used `gpt-5.3-codex-spark` for proposal generation and the pooled JEPA
-checkpoint for scoring. Those rankings are useful decision-support outputs, not
-causal proof of what would definitely have happened.
+The saved proposal manifest records the exact proposal model used for that run.
+New strategic proposal reruns default to `gpt-5.5` through Codex, and use the
+pooled JEPA checkpoint for scoring. Those rankings are useful decision-support
+outputs, not causal proof of what would definitely have happened.
 
 ### Important constraint
 
