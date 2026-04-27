@@ -15,7 +15,7 @@ from .benchmark import (
     outcome_targets_to_signals,
     summarize_observed_targets,
 )
-from .benchmark_runtime import run_branch_point_benchmark_prediction
+from .benchmark_runtime import run_branch_point_benchmark_predictions
 from .benchmark_business import (
     evidence_to_business_outcomes,
     summarize_future_state_heads,
@@ -365,6 +365,9 @@ def _score_state_point_candidates(
     prediction_output_root: Path,
 ) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
+    pending_rows: list[
+        tuple[int, NewsStatePointCandidateInput, str, WhatIfBenchmarkDatasetRow]
+    ] = []
     for index, candidate in enumerate(candidates, start=1):
         candidate_type = candidate.candidate_type or _infer_candidate_type(
             candidate.action
@@ -410,13 +413,19 @@ def _score_state_point_candidates(
             observed_targets=observed_targets,
             observed_outcome_signals=outcome_targets_to_signals(observed_targets),
         )
-        prediction = run_branch_point_benchmark_prediction(
-            checkpoint_path=checkpoint_path,
-            row=row,
-            device=device,
-            runtime_root=runtime_root,
-            output_root=prediction_output_root,
-        )
+        pending_rows.append((index, candidate, candidate_type, row))
+    predictions = run_branch_point_benchmark_predictions(
+        checkpoint_path=checkpoint_path,
+        rows=[item[3] for item in pending_rows],
+        device=device,
+        runtime_root=runtime_root,
+        output_root=prediction_output_root,
+    )
+    for (index, candidate, candidate_type, _row), prediction in zip(
+        pending_rows,
+        predictions,
+        strict=False,
+    ):
         predicted_evidence = prediction["evidence_heads"]
         predicted_business = prediction["business_heads"]
         predicted_future_state = prediction["future_state_heads"]
@@ -562,6 +571,7 @@ def _action_schema_for_candidate(
         tags.add("macro_finance")
     return WhatIfActionSchema(
         event_type="state_point",
+        action_text=action,
         recipient_scope="mixed" if broad else ("external" if external else "internal"),
         external_recipient_count=2 if broad else (1 if external else 0),
         attachment_policy="sanitized" if external else "none",

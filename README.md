@@ -371,7 +371,8 @@ VEI. It turns emails, tickets, ClickUp items, docs, and other dated work records
 into one event spine, then builds training rows that look like this:
 
 ```text
-pre-branch company state + candidate action -> observed future state
+pre-branch company state + doctrine text + candidate action text/schema
+-> observed future state
 ```
 
 For factual rows, the candidate action is the historical branch event and the
@@ -381,18 +382,19 @@ model is never supposed to see the recorded future when proposing or scoring
 those candidates.
 
 The JEPA benchmark model does not predict one magic number directly. It predicts
-a bundle of future heads: evidence flow, business risk, stakeholder trust,
-execution drag, governance pressure, and related signals. The single number in
-ranking tables is a convenience score computed from those predicted heads for a
-chosen objective.
+a bundle of factual future heads: evidence flow, business risk, stakeholder
+trust, execution drag, governance pressure, and related signals. Any single
+number in ranking tables is a convenience view computed after prediction, not a
+learned universal preference label.
 
 The current score flow is:
 
 ```text
 candidate action
++ doctrine text
 + pre-branch company state
 -> JEPA predicts likely future heads
--> objective pack converts those heads into a ranking score
+-> Pareto/tradeoff report, with optional operator objective views
 ```
 
 The predicted heads include:
@@ -400,18 +402,18 @@ The predicted heads include:
 - evidence heads such as outside spread, legal follow-up, review loops, participant fanout, delays, reassurance, blame pressure, and commitment clarity
 - business heads: `enterprise_risk`, `commercial_position_proxy`, `org_strain_proxy`, `stakeholder_trust`, `execution_drag`
 - future-state heads: `regulatory_exposure`, `accounting_control_pressure`, `liquidity_stress`, `governance_response`, `evidence_control`, `external_confidence_pressure`
-- objective scores such as `minimize_enterprise_risk`, `protect_commercial_position`, `reduce_org_strain`, `preserve_stakeholder_trust`, and `maintain_execution_velocity`
+- optional reporting views such as risk-minimization or trust-preservation, computed from predicted futures rather than trained as factual targets
 
-In the latest local pooled run, the benchmark combined Enron, Dispatch, and a
-private startup archive into `59,920` canonical events and `17,602` eligible
-branch rows. The final JEPA run trained on `14,655` train/validation rows and
-tested on `2,641` held-out rows. It was much better calibrated than the heuristic
-baseline on the external-spread forecast (Brier `0.00135` vs `0.54745`, ECE
-`0.00567` vs `0.68841`) and had lower MAE on all five business heads. The
-heuristic still had higher AUROC on the rare external-spread label (`0.92389` vs
-JEPA `0.89231`), so the honest read is:
-JEPA is the better calibrated factual forecaster in this run, but ranking
-counterfactual actions remains decision support, not causal proof.
+The latest local pooled action-conditioned JEPA run combined Enron, Dispatch,
+Powr of You, and a small AmericanStories historical-news sample. It trained on
+`1,105` rows, validated on `207`, tested on `259`, and kept final held-out cases.
+It uses deterministic hashing encoders for doctrine text and raw candidate
+action text, so changing the action text while holding the structured action
+schema fixed can change the prediction. On the held-out factual rows, external
+spread AUROC was `1.0`, Brier was `0.003921`, and ECE was `0.032069`; all five
+business-head MAEs stayed below `0.12`. The honest read is: JEPA is a useful
+factual future-state forecaster in this run, but counterfactual rankings remain
+decision support, not causal proof.
 
 Build a pooled benchmark from multiple company-history bundles:
 
@@ -454,7 +456,7 @@ vei whatif benchmark strategic-state-points \
   --decisions-per-tenant 3 \
   --candidates-per-decision 8 \
   --proposal-mode llm \
-  --proposal-model gpt-5.5
+  --proposal-model gpt-5.4
 ```
 
 That command is the reproducible CEO-decision workflow: build an as-of state
@@ -464,9 +466,11 @@ candidate with the JEPA checkpoint, and export CSV/Markdown ranking tables.
 Strategic state points are now the counterfactual product surface.
 
 Use `--proposal-mode llm` for live LLM-generated decisions/actions. Strategic
-proposal models route through Codex by default, including `gpt-5.5`. Set
-`VEI_STRATEGIC_PROPOSAL_BACKEND=api` only for an explicit direct-provider API
-run.
+proposal models route through Codex by default. The default is `gpt-5.4`,
+because that is the newest model accepted by the current local Codex CLI.
+Override `--proposal-model` to `gpt-5.5` when the installed Codex runtime
+supports it. Set `VEI_STRATEGIC_PROPOSAL_BACKEND=api` only for an explicit
+direct-provider API run.
 
 ## Repo Checks
 

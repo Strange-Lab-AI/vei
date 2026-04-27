@@ -21,6 +21,7 @@ from vei.whatif.models import (
     WhatIfActionSchema,
     WhatIfArtifactFlags,
     WhatIfBenchmarkCandidate,
+    WhatIfBenchmarkDatasetRow,
     WhatIfBenchmarkEvalArtifacts,
     WhatIfBenchmarkEvalResult,
     WhatIfBenchmarkTrainArtifacts,
@@ -598,6 +599,61 @@ def test_multitenant_benchmark_can_eval_heuristic_baseline_comparator(
     assert eval_result.observed_metrics.brier_any_external_spread >= 0.0
     assert eval_result.cases
     assert eval_result.artifacts.prediction_jsonl_path.exists()
+
+
+def test_action_text_changes_world_model_encoding(tmp_path: Path) -> None:
+    build = build_multitenant_world_model_benchmark(
+        [
+            MultiTenantBenchmarkSource(
+                tenant_id="dispatch",
+                world=_tenant_world(
+                    tmp_path=tmp_path,
+                    tenant_id="dispatch",
+                    organization_name="Dispatch",
+                    organization_domain="dispatch.example",
+                    start_ms=2_000_000,
+                ),
+            )
+        ],
+        artifacts_root=tmp_path / "world_model_multitenant_jepa",
+        label="action_text_fixture",
+        heldout_cases_per_tenant=1,
+        candidate_generation_mode="template",
+        candidate_model="template-fixture",
+    )
+    train_row = WhatIfBenchmarkDatasetRow.model_validate(
+        _load_jsonl(build.dataset.split_paths["train"])[0]
+    )
+    preprocessor = benchmark_bridge_runtime._fit_preprocessor(  # noqa: SLF001
+        train_rows=[train_row],
+        validation_rows=[],
+        test_rows=[],
+        heldout_rows=[],
+        cases=build.cases,
+    )
+    assert preprocessor.action_text_vector_width > 0
+    assert preprocessor.to_metadata()["objective_head"]["trained"] is False
+    assert all(
+        candidate.action_schema.action_text
+        for case in build.cases
+        for candidate in case.candidates
+    )
+
+    base = preprocessor.encode_row(train_row)
+    changed_schema = train_row.contract.action_schema.model_copy(
+        update={
+            "action_text": (
+                "Send a founder-led commercial reset to the buyer, name the pilot "
+                "metric, and make a different market-expansion ask."
+            )
+        }
+    )
+    changed = preprocessor.encode_counterfactual(
+        train_row,
+        action_schema=changed_schema,
+    )
+
+    assert (base.action_values != changed.action_values).any()
 
 
 def test_candidate_diversity_rejects_minor_variants() -> None:

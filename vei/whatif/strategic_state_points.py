@@ -25,7 +25,7 @@ from .benchmark_business import (
     summarize_future_state_heads,
     summarize_observed_evidence,
 )
-from .benchmark_runtime import run_branch_point_benchmark_prediction
+from .benchmark_runtime import run_branch_point_benchmark_predictions
 from .doctrine import build_doctrine_packet, doctrine_packet_text
 from .models import (
     WhatIfActionSchema,
@@ -36,6 +36,7 @@ from .models import (
 )
 
 StrategicProposalMode = Literal["llm", "template"]
+DEFAULT_STRATEGIC_PROPOSAL_MODEL = "gpt-5.4"
 
 
 class StrategicCandidateInput(BaseModel):
@@ -107,7 +108,7 @@ def run_strategic_state_point_counterfactuals(
     decisions_per_source: int = 3,
     candidates_per_decision: int = 8,
     proposal_mode: StrategicProposalMode = "llm",
-    proposal_model: str = "gpt-5.5",
+    proposal_model: str = DEFAULT_STRATEGIC_PROPOSAL_MODEL,
     future_horizon_days: int = 120,
     max_history_events: int = 260,
     max_evidence_events: int = 24,
@@ -436,6 +437,9 @@ def _score_state_point(
     prediction_output_root: Path,
 ) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
+    pending_rows: list[
+        tuple[int, StrategicCandidateInput, str, WhatIfBenchmarkDatasetRow]
+    ] = []
     evidence = summarize_observed_evidence(
         branch_event=state_point.branch_event,
         future_events=state_point.future_events,
@@ -483,13 +487,19 @@ def _score_state_point(
             observed_targets=observed_targets,
             observed_outcome_signals=outcome_targets_to_signals(observed_targets),
         )
-        prediction = run_branch_point_benchmark_prediction(
-            checkpoint_path=checkpoint_path,
-            row=row,
-            device=device,
-            runtime_root=runtime_root,
-            output_root=prediction_output_root / f"candidate_{index}",
-        )
+        pending_rows.append((index, candidate, candidate_type, row))
+    predictions = run_branch_point_benchmark_predictions(
+        checkpoint_path=checkpoint_path,
+        rows=[item[3] for item in pending_rows],
+        device=device,
+        runtime_root=runtime_root,
+        output_root=prediction_output_root,
+    )
+    for (index, candidate, candidate_type, _row), prediction in zip(
+        pending_rows,
+        predictions,
+        strict=False,
+    ):
         business = dict(prediction["business_heads"])
         rows.append(
             {
@@ -892,6 +902,7 @@ def _action_schema_for_candidate(
         tags.add("escalation")
     return WhatIfActionSchema(
         event_type="strategic_state_point",
+        action_text=action,
         recipient_scope=(
             "mixed" if broad and external else ("external" if external else "internal")
         ),

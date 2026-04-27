@@ -118,6 +118,38 @@ def run_branch_point_benchmark_prediction(
     return json.loads(response_path.read_text(encoding="utf-8"))
 
 
+def run_branch_point_benchmark_predictions(
+    *,
+    checkpoint_path: str | Path,
+    rows: list[WhatIfBenchmarkDatasetRow],
+    device: str | None = None,
+    runtime_root: str | Path | None = None,
+    output_root: str | Path | None = None,
+) -> list[dict[str, Any]]:
+    checkpoint = Path(checkpoint_path).expanduser().resolve()
+    request_output_root = (
+        Path(output_root).expanduser().resolve()
+        if output_root is not None
+        else _default_prediction_runtime_root(checkpoint)
+    )
+    request = {
+        "checkpoint_path": str(checkpoint),
+        "rows": [row.model_dump(mode="json") for row in rows],
+        "device": device or "",
+    }
+    response_path = _run_bridge_command(
+        command_name="predict-batch",
+        request=request,
+        output_root=request_output_root,
+        runtime_root=runtime_root,
+    )
+    payload = json.loads(response_path.read_text(encoding="utf-8"))
+    predictions = payload.get("predictions")
+    if not isinstance(predictions, list):
+        raise RuntimeError("benchmark bridge predict-batch returned no predictions")
+    return [dict(item) for item in predictions if isinstance(item, dict)]
+
+
 def _default_prediction_runtime_root(checkpoint: Path) -> Path:
     return (
         Path.cwd().resolve()
@@ -207,5 +239,6 @@ def _current_site_package_entries() -> list[str]:
 __all__ = [
     "run_branch_point_benchmark_evaluation",
     "run_branch_point_benchmark_prediction",
+    "run_branch_point_benchmark_predictions",
     "run_branch_point_benchmark_training",
 ]

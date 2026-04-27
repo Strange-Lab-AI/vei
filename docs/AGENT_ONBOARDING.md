@@ -283,7 +283,7 @@ the next event or action to test.
 The general rule is:
 
 ```text
-state + doctrine + candidate action
+state + doctrine text + candidate action text/schema
 -> JEPA-predicted future vector
 -> Pareto/tradeoff report
 -> optional operator objective view
@@ -302,7 +302,7 @@ vei whatif benchmark strategic-state-points \
   --decisions-per-tenant 3 \
   --candidates-per-decision 8 \
   --proposal-mode llm \
-  --proposal-model gpt-5.5
+  --proposal-model gpt-5.4
 ```
 
 This writes `strategic_state_point_results.csv` and `.md`. The fields named
@@ -313,10 +313,12 @@ The alternate user path is interactive: show the state dossier and proposed
 decisions to the user, let them edit or replace the decision/action set, then
 score the final actions through this same state-point path.
 
-Strategic proposal models route through Codex by default, including `gpt-5.5`.
-Set `VEI_STRATEGIC_PROPOSAL_BACKEND=api` only when an explicit direct-provider
-API run is intended. The run must record which model generated candidates and
-whether it fell back to templates.
+Strategic proposal models route through Codex by default. The default is
+`gpt-5.4`, which is the newest model accepted by the current local Codex CLI.
+Override `--proposal-model` to `gpt-5.5` when the installed Codex runtime
+supports it. Set `VEI_STRATEGIC_PROPOSAL_BACKEND=api` only when an explicit
+direct-provider API run is intended. The run must record which model generated
+candidates and whether it fell back to templates.
 
 A good candidate action is concrete enough that someone could choose it. It
 should name the owner, action path, review path, communication boundary, and

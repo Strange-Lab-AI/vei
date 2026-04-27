@@ -2275,9 +2275,11 @@ def _action_schema_from_event(
     *,
     organization_domain: str,
 ) -> WhatIfActionSchema:
-    text = " ".join([event.subject, event.snippet, event.target_id]).lower()
+    raw_text = " ".join([event.subject, event.snippet, event.target_id]).strip()
+    text = raw_text.lower()
     return WhatIfActionSchema(
         event_type=event.event_type,
+        action_text=raw_text,
         recipient_scope=_event_scope(
             event,
             organization_domain=organization_domain,
@@ -2325,7 +2327,8 @@ def _action_schema_from_prompt(
     branch_event: WhatIfEvent,
     historical_action: WhatIfActionSchema,
 ) -> WhatIfActionSchema:
-    lowered = prompt.strip().lower()
+    action_text = prompt.strip()
+    lowered = action_text.lower()
     tags = intervention_tags(prompt)
     recipient_scope = historical_action.recipient_scope
     external_recipient_count = historical_action.external_recipient_count
@@ -2359,9 +2362,9 @@ def _action_schema_from_prompt(
         owner_clarity = "single_owner"
     elif any(token in lowered for token in _MULTI_PARTY_TERMS):
         owner_clarity = "multi_owner"
-
     return WhatIfActionSchema(
         event_type=branch_event.event_type,
+        action_text=action_text,
         recipient_scope=recipient_scope,
         external_recipient_count=external_recipient_count,
         attachment_policy=attachment_policy,
