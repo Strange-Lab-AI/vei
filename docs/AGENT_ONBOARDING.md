@@ -307,7 +307,9 @@ vei whatif benchmark strategic-state-points \
 
 This writes `strategic_state_point_results.csv` and `.md`. The fields named
 `why_this_decision_was_proposed` and `candidate_type` are proposal scaffolding.
-The fields named `learned_future_score` and `predicted_*` are JEPA outputs.
+The fields named `predicted_*` are JEPA outputs. The field named
+`balanced_operator_score` is a fixed reporting readout over predicted heads, not
+a learned JEPA preference.
 
 The alternate user path is interactive: show the state dossier and proposed
 decisions to the user, let them edit or replace the decision/action set, then
@@ -347,18 +349,20 @@ Primary outputs:
 - `_vei_out/<root>/<label>/strategic_state_point_proposals.json`
 
 When reporting results, show the decision point, why it was selected, the
-candidate actions, the predicted score and tradeoffs, JEPA's top-ranked action,
-generation source, and leakage status.
+candidate actions, the JEPA-predicted future vector, the delta versus the
+baseline action, tradeoffs, the optional operator score/rank, generation source,
+and leakage status.
 
 For all runs, report the learned future vector before any optional operator lens:
 
-- `factual_future_score` and `factual_pareto_rank` are the primary model-facing
-  outputs for action comparison. They come from predicted future vectors.
 - predicted risk, commercial, strain, trust, drag, external-spread, fanout, and
   related heads are JEPA outputs.
-- `balanced_ceo_score`, `strategic_usefulness_score`, `objective_policy_summary`,
-  and `operator_policy_basis` are optional audit/reporting lenses. They are
-  useful for inspecting a run, but they are not treated as learned ground-truth
+- `is_pareto_efficient`, predicted deltas versus the baseline action, and
+  tradeoff summaries are model-facing comparison aids.
+- `balanced_operator_score`, older `balanced_ceo_score`,
+  `strategic_usefulness_score`, `objective_policy_summary`, and
+  `operator_policy_basis` are optional audit/reporting lenses. They are useful
+  for inspecting a run, but they are not treated as learned ground-truth
   preferences.
 
 This is intentional. Otherwise news timelines can look "safe" while mostly

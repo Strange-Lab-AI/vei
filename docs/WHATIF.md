@@ -593,9 +593,10 @@ tail. It explains why the LLM or human chose a strategic state point from
 pre-as-of evidence. JEPA then scores candidate actions from doctrine text plus
 the pre-as-of state.
 
-The primary ranking is factual/Pareto over predicted future vectors. Explicit
-objective weights are optional query-time reporting lenses and should not be
-described as the learned ground truth.
+The primary output is the predicted future vector plus Pareto/tradeoff
+comparison. The default scalar, `balanced_operator_score`, is a fixed
+query-time readout over predicted risk, commercial position, strain, trust, and
+drag. It is useful for sorting, but it is not the learned ground truth.
 
 For local exploratory runs, the canonical shareable exports are
 `_vei_out/world_model_current/world_model_decision_summary.csv` and

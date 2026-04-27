@@ -357,7 +357,7 @@ VEI today is a deterministic enterprise simulator, governed twin, replay platfor
 - Training reads `CanonicalEvent` streams, doctrine packet text, pre-branch state features, and candidate action text/schema. Raw provider payloads are not the training contract.
 - `vei whatif benchmark build-multitenant` builds the pooled learned world-model experiment from multiple company-history or public-news snapshots, with per-tenant temporal holdouts and leave-one-tenant-out roots.
 - `vei whatif benchmark strategic-state-points` is the counterfactual product surface. It asks an LLM or human for as-of strategic decisions and candidate actions from pre-as-of evidence only, then scores those actions through the learned future-vector path. Proposal generation defaults to Codex with `gpt-5.4`; override to newer Codex-supported models such as `gpt-5.5` when available. Direct-provider API calls are explicit opt-in with `VEI_STRATEGIC_PROPOSAL_BACKEND=api`.
-- The learned model predicts future heads. A single ranking score, Pareto rank, or objective view is reporting logic on top of those predicted futures, not a learned universal preference label.
+- The learned model predicts future heads. The default `balanced_operator_score`, Pareto rank, or objective view is reporting logic on top of those predicted futures, not a learned universal preference label.
 - This is an offline benchmark/training path, not an always-on CEO recommender.
 
 **What is heuristic (not learned):**

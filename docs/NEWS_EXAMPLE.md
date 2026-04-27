@@ -121,6 +121,10 @@ _vei_out/world_model_current/world_model_decision_summary.csv
 The news rows in that file are a worked application example. They are not
 committed source data.
 
+Read the score column as an optional `balanced_operator_score` readout. The
+world-model output to inspect first is the predicted future vector, the delta
+versus the baseline action, and the tradeoff summary.
+
 ## Limits
 
 The current model still uses generic business and future-state heads:

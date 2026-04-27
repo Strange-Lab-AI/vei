@@ -387,6 +387,17 @@ trust, execution drag, governance pressure, and related signals. Any single
 number in ranking tables is a convenience view computed after prediction, not a
 learned universal preference label.
 
+The current default readout is named `balanced_operator_score`. It is a fixed
+operator lens over five predicted heads:
+
+```text
+mean(1-risk, commercial position, 1-strain, trust, 1-drag)
+```
+
+Use that score as a sorting aid, not as proof that the JEPA learned a universal
+CEO preference. The more important output is the predicted future vector, its
+delta versus the baseline action, and the Pareto/tradeoff set.
+
 The current score flow is:
 
 ```text

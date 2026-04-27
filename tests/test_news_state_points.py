@@ -318,10 +318,18 @@ def test_strategic_state_point_run_scores_template_proposals(
     assert result.candidate_count == 8
     assert first["decision_point_not_historical_event"] is True
     assert first["learned_model_output"] == "predicted future vector"
+    assert "learned_future_score" not in first
+    assert first["score_output_kind"] == "operator_utility_readout"
+    assert first["operator_score_formula_version"] == "balanced_operator_v1"
+    assert first["operator_score_is_learned"] is False
+    assert first["baseline_action_label"]
+    assert "predicted_delta_vector" in first
+    assert "tradeoff_summary" in first
+    assert first["prediction_uncertainty_available"] is False
     assert "objective_policy_summary" not in first
-    assert "not learned scores" in result.artifacts.result_markdown_path.read_text(
-        encoding="utf-8"
-    )
+    markdown = result.artifacts.result_markdown_path.read_text(encoding="utf-8")
+    assert "not learned scores" in markdown
+    assert "Delta vs baseline" in markdown
 
 
 def test_strategic_state_point_cli_wires_sources_and_checkpoint(

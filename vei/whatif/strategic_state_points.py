@@ -37,6 +37,20 @@ from .models import (
 
 StrategicProposalMode = Literal["llm", "template"]
 DEFAULT_STRATEGIC_PROPOSAL_MODEL = "gpt-5.4"
+OPERATOR_SCORE_FORMULA_VERSION = "balanced_operator_v1"
+OPERATOR_SCORE_FORMULA = (
+    "mean(1-enterprise_risk, commercial_position, 1-org_strain, "
+    "stakeholder_trust, 1-execution_drag)"
+)
+_NEAR_TIE_MARGIN = 0.01
+_DELTA_EPSILON = 0.005
+_BUSINESS_HEADS: tuple[tuple[str, str, bool], ...] = (
+    ("predicted_enterprise_risk", "risk", False),
+    ("predicted_commercial_position", "commercial", True),
+    ("predicted_stakeholder_trust", "trust", True),
+    ("predicted_execution_drag", "drag", False),
+    ("predicted_org_strain", "strain", False),
+)
 
 
 class StrategicCandidateInput(BaseModel):
@@ -517,12 +531,21 @@ def _score_state_point(
                 "candidate_type": candidate_type,
                 "candidate_generation_source": state_point.proposal_source,
                 "learned_model_output": "predicted future vector",
-                "learned_future_score": _factual_future_score(business),
+                "model_output_kind": "predicted_future_vector",
+                "balanced_operator_score": _balanced_operator_score(business),
+                "score_output_kind": "operator_utility_readout",
+                "operator_score_formula_version": OPERATOR_SCORE_FORMULA_VERSION,
+                "operator_score_formula": OPERATOR_SCORE_FORMULA,
+                "operator_score_is_learned": False,
                 "predicted_enterprise_risk": business["enterprise_risk"],
                 "predicted_commercial_position": business["commercial_position_proxy"],
                 "predicted_org_strain": business["org_strain_proxy"],
                 "predicted_stakeholder_trust": business["stakeholder_trust"],
                 "predicted_execution_drag": business["execution_drag"],
+                "predicted_future_vector": _future_vector_string_from_business(
+                    business,
+                    future_state_heads=prediction["future_state_heads"],
+                ),
                 "predicted_external_spread": prediction["evidence_heads"][
                     "any_external_spread"
                 ],
@@ -542,8 +565,9 @@ def _score_state_point(
                 "pre_branch_evidence_sha256": state_point.evidence_hash,
                 "generation_prompt_sha256": state_point.prompt_hash,
                 "model_ranking_basis": (
-                    "learned predicted future vector sorted by factual/Pareto rank"
+                    "Pareto over predicted future vector, then balanced operator score"
                 ),
+                "prediction_uncertainty_available": False,
                 "not_used_as_ground_truth": (
                     "decision proposal reason, candidate type, and any operator lens"
                 ),
@@ -568,17 +592,36 @@ def _rank_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 if _dominates(other, row):
                     row["is_pareto_efficient"] = False
                     break
+        _attach_baseline_deltas(case_rows)
         ordered = sorted(
             case_rows,
             key=lambda item: (
                 not bool(item["is_pareto_efficient"]),
-                -float(item["learned_future_score"]),
+                -float(item["balanced_operator_score"]),
                 float(item["predicted_enterprise_risk"]),
                 str(item["candidate_label"]).lower(),
             ),
         )
         for index, row in enumerate(ordered, start=1):
             row["counterfactual_rank"] = index
+        for index, row in enumerate(ordered):
+            next_row = ordered[index + 1] if index + 1 < len(ordered) else None
+            if next_row is None:
+                row["operator_score_margin_to_next_rank"] = ""
+                row["operator_score_near_tie_next"] = False
+            else:
+                margin = round(
+                    float(row["balanced_operator_score"])
+                    - float(next_row["balanced_operator_score"]),
+                    6,
+                )
+                row["operator_score_margin_to_next_rank"] = margin
+                row["operator_score_near_tie_next"] = margin < _NEAR_TIE_MARGIN
+            row["ranking_caveat"] = (
+                "near tie; inspect predicted vector and delta tradeoffs"
+                if bool(row["operator_score_near_tie_next"])
+                else "operator readout; inspect predicted vector before choosing"
+            )
         ranked.extend(ordered)
     ranked.sort(
         key=lambda item: (
@@ -609,7 +652,7 @@ def _future_axes(row: dict[str, Any]) -> dict[str, float]:
     }
 
 
-def _factual_future_score(business: dict[str, Any]) -> float:
+def _balanced_operator_score(business: dict[str, Any]) -> float:
     values = [
         1.0 - float(business["enterprise_risk"]),
         float(business["commercial_position_proxy"]),
@@ -618,6 +661,127 @@ def _factual_future_score(business: dict[str, Any]) -> float:
         1.0 - float(business["execution_drag"]),
     ]
     return round(sum(values) / len(values), 6)
+
+
+def _attach_baseline_deltas(case_rows: list[dict[str, Any]]) -> None:
+    baseline = _select_baseline_row(case_rows)
+    baseline_vector = _business_vector(baseline)
+    baseline_basis = _baseline_basis(baseline)
+    for row in case_rows:
+        row["baseline_action_label"] = baseline["candidate_label"]
+        row["baseline_candidate_type"] = baseline["candidate_type"]
+        row["baseline_basis"] = baseline_basis
+        row["baseline_future_vector"] = _future_vector_string(baseline)
+        delta_values: dict[str, float] = {}
+        for key, short_name, _higher_is_better in _BUSINESS_HEADS:
+            delta = round(float(row[key]) - baseline_vector[key], 6)
+            delta_values[short_name] = delta
+            row[f"delta_{short_name}_vs_baseline"] = delta
+        row["operator_score_delta_vs_baseline"] = round(
+            float(row["balanced_operator_score"])
+            - float(baseline["balanced_operator_score"]),
+            6,
+        )
+        row["predicted_delta_vector"] = _delta_vector_string(delta_values)
+        row["tradeoff_summary"] = _tradeoff_summary(delta_values)
+
+
+def _select_baseline_row(case_rows: Sequence[dict[str, Any]]) -> dict[str, Any]:
+    return sorted(
+        case_rows,
+        key=lambda row: (
+            _baseline_priority(row),
+            float(row["balanced_operator_score"]),
+            str(row["candidate_label"]).lower(),
+        ),
+    )[0]
+
+
+def _baseline_priority(row: dict[str, Any]) -> int:
+    text = " ".join(
+        [
+            str(row.get("candidate_type", "")),
+            str(row.get("candidate_label", "")),
+            str(row.get("counterfactual_action", "")),
+        ]
+    ).lower()
+    if "hold" in text or "pause" in text or "defer" in text:
+        return 0
+    if "review" in text:
+        return 1
+    return 2
+
+
+def _baseline_basis(row: dict[str, Any]) -> str:
+    priority = _baseline_priority(row)
+    if priority == 0:
+        return "hold_or_pause_candidate_predicted_future"
+    if priority == 1:
+        return "review_candidate_predicted_future"
+    return "lowest_operator_score_candidate_predicted_future"
+
+
+def _business_vector(row: dict[str, Any]) -> dict[str, float]:
+    return {key: float(row[key]) for key, _short_name, _higher in _BUSINESS_HEADS}
+
+
+def _future_vector_string(row: dict[str, Any]) -> str:
+    return (
+        f"risk {float(row['predicted_enterprise_risk']):.3f}; "
+        f"commercial {float(row['predicted_commercial_position']):.3f}; "
+        f"trust {float(row['predicted_stakeholder_trust']):.3f}; "
+        f"drag {float(row['predicted_execution_drag']):.3f}; "
+        f"strain {float(row['predicted_org_strain']):.3f}; "
+        f"regulatory {float(row['predicted_regulatory_exposure']):.3f}; "
+        f"liquidity {float(row['predicted_liquidity_stress']):.3f}; "
+        "external confidence "
+        f"{float(row['predicted_external_confidence_pressure']):.3f}"
+    )
+
+
+def _future_vector_string_from_business(
+    business: dict[str, Any],
+    *,
+    future_state_heads: dict[str, Any],
+) -> str:
+    return (
+        f"risk {float(business['enterprise_risk']):.3f}; "
+        f"commercial {float(business['commercial_position_proxy']):.3f}; "
+        f"trust {float(business['stakeholder_trust']):.3f}; "
+        f"drag {float(business['execution_drag']):.3f}; "
+        f"strain {float(business['org_strain_proxy']):.3f}; "
+        f"regulatory {float(future_state_heads['regulatory_exposure']):.3f}; "
+        f"liquidity {float(future_state_heads['liquidity_stress']):.3f}; "
+        "external confidence "
+        f"{float(future_state_heads['external_confidence_pressure']):.3f}"
+    )
+
+
+def _delta_vector_string(delta_values: dict[str, float]) -> str:
+    return "; ".join(f"{name} {value:+.3f}" for name, value in delta_values.items())
+
+
+def _tradeoff_summary(delta_values: dict[str, float]) -> str:
+    gains: list[str] = []
+    costs: list[str] = []
+    for _key, short_name, higher_is_better in _BUSINESS_HEADS:
+        delta = delta_values[short_name]
+        if abs(delta) < _DELTA_EPSILON:
+            continue
+        is_gain = delta > 0 if higher_is_better else delta < 0
+        entry = f"{short_name} {delta:+.3f}"
+        if is_gain:
+            gains.append(entry)
+        else:
+            costs.append(entry)
+    if not gains and not costs:
+        return "Near baseline across main predicted heads."
+    parts: list[str] = []
+    if gains:
+        parts.append("Gains: " + ", ".join(gains[:3]))
+    if costs:
+        parts.append("Costs: " + ", ".join(costs[:3]))
+    return "; ".join(parts) + "."
 
 
 def _proposal_schema(
@@ -1080,11 +1244,11 @@ def _write_markdown_result(
         "",
         "This run uses proposed strategic decision points, not only historical branch events.",
         "",
-        "Read each section as: as-of state -> proposed decision -> candidate action -> JEPA-predicted future.",
+        "Read each section as: as-of state -> proposed decision -> candidate action -> JEPA-predicted future vector -> optional operator readout.",
         "",
-        "What is learned: JEPA predicts future heads for each candidate action. The decision proposal and candidate type are proposal scaffolding, not learned scores.",
+        "What is learned: JEPA predicts future heads for each candidate action. The operator score, proposal reason, and candidate type are reporting scaffolding, not learned scores.",
         "",
-        "Score direction: higher Future, Commercial, and Trust are better; lower Risk, Drag, and Strain are better.",
+        "Score direction: the operator readout rewards higher Commercial and Trust and lower Risk, Drag, and Strain. Inspect the vector and deltas before treating the rank as a decision.",
         "",
     ]
     rows_by_case: dict[str, list[dict[str, Any]]] = {}
@@ -1096,6 +1260,7 @@ def _write_markdown_result(
             continue
         ordered = sorted(case_rows, key=lambda row: int(row["counterfactual_rank"]))
         top = ordered[0]
+        baseline = top.get("baseline_action_label", "")
         lines.extend(
             [
                 f"## {_md(state_point.display_name)}: {_md(state_point.decision.title)}",
@@ -1106,23 +1271,25 @@ def _write_markdown_result(
                 "- Historical event? `no, synthetic strategic state point`",
                 f"- Why proposed: {_md(state_point.decision.why_selected)}",
                 f"- Decision question: {_md(state_point.decision.decision_question)}",
-                f"- Top-ranked by learned future vector: **{_md(str(top['candidate_label']))}**",
+                f"- Baseline action for deltas: **{_md(str(baseline))}**",
+                "- Ranking basis: Pareto over JEPA-predicted future vectors, then "
+                f"`{OPERATOR_SCORE_FORMULA_VERSION}` operator readout.",
+                f"- Top-ranked candidate: **{_md(str(top['candidate_label']))}**",
                 "",
-                "| Rank | Candidate action | Future | Risk | Commercial | Trust | Drag | Strain |",
-                "|---:|---|---:|---:|---:|---:|---:|---:|",
+                "| Rank | Candidate action | Operator score | Predicted future vector | Delta vs baseline | Tradeoff summary | Pareto |",
+                "|---:|---|---:|---|---|---|---|",
             ]
         )
         for row in ordered:
             lines.append(
-                "| {rank} | {action} | {future:.3f} | {risk:.3f} | {commercial:.3f} | {trust:.3f} | {drag:.3f} | {strain:.3f} |".format(
+                "| {rank} | {action} | {score:.3f} | {future} | {delta} | {tradeoff} | {pareto} |".format(
                     rank=row["counterfactual_rank"],
                     action=_md(str(row["counterfactual_action"])),
-                    future=float(row["learned_future_score"]),
-                    risk=float(row["predicted_enterprise_risk"]),
-                    commercial=float(row["predicted_commercial_position"]),
-                    trust=float(row["predicted_stakeholder_trust"]),
-                    drag=float(row["predicted_execution_drag"]),
-                    strain=float(row["predicted_org_strain"]),
+                    score=float(row["balanced_operator_score"]),
+                    future=_md(str(row["predicted_future_vector"])),
+                    delta=_md(str(row["predicted_delta_vector"])),
+                    tradeoff=_md(str(row["tradeoff_summary"])),
+                    pareto=str(bool(row["is_pareto_efficient"])).lower(),
                 )
             )
         lines.append("")
