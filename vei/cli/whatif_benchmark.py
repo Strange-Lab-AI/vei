@@ -254,11 +254,11 @@ def register_benchmark_commands(benchmark_app: typer.Typer) -> None:
             help="Final-tail decision cases to keep for each tenant",
         ),
         future_horizon_events: int = typer.Option(
-            6,
+            12,
             help="Post-branch events used as the finite factual forecast horizon",
         ),
         max_branch_rows_per_thread: int = typer.Option(
-            24,
+            512,
             min=1,
             help=(
                 "Maximum branch rows sampled from one long thread. Keeps large "

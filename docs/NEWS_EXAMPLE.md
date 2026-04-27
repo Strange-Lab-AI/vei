@@ -94,7 +94,7 @@ only; JEPA scores the predicted future vector.
 ```bash
 vei whatif benchmark strategic-state-points \
   --input news=_vei_out/datasets/news_americanstories_1836_1838/context_snapshot.json \
-  --checkpoint _vei_out/world_model_multitenant_jepa/enron_dispatch_powr_news_action_text_trial_20260426/model_runs/jepa_latent/model.pt \
+  --checkpoint _vei_out/world_model_multitenant_jepa/enron_dispatch_powr_news_fuller_cap512_h12_20260427/model_runs/jepa_latent/model.pt \
   --artifacts-root _vei_out/world_model_strategic_state_points \
   --label news_banking_statepoints \
   --as-of news=1837-09-06 \

@@ -404,15 +404,18 @@ The predicted heads include:
 - future-state heads: `regulatory_exposure`, `accounting_control_pressure`, `liquidity_stress`, `governance_response`, `evidence_control`, `external_confidence_pressure`
 - optional reporting views such as risk-minimization or trust-preservation, computed from predicted futures rather than trained as factual targets
 
-The latest local pooled action-conditioned JEPA run combined Enron, Dispatch,
-Powr of You, and a small AmericanStories historical-news sample. It trained on
-`1,105` rows, validated on `207`, tested on `259`, and kept final held-out cases.
-It uses deterministic hashing encoders for doctrine text and raw candidate
-action text, so changing the action text while holding the structured action
-schema fixed can change the prediction. On the held-out factual rows, external
-spread AUROC was `1.0`, Brier was `0.003921`, and ECE was `0.032069`; all five
-business-head MAEs stayed below `0.12`. The honest read is: JEPA is a useful
-factual future-state forecaster in this run, but counterfactual rankings remain
+The latest local pooled action-conditioned JEPA run combined the Enron Rosetta
+sample, Dispatch, Powr of You, and a small AmericanStories historical-news
+sample. It trained on `4,206` rows, validated on `785`, tested on `965`, and
+kept `12` final held-out cases. It uses deterministic hashing encoders for
+doctrine text and raw candidate action text, so changing the action text while
+holding the structured action schema fixed can change the prediction. On the
+held-out factual rows, external-spread Brier was `0.001085` and ECE was
+`0.003312`; AUROC is not informative in that particular split because the test
+label is nearly all positive. Business-head MAEs were `0.055` enterprise risk,
+`0.061` commercial position, `0.037` org strain, `0.058` stakeholder trust, and
+`0.099` execution drag. The honest read is: JEPA is a useful factual
+future-state forecaster in this run, but counterfactual rankings remain
 decision support, not causal proof.
 
 Build a pooled benchmark from multiple company-history bundles:

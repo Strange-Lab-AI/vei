@@ -505,7 +505,7 @@ vei whatif benchmark build-multitenant \
   --label enron_dispatch_powrofyou \
   --heldout-cases-per-tenant 4 \
   --future-horizon-events 12 \
-  --max-branch-rows-per-thread 24 \
+  --max-branch-rows-per-thread 512 \
   --candidate-mode template
 
 vei whatif benchmark train \
@@ -572,7 +572,7 @@ future-head prediction for each candidate action.
 vei whatif benchmark strategic-state-points \
   --input dispatch=_vei_out/datasets/dispatch_real/context_snapshot.json \
   --input powrofyou=_vei_out/datasets/powrofyou/context_snapshot.json \
-  --checkpoint _vei_out/world_model_multitenant_jepa/enron_dispatch_powr_news_action_text_trial_20260426/model_runs/jepa_latent/model.pt \
+  --checkpoint _vei_out/world_model_multitenant_jepa/enron_dispatch_powr_news_fuller_cap512_h12_20260427/model_runs/jepa_latent/model.pt \
   --artifacts-root _vei_out/world_model_strategic_state_points \
   --label current_strategic_state_points \
   --decisions-per-tenant 3 \
@@ -615,24 +615,24 @@ reference backend under `data/enron/reference_backend/`. It reports factual
 next-event AUROC `0.787817`, Brier `0.332025`, and calibration ECE `0.373951`
 on the held-out Enron validation split.
 
-The latest local pooled JEPA run combined Enron, Dispatch, Powr of You, and a
-small AmericanStories historical-news sample under
-`_vei_out/world_model_multitenant_jepa/enron_dispatch_powr_news_action_text_trial_20260426/`.
-It built `1,105` train rows, `207` validation rows, `259` test rows, and `4`
-final held-out cases. This is the action-conditioned cutover: doctrine text,
-pre-as-of state, structured action schema, and raw candidate action text are
-all encoded before predicting factual future heads. Objective heads are not
+The latest local pooled JEPA run combined the Enron Rosetta sample, Dispatch,
+Powr of You, and a small AmericanStories historical-news sample under
+`_vei_out/world_model_multitenant_jepa/enron_dispatch_powr_news_fuller_cap512_h12_20260427/`.
+It built `4,206` train rows, `785` validation rows, `965` test rows, and `12`
+final held-out cases. This is the fuller action-conditioned cutover: doctrine
+text, pre-as-of state, structured action schema, and raw candidate action text
+are all encoded before predicting factual future heads. Objective heads are not
 trained as factual targets; optional objective views are computed after the
 future vector is predicted.
 
-- external-spread metrics: AUROC `1.0`, Brier `0.003921`, ECE `0.032069`
-- business-head MAEs: enterprise risk `0.079`, commercial position `0.076`, org strain `0.019`, stakeholder trust `0.051`, and execution drag `0.118`
-- future-state MAEs: regulatory exposure `0.033`, accounting-control pressure `0.015`, liquidity stress `0.018`, governance response `0.042`, evidence control `0.076`, and external-confidence pressure `0.096`
-- an action-text sensitivity check confirmed that changing only the raw candidate action text can change predicted business and future-state heads
+- external-spread calibration: Brier `0.001085`, ECE `0.003312`; AUROC is not meaningful in this split because the test label is nearly all positive
+- business-head MAEs: enterprise risk `0.055`, commercial position `0.061`, org strain `0.037`, stakeholder trust `0.058`, and execution drag `0.099`
+- future-state MAEs: regulatory exposure `0.110`, accounting-control pressure `0.062`, liquidity stress `0.069`, governance response `0.098`, evidence control `0.107`, and external-confidence pressure `0.146`
+- leakage checks passed for fit/heldout branch-event overlap, candidate prompts, doctrine contexts, and judge dossiers
 
 The latest local strategic state-point run selected `12` LLM-proposed decisions
 and scored `96` candidate actions under
-`_vei_out/world_model_strategic_state_points/enron_dispatch_powr_news_action_text_trial_gpt54_statepoints_20260426/`.
+`_vei_out/world_model_strategic_state_points/enron_dispatch_powr_news_fuller_gpt54_statepoints_20260427/`.
 The saved proposal manifest records the exact proposal model used for that run.
 New strategic proposal reruns default to `gpt-5.4` through Codex and use the
 pooled action-conditioned JEPA checkpoint for scoring. Those rankings are useful

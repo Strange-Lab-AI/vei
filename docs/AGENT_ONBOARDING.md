@@ -172,7 +172,7 @@ vei whatif benchmark build-multitenant \
   --label enron_dispatch_newco \
   --heldout-cases-per-tenant 4 \
   --future-horizon-events 12 \
-  --max-branch-rows-per-thread 24 \
+  --max-branch-rows-per-thread 512 \
   --candidate-mode template
 ```
 

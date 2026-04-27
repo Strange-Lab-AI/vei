@@ -114,8 +114,8 @@ def build_multitenant_world_model_benchmark(
     heldout_cases_per_tenant: int = 4,
     candidate_generation_mode: CandidateGenerationMode = "template",
     candidate_model: str = "gpt-5-mini",
-    future_horizon_events: int = 6,
-    max_branch_rows_per_thread: int = 24,
+    future_horizon_events: int = 12,
+    max_branch_rows_per_thread: int = 512,
 ) -> WhatIfBenchmarkBuildResult:
     if not sources:
         raise ValueError("at least one source is required")
