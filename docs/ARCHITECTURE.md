@@ -1,6 +1,7 @@
 # VEI Architecture
 
-Use `README.md` for install and operator flows, `docs/OVERVIEW.md` for product framing, and this document for module boundaries, runtime shape, and subsystem relationships.
+Use `README.md` for install, product framing, and operator flows. Use this
+document for module boundaries, runtime shape, and subsystem relationships.
 
 VEI is a deterministic, MCP-native enterprise simulator built around one stable boundary: `WorldSession`.
 
@@ -155,12 +156,15 @@ For the canonical product demo, `vei project identity-demo` wraps that ladder in
   - `load_world()` — build a typed historical world from Enron Rosetta, a mail archive, or a normalized multi-source company history bundle
   - shared case linking — groups related activity across mail, chat, and ticket surfaces, then carries that pre-branch cross-surface history plus linked docs and CRM records into the branch workspace when the normalized bundle includes them
   - packaged Enron public-context loader and slicer — attaches dated financial and public-news facts that fit the email window and branch date
+  - doctrine extraction — builds an archive-derived `doctrine_packet.json` with mission, business model, strategic-decision classes, out-of-scope signals, constraints, citations, and provenance
   - `search_events()` — find exact branch points by actor, participant, thread, event type, or subject text before materializing a replay workspace
   - `run_whatif()` — deterministic whole-history policy analysis over the imported event corpus
   - `materialize_episode()` — turn one selected historical event into a strict replay workspace on the matching surface and branch just before that event
   - `replay_episode_baseline()` — schedule the saved historical future into the world kernel for comparison
   - `run_llm_counterfactual()` — bounded LLM continuation on the selected mail thread, chat thread, or ticket after divergence
-  - `run_ejepa_counterfactual()` — real local JEPA-backed forecast over the branch point when the sibling runtime is available, using a deterministic local training slice around that branch point
+  - `run_ejepa_counterfactual()` — optional external JEPA forecast path behind the same dynamics boundary
+  - `strategic-state-points` benchmark command — user-facing counterfactual flow where an LLM or human proposes as-of strategic decisions and concrete candidate actions from pre-as-of context, then the JEPA/reference backend scores predicted future vectors
+  - `build-multitenant` benchmark command — pooled world-model dataset builder with per-tenant temporal splits, doctrine-conditioned rows, final-tail holdouts, and leave-one-tenant-out roots
   - `estimate_counterfactual_delta()` — deterministic KPI/risk delta estimate used by the what-if flow
   - `run_counterfactual_experiment()` — one-command orchestration for selection, episode materialization, baseline replay, continuation, and artifact writing
 - `vei.ui.api`
@@ -349,14 +353,18 @@ VEI today is a deterministic enterprise simulator, governed twin, replay platfor
 
 **What is learned (in-repo, under `vei.dynamics`):**
 
-- The reference backend (`vei.dynamics.backends.reference`) absorbs the existing `benchmark_bridge` trainer: a real PyTorch model trained on canonical event sequences with AUROC, ECE, and held-out case evaluation.
-- Training reads only `CanonicalEvent` streams — never raw provider payloads.
-- `vei whatif benchmark build-multitenant` builds the pooled learned world-model experiment from multiple company-history snapshots, with per-tenant temporal holdouts and candidate actions restricted to pre-branch context. Deterministic template generation is the default; live LLM generation is explicit opt-in. Ordinary API-available models use the direct API path, while Codex-session models route through Codex instead of provider API keys. This is an offline benchmark/training path, not an always-on CEO recommender.
+- The reference backend (`vei.dynamics.backends.reference`) and benchmark bridge are real PyTorch forecasting paths trained on canonical event sequences with AUROC, ECE, business-head MAE, and held-out case evaluation.
+- Training reads `CanonicalEvent` streams, doctrine packet text, pre-branch state features, and candidate action text/schema. Raw provider payloads are not the training contract.
+- `vei whatif benchmark build-multitenant` builds the pooled learned world-model experiment from multiple company-history or public-news snapshots, with per-tenant temporal holdouts and leave-one-tenant-out roots.
+- `vei whatif benchmark strategic-state-points` is the counterfactual product surface. It asks an LLM or human for as-of strategic decisions and candidate actions from pre-as-of evidence only, then scores those actions through the learned future-vector path. Proposal generation defaults to Codex with `gpt-5.5`; direct-provider API calls are explicit opt-in with `VEI_STRATEGIC_PROPOSAL_BACKEND=api`.
+- The learned model predicts future heads. A single ranking score, Pareto rank, or objective view is reporting logic on top of those predicted futures, not a learned universal preference label.
+- This is an offline benchmark/training path, not an always-on CEO recommender.
 
 **What is heuristic (not learned):**
 
 - The heuristic baseline shifts event counts, escalations, approvals, external sends, and risk up or down from intervention tags. It is a reasonable demo baseline, not a learned model.
 - The `FrequencyPolicy` counts tool occurrences in demonstrations and picks the most-frequent tool. Useful plumbing for floor baselines, not learned dynamics.
+- Candidate proposal scaffolds and LLM proposal reasons are not learned model outputs. They are input-generation/provenance fields.
 
 **What is external (optional adapter):**
 

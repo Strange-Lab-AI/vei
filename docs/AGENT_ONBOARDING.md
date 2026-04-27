@@ -24,6 +24,9 @@ Read these next when needed:
 
 - `README.md` for setup and operator flows
 - `docs/ARCHITECTURE.md` for the module map and runtime shape
+- `docs/ENRON_EXAMPLE.md` for the public company example
+- `docs/NEWS_EXAMPLE.md` for the public news-timeline example
+- `docs/WHATIF.md` for the world-model and what-if command reference
 - `docs/RL_GYM.md` for the scoped contract-only RL-training plan
 - `AGENTS.md` for repo policy, eval runners, and validation expectations
 - `Makefile` and `.agents.yml` before changing gates or CI behavior
@@ -320,7 +323,8 @@ should name the owner, action path, review path, communication boundary, and
 follow-up trigger where relevant. It should not be a minor rewording of another
 candidate.
 
-For news timelines, do not let the candidate set collapse into only caution,
+For news timelines, use [NEWS_EXAMPLE.md](NEWS_EXAMPLE.md) as the public worked
+example. Do not let the candidate set collapse into only caution,
 verification, and compliance. A useful news-world run should compare defensive
 actions against active strategic options:
 
@@ -376,8 +380,9 @@ If any leakage check fails, do not make model-performance claims from that run.
 
 ## News Timelines
 
-VEI can also run on news timelines. That is an outside-in forecasting setup, not
-a full internal company operating model.
+VEI can also run on news timelines. See [NEWS_EXAMPLE.md](NEWS_EXAMPLE.md) for
+the public example. That is an outside-in forecasting setup, not a full internal
+company operating model.
 
 For bounded historical experiments, use public-domain or permissively licensed
 contiguous data, then canonicalize each article or page as a dated event with

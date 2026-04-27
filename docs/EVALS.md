@@ -2,7 +2,8 @@
 
 VEI evaluation has three layers. Each layer answers a different question and produces a different kind of artifact. The layers are designed to work together but can run independently.
 
-Use `docs/ENRON_BUSINESS_OUTCOME_BENCHMARK.md` for the specific Enron benchmark setup. This document covers the evaluation framework itself.
+Use `docs/ENRON_EXAMPLE.md` for the specific Enron benchmark setup. This
+document covers the evaluation framework itself.
 
 ## What Is and Isn't Learned
 
@@ -24,14 +25,16 @@ state up to time T + action at time T -> future state after T
 ```
 
 The shipped Enron reference checkpoint currently reports factual next-event
-AUROC `0.787817`, Brier `0.332025`, and calibration ECE `0.373951`. The latest
-local pooled JEPA run over Enron, Dispatch, and a private startup archive built
-`59,920` canonical events and `17,602` eligible branch rows. It was much better
-calibrated than the heuristic baseline on external spread (Brier `0.00135` vs
-`0.54745`, ECE `0.00567` vs `0.68841`) and improved all five business-head MAEs.
-Its external-spread AUROC was lower than the heuristic (`0.89231` vs `0.92389`),
-so the claim is deliberately narrow: factual calibration and business-head
-regression improved, while counterfactual rankings remain decision support.
+AUROC `0.787817`, Brier `0.332025`, and calibration ECE `0.373951`. Treat that
+as the public fresh-clone headline. Local pooled JEPA runs can add private
+company or news tenants, but those artifact-only results should be reported from
+their saved manifests rather than hard-coded here.
+
+The counterfactual product surface is strategic state points: an LLM or human
+proposes decision points and concrete candidate actions from pre-as-of evidence
+only, then JEPA/reference scoring predicts future heads for each candidate.
+Those rankings remain decision support unless backed by human audit,
+natural-experiment evidence, or stronger domain-specific validation.
 
 ## Layer 1: Factual forecast metrics
 

@@ -154,7 +154,8 @@ Narrative examples:
 - `enron-q3-disclosure-review`: disclosure choices inside the October 2001 crisis
 - `enron-skilling-resignation-materials`: executive messaging and trust under leadership change
 
-The repo-owned Enron data chain is documented in [docs/ENRON_DATASET.md](docs/ENRON_DATASET.md), [docs/ROSETTA_SOURCE.md](docs/ROSETTA_SOURCE.md), and [docs/ENRON_CASEBOOK.md](docs/ENRON_CASEBOOK.md).
+The repo-owned Enron data chain, saved examples, and benchmark notes are
+documented in [docs/ENRON_EXAMPLE.md](docs/ENRON_EXAMPLE.md).
 
 Train the repo-local reference backend when you want the Enron path to use the learned forecast by default:
 
@@ -249,7 +250,8 @@ Rebuild the tracked synthetic bundles:
 make service-ops-example
 ```
 
-See [docs/SERVICE_OPS_WALKTHROUGH.md](docs/SERVICE_OPS_WALKTHROUGH.md) for the full Studio walkthrough. Use Enron for the flagship real-history example.
+Use the saved Clearwater bundle as the synthetic service-ops example. Use Enron
+for the flagship real-history example.
 
 ## Knowledge Authoring Demo
 
@@ -485,12 +487,11 @@ make clean-workspace-hard
 
 - [docs/AGENT_ONBOARDING.md](docs/AGENT_ONBOARDING.md) for a fast repo briefing, command checklist, and module-boundary rules
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the module map, capability domains, and knowledge layer
-- [docs/WHATIF.md](docs/WHATIF.md) for the historical replay and comparison flow
+- [docs/WHATIF.md](docs/WHATIF.md) for the world-model and what-if command reference
+- [docs/ENRON_EXAMPLE.md](docs/ENRON_EXAMPLE.md) for the repo-owned public company example
+- [docs/NEWS_EXAMPLE.md](docs/NEWS_EXAMPLE.md) for the public news-timeline example
 - [docs/RL_GYM.md](docs/RL_GYM.md) for the scoped RL-training plan over deterministic process contracts
-- [docs/OVERVIEW.md](docs/OVERVIEW.md) for the product framing, including the knowledge brain layer
-- [docs/examples/enron-master-agreement-public-context/README.md](docs/examples/enron-master-agreement-public-context/README.md) for the repo-owned Enron example
 - [docs/examples/clearwater-dispatch-recovery/README.md](docs/examples/clearwater-dispatch-recovery/README.md) for a repo-owned synthetic Clearwater example
-- [docs/SERVICE_OPS_WALKTHROUGH.md](docs/SERVICE_OPS_WALKTHROUGH.md) for the Studio and control-room path
 
 ## License
 
