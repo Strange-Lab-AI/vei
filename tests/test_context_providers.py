@@ -873,6 +873,40 @@ def test_gmail_mbox_captures_threads(tmp_path: Path) -> None:
     assert "Separate topic" in thread_subjects
 
 
+def test_gmail_mbox_skips_spam_trash_and_promotions(tmp_path: Path) -> None:
+    from vei.context.providers.gmail import capture_from_mbox
+
+    mbox_data = _build_mbox_content(
+        [
+            {
+                "from": "promo@example.com",
+                "to": "founder@co.com",
+                "subject": "Promotional blast",
+                "message_id": "<promo@example.com>",
+                "body": "Buy this thing",
+            },
+            {
+                "from": "buyer@customer.com",
+                "to": "founder@co.com",
+                "subject": "Pilot question",
+                "message_id": "<pilot@example.com>",
+                "body": "Can we talk about the pilot?",
+            },
+        ]
+    ).replace(
+        "Message-ID: <promo@example.com>\n",
+        "Message-ID: <promo@example.com>\nX-Gmail-Labels: Spam,Category Promotions\n",
+    )
+    mbox_path = tmp_path / "All mail Including Spam and Trash.mbox"
+    mbox_path.write_text(mbox_data, encoding="utf-8")
+
+    result = capture_from_mbox(mbox_path)
+
+    assert result.status == "ok"
+    assert result.record_counts["messages"] == 1
+    assert result.data["threads"][0]["subject"] == "Pilot question"
+
+
 def test_gmail_mbox_missing_file(tmp_path: Path) -> None:
     from vei.context.providers.gmail import capture_from_mbox
 

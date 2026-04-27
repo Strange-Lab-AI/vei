@@ -76,6 +76,7 @@ from vei.whatif.benchmark_bridge import (
     _SEQUENCE_TOKEN_LIMIT,
     TorchTrainer,
     _action_vector_width,
+    _doctrine_text_feature_names,
 )
 from vei.whatif.corpus import has_external_recipients, recipient_scope
 from vei.whatif.ranking import (
@@ -2468,6 +2469,74 @@ def test_jepa_benchmark_model_uses_prebranch_sequence_signal() -> None:
     )
     assert (
         torch.abs(base_outputs["regression"] - changed_outputs["regression"]).max()
+        > 1e-6
+    )
+
+
+def test_jepa_benchmark_model_uses_doctrine_text_signal() -> None:
+    torch = pytest.importorskip("torch")
+    torch.manual_seed(42042)
+    doctrine_features = _doctrine_text_feature_names(8)
+    preprocessor = BenchmarkPreprocessor(
+        summary_feature_names=["history_event_count", *doctrine_features],
+        summary_mean=[0.0] * (1 + len(doctrine_features)),
+        summary_std=[1.0] * (1 + len(doctrine_features)),
+        action_tag_names=["hold"],
+        event_type_names=["__summary__", "message"],
+        target_mean=[0.0] * len(_EVIDENCE_TARGET_NAMES),
+        target_std=[1.0] * len(_EVIDENCE_TARGET_NAMES),
+        doctrine_text_vector_width=len(doctrine_features),
+    )
+    trainer = TorchTrainer(model_id="jepa_latent", preprocessor=preprocessor)
+    model = trainer.build_model(device="cpu")
+    model.eval()
+
+    startup_summary = torch.from_numpy(
+        preprocessor._encode_summary(  # noqa: SLF001
+            [],
+            doctrine_context=(
+                "startup product market doctrine: pilots, customer learning, "
+                "shipping speed, and commercial follow-up"
+            ),
+        )
+    ).unsqueeze(0)
+    governance_summary = torch.from_numpy(
+        preprocessor._encode_summary(  # noqa: SLF001
+            [],
+            doctrine_context=(
+                "governance risk doctrine: accounting control, legal review, "
+                "disclosure risk, and counterparty confidence"
+            ),
+        )
+    ).unsqueeze(0)
+    action = torch.zeros(
+        (1, _action_vector_width(preprocessor)),
+        dtype=torch.float32,
+    )
+    token_categorical = torch.zeros((1, _SEQUENCE_TOKEN_LIMIT, 3), dtype=torch.long)
+    token_numeric = torch.zeros(
+        (1, _SEQUENCE_TOKEN_LIMIT, _SEQUENCE_NUMERIC_WIDTH),
+        dtype=torch.float32,
+    )
+
+    with torch.no_grad():
+        startup_outputs = model(
+            startup_summary,
+            action,
+            token_categorical,
+            token_numeric,
+        )
+        governance_outputs = model(
+            governance_summary,
+            action,
+            token_categorical,
+            token_numeric,
+        )
+
+    assert (
+        torch.abs(
+            startup_outputs["binary_logits"] - governance_outputs["binary_logits"]
+        ).max()
         > 1e-6
     )
 

@@ -440,35 +440,31 @@ vei whatif benchmark eval \
 
 The builder writes a leakage report and a data provenance report beside the dataset. Generated private company artifacts stay under `_vei_out/` and are not committed.
 
-Run a repeatable critical-decision counterfactual pass against a trained checkpoint:
+Run the user-facing strategic state-point counterfactual pass against a trained checkpoint:
 
 ```bash
-vei whatif benchmark critical-decisions \
-  --input enron=_vei_out/enron/context_snapshot.json \
+vei whatif benchmark strategic-state-points \
   --input dispatch=_vei_out/dispatch/context_snapshot.json \
   --input newco=_vei_out/newco/context_snapshot.json \
-  --source-build-root _vei_out/world_model_multitenant_jepa/enron_dispatch_newco \
   --checkpoint _vei_out/world_model_multitenant_jepa/enron_dispatch_newco/model_runs/jepa_latent/model.pt \
-  --artifacts-root _vei_out/world_model_critical_decisions \
-  --label enron_dispatch_newco_critical \
-  --cases-per-tenant 4 \
-  --candidates-per-decision 10 \
-  --candidate-mode template
+  --artifacts-root _vei_out/world_model_strategic_state_points \
+  --label dispatch_newco_strategy \
+  --decisions-per-tenant 3 \
+  --candidates-per-decision 8 \
+  --proposal-mode llm \
+  --proposal-model gpt-5.5
 ```
 
-That command is the reproducible CEO-decision workflow: select high-criticality
-branch points from branch plus pre-branch signals only, generate 8-12 concrete
-candidate actions per decision, save prompts/responses/evidence hashes, check
-future-tail leakage, score every candidate with the JEPA checkpoint, and export
-both CSV and Markdown ranking tables. The latest local critical-decision run
-selected 12 decisions, generated 120 live Codex-backed candidate actions with
-`gpt-5.3-codex-spark`, scored them with the JEPA checkpoint, and passed the
-leakage checks for future-tail prompts, generated candidates, judge dossiers,
-and train split separation.
+That command is the reproducible CEO-decision workflow: build an as-of state
+dossier, propose strategic decision points and broad candidate actions from
+pre-as-of evidence, save prompts/responses/evidence hashes, score every
+candidate with the JEPA checkpoint, and export CSV/Markdown ranking tables.
+Strategic state points are now the counterfactual product surface.
 
-Use `--candidate-mode llm` when you want live LLM-generated candidates. Ordinary
-API-available models still use the direct API path. Codex-session models such as
-`gpt-5.3-codex-spark` route through Codex instead of provider API keys.
+Use `--proposal-mode llm` for live LLM-generated decisions/actions. Strategic
+proposal models route through Codex by default, including `gpt-5.5`. Set
+`VEI_STRATEGIC_PROPOSAL_BACKEND=api` only for an explicit direct-provider API
+run.
 
 ## Repo Checks
 

@@ -36,13 +36,6 @@ from .counterfactual import (
     estimate_counterfactual_delta,
     run_llm_counterfactual,
 )
-from .critical_decision_benchmark import (
-    CriticalDecisionRunResult,
-    build_critical_candidate_generation_prompt,
-    build_critical_decision_benchmark,
-    run_critical_decision_benchmark,
-    validate_critical_candidate_diversity,
-)
 from .news_state_points import (
     NewsStatePointCandidateInput,
     NewsStatePointRunResult,
@@ -141,14 +134,11 @@ _BOUNDARY_EXPORTS = (
 __all__ = [
     "build_branch_point_benchmark",
     "build_candidate_generation_prompt",
-    "build_critical_candidate_generation_prompt",
-    "build_critical_decision_benchmark",
     "build_decision_scene",
     "build_multitenant_world_model_benchmark",
     "build_news_state_point",
     "build_saved_decision_scene",
     "build_public_context",
-    "CriticalDecisionRunResult",
     "NewsStatePointCandidateInput",
     "NewsStatePointRunResult",
     "MACRO_CALIBRATION_METRICS",
@@ -209,7 +199,6 @@ __all__ = [
     "run_branch_point_benchmark_study",
     "run_branch_point_benchmark_prediction",
     "run_counterfactual_experiment",
-    "run_critical_decision_benchmark",
     "run_ejepa_counterfactual",
     "run_llm_counterfactual",
     "run_news_state_point_counterfactual",
@@ -221,7 +210,6 @@ __all__ = [
     "select_specific_event",
     "train_branch_point_benchmark_model",
     "validate_candidate_diversity",
-    "validate_critical_candidate_diversity",
 ]
 
 

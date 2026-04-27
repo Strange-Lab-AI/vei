@@ -151,6 +151,7 @@ def load_world(
             custodian_filter=custodian_filter,
             max_events=max_events,
             include_content=include_content,
+            include_situation_graph=include_situation_graph,
         )
     if normalized_source == "mail_archive":
         return load_mail_archive_world(

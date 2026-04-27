@@ -2126,6 +2126,8 @@ def _build_pre_branch_contract(
     organization_domain: str,
     action_schema: WhatIfActionSchema,
     notes: Sequence[str],
+    extra_summary_features: dict[str, float] | None = None,
+    doctrine_context: str = "",
 ) -> WhatIfPreBranchContract:
     participants = {
         actor_id
@@ -2215,6 +2217,13 @@ def _build_pre_branch_contract(
             )
         ),
     }
+    for name, value in (extra_summary_features or {}).items():
+        if not name:
+            continue
+        try:
+            summary_values[str(name)] = float(value)
+        except (TypeError, ValueError):
+            continue
     sequence_steps: list[WhatIfSequenceStep] = []
     for index, event in enumerate(history_events[-10:], start=1):
         sequence_steps.append(
@@ -2251,6 +2260,7 @@ def _build_pre_branch_contract(
         branch_event_id=branch_event.event_id,
         branch_event=event_reference(branch_event),
         action_schema=action_schema,
+        doctrine_context=doctrine_context,
         summary_features=[
             WhatIfBranchSummaryFeature(name=name, value=round(value, 3))
             for name, value in sorted(summary_values.items())

@@ -25,6 +25,14 @@ from vei.whatif.news_state_points import (
     build_news_state_point,
     run_news_state_point_counterfactual,
 )
+from vei.whatif import strategic_state_points as strategic_module
+from vei.whatif.strategic_state_points import (
+    StrategicStatePointArtifacts,
+    StrategicStatePointRunResult,
+    StrategicStatePointSource,
+    build_strategic_state_point_proposal_prompt,
+    run_strategic_state_point_counterfactuals,
+)
 
 
 def test_news_state_point_builds_as_of_dossier_without_branch_event() -> None:
@@ -224,6 +232,307 @@ def test_news_state_point_cli_accepts_human_candidates(
     payload = json.loads(result.output)
     assert payload["state_event_id"] == "news_state:banking_markets:1837-09-06"
     assert payload["candidate_count"] == 1
+
+
+def test_strategic_state_point_prompt_allows_proposed_decisions_without_future() -> (
+    None
+):
+    world = _news_world()
+    prompt = build_strategic_state_point_proposal_prompt(
+        tenant_id="news",
+        display_name="Historical News Fixture",
+        as_of=datetime.fromisoformat("1837-09-06T00:00:00+00:00"),
+        doctrine_text="Mission: track public-world banking risk.",
+        evidence_events=world.events[:3],
+        decisions_per_source=2,
+        candidates_per_decision=8,
+    )
+
+    assert "does not need to be a real email" in prompt
+    assert "CEO/operator/editor/regulator-style question" in prompt
+    assert "future bill passage marker" not in prompt
+
+
+def test_strategic_state_point_run_scores_template_proposals(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    world = _news_world()
+
+    def fake_predict(**_kwargs: Any) -> dict[str, Any]:
+        return {
+            "evidence_heads": {
+                "any_external_spread": 0.31,
+                "participant_fanout": 4,
+            },
+            "business_heads": {
+                "enterprise_risk": 0.22,
+                "commercial_position_proxy": 0.60,
+                "org_strain_proxy": 0.18,
+                "stakeholder_trust": 0.47,
+                "execution_drag": 0.28,
+            },
+            "future_state_heads": {
+                "regulatory_exposure": 0.21,
+                "accounting_control_pressure": 0.03,
+                "liquidity_stress": 0.62,
+                "governance_response": 0.15,
+                "evidence_control": 0.33,
+                "external_confidence_pressure": 0.71,
+            },
+            "objective_scores": {},
+        }
+
+    monkeypatch.setattr(
+        "vei.whatif.strategic_state_points.run_branch_point_benchmark_prediction",
+        fake_predict,
+    )
+
+    result = run_strategic_state_point_counterfactuals(
+        [
+            StrategicStatePointSource(
+                tenant_id="news",
+                world=world,
+                display_name="Historical News Fixture",
+                as_of="1837-09-06",
+            )
+        ],
+        checkpoint_path=tmp_path / "model.pt",
+        artifacts_root=tmp_path / "strategic",
+        label="strategic_fixture",
+        decisions_per_source=1,
+        candidates_per_decision=8,
+        proposal_mode="template",
+        proposal_model="template-fixture",
+    )
+
+    payload = json.loads(result.artifacts.result_json_path.read_text(encoding="utf-8"))
+    first = payload["candidates"][0]
+    assert result.decision_count == 1
+    assert result.candidate_count == 8
+    assert first["decision_point_not_historical_event"] is True
+    assert first["learned_model_output"] == "predicted future vector"
+    assert "objective_policy_summary" not in first
+    assert "not learned scores" in result.artifacts.result_markdown_path.read_text(
+        encoding="utf-8"
+    )
+
+
+def test_strategic_state_point_cli_wires_sources_and_checkpoint(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    world = _news_world()
+
+    def fake_load_world(
+        *,
+        source: str,
+        source_dir: Path,
+        include_situation_graph: bool = True,
+    ) -> WhatIfWorld:
+        assert source == "company_history"
+        assert include_situation_graph is False
+        return world
+
+    monkeypatch.setattr(benchmark_cli, "load_world", fake_load_world)
+    monkeypatch.setattr(
+        benchmark_cli,
+        "build_canonical_history_readiness",
+        lambda _path: CanonicalHistoryReadinessReport(
+            available=True,
+            readiness_label="ready",
+            ready_for_world_modeling=True,
+            event_count=10,
+            surface_count=1,
+            case_count=1,
+        ),
+    )
+
+    def fake_run(*args: Any, **kwargs: Any) -> StrategicStatePointRunResult:
+        assert kwargs["checkpoint_path"] == tmp_path / "model.pt"
+        assert kwargs["proposal_mode"] == "template"
+        assert kwargs["proposal_model"] == "template-fixture"
+        assert kwargs["decisions_per_source"] == 2
+        assert kwargs["candidates_per_decision"] == 8
+        assert args[0][0].as_of == "1837-09-06"
+        root = tmp_path / "strategic"
+        root.mkdir(parents=True, exist_ok=True)
+        return StrategicStatePointRunResult(
+            label="strategic_cli_fixture",
+            source_count=1,
+            decision_count=2,
+            candidate_count=16,
+            proposal_mode="template",
+            proposal_model="template-fixture",
+            artifacts=StrategicStatePointArtifacts(
+                root=root,
+                proposal_manifest_path=root / "proposals.json",
+                result_json_path=root / "result.json",
+                result_csv_path=root / "result.csv",
+                result_markdown_path=root / "result.md",
+            ),
+        )
+
+    monkeypatch.setattr(
+        benchmark_cli,
+        "run_strategic_state_point_counterfactuals",
+        fake_run,
+    )
+    (tmp_path / "model.pt").write_text("stub", encoding="utf-8")
+
+    result = CliRunner().invoke(
+        cli_app,
+        [
+            "whatif",
+            "benchmark",
+            "strategic-state-points",
+            "--input",
+            f"news={tmp_path / 'context_snapshot.json'}",
+            "--checkpoint",
+            str(tmp_path / "model.pt"),
+            "--as-of",
+            "news=1837-09-06",
+            "--decisions-per-tenant",
+            "2",
+            "--candidates-per-decision",
+            "8",
+            "--proposal-mode",
+            "template",
+            "--proposal-model",
+            "template-fixture",
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    payload = json.loads(result.output)
+    assert payload["decision_count"] == 2
+    assert payload["candidate_count"] == 16
+
+
+def test_strategic_state_point_cli_defaults_to_gpt55_codex_model(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    world = _news_world()
+
+    monkeypatch.setattr(
+        benchmark_cli,
+        "load_world",
+        lambda **_kwargs: world,
+    )
+    monkeypatch.setattr(
+        benchmark_cli,
+        "build_canonical_history_readiness",
+        lambda _path: CanonicalHistoryReadinessReport(
+            available=True,
+            readiness_label="ready",
+            ready_for_world_modeling=True,
+            event_count=10,
+            surface_count=1,
+            case_count=1,
+        ),
+    )
+
+    def fake_run(*_args: Any, **kwargs: Any) -> StrategicStatePointRunResult:
+        assert kwargs["proposal_mode"] == "llm"
+        assert kwargs["proposal_model"] == "gpt-5.5"
+        root = tmp_path / "strategic_default"
+        root.mkdir(parents=True, exist_ok=True)
+        return StrategicStatePointRunResult(
+            label="strategic_default_fixture",
+            source_count=1,
+            decision_count=1,
+            candidate_count=8,
+            proposal_mode=kwargs["proposal_mode"],
+            proposal_model=kwargs["proposal_model"],
+            artifacts=StrategicStatePointArtifacts(
+                root=root,
+                proposal_manifest_path=root / "proposals.json",
+                result_json_path=root / "result.json",
+                result_csv_path=root / "result.csv",
+                result_markdown_path=root / "result.md",
+            ),
+        )
+
+    monkeypatch.setattr(
+        benchmark_cli,
+        "run_strategic_state_point_counterfactuals",
+        fake_run,
+    )
+    (tmp_path / "model.pt").write_text("stub", encoding="utf-8")
+
+    result = CliRunner().invoke(
+        cli_app,
+        [
+            "whatif",
+            "benchmark",
+            "strategic-state-points",
+            "--input",
+            f"news={tmp_path / 'context_snapshot.json'}",
+            "--checkpoint",
+            str(tmp_path / "model.pt"),
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    payload = json.loads(result.output)
+    assert payload["proposal_model"] == "gpt-5.5"
+
+
+def test_strategic_proposal_runner_uses_codex_by_default(monkeypatch) -> None:
+    calls: dict[str, Any] = {}
+
+    def fake_codex_json(**kwargs: Any) -> dict[str, Any]:
+        calls["codex"] = kwargs
+        return {"decision_points": []}
+
+    def fake_llm_json_prompt(*_args: Any, **_kwargs: Any) -> dict[str, Any]:
+        raise AssertionError("direct provider API should not be used by default")
+
+    monkeypatch.delenv("VEI_STRATEGIC_PROPOSAL_BACKEND", raising=False)
+    monkeypatch.setattr(strategic_module, "run_codex_json", fake_codex_json)
+    monkeypatch.setattr(strategic_module, "run_llm_json_prompt", fake_llm_json_prompt)
+
+    payload = strategic_module._run_proposal_json_prompt(
+        "Return decisions.",
+        model="gpt-5.5",
+        max_tokens=100,
+        output_schema={"type": "object", "properties": {}},
+        temperature=None,
+    )
+
+    assert payload == {"decision_points": []}
+    assert calls["codex"]["model"] == "gpt-5.5"
+
+
+def test_strategic_proposal_runner_allows_explicit_api_override(
+    monkeypatch,
+) -> None:
+    calls: dict[str, Any] = {}
+
+    def fake_codex_json(**_kwargs: Any) -> dict[str, Any]:
+        raise AssertionError("Codex should not be used for explicit API override")
+
+    def fake_llm_json_prompt(*args: Any, **kwargs: Any) -> dict[str, Any]:
+        calls["args"] = args
+        calls["kwargs"] = kwargs
+        return {"decision_points": []}
+
+    monkeypatch.setenv("VEI_STRATEGIC_PROPOSAL_BACKEND", "api")
+    monkeypatch.setattr(strategic_module, "run_codex_json", fake_codex_json)
+    monkeypatch.setattr(strategic_module, "run_llm_json_prompt", fake_llm_json_prompt)
+
+    payload = strategic_module._run_proposal_json_prompt(
+        "Return decisions.",
+        model="gpt-5.5",
+        max_tokens=100,
+        output_schema={"type": "object", "properties": {}},
+        temperature=None,
+    )
+
+    assert payload == {"decision_points": []}
+    assert calls["args"][0] == "Return decisions."
+    assert calls["kwargs"]["model"] == "gpt-5.5"
 
 
 def _news_world() -> WhatIfWorld:

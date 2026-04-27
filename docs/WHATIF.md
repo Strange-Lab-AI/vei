@@ -478,10 +478,16 @@ candidate. It also writes a leakage report that checks train/heldout thread and
 event separation and checks that generated candidate prompts and judge dossiers
 do not contain recorded future-tail event markers.
 
+The same build also writes runnable leave-one-tenant-out benchmark roots under
+`leave_one_tenant_out/<tenant>/`. Those derived roots train on the other tenants
+and test on the held-out tenant's final-tail rows with its branch-safe doctrine
+packet, so transfer checks do not require manual split surgery.
+
 The default `template` candidate mode is deterministic and CI-safe. Live LLM
 generation is available as an explicit opt-in with `--candidate-mode llm`.
-Ordinary API-available models use the direct API path. Codex-session models such
-as `gpt-5.3-codex-spark` route through Codex instead of provider API keys.
+Strategic proposal models route through Codex by default, including `gpt-5.5`.
+Set `VEI_STRATEGIC_PROPOSAL_BACKEND=api` only for an explicit direct-provider
+API run.
 
 ```bash
 vei whatif benchmark build-multitenant \
@@ -535,38 +541,61 @@ VEI_REFERENCE_BACKEND_CHECKPOINT=_vei_out/world_model_multitenant_jepa/enron_dis
 
 Treat this as an offline artifact-backed experiment, not a production-proven universal CEO recommender. The strongest evidence remains factual held-out forecasting. Counterfactual rankings are decision-support signals until they are backed by human audit, expert review, or natural-experiment evidence.
 
-### Critical-decision counterfactual runs
+### Strategic state-point counterfactual runs
 
-`vei whatif benchmark critical-decisions` applies the trained pooled checkpoint
-to the kind of decision grid a CEO or manager can inspect. It is deliberately
-separate from training:
+`vei whatif benchmark strategic-state-points` is the user-facing
+counterfactual interface. It is deliberately separate from training:
 
-- select critical branch points with deterministic pre-branch-only scoring
-- optionally restrict the pool to an existing benchmark's `test` and `heldout` split
-- generate 8-12 concrete counterfactual actions per decision
-- save the candidate prompt, raw response, candidate type, generation model, and pre-branch evidence hash
-- check that prompts, generated candidate text, and judge dossiers do not contain future-tail markers
-- score the candidates through the normal JEPA benchmark boundary
-- write `critical_decision_scores.csv` and `critical_decision_scores.md`
+- build an archive-derived tenant doctrine packet for the organization or corpus
+- choose an as-of date and construct a pre-as-of state dossier
+- let an LLM propose senior-operator decision points and broad candidate actions,
+  or let a human edit/replace that proposal set before scoring
+- save the proposal prompt, raw response, generation model, and pre-branch evidence hash
+- check that proposal context excludes future-tail evidence
+- score the candidates through the normal JEPA benchmark boundary, conditioned on doctrine text
+- write `strategic_state_point_results.csv` and `.md`
+
+State-point decisions do not need to be actual archived messages. The proposal
+layer can ask, "as of this date, what strategic decision should the operator be
+considering?", generate broad candidate actions, and then score them with JEPA.
+The proposal layer is not the learned model; the learned model starts at the
+future-head prediction for each candidate action.
 
 ```bash
-vei whatif benchmark critical-decisions \
-  --input dispatch=/path/to/dispatch/context_snapshot.json \
-  --input newco=/path/to/newco/context_snapshot.json \
-  --source-build-root _vei_out/world_model_multitenant_jepa/enron_dispatch_newco \
-  --checkpoint _vei_out/world_model_multitenant_jepa/enron_dispatch_newco/model_runs/jepa_latent/model.pt \
-  --artifacts-root _vei_out/world_model_critical_decisions \
-  --label dispatch_newco_critical \
-  --cases-per-tenant 4 \
-  --candidates-per-decision 10 \
-  --candidate-mode template
+vei whatif benchmark strategic-state-points \
+  --input dispatch=_vei_out/datasets/dispatch_real/context_snapshot.json \
+  --input powrofyou=_vei_out/datasets/powrofyou/context_snapshot.json \
+  --checkpoint _vei_out/world_model_multitenant_jepa/enron_dispatch_powr_news_learned_doctrine_20260426/model_runs/jepa_latent/model.pt \
+  --artifacts-root _vei_out/world_model_strategic_state_points \
+  --label current_strategic_state_points \
+  --decisions-per-tenant 3 \
+  --candidates-per-decision 8 \
+  --proposal-mode llm \
+  --proposal-model gpt-5.5
 ```
 
-The selection score is not a learned outcome label and does not use the future tail. It is a repeatable way to choose promising decision points from branch-time evidence: external scope, risk/governance terms, customer or commercial terms, product/delivery terms, coordination complexity, urgency/escalation, conflict/delay, and evidence pressure. JEPA then scores candidate actions from the pre-branch state.
+The doctrine packet is saved as `doctrine_packet.json` with mission, business
+model, true strategic-decision classes, out-of-scope signals, archive citations,
+and provenance. Each pre-branch contract carries the doctrine text; the JEPA
+preprocessor encodes that text with a deterministic hashing encoder and stores
+the encoder metadata in the checkpoint. Numeric doctrine tags remain only as
+fallback/debug features.
 
-For local exploratory runs, keep the current shareable MD/CSV exports under
-`_vei_out/world_model_current/`. The lower-level benchmark, checkpoint, and
-critical-decision folders are provenance and rerun material. Use
+The proposal reason is not a learned outcome label and does not use the future
+tail. It explains why the LLM or human chose a strategic state point from
+pre-as-of evidence. JEPA then scores candidate actions from doctrine text plus
+the pre-as-of state.
+
+The primary ranking is factual/Pareto over predicted future vectors. Explicit
+objective weights are optional query-time reporting lenses and should not be
+described as the learned ground truth.
+
+For local exploratory runs, the canonical shareable exports are
+`_vei_out/world_model_current/world_model_decision_summary.csv` and
+`_vei_out/world_model_current/world_model_decision_summary.md`. The lower-level
+benchmark, checkpoint, and strategic-state-point folders are provenance and
+rerun material. Strategic state points are now the counterfactual product
+surface. Use
 `make clean-workspace` for cache/build cleanup that leaves `_vei_out/` in place.
 Use `make clean-workspace-hard` to prune old generated runs while preserving
 `_vei_out/world_model_current/`, `_vei_out/datasets/`, and
@@ -579,22 +608,23 @@ reference backend under `data/enron/reference_backend/`. It reports factual
 next-event AUROC `0.787817`, Brier `0.332025`, and calibration ECE `0.373951`
 on the held-out Enron validation split.
 
-The latest local pooled JEPA run combined Enron, Dispatch, and a private startup
-archive. It canonicalized `59,920` events, built `17,602` eligible branch rows,
-trained on `14,655` train/validation rows, and tested on `2,641` held-out rows.
-Against the heuristic baseline:
+The latest local pooled JEPA run combined Enron, Dispatch, Powr of You, and a
+small AmericanStories historical-news sample under
+`_vei_out/world_model_multitenant_jepa/enron_dispatch_powr_news_learned_doctrine_20260426/`.
+It built `1,105` train rows, `207` validation rows, `259` test rows, and `4`
+final held-out cases. Against the heuristic baseline:
 
-- external-spread calibration improved sharply: Brier `0.00135` vs `0.54745`, ECE `0.00567` vs `0.68841`
-- all five business-head MAEs improved: enterprise risk, commercial position, org strain, stakeholder trust, and execution drag
-- AUROC on the rare external-spread label was lower than the heuristic (`0.89231` vs `0.92389`), so the result is not "better on every metric"
+- external-spread calibration improved sharply: Brier `0.005966` vs `0.381827`, ECE `0.053715` vs `0.550463`
+- all five business-head MAEs improved: enterprise risk `0.079` vs `0.094`, commercial position `0.077` vs `0.120`, org strain `0.021` vs `0.037`, stakeholder trust `0.054` vs `0.084`, and execution drag `0.120` vs `0.148`
+- AUROC was tied at `1.0` on this small external-spread heldout
+- future-state heads were mixed: the heuristic stayed better on several low-variance control/stress heads, while JEPA was better on external-confidence pressure
 
-The latest local critical-decision run selected 12 decisions and scored 120
-candidate actions. The latest live run used structured Codex generation with
-`gpt-5.3-codex-spark` and produced all 12 candidate sets through the LLM path
-with no template fallback. Leakage checks passed for train/test separation and
-for future-tail exclusion from prompts, generated candidates, and judge
-dossiers. Those rankings are useful decision-support outputs, not causal proof
-of what would definitely have happened.
+The latest local strategic state-point run selected `12` LLM-proposed decisions
+and scored `96` candidate actions under
+`_vei_out/world_model_strategic_state_points/enron_dispatch_powr_news_llm_statepoints_20260426/`.
+It used `gpt-5.3-codex-spark` for proposal generation and the pooled JEPA
+checkpoint for scoring. Those rankings are useful decision-support outputs, not
+causal proof of what would definitely have happened.
 
 ### Important constraint
 
