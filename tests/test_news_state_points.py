@@ -87,38 +87,41 @@ def test_news_state_point_run_writes_human_candidates_and_scores(
 ) -> None:
     world = _news_world()
 
-    def fake_predict(**_kwargs: Any) -> dict[str, Any]:
-        return {
-            "evidence_heads": {
-                "outside_recipient_count": 2,
-                "participant_fanout": 4,
-            },
-            "business_heads": {
-                "enterprise_risk": 0.25,
-                "commercial_position_proxy": 0.54,
-                "org_strain_proxy": 0.20,
-                "stakeholder_trust": 0.44,
-                "execution_drag": 0.32,
-            },
-            "future_state_heads": {
-                "regulatory_exposure": 0.21,
-                "accounting_control_pressure": 0.03,
-                "liquidity_stress": 0.62,
-                "governance_response": 0.15,
-                "evidence_control": 0.33,
-                "external_confidence_pressure": 0.71,
-            },
-            "objective_scores": {
-                "minimize_enterprise_risk": 0.70,
-                "protect_commercial_position": 0.54,
-                "reduce_org_strain": 0.68,
-                "preserve_stakeholder_trust": 0.44,
-                "maintain_execution_velocity": 0.52,
-            },
-        }
+    def fake_predict(**kwargs: Any) -> list[dict[str, Any]]:
+        return [
+            {
+                "evidence_heads": {
+                    "outside_recipient_count": 2,
+                    "participant_fanout": 4,
+                },
+                "business_heads": {
+                    "enterprise_risk": 0.25,
+                    "commercial_position_proxy": 0.54,
+                    "org_strain_proxy": 0.20,
+                    "stakeholder_trust": 0.44,
+                    "execution_drag": 0.32,
+                },
+                "future_state_heads": {
+                    "regulatory_exposure": 0.21,
+                    "accounting_control_pressure": 0.03,
+                    "liquidity_stress": 0.62,
+                    "governance_response": 0.15,
+                    "evidence_control": 0.33,
+                    "external_confidence_pressure": 0.71,
+                },
+                "objective_scores": {
+                    "minimize_enterprise_risk": 0.70,
+                    "protect_commercial_position": 0.54,
+                    "reduce_org_strain": 0.68,
+                    "preserve_stakeholder_trust": 0.44,
+                    "maintain_execution_velocity": 0.52,
+                },
+            }
+            for _row in kwargs["rows"]
+        ]
 
     monkeypatch.setattr(
-        "vei.whatif.news_state_points.run_branch_point_benchmark_prediction",
+        "vei.whatif.news_state_points.run_branch_point_benchmark_predictions",
         fake_predict,
     )
 
@@ -259,32 +262,35 @@ def test_strategic_state_point_run_scores_template_proposals(
 ) -> None:
     world = _news_world()
 
-    def fake_predict(**_kwargs: Any) -> dict[str, Any]:
-        return {
-            "evidence_heads": {
-                "any_external_spread": 0.31,
-                "participant_fanout": 4,
-            },
-            "business_heads": {
-                "enterprise_risk": 0.22,
-                "commercial_position_proxy": 0.60,
-                "org_strain_proxy": 0.18,
-                "stakeholder_trust": 0.47,
-                "execution_drag": 0.28,
-            },
-            "future_state_heads": {
-                "regulatory_exposure": 0.21,
-                "accounting_control_pressure": 0.03,
-                "liquidity_stress": 0.62,
-                "governance_response": 0.15,
-                "evidence_control": 0.33,
-                "external_confidence_pressure": 0.71,
-            },
-            "objective_scores": {},
-        }
+    def fake_predict(**kwargs: Any) -> list[dict[str, Any]]:
+        return [
+            {
+                "evidence_heads": {
+                    "any_external_spread": 0.31,
+                    "participant_fanout": 4,
+                },
+                "business_heads": {
+                    "enterprise_risk": 0.22,
+                    "commercial_position_proxy": 0.60,
+                    "org_strain_proxy": 0.18,
+                    "stakeholder_trust": 0.47,
+                    "execution_drag": 0.28,
+                },
+                "future_state_heads": {
+                    "regulatory_exposure": 0.21,
+                    "accounting_control_pressure": 0.03,
+                    "liquidity_stress": 0.62,
+                    "governance_response": 0.15,
+                    "evidence_control": 0.33,
+                    "external_confidence_pressure": 0.71,
+                },
+                "objective_scores": {},
+            }
+            for _row in kwargs["rows"]
+        ]
 
     monkeypatch.setattr(
-        "vei.whatif.strategic_state_points.run_branch_point_benchmark_prediction",
+        "vei.whatif.strategic_state_points.run_branch_point_benchmark_predictions",
         fake_predict,
     )
 
@@ -409,7 +415,7 @@ def test_strategic_state_point_cli_wires_sources_and_checkpoint(
     assert payload["candidate_count"] == 16
 
 
-def test_strategic_state_point_cli_defaults_to_gpt55_codex_model(
+def test_strategic_state_point_cli_defaults_to_available_codex_model(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
@@ -435,7 +441,7 @@ def test_strategic_state_point_cli_defaults_to_gpt55_codex_model(
 
     def fake_run(*_args: Any, **kwargs: Any) -> StrategicStatePointRunResult:
         assert kwargs["proposal_mode"] == "llm"
-        assert kwargs["proposal_model"] == "gpt-5.5"
+        assert kwargs["proposal_model"] == "gpt-5.4"
         root = tmp_path / "strategic_default"
         root.mkdir(parents=True, exist_ok=True)
         return StrategicStatePointRunResult(
@@ -476,7 +482,7 @@ def test_strategic_state_point_cli_defaults_to_gpt55_codex_model(
 
     assert result.exit_code == 0, result.output
     payload = json.loads(result.output)
-    assert payload["proposal_model"] == "gpt-5.5"
+    assert payload["proposal_model"] == "gpt-5.4"
 
 
 def test_strategic_proposal_runner_uses_codex_by_default(monkeypatch) -> None:

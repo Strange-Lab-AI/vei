@@ -94,19 +94,20 @@ only; JEPA scores the predicted future vector.
 ```bash
 vei whatif benchmark strategic-state-points \
   --input news=_vei_out/datasets/news_americanstories_1836_1838/context_snapshot.json \
-  --checkpoint _vei_out/world_model_multitenant_jepa/enron_dispatch_powr_news_learned_doctrine_20260426/model_runs/jepa_latent/model.pt \
+  --checkpoint _vei_out/world_model_multitenant_jepa/enron_dispatch_powr_news_action_text_trial_20260426/model_runs/jepa_latent/model.pt \
   --artifacts-root _vei_out/world_model_strategic_state_points \
   --label news_banking_statepoints \
   --as-of news=1837-09-06 \
   --decisions-per-tenant 3 \
   --candidates-per-decision 8 \
   --proposal-mode llm \
-  --proposal-model gpt-5.5
+  --proposal-model gpt-5.4
 ```
 
-Strategic proposal models route through Codex by default. Set
-`VEI_STRATEGIC_PROPOSAL_BACKEND=api` only when an explicit direct-provider API
-run is intended.
+Strategic proposal models route through Codex by default. The current default is
+`gpt-5.4`; override `--proposal-model` when a newer Codex-supported model is
+available. Set `VEI_STRATEGIC_PROPOSAL_BACKEND=api` only when an explicit
+direct-provider API run is intended.
 
 ## Current Local Result
 

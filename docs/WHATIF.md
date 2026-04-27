@@ -490,9 +490,11 @@ packet, so transfer checks do not require manual split surgery.
 
 The default `template` candidate mode is deterministic and CI-safe. Live LLM
 generation is available as an explicit opt-in with `--candidate-mode llm`.
-Strategic proposal models route through Codex by default, including `gpt-5.5`.
-Set `VEI_STRATEGIC_PROPOSAL_BACKEND=api` only for an explicit direct-provider
-API run.
+Strategic proposal models route through Codex by default. The default is
+`gpt-5.4`, which is the newest model accepted by the current local Codex CLI.
+Override `--proposal-model` to `gpt-5.5` when the installed Codex runtime
+supports it. Set `VEI_STRATEGIC_PROPOSAL_BACKEND=api` only for an explicit
+direct-provider API run.
 
 ```bash
 vei whatif benchmark build-multitenant \
@@ -570,13 +572,13 @@ future-head prediction for each candidate action.
 vei whatif benchmark strategic-state-points \
   --input dispatch=_vei_out/datasets/dispatch_real/context_snapshot.json \
   --input powrofyou=_vei_out/datasets/powrofyou/context_snapshot.json \
-  --checkpoint _vei_out/world_model_multitenant_jepa/enron_dispatch_powr_news_learned_doctrine_20260426/model_runs/jepa_latent/model.pt \
+  --checkpoint _vei_out/world_model_multitenant_jepa/enron_dispatch_powr_news_action_text_trial_20260426/model_runs/jepa_latent/model.pt \
   --artifacts-root _vei_out/world_model_strategic_state_points \
   --label current_strategic_state_points \
   --decisions-per-tenant 3 \
   --candidates-per-decision 8 \
   --proposal-mode llm \
-  --proposal-model gpt-5.5
+  --proposal-model gpt-5.4
 ```
 
 The doctrine packet is saved as `doctrine_packet.json` with mission, business
@@ -615,22 +617,27 @@ on the held-out Enron validation split.
 
 The latest local pooled JEPA run combined Enron, Dispatch, Powr of You, and a
 small AmericanStories historical-news sample under
-`_vei_out/world_model_multitenant_jepa/enron_dispatch_powr_news_learned_doctrine_20260426/`.
+`_vei_out/world_model_multitenant_jepa/enron_dispatch_powr_news_action_text_trial_20260426/`.
 It built `1,105` train rows, `207` validation rows, `259` test rows, and `4`
-final held-out cases. Against the heuristic baseline:
+final held-out cases. This is the action-conditioned cutover: doctrine text,
+pre-as-of state, structured action schema, and raw candidate action text are
+all encoded before predicting factual future heads. Objective heads are not
+trained as factual targets; optional objective views are computed after the
+future vector is predicted.
 
-- external-spread calibration improved sharply: Brier `0.005966` vs `0.381827`, ECE `0.053715` vs `0.550463`
-- all five business-head MAEs improved: enterprise risk `0.079` vs `0.094`, commercial position `0.077` vs `0.120`, org strain `0.021` vs `0.037`, stakeholder trust `0.054` vs `0.084`, and execution drag `0.120` vs `0.148`
-- AUROC was tied at `1.0` on this small external-spread heldout
-- future-state heads were mixed: the heuristic stayed better on several low-variance control/stress heads, while JEPA was better on external-confidence pressure
+- external-spread metrics: AUROC `1.0`, Brier `0.003921`, ECE `0.032069`
+- business-head MAEs: enterprise risk `0.079`, commercial position `0.076`, org strain `0.019`, stakeholder trust `0.051`, and execution drag `0.118`
+- future-state MAEs: regulatory exposure `0.033`, accounting-control pressure `0.015`, liquidity stress `0.018`, governance response `0.042`, evidence control `0.076`, and external-confidence pressure `0.096`
+- an action-text sensitivity check confirmed that changing only the raw candidate action text can change predicted business and future-state heads
 
 The latest local strategic state-point run selected `12` LLM-proposed decisions
 and scored `96` candidate actions under
-`_vei_out/world_model_strategic_state_points/enron_dispatch_powr_news_llm_statepoints_20260426/`.
+`_vei_out/world_model_strategic_state_points/enron_dispatch_powr_news_action_text_trial_gpt54_statepoints_20260426/`.
 The saved proposal manifest records the exact proposal model used for that run.
-New strategic proposal reruns default to `gpt-5.5` through Codex, and use the
-pooled JEPA checkpoint for scoring. Those rankings are useful decision-support
-outputs, not causal proof of what would definitely have happened.
+New strategic proposal reruns default to `gpt-5.4` through Codex and use the
+pooled action-conditioned JEPA checkpoint for scoring. Those rankings are useful
+decision-support outputs, not causal proof of what would definitely have
+happened.
 
 ### Important constraint
 

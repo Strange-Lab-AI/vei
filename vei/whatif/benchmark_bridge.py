@@ -109,6 +109,8 @@ _SEQUENCE_TOKEN_LIMIT = 12
 _SEQUENCE_NUMERIC_WIDTH = 12
 _DOCTRINE_TEXT_VECTOR_WIDTH = 32
 _DOCTRINE_TEXT_ENCODER_VERSION = "signed_hashing_v1"
+_ACTION_TEXT_VECTOR_WIDTH = 32
+_ACTION_TEXT_ENCODER_VERSION = "signed_hashing_v1"
 
 
 @dataclass(frozen=True)
@@ -181,11 +183,17 @@ def main() -> int:
     predict_parser.add_argument("--request", required=True)
     predict_parser.add_argument("--output", required=True)
 
+    predict_batch_parser = subparsers.add_parser("predict-batch")
+    predict_batch_parser.add_argument("--request", required=True)
+    predict_batch_parser.add_argument("--output", required=True)
+
     args = parser.parse_args()
     if args.command == "train":
         result = _train_from_request(Path(args.request))
     elif args.command == "eval":
         result = _eval_from_request(Path(args.request))
+    elif args.command == "predict-batch":
+        result = _predict_batch_from_request(Path(args.request))
     else:
         result = _predict_from_request(Path(args.request))
 
@@ -288,8 +296,10 @@ def _train_from_request(path: Path) -> WhatIfBenchmarkTrainResult:
             f"action_tags={len(preprocessor.action_tag_names)}",
             f"event_types={len(preprocessor.event_type_names)}",
             f"business_heads={len(_BUSINESS_TARGET_NAMES)}",
-            f"objective_heads={len(_OBJECTIVE_TARGET_NAMES)}",
+            "objective_heads=0_not_trained_policy_view_only",
             f"future_state_heads={len(_FUTURE_STATE_TARGET_NAMES)}",
+            f"action_text_encoder={preprocessor.action_text_encoder_version}",
+            f"action_text_width={preprocessor.action_text_vector_width}",
         ],
         artifacts=WhatIfBenchmarkTrainArtifacts(
             root=output_root,
@@ -507,50 +517,81 @@ def _eval_heuristic_baseline(
 
 def _predict_from_request(path: Path) -> dict[str, Any]:
     request = json.loads(path.read_text(encoding="utf-8"))
-    checkpoint_path = Path(request["checkpoint_path"]).expanduser().resolve()
+    results = _predict_payloads(
+        checkpoint_path=Path(request["checkpoint_path"]).expanduser().resolve(),
+        rows=[WhatIfBenchmarkDatasetRow.model_validate(request["row"])],
+        device=_resolve_device(str(request.get("device", "") or "")),
+    )
+    if not results:
+        raise RuntimeError("benchmark bridge predict produced no rows")
+    return results[0]
+
+
+def _predict_batch_from_request(path: Path) -> dict[str, Any]:
+    request = json.loads(path.read_text(encoding="utf-8"))
+    rows = [
+        WhatIfBenchmarkDatasetRow.model_validate(item)
+        for item in list(request.get("rows") or [])
+    ]
+    return {
+        "predictions": _predict_payloads(
+            checkpoint_path=Path(request["checkpoint_path"]).expanduser().resolve(),
+            rows=rows,
+            device=_resolve_device(str(request.get("device", "") or "")),
+        )
+    }
+
+
+def _predict_payloads(
+    *,
+    checkpoint_path: Path,
+    rows: Sequence[WhatIfBenchmarkDatasetRow],
+    device: str,
+) -> list[dict[str, Any]]:
     checkpoint = load_checkpoint(checkpoint_path)
     preprocessor = BenchmarkPreprocessor.from_metadata(checkpoint["metadata"])
     trainer = TorchTrainer(model_id=checkpoint["model_id"], preprocessor=preprocessor)
-    device = _resolve_device(str(request.get("device", "") or ""))
     model = trainer.build_model(device=device)
     _load_compatible_state_dict(model, checkpoint["state_dict"])
     model.eval()
 
-    row = WhatIfBenchmarkDatasetRow.model_validate(request["row"])
-    encoded = preprocessor.encode_row(row)
+    encoded_rows = [preprocessor.encode_row(row) for row in rows]
     predictions = predict_rows(
         model=model,
-        rows=[encoded],
-        batch_size=1,
+        rows=encoded_rows,
+        batch_size=_HOLDOUT_BATCH_SIZE,
         device=device,
         torch_module=trainer.torch,
     )
     flat_predictions = _flatten_prediction_batches(predictions)
-    if not flat_predictions:
-        raise RuntimeError("benchmark bridge predict produced no rows")
-    prediction = flat_predictions[0]
-    evidence_heads = preprocessor.decode_targets(
-        binary_probability=prediction.binary_probability,
-        regression_values=prediction.regression_values,
-    )
-    business_heads = preprocessor.decode_business(
-        prediction.business_values,
-        fallback_evidence=evidence_heads,
-    )
-    future_state_heads = preprocessor.decode_future_state(
-        prediction.future_state_values,
-    )
-    return {
-        "model_id": checkpoint["model_id"],
-        "binary_probability": prediction.binary_probability,
-        "regression_values": prediction.regression_values.tolist(),
-        "evidence_heads": evidence_heads.model_dump(mode="json"),
-        "business_heads": business_heads.model_dump(mode="json"),
-        "future_state_heads": future_state_heads.model_dump(mode="json"),
-        "objective_scores": preprocessor.decode_objective_scores(
-            prediction.objective_values
-        ),
-    }
+    payloads: list[dict[str, Any]] = []
+    for row, prediction in zip(rows, flat_predictions, strict=False):
+        evidence_heads = preprocessor.decode_targets(
+            binary_probability=prediction.binary_probability,
+            regression_values=prediction.regression_values,
+        )
+        business_heads = preprocessor.decode_business(
+            prediction.business_values,
+            fallback_evidence=evidence_heads,
+        )
+        future_state_heads = preprocessor.decode_future_state(
+            prediction.future_state_values,
+        )
+        payloads.append(
+            {
+                "model_id": checkpoint["model_id"],
+                "row_id": row.row_id,
+                "binary_probability": prediction.binary_probability,
+                "regression_values": prediction.regression_values.tolist(),
+                "evidence_heads": evidence_heads.model_dump(mode="json"),
+                "business_heads": business_heads.model_dump(mode="json"),
+                "future_state_heads": future_state_heads.model_dump(mode="json"),
+                "objective_scores": preprocessor.decode_objective_scores(
+                    prediction.objective_values
+                ),
+            }
+        )
+    return payloads
 
 
 def _load_dataset_rows(
@@ -653,12 +694,21 @@ class BenchmarkPreprocessor:
         future_state_std: Sequence[float] | None = None,
         doctrine_text_vector_width: int = 0,
         doctrine_text_encoder_version: str = _DOCTRINE_TEXT_ENCODER_VERSION,
+        action_text_vector_width: int = 0,
+        action_text_encoder_version: str = _ACTION_TEXT_ENCODER_VERSION,
+        objective_head_trained: bool = False,
     ) -> None:
         self.doctrine_text_vector_width = int(doctrine_text_vector_width)
         self.doctrine_text_encoder_version = doctrine_text_encoder_version
         self.doctrine_text_feature_names = _doctrine_text_feature_names(
             self.doctrine_text_vector_width
         )
+        self.action_text_vector_width = int(action_text_vector_width)
+        self.action_text_encoder_version = action_text_encoder_version
+        self.action_text_feature_names = _action_text_feature_names(
+            self.action_text_vector_width
+        )
+        self.objective_head_trained = bool(objective_head_trained)
         self.summary_feature_names = list(summary_feature_names)
         self.summary_index = {
             name: index for index, name in enumerate(self.summary_feature_names)
@@ -749,6 +799,18 @@ class BenchmarkPreprocessor:
                     _DOCTRINE_TEXT_ENCODER_VERSION,
                 )
             ),
+            action_text_vector_width=int(
+                (payload.get("action_text_encoder") or {}).get("width", 0)
+            ),
+            action_text_encoder_version=str(
+                (payload.get("action_text_encoder") or {}).get(
+                    "version",
+                    _ACTION_TEXT_ENCODER_VERSION,
+                )
+            ),
+            objective_head_trained=bool(
+                (payload.get("objective_head") or {}).get("trained", False)
+            ),
         )
 
     def to_metadata(self) -> dict[str, Any]:
@@ -766,6 +828,10 @@ class BenchmarkPreprocessor:
             "objective_target_names": list(_OBJECTIVE_TARGET_NAMES),
             "objective_mean": self.objective_mean.tolist(),
             "objective_std": self.objective_std.tolist(),
+            "objective_head": {
+                "trained": self.objective_head_trained,
+                "source": "policy_view_only_not_a_factual_training_target",
+            },
             "future_state_target_names": list(_FUTURE_STATE_TARGET_NAMES),
             "future_state_mean": self.future_state_mean.tolist(),
             "future_state_std": self.future_state_std.tolist(),
@@ -774,6 +840,12 @@ class BenchmarkPreprocessor:
                 "width": self.doctrine_text_vector_width,
                 "feature_names": self.doctrine_text_feature_names,
                 "source": "WhatIfPreBranchContract.doctrine_context",
+            },
+            "action_text_encoder": {
+                "version": self.action_text_encoder_version,
+                "width": self.action_text_vector_width,
+                "feature_names": self.action_text_feature_names,
+                "source": "WhatIfActionSchema.action_text",
             },
         }
 
@@ -904,7 +976,7 @@ class BenchmarkPreprocessor:
         self,
         objective_values: Sequence[float] | None,
     ) -> dict[str, float]:
-        if objective_values is None:
+        if objective_values is None or not self.objective_head_trained:
             return {}
         values = np.nan_to_num(
             (np.asarray(objective_values, dtype=np.float32) * self.objective_std)
@@ -1004,10 +1076,15 @@ class BenchmarkPreprocessor:
             if index is None:
                 continue
             tag_values[index] = 1.0
+        action_text_values = _action_text_vector(
+            action_schema.action_text,
+            width=self.action_text_vector_width,
+        )
         return np.concatenate(
             [
                 np.asarray(values, dtype=np.float32),
                 tag_values,
+                action_text_values,
             ]
         )
 
@@ -1198,6 +1275,22 @@ def _fit_preprocessor(
             for tag in candidate.action_schema.action_tags
         }
     )
+    action_text_width = (
+        _ACTION_TEXT_VECTOR_WIDTH
+        if any(
+            (row.contract.action_schema.action_text or "").strip()
+            for row in list(train_rows)
+            + list(validation_rows)
+            + list(test_rows)
+            + list(heldout_rows)
+        )
+        or any(
+            (candidate.action_schema.action_text or "").strip()
+            for case in cases
+            for candidate in case.candidates
+        )
+        else 0
+    )
     event_types = {"__summary__"}
     for row in (
         list(train_rows) + list(validation_rows) + list(test_rows) + list(heldout_rows)
@@ -1316,6 +1409,9 @@ def _fit_preprocessor(
         future_state_std=future_state_std.tolist(),
         doctrine_text_vector_width=doctrine_width,
         doctrine_text_encoder_version=_DOCTRINE_TEXT_ENCODER_VERSION,
+        action_text_vector_width=action_text_width,
+        action_text_encoder_version=_ACTION_TEXT_ENCODER_VERSION,
+        objective_head_trained=False,
     )
 
 
@@ -1487,11 +1583,7 @@ class TorchTrainer:
                 )
                 self.target_encoder = nn.Sequential(
                     nn.Linear(
-                        target_dim
-                        + business_dim
-                        + objective_dim
-                        + future_state_dim
-                        + 1,
+                        target_dim + business_dim + future_state_dim + 1,
                         256,
                     ),
                     nn.ReLU(),
@@ -1545,7 +1637,6 @@ class TorchTrainer:
                     target_binary is None
                     or target_regression is None
                     or target_business is None
-                    or target_objective is None
                     or target_future_state is None
                 ):
                     result["latent_loss"] = None
@@ -1556,7 +1647,6 @@ class TorchTrainer:
                             target_binary.unsqueeze(-1),
                             target_regression,
                             target_business,
-                            target_objective,
                             target_future_state,
                         ],
                         dim=1,
@@ -1670,6 +1760,7 @@ class TorchTrainer:
         target_dim = len(_EVIDENCE_TARGET_NAMES)
         business_dim = len(_BUSINESS_TARGET_NAMES)
         objective_dim = len(_OBJECTIVE_TARGET_NAMES)
+        future_state_dim = len(_FUTURE_STATE_TARGET_NAMES)
 
         class FTTransformerModel(nn.Module):
             def __init__(self) -> None:
@@ -1688,6 +1779,7 @@ class TorchTrainer:
                 self.regression_head = nn.Linear(model_dim, target_dim)
                 self.business_head = nn.Linear(model_dim, business_dim)
                 self.objective_head = nn.Linear(model_dim, objective_dim)
+                self.future_state_head = nn.Linear(model_dim, future_state_dim)
 
             def forward(
                 self,
@@ -2011,7 +2103,6 @@ def _training_loss(
         batch.target_regression,
     )
     business_loss = functional.mse_loss(outputs["business"], batch.target_business)
-    objective_loss = functional.mse_loss(outputs["objective"], batch.target_objective)
     future_state_loss = functional.mse_loss(
         outputs["future_state"],
         batch.target_future_state,
@@ -2021,7 +2112,6 @@ def _training_loss(
         binary_loss
         + (0.5 * regression_loss)
         + business_loss
-        + (1.25 * objective_loss)
         + (1.35 * future_state_loss)
     )
     if latent_loss is None:
@@ -2247,6 +2337,9 @@ def _evaluate_heldout_cases(
                     prediction.business_values,
                     fallback_evidence=predicted_evidence_heads,
                 )
+                predicted_future_state = preprocessor.decode_future_state(
+                    prediction.future_state_values
+                )
                 outcome_score = score_business_objective(
                     pack=objective_pack,
                     outcomes=predicted_business_outcomes,
@@ -2272,6 +2365,7 @@ def _evaluate_heldout_cases(
                         ),
                         predicted_evidence_heads=predicted_evidence_heads,
                         predicted_business_outcomes=predicted_business_outcomes,
+                        predicted_future_state=predicted_future_state,
                         predicted_objective_score=outcome_score,
                     )
                 )
@@ -2349,6 +2443,9 @@ def _evaluate_heldout_cases_heuristic(
                     prediction.business_values,
                     fallback_evidence=predicted_evidence_heads,
                 )
+                predicted_future_state = preprocessor.decode_future_state(
+                    prediction.future_state_values
+                )
                 outcome_score = score_business_objective(
                     pack=objective_pack,
                     outcomes=predicted_business_outcomes,
@@ -2374,6 +2471,7 @@ def _evaluate_heldout_cases_heuristic(
                         ),
                         predicted_evidence_heads=predicted_evidence_heads,
                         predicted_business_outcomes=predicted_business_outcomes,
+                        predicted_future_state=predicted_future_state,
                         predicted_objective_score=outcome_score,
                     )
                 )
@@ -2533,6 +2631,22 @@ def _write_prediction_rows(
                         round(float(value), 6)
                         for value in prediction.regression_values.tolist()
                     ],
+                    "business_values": (
+                        [
+                            round(float(value), 6)
+                            for value in prediction.business_values.tolist()
+                        ]
+                        if prediction.business_values is not None
+                        else []
+                    ),
+                    "future_state_values": (
+                        [
+                            round(float(value), 6)
+                            for value in prediction.future_state_values.tolist()
+                        ]
+                        if prediction.future_state_values is not None
+                        else []
+                    ),
                 }
             )
         )
@@ -2552,6 +2666,9 @@ def _write_prediction_rows(
                                 mode="json"
                             ),
                             "predicted_business_outcomes": candidate.predicted_business_outcomes.model_dump(
+                                mode="json"
+                            ),
+                            "predicted_future_state": candidate.predicted_future_state.model_dump(
                                 mode="json"
                             ),
                         }
@@ -2639,11 +2756,23 @@ def _doctrine_text_feature_names(width: int) -> list[str]:
     return [f"doctrine_text_hash_{index:02d}" for index in range(max(0, width))]
 
 
+def _action_text_feature_names(width: int) -> list[str]:
+    return [f"action_text_hash_{index:02d}" for index in range(max(0, width))]
+
+
 def _is_doctrine_text_feature(name: str) -> bool:
     return name.startswith("doctrine_text_hash_")
 
 
 def _doctrine_text_vector(text: str, *, width: int) -> np.ndarray:
+    return _signed_text_vector(text, width=width)
+
+
+def _action_text_vector(text: str, *, width: int) -> np.ndarray:
+    return _signed_text_vector(text, width=width)
+
+
+def _signed_text_vector(text: str, *, width: int) -> np.ndarray:
     if width <= 0:
         return np.zeros(0, dtype=np.float32)
     tokens = _doctrine_text_tokens(text)
@@ -2721,7 +2850,11 @@ def _action_vector_width(preprocessor: BenchmarkPreprocessor) -> int:
         + len(_DECISION_POSTURE_VALUES)
         + 4
     )
-    return fixed + len(preprocessor.action_tag_names)
+    return (
+        fixed
+        + len(preprocessor.action_tag_names)
+        + preprocessor.action_text_vector_width
+    )
 
 
 def _resolve_device(requested: str) -> str:

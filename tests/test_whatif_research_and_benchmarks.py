@@ -35,6 +35,7 @@ from vei.whatif import (
     run_whatif,
 )
 from vei.whatif.models import (
+    WhatIfActionSchema,
     WhatIfBenchmarkCaseEvaluation,
     WhatIfBenchmarkEvalArtifacts,
     WhatIfBenchmarkEvalResult,
@@ -2538,6 +2539,66 @@ def test_jepa_benchmark_model_uses_doctrine_text_signal() -> None:
             startup_outputs["binary_logits"] - governance_outputs["binary_logits"]
         ).max()
         > 1e-6
+    )
+
+
+def test_jepa_benchmark_model_uses_action_text_signal() -> None:
+    torch = pytest.importorskip("torch")
+    torch.manual_seed(42042)
+    preprocessor = BenchmarkPreprocessor(
+        summary_feature_names=["history_event_count"],
+        summary_mean=[0.0],
+        summary_std=[1.0],
+        action_tag_names=["commercial_reset"],
+        event_type_names=["__summary__", "message"],
+        target_mean=[0.0] * len(_EVIDENCE_TARGET_NAMES),
+        target_std=[1.0] * len(_EVIDENCE_TARGET_NAMES),
+        action_text_vector_width=8,
+    )
+    trainer = TorchTrainer(model_id="jepa_latent", preprocessor=preprocessor)
+    model = trainer.build_model(device="cpu")
+    model.eval()
+
+    summary = torch.zeros((1, 1), dtype=torch.float32)
+    base_schema = WhatIfActionSchema(
+        event_type="message",
+        action_text="Send a narrow status update to the customer.",
+        action_tags=["commercial_reset"],
+    )
+    changed_schema = base_schema.model_copy(
+        update={
+            "action_text": (
+                "Pitch a broad strategic partnership with a new pilot metric "
+                "and commercial reset."
+            )
+        }
+    )
+    base_action = torch.from_numpy(
+        preprocessor._encode_action(base_schema)
+    ).unsqueeze(  # noqa: SLF001
+        0
+    )
+    changed_action = torch.from_numpy(
+        preprocessor._encode_action(changed_schema)  # noqa: SLF001
+    ).unsqueeze(0)
+    token_categorical = torch.zeros((1, _SEQUENCE_TOKEN_LIMIT, 3), dtype=torch.long)
+    token_numeric = torch.zeros(
+        (1, _SEQUENCE_TOKEN_LIMIT, _SEQUENCE_NUMERIC_WIDTH),
+        dtype=torch.float32,
+    )
+
+    with torch.no_grad():
+        base_outputs = model(summary, base_action, token_categorical, token_numeric)
+        changed_outputs = model(
+            summary,
+            changed_action,
+            token_categorical,
+            token_numeric,
+        )
+
+    assert (base_action != changed_action).any()
+    assert (
+        torch.abs(base_outputs["business"] - changed_outputs["business"]).max() > 1e-6
     )
 
 

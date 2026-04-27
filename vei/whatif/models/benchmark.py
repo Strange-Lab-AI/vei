@@ -27,6 +27,7 @@ from .world import WhatIfEventReference, WhatIfPublicContext
 
 class WhatIfActionSchema(BaseModel):
     event_type: str = ""
+    action_text: str = ""
     recipient_scope: Literal["internal", "external", "mixed", "unknown"] = "unknown"
     external_recipient_count: int = 0
     attachment_policy: WhatIfAttachmentPolicy = "none"
@@ -302,6 +303,9 @@ class WhatIfCounterfactualCandidatePrediction(BaseModel):
     )
     predicted_business_outcomes: WhatIfBusinessOutcomeHeads = Field(
         default_factory=WhatIfBusinessOutcomeHeads
+    )
+    predicted_future_state: WhatIfFutureStateHeads = Field(
+        default_factory=WhatIfFutureStateHeads
     )
     predicted_objective_score: WhatIfBusinessObjectiveScore
 

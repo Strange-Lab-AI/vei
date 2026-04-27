@@ -21,6 +21,7 @@ from vei.whatif.news_state_points import (
     run_news_state_point_counterfactual,
 )
 from vei.whatif.strategic_state_points import (
+    DEFAULT_STRATEGIC_PROPOSAL_MODEL,
     StrategicProposalMode,
     StrategicStatePointSource,
     run_strategic_state_point_counterfactuals,
@@ -456,7 +457,7 @@ def register_benchmark_commands(benchmark_app: typer.Typer) -> None:
             help="Decision/action proposal mode: llm | template",
         ),
         proposal_model: str = typer.Option(
-            "gpt-5.5",
+            DEFAULT_STRATEGIC_PROPOSAL_MODEL,
             "--proposal-model",
             help=(
                 "Model used when proposal-mode=llm. Strategic proposal calls "
