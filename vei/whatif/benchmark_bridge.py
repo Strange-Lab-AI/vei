@@ -156,6 +156,7 @@ class _PredictionBatch:
     business_values: np.ndarray | None = None
     objective_values: np.ndarray | None = None
     future_state_values: np.ndarray | None = None
+    latent_values: np.ndarray | None = None
 
 
 @dataclass(frozen=True)
@@ -165,6 +166,7 @@ class _RowPrediction:
     business_values: np.ndarray | None = None
     objective_values: np.ndarray | None = None
     future_state_values: np.ndarray | None = None
+    latent_values: np.ndarray | None = None
 
 
 def main() -> int:
@@ -554,6 +556,7 @@ def _predict_payloads(
     model = trainer.build_model(device=device)
     _load_compatible_state_dict(model, checkpoint["state_dict"])
     model.eval()
+    checkpoint_id = _file_sha256(checkpoint_path)
 
     encoded_rows = [preprocessor.encode_row(row) for row in rows]
     predictions = predict_rows(
@@ -577,9 +580,15 @@ def _predict_payloads(
         future_state_heads = preprocessor.decode_future_state(
             prediction.future_state_values,
         )
+        latent_vector = (
+            prediction.latent_values.astype(float).tolist()
+            if prediction.latent_values is not None
+            else []
+        )
         payloads.append(
             {
                 "model_id": checkpoint["model_id"],
+                "jepa_checkpoint_id": checkpoint_id,
                 "row_id": row.row_id,
                 "binary_probability": prediction.binary_probability,
                 "regression_values": prediction.regression_values.tolist(),
@@ -589,6 +598,12 @@ def _predict_payloads(
                 "objective_scores": preprocessor.decode_objective_scores(
                     prediction.objective_values
                 ),
+                "latent_future_vector": latent_vector,
+                "latent_future_id": _vector_id(latent_vector),
+                "latent_future_norm": _vector_norm(latent_vector),
+                "encoder_versions": _encoder_versions(checkpoint["metadata"]),
+                "prediction_head_version": "business_future_heads_v1",
+                "prediction_probe_version": "linear_heads_v1",
             }
         )
     return payloads
@@ -1627,6 +1642,7 @@ class TorchTrainer:
                 )
                 predicted_latent = self.predictor(context)
                 result = {
+                    "predicted_latent": predicted_latent,
                     "binary_logits": self.binary_head(predicted_latent).squeeze(-1),
                     "regression": self.regression_head(predicted_latent),
                     "business": self.business_head(predicted_latent),
@@ -2159,6 +2175,11 @@ def predict_rows(
                 if outputs.get("future_state") is not None
                 else None
             )
+            latent = (
+                outputs.get("predicted_latent").detach().cpu().numpy()
+                if outputs.get("predicted_latent") is not None
+                else None
+            )
             batches.append(
                 _PredictionBatch(
                     binary_probability=probability,
@@ -2166,6 +2187,7 @@ def predict_rows(
                     business_values=business,
                     objective_values=objective,
                     future_state_values=future_state,
+                    latent_values=latent,
                 )
             )
     return batches
@@ -2702,9 +2724,42 @@ def _flatten_prediction_batches(
                         if batch.future_state_values is not None
                         else None
                     ),
+                    latent_values=(
+                        np.asarray(batch.latent_values[index])
+                        if batch.latent_values is not None
+                        else None
+                    ),
                 )
             )
     return flattened
+
+
+def _file_sha256(path: Path) -> str:
+    digest = sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _vector_id(values: Sequence[float]) -> str:
+    if not values:
+        return ""
+    array = np.asarray(values, dtype=np.float32)
+    return sha256(array.tobytes()).hexdigest()
+
+
+def _vector_norm(values: Sequence[float]) -> float | None:
+    if not values:
+        return None
+    return round(float(np.linalg.norm(np.asarray(values, dtype=np.float32))), 6)
+
+
+def _encoder_versions(metadata: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "doctrine_text_encoder": metadata.get("doctrine_text_encoder", {}),
+        "action_text_encoder": metadata.get("action_text_encoder", {}),
+    }
 
 
 def _expected_order_ok(

@@ -123,7 +123,10 @@ committed source data.
 
 Read the score column as an optional `balanced_operator_score` readout. The
 world-model output to inspect first is the predicted future vector, the delta
-versus the baseline action, and the tradeoff summary.
+versus the baseline action, the Pareto frontier membership, and the concrete
+success/failure observables. In current exports, `display_rank` is the shareable
+order, `operator_score_rank` is only the fixed score order, and `frontier_rank`
+identifies Pareto-frontier options.
 
 ## Limits
 

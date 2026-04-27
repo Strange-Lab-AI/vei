@@ -10,6 +10,7 @@ from hashlib import sha256
 from pathlib import Path
 from typing import Any, Literal, Sequence
 
+import numpy as np
 from pydantic import BaseModel, Field
 
 from vei.llm.codex_cli import run_codex_json
@@ -51,12 +52,33 @@ _BUSINESS_HEADS: tuple[tuple[str, str, bool], ...] = (
     ("predicted_execution_drag", "drag", False),
     ("predicted_org_strain", "strain", False),
 )
+_DOMAIN_RISK_HEADS: tuple[tuple[str, str, bool], ...] = (
+    ("predicted_regulatory_exposure", "regulatory", False),
+    ("predicted_accounting_control_pressure", "accounting_control", False),
+    ("predicted_liquidity_stress", "liquidity", False),
+    ("predicted_external_confidence_pressure", "external_confidence", False),
+)
+_TELEMETRY_HEADS: tuple[tuple[str, str], ...] = (
+    ("predicted_external_spread", "external_spread"),
+    ("predicted_participant_fanout", "participant_fanout"),
+    ("predicted_governance_response", "governance_response"),
+    ("predicted_evidence_control", "evidence_control"),
+)
+_DELTA_HEADS = _BUSINESS_HEADS + _DOMAIN_RISK_HEADS
+PARETO_BASIS_VERSION = "operator_utility_plus_domain_risk_v1"
+PREDICTION_HEAD_VERSION = "business_future_heads_v1"
+PREDICTION_PROBE_VERSION = "linear_heads_v1"
 
 
 class StrategicCandidateInput(BaseModel):
     label: str
     action: str
     candidate_type: str = ""
+    success_observable: str = ""
+    failure_observable: str = ""
+    time_to_signal: str = ""
+    next_decision_trigger: str = ""
+    falsifying_evidence: str = ""
 
 
 class StrategicDecisionInput(BaseModel):
@@ -404,8 +426,10 @@ Return exactly {decisions_per_source} decision points. For each decision point:
 - write the decision question being tested
 - explain why this is an important decision to test from the pre-as-of evidence
 - generate exactly {candidates_per_decision} broad, concrete candidate actions
+- for every candidate, include concrete observables: success_observable, failure_observable, time_to_signal, next_decision_trigger, and falsifying_evidence
 - include at least one upside/exploit action, one focused pilot, one fast move, one hold/review, one escalation, one coordination move, one commercial/market reset, and one trust/privacy/evidence-control path where applicable
 - actions must be concrete enough that a manager could choose them
+- observables must be specific to the candidate and useful for checking the branch later
 - avoid minor wording variants
 """
 
@@ -515,6 +539,10 @@ def _score_state_point(
         strict=False,
     ):
         business = dict(prediction["business_heads"])
+        future_state_heads = dict(prediction["future_state_heads"])
+        evidence_heads = dict(prediction["evidence_heads"])
+        observables = _candidate_observables(candidate, state_point.decision.title)
+        latent_vector = prediction.get("latent_future_vector") or []
         rows.append(
             {
                 "group": state_point.tenant_id,
@@ -530,13 +558,36 @@ def _score_state_point(
                 "candidate_label": candidate.label,
                 "candidate_type": candidate_type,
                 "candidate_generation_source": state_point.proposal_source,
+                "candidate_generation_model": state_point.proposal_model,
+                "candidate_scoring_model": str(prediction.get("model_id", "")),
                 "learned_model_output": "predicted future vector",
                 "model_output_kind": "predicted_future_vector",
+                "jepa_model_id": str(prediction.get("model_id", "")),
+                "jepa_checkpoint_id": str(prediction.get("jepa_checkpoint_id", "")),
+                "jepa_encoder_versions": json.dumps(
+                    prediction.get("encoder_versions", {}),
+                    sort_keys=True,
+                ),
+                "prediction_head_version": str(
+                    prediction.get("prediction_head_version", PREDICTION_HEAD_VERSION)
+                ),
+                "prediction_probe_version": str(
+                    prediction.get("prediction_probe_version", PREDICTION_PROBE_VERSION)
+                ),
+                "latent_future_id": str(prediction.get("latent_future_id", "")),
+                "latent_future_norm": prediction.get("latent_future_norm", ""),
+                "_latent_future_vector": latent_vector,
                 "balanced_operator_score": _balanced_operator_score(business),
                 "score_output_kind": "operator_utility_readout",
                 "operator_score_formula_version": OPERATOR_SCORE_FORMULA_VERSION,
                 "operator_score_formula": OPERATOR_SCORE_FORMULA,
                 "operator_score_is_learned": False,
+                "operator_utility_heads": _operator_utility_heads_string(business),
+                "domain_risk_heads": _domain_risk_heads_string(future_state_heads),
+                "telemetry_heads": _telemetry_heads_string(
+                    evidence_heads=evidence_heads,
+                    future_state_heads=future_state_heads,
+                ),
                 "predicted_enterprise_risk": business["enterprise_risk"],
                 "predicted_commercial_position": business["commercial_position_proxy"],
                 "predicted_org_strain": business["org_strain_proxy"],
@@ -544,30 +595,41 @@ def _score_state_point(
                 "predicted_execution_drag": business["execution_drag"],
                 "predicted_future_vector": _future_vector_string_from_business(
                     business,
-                    future_state_heads=prediction["future_state_heads"],
+                    future_state_heads=future_state_heads,
                 ),
-                "predicted_external_spread": prediction["evidence_heads"][
-                    "any_external_spread"
-                ],
-                "predicted_participant_fanout": prediction["evidence_heads"][
-                    "participant_fanout"
-                ],
-                "predicted_regulatory_exposure": prediction["future_state_heads"][
+                "predicted_external_spread": evidence_heads["any_external_spread"],
+                "predicted_participant_fanout": evidence_heads["participant_fanout"],
+                "predicted_regulatory_exposure": future_state_heads[
                     "regulatory_exposure"
                 ],
-                "predicted_liquidity_stress": prediction["future_state_heads"][
-                    "liquidity_stress"
+                "predicted_accounting_control_pressure": future_state_heads[
+                    "accounting_control_pressure"
                 ],
-                "predicted_external_confidence_pressure": prediction[
-                    "future_state_heads"
-                ]["external_confidence_pressure"],
+                "predicted_liquidity_stress": future_state_heads["liquidity_stress"],
+                "predicted_governance_response": future_state_heads[
+                    "governance_response"
+                ],
+                "predicted_evidence_control": future_state_heads["evidence_control"],
+                "predicted_external_confidence_pressure": future_state_heads[
+                    "external_confidence_pressure"
+                ],
+                "success_observable": observables["success_observable"],
+                "failure_observable": observables["failure_observable"],
+                "time_to_signal": observables["time_to_signal"],
+                "next_decision_trigger": observables["next_decision_trigger"],
+                "falsifying_evidence": observables["falsifying_evidence"],
+                "observable_source": observables["observable_source"],
                 "no_future_context": True,
                 "pre_branch_evidence_sha256": state_point.evidence_hash,
                 "generation_prompt_sha256": state_point.prompt_hash,
-                "model_ranking_basis": (
-                    "Pareto over predicted future vector, then balanced operator score"
+                "ranking_basis": (
+                    "Pareto frontier over JEPA-predicted operator utility and domain-risk heads; "
+                    "balanced operator score is a non-learned sorting aid"
                 ),
+                "pareto_basis_version": PARETO_BASIS_VERSION,
                 "prediction_uncertainty_available": False,
+                "actual_outcome_vector_available": False,
+                "prediction_error_available": False,
                 "not_used_as_ground_truth": (
                     "decision proposal reason, candidate type, and any operator lens"
                 ),
@@ -593,21 +655,23 @@ def _rank_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
                     row["is_pareto_efficient"] = False
                     break
         _attach_baseline_deltas(case_rows)
-        ordered = sorted(
+        _attach_latent_distances(case_rows)
+        score_ordered = sorted(
             case_rows,
             key=lambda item: (
-                not bool(item["is_pareto_efficient"]),
                 -float(item["balanced_operator_score"]),
                 float(item["predicted_enterprise_risk"]),
                 str(item["candidate_label"]).lower(),
             ),
         )
-        for index, row in enumerate(ordered, start=1):
-            row["counterfactual_rank"] = index
-        for index, row in enumerate(ordered):
-            next_row = ordered[index + 1] if index + 1 < len(ordered) else None
+        for index, row in enumerate(score_ordered, start=1):
+            row["operator_score_rank"] = index
+        for index, row in enumerate(score_ordered):
+            next_row = (
+                score_ordered[index + 1] if index + 1 < len(score_ordered) else None
+            )
             if next_row is None:
-                row["operator_score_margin_to_next_rank"] = ""
+                row["operator_score_margin_to_next_score_rank"] = ""
                 row["operator_score_near_tie_next"] = False
             else:
                 margin = round(
@@ -615,20 +679,61 @@ def _rank_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
                     - float(next_row["balanced_operator_score"]),
                     6,
                 )
-                row["operator_score_margin_to_next_rank"] = margin
+                row["operator_score_margin_to_next_score_rank"] = margin
                 row["operator_score_near_tie_next"] = margin < _NEAR_TIE_MARGIN
-            row["ranking_caveat"] = (
-                "near tie; inspect predicted vector and delta tradeoffs"
-                if bool(row["operator_score_near_tie_next"])
-                else "operator readout; inspect predicted vector before choosing"
+        frontier_ordered = sorted(
+            [row for row in case_rows if bool(row["is_pareto_efficient"])],
+            key=lambda item: (
+                -float(item["balanced_operator_score"]),
+                float(item["predicted_enterprise_risk"]),
+                str(item["candidate_label"]).lower(),
+            ),
+        )
+        frontier_ids = {
+            id(row): index for index, row in enumerate(frontier_ordered, start=1)
+        }
+        for row in case_rows:
+            row["pareto_frontier_group"] = (
+                "frontier" if bool(row["is_pareto_efficient"]) else "dominated"
             )
-        ranked.extend(ordered)
+            row["frontier_rank"] = frontier_ids.get(id(row), "")
+        display_ordered = sorted(
+            case_rows,
+            key=lambda item: (
+                not bool(item["is_pareto_efficient"]),
+                int(item["frontier_rank"]) if item["frontier_rank"] else 10_000,
+                int(item["operator_score_rank"]),
+                str(item["candidate_label"]).lower(),
+            ),
+        )
+        for index, row in enumerate(display_ordered, start=1):
+            row["display_rank"] = index
+        for index, row in enumerate(display_ordered):
+            next_row = (
+                display_ordered[index + 1] if index + 1 < len(display_ordered) else None
+            )
+            row["display_neighbor_score_delta"] = (
+                ""
+                if next_row is None
+                else round(
+                    float(row["balanced_operator_score"])
+                    - float(next_row["balanced_operator_score"]),
+                    6,
+                )
+            )
+            row["ranking_caveat"] = (
+                "near score tie; inspect frontier membership, deltas, and observables"
+                if bool(row["operator_score_near_tie_next"])
+                else "frontier/readout view; inspect predicted vector before choosing"
+            )
+        _drop_internal_fields(display_ordered)
+        ranked.extend(display_ordered)
     ranked.sort(
         key=lambda item: (
             str(item["group"]),
             str(item["as_of"]),
             str(item["decision_point"]).lower(),
-            int(item["counterfactual_rank"]),
+            int(item["display_rank"]),
         )
     )
     return ranked
@@ -649,6 +754,12 @@ def _future_axes(row: dict[str, Any]) -> dict[str, float]:
         "strain_inverse": 1.0 - float(row["predicted_org_strain"]),
         "trust": float(row["predicted_stakeholder_trust"]),
         "drag_inverse": 1.0 - float(row["predicted_execution_drag"]),
+        "regulatory_inverse": 1.0 - float(row["predicted_regulatory_exposure"]),
+        "accounting_control_inverse": 1.0
+        - float(row["predicted_accounting_control_pressure"]),
+        "liquidity_inverse": 1.0 - float(row["predicted_liquidity_stress"]),
+        "external_confidence_inverse": 1.0
+        - float(row["predicted_external_confidence_pressure"]),
     }
 
 
@@ -663,9 +774,43 @@ def _balanced_operator_score(business: dict[str, Any]) -> float:
     return round(sum(values) / len(values), 6)
 
 
+def _operator_utility_heads_string(business: dict[str, Any]) -> str:
+    return (
+        f"risk {float(business['enterprise_risk']):.3f}; "
+        f"commercial {float(business['commercial_position_proxy']):.3f}; "
+        f"trust {float(business['stakeholder_trust']):.3f}; "
+        f"drag {float(business['execution_drag']):.3f}; "
+        f"strain {float(business['org_strain_proxy']):.3f}"
+    )
+
+
+def _domain_risk_heads_string(future_state_heads: dict[str, Any]) -> str:
+    return (
+        f"regulatory {float(future_state_heads['regulatory_exposure']):.3f}; "
+        "accounting control "
+        f"{float(future_state_heads['accounting_control_pressure']):.3f}; "
+        f"liquidity {float(future_state_heads['liquidity_stress']):.3f}; "
+        "external confidence "
+        f"{float(future_state_heads['external_confidence_pressure']):.3f}"
+    )
+
+
+def _telemetry_heads_string(
+    *,
+    evidence_heads: dict[str, Any],
+    future_state_heads: dict[str, Any],
+) -> str:
+    return (
+        f"external spread {float(evidence_heads['any_external_spread']):.3f}; "
+        f"participant fanout {float(evidence_heads['participant_fanout']):.3f}; "
+        f"governance response {float(future_state_heads['governance_response']):.3f}; "
+        f"evidence control {float(future_state_heads['evidence_control']):.3f}"
+    )
+
+
 def _attach_baseline_deltas(case_rows: list[dict[str, Any]]) -> None:
     baseline = _select_baseline_row(case_rows)
-    baseline_vector = _business_vector(baseline)
+    baseline_vector = _comparison_vector(baseline)
     baseline_basis = _baseline_basis(baseline)
     for row in case_rows:
         row["baseline_action_label"] = baseline["candidate_label"]
@@ -673,7 +818,7 @@ def _attach_baseline_deltas(case_rows: list[dict[str, Any]]) -> None:
         row["baseline_basis"] = baseline_basis
         row["baseline_future_vector"] = _future_vector_string(baseline)
         delta_values: dict[str, float] = {}
-        for key, short_name, _higher_is_better in _BUSINESS_HEADS:
+        for key, short_name, _higher_is_better in _DELTA_HEADS:
             delta = round(float(row[key]) - baseline_vector[key], 6)
             delta_values[short_name] = delta
             row[f"delta_{short_name}_vs_baseline"] = delta
@@ -684,6 +829,75 @@ def _attach_baseline_deltas(case_rows: list[dict[str, Any]]) -> None:
         )
         row["predicted_delta_vector"] = _delta_vector_string(delta_values)
         row["tradeoff_summary"] = _tradeoff_summary(delta_values)
+
+
+def _attach_latent_distances(case_rows: list[dict[str, Any]]) -> None:
+    baseline = _select_baseline_row(case_rows)
+    baseline_vector = _latent_vector(baseline)
+    for row in case_rows:
+        vector = _latent_vector(row)
+        if vector is None or baseline_vector is None:
+            row["latent_distance_available"] = False
+            row["latent_future_l2_distance_from_baseline"] = ""
+            row["latent_future_cosine_distance_from_baseline"] = ""
+            continue
+        row["latent_distance_available"] = True
+        row["latent_future_l2_distance_from_baseline"] = _latent_l2(
+            vector, baseline_vector
+        )
+        row["latent_future_cosine_distance_from_baseline"] = _latent_cosine_distance(
+            vector, baseline_vector
+        )
+    for row in case_rows:
+        vector = _latent_vector(row)
+        nearest_label = ""
+        nearest_distance: float | str = ""
+        if vector is not None:
+            for other in case_rows:
+                if other is row:
+                    continue
+                other_vector = _latent_vector(other)
+                if other_vector is None:
+                    continue
+                distance = _latent_cosine_distance(vector, other_vector)
+                if distance == "":
+                    continue
+                if nearest_distance == "" or float(distance) < float(nearest_distance):
+                    nearest_distance = distance
+                    nearest_label = str(other["candidate_label"])
+        row["nearest_latent_candidate_label"] = nearest_label
+        row["latent_future_distance_to_nearest_candidate"] = nearest_distance
+
+
+def _latent_vector(row: dict[str, Any]) -> np.ndarray | None:
+    values = row.get("_latent_future_vector")
+    if not values:
+        return None
+    array = np.asarray(values, dtype=float)
+    if array.ndim != 1 or array.size == 0:
+        return None
+    return array
+
+
+def _latent_l2(left: np.ndarray, right: np.ndarray) -> float | str:
+    if left.shape != right.shape:
+        return ""
+    return round(float(np.linalg.norm(left - right)), 6)
+
+
+def _latent_cosine_distance(left: np.ndarray, right: np.ndarray) -> float | str:
+    if left.shape != right.shape:
+        return ""
+    denominator = float(np.linalg.norm(left) * np.linalg.norm(right))
+    if denominator == 0.0:
+        return ""
+    similarity = float(np.dot(left, right) / denominator)
+    return round(1.0 - similarity, 6)
+
+
+def _drop_internal_fields(rows: Sequence[dict[str, Any]]) -> None:
+    for row in rows:
+        row.pop("_latent_future_vector", None)
 
 
 def _select_baseline_row(case_rows: Sequence[dict[str, Any]]) -> dict[str, Any]:
@@ -721,8 +935,8 @@ def _baseline_basis(row: dict[str, Any]) -> str:
     return "lowest_operator_score_candidate_predicted_future"
 
 
-def _business_vector(row: dict[str, Any]) -> dict[str, float]:
-    return {key: float(row[key]) for key, _short_name, _higher in _BUSINESS_HEADS}
+def _comparison_vector(row: dict[str, Any]) -> dict[str, float]:
+    return {key: float(row[key]) for key, _short_name, _higher in _DELTA_HEADS}
 
 
 def _future_vector_string(row: dict[str, Any]) -> str:
@@ -733,9 +947,13 @@ def _future_vector_string(row: dict[str, Any]) -> str:
         f"drag {float(row['predicted_execution_drag']):.3f}; "
         f"strain {float(row['predicted_org_strain']):.3f}; "
         f"regulatory {float(row['predicted_regulatory_exposure']):.3f}; "
+        "accounting control "
+        f"{float(row['predicted_accounting_control_pressure']):.3f}; "
         f"liquidity {float(row['predicted_liquidity_stress']):.3f}; "
         "external confidence "
-        f"{float(row['predicted_external_confidence_pressure']):.3f}"
+        f"{float(row['predicted_external_confidence_pressure']):.3f}; "
+        f"governance {float(row['predicted_governance_response']):.3f}; "
+        f"evidence control {float(row['predicted_evidence_control']):.3f}"
     )
 
 
@@ -751,9 +969,13 @@ def _future_vector_string_from_business(
         f"drag {float(business['execution_drag']):.3f}; "
         f"strain {float(business['org_strain_proxy']):.3f}; "
         f"regulatory {float(future_state_heads['regulatory_exposure']):.3f}; "
+        "accounting control "
+        f"{float(future_state_heads['accounting_control_pressure']):.3f}; "
         f"liquidity {float(future_state_heads['liquidity_stress']):.3f}; "
         "external confidence "
-        f"{float(future_state_heads['external_confidence_pressure']):.3f}"
+        f"{float(future_state_heads['external_confidence_pressure']):.3f}; "
+        f"governance {float(future_state_heads['governance_response']):.3f}; "
+        f"evidence control {float(future_state_heads['evidence_control']):.3f}"
     )
 
 
@@ -764,7 +986,7 @@ def _delta_vector_string(delta_values: dict[str, float]) -> str:
 def _tradeoff_summary(delta_values: dict[str, float]) -> str:
     gains: list[str] = []
     costs: list[str] = []
-    for _key, short_name, higher_is_better in _BUSINESS_HEADS:
+    for _key, short_name, higher_is_better in _DELTA_HEADS:
         delta = delta_values[short_name]
         if abs(delta) < _DELTA_EPSILON:
             continue
@@ -813,8 +1035,22 @@ def _proposal_schema(
                                     "label": {"type": "string"},
                                     "candidate_type": {"type": "string"},
                                     "action": {"type": "string"},
+                                    "success_observable": {"type": "string"},
+                                    "failure_observable": {"type": "string"},
+                                    "time_to_signal": {"type": "string"},
+                                    "next_decision_trigger": {"type": "string"},
+                                    "falsifying_evidence": {"type": "string"},
                                 },
-                                "required": ["label", "candidate_type", "action"],
+                                "required": [
+                                    "label",
+                                    "candidate_type",
+                                    "action",
+                                    "success_observable",
+                                    "failure_observable",
+                                    "time_to_signal",
+                                    "next_decision_trigger",
+                                    "falsifying_evidence",
+                                ],
                                 "additionalProperties": False,
                             },
                         },
@@ -849,6 +1085,13 @@ def _decisions_from_payload(
                 label=str(item.get("label") or f"Candidate {index}").strip(),
                 candidate_type=str(item.get("candidate_type") or "").strip(),
                 action=str(item.get("action") or "").strip(),
+                success_observable=str(item.get("success_observable") or "").strip(),
+                failure_observable=str(item.get("failure_observable") or "").strip(),
+                time_to_signal=str(item.get("time_to_signal") or "").strip(),
+                next_decision_trigger=str(
+                    item.get("next_decision_trigger") or ""
+                ).strip(),
+                falsifying_evidence=str(item.get("falsifying_evidence") or "").strip(),
             )
             for index, item in enumerate(
                 list(raw.get("candidates") or [])[:candidates_per_decision],
@@ -970,10 +1213,70 @@ def _template_candidates(
             f"Before scaling '{title}', create the evidence trail: customer language, consent/privacy basis, QA or governance check, owner, and follow-up trigger.",
         ),
     ]
-    return [
-        {"candidate_type": kind, "label": label, "action": action}
-        for kind, label, action in base[:candidates_per_decision]
-    ]
+    candidates: list[dict[str, str]] = []
+    for kind, label, action in base[:candidates_per_decision]:
+        candidates.append(
+            {
+                "candidate_type": kind,
+                "label": label,
+                "action": action,
+                **_fallback_observable_fields(label=label, title=title),
+            }
+        )
+    return candidates
+
+
+def _candidate_observables(
+    candidate: StrategicCandidateInput,
+    decision_title: str,
+) -> dict[str, str]:
+    fields = {
+        "success_observable": candidate.success_observable.strip(),
+        "failure_observable": candidate.failure_observable.strip(),
+        "time_to_signal": candidate.time_to_signal.strip(),
+        "next_decision_trigger": candidate.next_decision_trigger.strip(),
+        "falsifying_evidence": candidate.falsifying_evidence.strip(),
+    }
+    if all(fields.values()):
+        return {**fields, "observable_source": "candidate_generation_model"}
+    fallback = _fallback_observable_fields(
+        label=candidate.label,
+        title=decision_title,
+    )
+    return {
+        key: fields[key] or fallback[key]
+        for key in (
+            "success_observable",
+            "failure_observable",
+            "time_to_signal",
+            "next_decision_trigger",
+            "falsifying_evidence",
+        )
+    } | {"observable_source": "deterministic_observable_fallback_v1"}
+
+
+def _fallback_observable_fields(*, label: str, title: str) -> dict[str, str]:
+    label_text = label.strip() or "candidate"
+    title_text = title.strip() or "the decision"
+    return {
+        "success_observable": (
+            f"{label_text}: named owner, measurable next step, and stakeholder "
+            f"response for {title_text} are visible before the signal window closes."
+        ),
+        "failure_observable": (
+            f"{label_text}: no owner or measurable response appears, or the branch "
+            "creates new escalation without clearer evidence."
+        ),
+        "time_to_signal": "5-10 business days",
+        "next_decision_trigger": (
+            "If the signal window closes without the named success observable, "
+            "reassess the branch and stop expanding scope."
+        ),
+        "falsifying_evidence": (
+            "Archive evidence shows the assumed owner, buyer, regulator, customer, "
+            "or operational constraint does not exist."
+        ),
+    }
 
 
 def _synthetic_branch_event(
@@ -1258,7 +1561,7 @@ def _write_markdown_result(
         case_rows = rows_by_case.get(state_point.branch_event.case_id, [])
         if not case_rows:
             continue
-        ordered = sorted(case_rows, key=lambda row: int(row["counterfactual_rank"]))
+        ordered = sorted(case_rows, key=lambda row: int(row["display_rank"]))
         top = ordered[0]
         baseline = top.get("baseline_action_label", "")
         lines.extend(
@@ -1272,24 +1575,29 @@ def _write_markdown_result(
                 f"- Why proposed: {_md(state_point.decision.why_selected)}",
                 f"- Decision question: {_md(state_point.decision.decision_question)}",
                 f"- Baseline action for deltas: **{_md(str(baseline))}**",
-                "- Ranking basis: Pareto over JEPA-predicted future vectors, then "
-                f"`{OPERATOR_SCORE_FORMULA_VERSION}` operator readout.",
-                f"- Top-ranked candidate: **{_md(str(top['candidate_label']))}**",
+                "- Frontier basis: Pareto over JEPA-predicted operator utility and "
+                f"domain-risk heads (`{PARETO_BASIS_VERSION}`).",
+                "- Score basis: "
+                f"`{OPERATOR_SCORE_FORMULA_VERSION}` is a non-learned operator "
+                "sorting aid over five predicted heads.",
+                f"- Shortlist lead: **{_md(str(top['candidate_label']))}**",
                 "",
-                "| Rank | Candidate action | Operator score | Predicted future vector | Delta vs baseline | Tradeoff summary | Pareto |",
-                "|---:|---|---:|---|---|---|---|",
+                "| Display | Frontier | Score rank | Candidate action | Operator score | Predicted future vector | Delta vs baseline | Tradeoff summary | Success observable |",
+                "|---:|---|---:|---|---:|---|---|---|---|",
             ]
         )
         for row in ordered:
             lines.append(
-                "| {rank} | {action} | {score:.3f} | {future} | {delta} | {tradeoff} | {pareto} |".format(
-                    rank=row["counterfactual_rank"],
+                "| {display} | {frontier} | {score_rank} | {action} | {score:.3f} | {future} | {delta} | {tradeoff} | {success} |".format(
+                    display=row["display_rank"],
+                    frontier=_md(str(row["pareto_frontier_group"])),
+                    score_rank=row["operator_score_rank"],
                     action=_md(str(row["counterfactual_action"])),
                     score=float(row["balanced_operator_score"]),
                     future=_md(str(row["predicted_future_vector"])),
                     delta=_md(str(row["predicted_delta_vector"])),
                     tradeoff=_md(str(row["tradeoff_summary"])),
-                    pareto=str(bool(row["is_pareto_efficient"])).lower(),
+                    success=_md(str(row["success_observable"])),
                 )
             )
         lines.append("")

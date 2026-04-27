@@ -265,6 +265,17 @@ def test_strategic_state_point_run_scores_template_proposals(
     def fake_predict(**kwargs: Any) -> list[dict[str, Any]]:
         return [
             {
+                "model_id": "fixture_jepa",
+                "jepa_checkpoint_id": "fixture-checkpoint",
+                "latent_future_vector": [float(index), float(index + 1), 1.0],
+                "latent_future_id": f"latent-{index}",
+                "latent_future_norm": 1.0 + index,
+                "encoder_versions": {
+                    "doctrine_text_encoder": {"kind": "fixture"},
+                    "action_text_encoder": {"kind": "fixture"},
+                },
+                "prediction_head_version": "business_future_heads_v1",
+                "prediction_probe_version": "linear_heads_v1",
                 "evidence_heads": {
                     "any_external_spread": 0.31,
                     "participant_fanout": 4,
@@ -286,7 +297,7 @@ def test_strategic_state_point_run_scores_template_proposals(
                 },
                 "objective_scores": {},
             }
-            for _row in kwargs["rows"]
+            for index, _row in enumerate(kwargs["rows"], start=1)
         ]
 
     monkeypatch.setattr(
@@ -322,14 +333,33 @@ def test_strategic_state_point_run_scores_template_proposals(
     assert first["score_output_kind"] == "operator_utility_readout"
     assert first["operator_score_formula_version"] == "balanced_operator_v1"
     assert first["operator_score_is_learned"] is False
+    assert first["operator_score_rank"]
+    assert first["display_rank"]
+    assert first["pareto_frontier_group"] in {"frontier", "dominated"}
+    assert "counterfactual_rank" not in first
     assert first["baseline_action_label"]
     assert "predicted_delta_vector" in first
     assert "tradeoff_summary" in first
+    assert first["operator_utility_heads"]
+    assert first["domain_risk_heads"]
+    assert first["telemetry_heads"]
+    assert first["success_observable"]
+    assert first["failure_observable"]
+    assert first["time_to_signal"]
+    assert first["next_decision_trigger"]
+    assert first["falsifying_evidence"]
+    assert first["jepa_checkpoint_id"] == "fixture-checkpoint"
+    assert first["latent_future_id"].startswith("latent-")
+    assert first["latent_distance_available"] is True
+    assert "latent_future_distance_to_nearest_candidate" in first
     assert first["prediction_uncertainty_available"] is False
+    assert first["actual_outcome_vector_available"] is False
+    assert first["prediction_error_available"] is False
     assert "objective_policy_summary" not in first
     markdown = result.artifacts.result_markdown_path.read_text(encoding="utf-8")
     assert "not learned scores" in markdown
     assert "Delta vs baseline" in markdown
+    assert "Shortlist lead" in markdown
 
 
 def test_strategic_state_point_cli_wires_sources_and_checkpoint(

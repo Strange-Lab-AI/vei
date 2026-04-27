@@ -597,6 +597,12 @@ The primary output is the predicted future vector plus Pareto/tradeoff
 comparison. The default scalar, `balanced_operator_score`, is a fixed
 query-time readout over predicted risk, commercial position, strain, trust, and
 drag. It is useful for sorting, but it is not the learned ground truth.
+The CSV keeps those layers separate: `operator_score_rank` is the score order,
+`pareto_frontier_group`/`frontier_rank` identify the predicted tradeoff
+frontier, and `display_rank` puts frontier options before dominated options.
+JEPA provenance and latent comparison fields are included when the checkpoint
+exposes latent futures; the concrete observable fields describe how to check
+the branch after acting.
 
 For local exploratory runs, the canonical shareable exports are
 `_vei_out/world_model_current/world_model_decision_summary.csv` and
@@ -633,12 +639,12 @@ future vector is predicted.
 
 The latest local strategic state-point run selected `12` LLM-proposed decisions
 and scored `96` candidate actions under
-`_vei_out/world_model_strategic_state_points/enron_dispatch_powr_news_fuller_gpt54_statepoints_20260427/`.
+`_vei_out/world_model_strategic_state_points/enron_dispatch_powr_news_frontier_gpt54_statepoints_20260427/`.
 The saved proposal manifest records the exact proposal model used for that run.
 New strategic proposal reruns default to `gpt-5.4` through Codex and use the
-pooled action-conditioned JEPA checkpoint for scoring. Those rankings are useful
-decision-support outputs, not causal proof of what would definitely have
-happened.
+pooled action-conditioned JEPA checkpoint for scoring. Treat the current
+four-group export as a frontier shortlist with predicted deltas and observables,
+not as causal proof of what would definitely have happened.
 
 ### Important constraint
 
