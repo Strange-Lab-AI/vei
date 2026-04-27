@@ -3,7 +3,7 @@ from __future__ import annotations
 import csv
 import json
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field as dataclass_field
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any, Sequence
@@ -21,18 +21,60 @@ from .benchmark_business import (
     summarize_future_state_heads,
     summarize_observed_evidence,
 )
-from .critical_decision_benchmark import (
-    _ACTIVE_NEWS_PUBLIC_WORLD_POLICY,
-    _balanced_score,
-    _objective_policy_action_adjustment,
-    _objective_policy_score,
-)
 from .models import (
     WhatIfActionSchema,
     WhatIfArtifactFlags,
     WhatIfBenchmarkDatasetRow,
     WhatIfEvent,
     WhatIfWorld,
+)
+
+_BALANCED_OBJECTIVE_WEIGHTS: dict[str, float] = {
+    "minimize_enterprise_risk": 0.30,
+    "protect_commercial_position": 0.20,
+    "reduce_org_strain": 0.15,
+    "preserve_stakeholder_trust": 0.20,
+    "maintain_execution_velocity": 0.15,
+}
+
+
+@dataclass(frozen=True)
+class _NewsObjectivePolicy:
+    policy_id: str
+    summary: str
+    ranking_basis: str
+    base_weight: float
+    trust_weight: float = 0.0
+    velocity_weight: float = 0.0
+    objective_weights: dict[str, float] = dataclass_field(default_factory=dict)
+    action_adjustments: dict[str, float] = dataclass_field(default_factory=dict)
+
+
+_ACTIVE_NEWS_PUBLIC_WORLD_POLICY = _NewsObjectivePolicy(
+    policy_id="active_news_public_world_v1",
+    summary=(
+        "Historical news objective: rank JEPA predictions through a public-world "
+        "usefulness lens so close calls include active advisories, watches, "
+        "actor maps, policy memos, coordination, and narrow verified updates."
+    ),
+    ranking_basis="strategic_usefulness_score",
+    base_weight=0.90,
+    trust_weight=0.04,
+    velocity_weight=0.06,
+    action_adjustments={
+        "assign_owner_fix_path": 0.01,
+        "customer_status_note": 0.07,
+        "product_triage_queue": 0.035,
+        "fast_ship_low_risk": 0.07,
+        "expert_review_gate": 0.02,
+        "hold_compliance_review": -0.06,
+        "executive_escalation": 0.055,
+        "narrow_pilot": 0.065,
+        "commercial_reset": 0.065,
+        "decision_log_evidence": 0.055,
+        "data_privacy_red_team": 0.025,
+        "cross_function_war_room": 0.07,
+    },
 )
 
 _TOPIC_KEYWORDS: dict[str, tuple[str, ...]] = {
@@ -413,6 +455,57 @@ def _score_state_point_candidates(
             }
         )
     return rows
+
+
+def _balanced_score(objective_scores: dict[str, float]) -> float:
+    numerator = 0.0
+    denominator = 0.0
+    for pack_id, weight in _BALANCED_OBJECTIVE_WEIGHTS.items():
+        if pack_id not in objective_scores:
+            continue
+        numerator += float(objective_scores[pack_id]) * weight
+        denominator += weight
+    return round(numerator / max(denominator, 1e-9), 6)
+
+
+def _objective_policy_score(
+    *,
+    balanced_score: float,
+    objective_scores: dict[str, float],
+    candidate_type: str,
+    policy: _NewsObjectivePolicy,
+) -> float:
+    if policy.objective_weights:
+        numerator = 0.0
+        denominator = 0.0
+        for pack_id, weight in policy.objective_weights.items():
+            if pack_id not in objective_scores:
+                continue
+            numerator += float(objective_scores[pack_id]) * float(weight)
+            denominator += float(weight)
+        base_score = numerator / max(denominator, 1e-9)
+    else:
+        base_score = float(balanced_score)
+    trust = float(objective_scores.get("preserve_stakeholder_trust", 0.0))
+    velocity = float(objective_scores.get("maintain_execution_velocity", 0.0))
+    adjustment = _objective_policy_action_adjustment(
+        candidate_type,
+        policy=policy,
+    )
+    score = (
+        (float(base_score) * policy.base_weight)
+        + (trust * policy.trust_weight)
+        + (velocity * policy.velocity_weight)
+    )
+    return round(max(0.0, min(1.0, score + adjustment)), 6)
+
+
+def _objective_policy_action_adjustment(
+    candidate_type: str,
+    *,
+    policy: _NewsObjectivePolicy,
+) -> float:
+    return policy.action_adjustments.get(candidate_type, 0.0)
 
 
 def _action_schema_for_candidate(

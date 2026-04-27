@@ -168,6 +168,7 @@ class WhatIfPreBranchContract(BaseModel):
     branch_event_id: str
     branch_event: WhatIfEventReference
     action_schema: WhatIfActionSchema = Field(default_factory=WhatIfActionSchema)
+    doctrine_context: str = ""
     summary_features: list[WhatIfBranchSummaryFeature] = Field(default_factory=list)
     sequence_steps: list[WhatIfSequenceStep] = Field(default_factory=list)
     notes: list[str] = Field(default_factory=list)

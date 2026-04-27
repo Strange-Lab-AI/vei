@@ -5,6 +5,7 @@ import importlib
 import json
 import random
 from dataclasses import dataclass
+from hashlib import sha256
 from pathlib import Path
 from typing import Any, Iterable, Sequence
 
@@ -106,6 +107,8 @@ _FUTURE_STATE_TARGET_NAMES = (
 _PHASE_VALUES = ("history", "branch", "generated", "historical_future")
 _SEQUENCE_TOKEN_LIMIT = 12
 _SEQUENCE_NUMERIC_WIDTH = 12
+_DOCTRINE_TEXT_VECTOR_WIDTH = 32
+_DOCTRINE_TEXT_ENCODER_VERSION = "signed_hashing_v1"
 
 
 @dataclass(frozen=True)
@@ -280,6 +283,8 @@ def _train_from_request(path: Path) -> WhatIfBenchmarkTrainResult:
             f"test_rows={len(dataset['test'])}",
             f"heldout_rows={len(dataset['heldout'])}",
             f"summary_features={len(preprocessor.summary_feature_names)}",
+            f"doctrine_text_encoder={preprocessor.doctrine_text_encoder_version}",
+            f"doctrine_text_width={preprocessor.doctrine_text_vector_width}",
             f"action_tags={len(preprocessor.action_tag_names)}",
             f"event_types={len(preprocessor.event_type_names)}",
             f"business_heads={len(_BUSINESS_TARGET_NAMES)}",
@@ -646,7 +651,14 @@ class BenchmarkPreprocessor:
         objective_std: Sequence[float] | None = None,
         future_state_mean: Sequence[float] | None = None,
         future_state_std: Sequence[float] | None = None,
+        doctrine_text_vector_width: int = 0,
+        doctrine_text_encoder_version: str = _DOCTRINE_TEXT_ENCODER_VERSION,
     ) -> None:
+        self.doctrine_text_vector_width = int(doctrine_text_vector_width)
+        self.doctrine_text_encoder_version = doctrine_text_encoder_version
+        self.doctrine_text_feature_names = _doctrine_text_feature_names(
+            self.doctrine_text_vector_width
+        )
         self.summary_feature_names = list(summary_feature_names)
         self.summary_index = {
             name: index for index, name in enumerate(self.summary_feature_names)
@@ -728,6 +740,15 @@ class BenchmarkPreprocessor:
             objective_std=payload.get("objective_std"),
             future_state_mean=payload.get("future_state_mean"),
             future_state_std=payload.get("future_state_std"),
+            doctrine_text_vector_width=int(
+                (payload.get("doctrine_text_encoder") or {}).get("width", 0)
+            ),
+            doctrine_text_encoder_version=str(
+                (payload.get("doctrine_text_encoder") or {}).get(
+                    "version",
+                    _DOCTRINE_TEXT_ENCODER_VERSION,
+                )
+            ),
         )
 
     def to_metadata(self) -> dict[str, Any]:
@@ -748,10 +769,19 @@ class BenchmarkPreprocessor:
             "future_state_target_names": list(_FUTURE_STATE_TARGET_NAMES),
             "future_state_mean": self.future_state_mean.tolist(),
             "future_state_std": self.future_state_std.tolist(),
+            "doctrine_text_encoder": {
+                "version": self.doctrine_text_encoder_version,
+                "width": self.doctrine_text_vector_width,
+                "feature_names": self.doctrine_text_feature_names,
+                "source": "WhatIfPreBranchContract.doctrine_context",
+            },
         }
 
     def encode_row(self, row: WhatIfBenchmarkDatasetRow) -> _RowEncoding:
-        summary_values = self._encode_summary(row.contract.summary_features)
+        summary_values = self._encode_summary(
+            row.contract.summary_features,
+            doctrine_context=row.contract.doctrine_context,
+        )
         action_values = self._encode_action(row.contract.action_schema)
         token_categorical, token_numeric = self._encode_sequence(
             row.contract.sequence_steps,
@@ -909,13 +939,26 @@ class BenchmarkPreprocessor:
         }
         return WhatIfFutureStateHeads(**payload)
 
-    def _encode_summary(self, features: Sequence[Any]) -> np.ndarray:
+    def _encode_summary(
+        self,
+        features: Sequence[Any],
+        *,
+        doctrine_context: str = "",
+    ) -> np.ndarray:
         values = np.zeros(len(self.summary_feature_names), dtype=np.float32)
         for feature in features:
             index = self.summary_index.get(feature.name)
             if index is None:
                 continue
             values[index] = float(feature.value)
+        doctrine_vector = _doctrine_text_vector(
+            doctrine_context,
+            width=self.doctrine_text_vector_width,
+        )
+        for name, value in zip(self.doctrine_text_feature_names, doctrine_vector):
+            index = self.summary_index.get(name)
+            if index is not None:
+                values[index] = float(value)
         return (values - self.summary_mean) / self.summary_std
 
     def _encode_action(self, action_schema: WhatIfActionSchema) -> np.ndarray:
@@ -1106,18 +1149,23 @@ def _fit_preprocessor(
     heldout_rows: Sequence[WhatIfBenchmarkDatasetRow],
     cases: Sequence[WhatIfBenchmarkCase],
 ) -> BenchmarkPreprocessor:
-    summary_names = sorted(
-        {
-            feature.name
-            for row in list(train_rows)
-            + list(validation_rows)
-            + list(test_rows)
-            + list(heldout_rows)
-            for feature in row.contract.summary_features
-        }
+    all_rows = (
+        list(train_rows) + list(validation_rows) + list(test_rows) + list(heldout_rows)
     )
-    if not summary_names:
-        summary_names = ["history_event_count"]
+    base_summary_names = sorted(
+        {feature.name for row in all_rows for feature in row.contract.summary_features}
+    )
+    if not base_summary_names:
+        base_summary_names = ["history_event_count"]
+    doctrine_width = (
+        _DOCTRINE_TEXT_VECTOR_WIDTH
+        if any(row.contract.doctrine_context.strip() for row in all_rows)
+        else 0
+    )
+    summary_names = [
+        *base_summary_names,
+        *_doctrine_text_feature_names(doctrine_width),
+    ]
     summary_matrix = np.asarray(
         [_summary_vector(row, summary_names) for row in train_rows],
         dtype=np.float32,
@@ -1266,6 +1314,8 @@ def _fit_preprocessor(
         objective_std=objective_std.tolist(),
         future_state_mean=future_state_mean.tolist(),
         future_state_std=future_state_std.tolist(),
+        doctrine_text_vector_width=doctrine_width,
+        doctrine_text_encoder_version=_DOCTRINE_TEXT_ENCODER_VERSION,
     )
 
 
@@ -2565,9 +2615,56 @@ def _summary_vector(
     feature_map = {
         feature.name: float(feature.value) for feature in row.contract.summary_features
     }
-    return np.asarray(
-        [feature_map.get(name, 0.0) for name in feature_names], dtype=np.float32
+    doctrine_width = sum(1 for name in feature_names if _is_doctrine_text_feature(name))
+    doctrine_names = _doctrine_text_feature_names(doctrine_width)
+    doctrine_values = dict(
+        zip(
+            doctrine_names,
+            _doctrine_text_vector(
+                row.contract.doctrine_context,
+                width=doctrine_width,
+            ),
+        )
     )
+    return np.asarray(
+        [
+            feature_map.get(name, doctrine_values.get(name, 0.0))
+            for name in feature_names
+        ],
+        dtype=np.float32,
+    )
+
+
+def _doctrine_text_feature_names(width: int) -> list[str]:
+    return [f"doctrine_text_hash_{index:02d}" for index in range(max(0, width))]
+
+
+def _is_doctrine_text_feature(name: str) -> bool:
+    return name.startswith("doctrine_text_hash_")
+
+
+def _doctrine_text_vector(text: str, *, width: int) -> np.ndarray:
+    if width <= 0:
+        return np.zeros(0, dtype=np.float32)
+    tokens = _doctrine_text_tokens(text)
+    if not tokens:
+        return np.zeros(width, dtype=np.float32)
+    values = np.zeros(width, dtype=np.float32)
+    scale = 1.0 / max(len(tokens) ** 0.5, 1.0)
+    for token in tokens:
+        digest = sha256(token.encode("utf-8")).digest()
+        index = int.from_bytes(digest[:4], "big") % width
+        sign = 1.0 if digest[4] % 2 == 0 else -1.0
+        values[index] += sign * scale
+    norm = float(np.linalg.norm(values))
+    if norm > 1e-6:
+        values = values / norm
+    return values.astype(np.float32)
+
+
+def _doctrine_text_tokens(text: str) -> list[str]:
+    cleaned = "".join(ch.lower() if ch.isalnum() else " " for ch in text)
+    return [token for token in cleaned.split() if len(token) > 2][:512]
 
 
 def _one_hot(value: str, allowed: Sequence[str]) -> list[float]:

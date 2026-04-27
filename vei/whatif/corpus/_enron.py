@@ -41,6 +41,7 @@ def load_enron_world(
     custodian_filter: Sequence[str] | None = None,
     max_events: int | None = None,
     include_content: bool = False,
+    include_situation_graph: bool = True,
 ) -> WhatIfWorld:
     from ._time import resolve_time_window
 
@@ -59,7 +60,9 @@ def load_enron_world(
     if not content_path.exists():
         raise ValueError(f"content parquet not found: {content_path}")
 
-    metadata_rows = pq.read_table(
+    time_bounds = resolve_time_window(time_window)
+    custodian_tokens = {item.strip().lower() for item in custodian_filter or [] if item}
+    metadata_table = pq.read_table(
         metadata_path,
         columns=[
             "event_id",
@@ -70,7 +73,15 @@ def load_enron_world(
             "thread_task_id",
             "artifacts",
         ],
-    ).to_pylist()
+    )
+    bounded_table = metadata_table
+    prebounded = False
+    if max_events is not None and time_bounds is None and not custodian_tokens:
+        bounded_table = metadata_table.sort_by(
+            [("timestamp", "ascending"), ("event_id", "ascending")]
+        ).slice(0, max(0, int(max_events)))
+        prebounded = True
+    metadata_rows = bounded_table.to_pylist()
     content_by_id = (
         load_content_by_event_ids(
             rosetta_dir=base,
@@ -84,8 +95,6 @@ def load_enron_world(
         else {}
     )
 
-    time_bounds = resolve_time_window(time_window)
-    custodian_tokens = {item.strip().lower() for item in custodian_filter or [] if item}
     events: list[WhatIfEvent] = []
     for row in metadata_rows:
         event = build_event(row, content_by_id.get(str(row.get("event_id", "")), ""))
@@ -101,16 +110,20 @@ def load_enron_world(
 
     events.sort(key=lambda item: (item.timestamp_ms, item.event_id))
     events = assign_case_ids(events)
-    if max_events is not None:
+    if max_events is not None and not prebounded:
         events = events[: max(0, int(max_events))]
 
     threads = build_thread_summaries(events, organization_domain=ENRON_DOMAIN)
     actors = build_actor_profiles(events, organization_domain=ENRON_DOMAIN)
     cases = build_case_summaries(events)
-    situation_graph = build_situation_graph(
-        threads=threads,
-        cases=cases,
-        events=events,
+    situation_graph = (
+        build_situation_graph(
+            threads=threads,
+            cases=cases,
+            events=events,
+        )
+        if include_situation_graph
+        else None
     )
     summary = WhatIfWorldSummary(
         source="enron",

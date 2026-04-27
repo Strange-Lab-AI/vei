@@ -101,6 +101,13 @@ def test_multitenant_benchmark_uses_temporal_holdouts_without_prompt_leakage(
 
     train_rows = _load_jsonl(result.dataset.split_paths["train"])
     heldout_rows = _load_jsonl(result.dataset.split_paths["heldout"])
+    first_train_features = {
+        feature["name"] for feature in train_rows[0]["contract"]["summary_features"]
+    }
+    first_train_tags = set(train_rows[0]["contract"]["action_schema"]["action_tags"])
+    assert "doctrine_relevance_score" in first_train_features
+    assert train_rows[0]["contract"]["doctrine_context"]
+    assert any(tag.startswith("objective_policy:") for tag in first_train_tags)
     assert {row["thread_id"] for row in train_rows}.isdisjoint(
         {row["thread_id"] for row in heldout_rows}
     )
@@ -124,6 +131,9 @@ def test_multitenant_benchmark_uses_temporal_holdouts_without_prompt_leakage(
             candidate.metadata["pre_branch_evidence_sha256"]
             for candidate in case.candidates
         )
+        assert all(
+            candidate.metadata["objective_policy_id"] for candidate in case.candidates
+        )
 
     leakage_report = json.loads(
         Path(result.dataset.metadata["leakage_report_path"]).read_text(encoding="utf-8")
@@ -131,6 +141,10 @@ def test_multitenant_benchmark_uses_temporal_holdouts_without_prompt_leakage(
     assert all(leakage_report["checks"].values())
     assert all(
         candidate_case["future_event_count"] == 1
+        for candidate_case in leakage_report["candidate_cases"]
+    )
+    assert all(
+        candidate_case["doctrine_context_future_marker_hits"] == []
         for candidate_case in leakage_report["candidate_cases"]
     )
 
@@ -152,6 +166,27 @@ def test_multitenant_benchmark_uses_temporal_holdouts_without_prompt_leakage(
         )
     )
     assert provenance_report["dataset_split_counts"] == result.dataset.split_row_counts
+    assert provenance_report["doctrine_packet_paths"]["dispatch"]
+    assert provenance_report["leave_one_tenant_out"]["dispatch"]["eval_row_count"] == 2
+    dispatch_loto_root = Path(
+        provenance_report["leave_one_tenant_out"]["dispatch"]["build_root"]
+    )
+    assert dispatch_loto_root.exists()
+    dispatch_loto_build = load_branch_point_benchmark_build_result(dispatch_loto_root)
+    assert (
+        dispatch_loto_build.dataset.metadata["benchmark_kind"]
+        == "leave_one_tenant_out_world_model"
+    )
+    assert dispatch_loto_build.dataset.split_row_counts["test"] == 1
+    dispatch_doctrine_packet = json.loads(
+        Path(provenance_report["doctrine_packet_paths"]["dispatch"]).read_text(
+            encoding="utf-8"
+        )
+    )
+    assert dispatch_doctrine_packet["schema_version"] == "doctrine_packet_v2"
+    assert dispatch_doctrine_packet["provenance"]["branch_safe"] is True
+    assert dispatch_doctrine_packet["provenance"]["max_timestamp_ms"] is not None
+    assert dispatch_doctrine_packet["evidence_citations"]
     assert (
         provenance_report["tenants"]["enron"]["source_record_counts"][0][
             "record_counts"
@@ -159,6 +194,7 @@ def test_multitenant_benchmark_uses_temporal_holdouts_without_prompt_leakage(
         == 18
     )
     assert provenance_report["tenants"]["dispatch"]["canonical_event_count"] == 18
+    assert provenance_report["tenants"]["dispatch"]["doctrine_extraction_method"]
 
 
 def test_multitenant_benchmark_uses_rolling_branch_rows_from_long_threads(

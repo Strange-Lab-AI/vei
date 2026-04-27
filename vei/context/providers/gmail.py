@@ -417,6 +417,9 @@ def _parse_mbox_message(msg: mailbox.mboxMessage) -> Optional[Dict[str, Any]]:
     message_id = str(msg.get("Message-ID", ""))
     references = str(msg.get("References", ""))
     in_reply_to = str(msg.get("In-Reply-To", ""))
+    labels = _parse_mbox_labels(str(msg.get("X-Gmail-Labels", "")))
+    if _skip_mbox_labels(labels):
+        return None
 
     thread_id = ""
     if references:
@@ -450,7 +453,25 @@ def _parse_mbox_message(msg: mailbox.mboxMessage) -> Optional[Dict[str, Any]]:
         "subject": subject,
         "date": date,
         "snippet": body[:200],
-        "labels": [],
+        "labels": labels,
         "unread": False,
         "thread_id": thread_id,
     }
+
+
+def _parse_mbox_labels(raw: str) -> list[str]:
+    labels = [item.strip() for item in str(raw or "").split(",") if item.strip()]
+    return sorted(dict.fromkeys(labels))
+
+
+def _skip_mbox_labels(labels: list[str]) -> bool:
+    normalized = {label.lower().replace(" ", "_") for label in labels}
+    return bool(
+        normalized
+        & {
+            "spam",
+            "trash",
+            "category_promotions",
+            "category_social",
+        }
+    )

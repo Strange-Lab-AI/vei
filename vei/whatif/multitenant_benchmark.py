@@ -28,6 +28,17 @@ from .benchmark_business import (
     summarize_observed_evidence,
 )
 from .corpus import event_reference
+from .doctrine import (
+    DoctrineDecisionProfile,
+    DoctrinePacket,
+    build_doctrine_packet_for_world,
+    classify_doctrine_decision,
+    doctrine_action_tags,
+    doctrine_manifest_payload,
+    doctrine_packet_text,
+    doctrine_prompt_lines,
+    doctrine_text_sha256,
+)
 from .models import (
     WhatIfActionSchema,
     WhatIfBenchmarkBuildArtifacts,
@@ -75,6 +86,7 @@ class MultiTenantBenchmarkSource(BaseModel):
     display_name: str = ""
     readiness_required: bool = False
     readiness: dict[str, Any] = Field(default_factory=dict)
+    doctrine_override: dict[str, Any] = Field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -90,6 +102,8 @@ class _RowCandidate:
     subject: str
     branch_timestamp_ms: int
     target_end_timestamp_ms: int
+    doctrine_packet: DoctrinePacket
+    doctrine_profile: DoctrineDecisionProfile
 
 
 def build_multitenant_world_model_benchmark(
@@ -115,10 +129,12 @@ def build_multitenant_world_model_benchmark(
     judge_template_path = root / "judged_ranking_template.json"
     audit_template_path = root / "audit_record_template.json"
     data_provenance_path = root / "data_provenance_report.json"
+    doctrine_root = root / "doctrine_packets"
     dossier_root = root / "dossiers"
     dataset_root = root / "dataset"
     dataset_root.mkdir(parents=True, exist_ok=True)
     dossier_root.mkdir(parents=True, exist_ok=True)
+    doctrine_root.mkdir(parents=True, exist_ok=True)
 
     split_rows: dict[str, list[WhatIfBenchmarkDatasetRow]] = {
         "train": [],
@@ -128,6 +144,7 @@ def build_multitenant_world_model_benchmark(
     }
     heldout_candidates: list[_RowCandidate] = []
     candidate_manifest: list[dict[str, Any]] = []
+    doctrine_packet_paths: dict[str, str] = {}
     leakage_manifest: dict[str, Any] = {
         "checks": {},
         "tenants": {},
@@ -158,6 +175,16 @@ def build_multitenant_world_model_benchmark(
             tenant_rows,
             heldout_cases_per_tenant=heldout_cases_per_tenant,
         )
+        doctrine_packet = _representative_fit_doctrine_packet(
+            tenant_rows,
+            tenant_splits,
+        )
+        doctrine_packet_path = doctrine_root / f"{_slug(source.tenant_id)}.json"
+        doctrine_packet_path.write_text(
+            doctrine_packet.model_dump_json(indent=2),
+            encoding="utf-8",
+        )
+        doctrine_packet_paths[source.tenant_id] = str(doctrine_packet_path)
         tenant_split_counts = {
             split_name: len(rows) for split_name, rows in tenant_splits.items()
         }
@@ -171,6 +198,8 @@ def build_multitenant_world_model_benchmark(
             "split_counts": tenant_split_counts,
             "heldout_case_count": len(tenant_heldout),
             "future_horizon_events": future_horizon_events,
+            "doctrine_packet_path": str(doctrine_packet_path),
+            "doctrine_text_sha256": doctrine_text_sha256(doctrine_packet),
         }
         provenance_manifest["tenants"][source.tenant_id] = _tenant_provenance_payload(
             source=source,
@@ -179,6 +208,8 @@ def build_multitenant_world_model_benchmark(
             heldout_case_count=len(tenant_heldout),
             future_horizon_events=future_horizon_events,
             max_branch_rows_per_thread=max_branch_rows_per_thread,
+            doctrine_packet=doctrine_packet,
+            doctrine_packet_path=doctrine_packet_path,
         )
 
     benchmark_cases: list[WhatIfBenchmarkCase] = []
@@ -268,6 +299,10 @@ def build_multitenant_world_model_benchmark(
             item["candidate_prompt_excludes_future_event_ids"]
             for item in leakage_manifest["candidate_cases"]
         ),
+        "doctrine_contexts_exclude_future_event_ids": all(
+            item["doctrine_context_excludes_future_event_ids"]
+            for item in leakage_manifest["candidate_cases"]
+        ),
         "judge_dossiers_exclude_future_event_ids": all(
             item["judge_dossiers_exclude_future_event_ids"]
             for item in leakage_manifest["candidate_cases"]
@@ -280,8 +315,30 @@ def build_multitenant_world_model_benchmark(
         json.dumps(candidate_manifest, indent=2),
         encoding="utf-8",
     )
+    leave_one_tenant_out_build_roots = _write_leave_one_tenant_out_builds(
+        root=root,
+        label=label,
+        sources=sources,
+        split_rows=split_rows,
+        benchmark_cases=benchmark_cases,
+        candidate_generation_mode=candidate_generation_mode,
+        candidate_model=candidate_model,
+        future_horizon_events=future_horizon_events,
+        max_branch_rows_per_thread=max_branch_rows_per_thread,
+    )
+    leave_one_tenant_out = _leave_one_tenant_out_payload(
+        split_rows=split_rows,
+        sources=sources,
+    )
+    for tenant_id, build_root in leave_one_tenant_out_build_roots.items():
+        leave_one_tenant_out.setdefault(tenant_id, {})["build_root"] = build_root
     provenance_manifest["dataset_split_counts"] = split_counts
     provenance_manifest["tenant_count"] = len(sources)
+    provenance_manifest["doctrine_packet_paths"] = doctrine_packet_paths
+    provenance_manifest["leave_one_tenant_out"] = leave_one_tenant_out
+    provenance_manifest["leave_one_tenant_out_build_roots"] = (
+        leave_one_tenant_out_build_roots
+    )
     data_provenance_path.write_text(
         json.dumps(provenance_manifest, indent=2),
         encoding="utf-8",
@@ -306,6 +363,10 @@ def build_multitenant_world_model_benchmark(
             "candidate_generation_manifest_path": str(candidate_manifest_path),
             "leakage_report_path": str(leakage_path),
             "data_provenance_report_path": str(data_provenance_path),
+            "doctrine_packet_paths": doctrine_packet_paths,
+            "doctrine_context": "archive_derived_text_v1",
+            "leave_one_tenant_out_available": True,
+            "leave_one_tenant_out_build_roots": leave_one_tenant_out_build_roots,
         },
     )
     (dataset_root / "dataset_manifest.json").write_text(
@@ -330,7 +391,9 @@ def build_multitenant_world_model_benchmark(
             "candidate_generation_manifest_path": str(candidate_manifest_path),
             "leakage_report_path": str(leakage_path),
             "data_provenance_report_path": str(data_provenance_path),
+            "doctrine_packet_paths": doctrine_packet_paths,
             "max_branch_rows_per_thread": max_branch_rows_per_thread,
+            "leave_one_tenant_out_build_roots": leave_one_tenant_out_build_roots,
         },
     )
     build_path.write_text(result.model_dump_json(indent=2), encoding="utf-8")
@@ -354,6 +417,8 @@ def build_candidate_generation_prompt(item: _RowCandidate) -> str:
         [
             "You are generating broad, realistic counterfactual candidate actions.",
             "Use only the pre-branch evidence below. Do not infer from, mention, or rely on any recorded future outcome.",
+            "",
+            *doctrine_prompt_lines(item.doctrine_packet, item.doctrine_profile),
             "",
             f"Tenant: {item.display_name}",
             f"Evidence hash: {evidence_hash}",
@@ -407,6 +472,8 @@ def _tenant_provenance_payload(
     heldout_case_count: int,
     future_horizon_events: int,
     max_branch_rows_per_thread: int,
+    doctrine_packet: DoctrinePacket,
+    doctrine_packet_path: Path,
 ) -> dict[str, Any]:
     source_count_total = 0
     source_records = _source_record_counts(source)
@@ -433,7 +500,177 @@ def _tenant_provenance_payload(
         "dropped_by_temporal_split": max(0, eligible_branch_rows - used_split_rows),
         "future_horizon_events": future_horizon_events,
         "max_branch_rows_per_thread": max_branch_rows_per_thread,
+        "doctrine_packet_path": str(doctrine_packet_path),
+        "doctrine_packet_id": doctrine_packet.packet_id,
+        "doctrine_extraction_method": doctrine_packet.extraction_method,
+        "doctrine_text_sha256": doctrine_text_sha256(doctrine_packet),
+        "doctrine_archive_signal_counts": dict(doctrine_packet.archive_signal_counts),
     }
+
+
+def _leave_one_tenant_out_payload(
+    *,
+    split_rows: dict[str, list[WhatIfBenchmarkDatasetRow]],
+    sources: Sequence[MultiTenantBenchmarkSource],
+) -> dict[str, Any]:
+    tenant_ids = [source.tenant_id for source in sources]
+    payload: dict[str, Any] = {}
+    for tenant_id in tenant_ids:
+        tenant_prefix = f"{_slug(tenant_id)}:"
+        train_rows = [
+            row
+            for split_name in ("train", "validation")
+            for row in split_rows[split_name]
+            if not row.row_id.startswith(tenant_prefix)
+        ]
+        eval_rows = [
+            row
+            for split_name in ("test", "heldout")
+            for row in split_rows[split_name]
+            if row.row_id.startswith(tenant_prefix)
+        ]
+        payload[tenant_id] = {
+            "train_row_ids": [row.row_id for row in train_rows],
+            "eval_row_ids": [row.row_id for row in eval_rows],
+            "train_row_count": len(train_rows),
+            "eval_row_count": len(eval_rows),
+            "purpose": (
+                "Train on all other tenants and test transfer on this tenant's "
+                "final-tail/test rows with its archive-derived doctrine packet."
+            ),
+        }
+    return payload
+
+
+def _write_leave_one_tenant_out_builds(
+    *,
+    root: Path,
+    label: str,
+    sources: Sequence[MultiTenantBenchmarkSource],
+    split_rows: dict[str, list[WhatIfBenchmarkDatasetRow]],
+    benchmark_cases: Sequence[WhatIfBenchmarkCase],
+    candidate_generation_mode: CandidateGenerationMode,
+    candidate_model: str,
+    future_horizon_events: int,
+    max_branch_rows_per_thread: int,
+) -> dict[str, str]:
+    build_roots: dict[str, str] = {}
+    loto_root = root / "leave_one_tenant_out"
+    for source in sources:
+        tenant_id = source.tenant_id
+        tenant_prefix = f"{_slug(tenant_id)}:"
+        tenant_root = loto_root / _slug(tenant_id)
+        dataset_root = tenant_root / "dataset"
+        dossier_root = tenant_root / "dossiers"
+        dataset_root.mkdir(parents=True, exist_ok=True)
+        dossier_root.mkdir(parents=True, exist_ok=True)
+        build_path = tenant_root / "branch_point_benchmark_build.json"
+        heldout_cases_path = tenant_root / "heldout_cases.json"
+        judge_template_path = tenant_root / "judged_ranking_template.json"
+        audit_template_path = tenant_root / "audit_record_template.json"
+
+        tenant_split_rows = {
+            "train": [
+                row.model_copy(update={"split": "train"})
+                for row in split_rows["train"]
+                if not row.row_id.startswith(tenant_prefix)
+            ],
+            "validation": [
+                row.model_copy(update={"split": "validation"})
+                for row in split_rows["validation"]
+                if not row.row_id.startswith(tenant_prefix)
+            ],
+            "test": [
+                row.model_copy(update={"split": "test"})
+                for row in split_rows["test"]
+                if row.row_id.startswith(tenant_prefix)
+            ],
+            "heldout": [
+                row.model_copy(update={"split": "heldout"})
+                for row in split_rows["heldout"]
+                if row.row_id.startswith(tenant_prefix)
+            ],
+        }
+        split_paths: dict[str, str] = {}
+        split_counts: dict[str, int] = {}
+        for split_name, rows in tenant_split_rows.items():
+            split_path = dataset_root / f"{split_name}_rows.jsonl"
+            _write_jsonl(split_path, rows)
+            split_paths[split_name] = str(split_path)
+            split_counts[split_name] = len(rows)
+
+        tenant_cases = [
+            case for case in benchmark_cases if case.case_id.startswith(tenant_prefix)
+        ]
+        heldout_cases_path.write_text(
+            json.dumps(
+                [case.model_dump(mode="json") for case in tenant_cases], indent=2
+            ),
+            encoding="utf-8",
+        )
+        judged_template = _judge_template_rows(tenant_cases)
+        judge_template_path.write_text(
+            json.dumps(
+                [row.model_dump(mode="json") for row in judged_template], indent=2
+            ),
+            encoding="utf-8",
+        )
+        audit_template = _audit_template_rows(tenant_cases)
+        audit_template_path.write_text(
+            json.dumps(
+                [row.model_dump(mode="json") for row in audit_template], indent=2
+            ),
+            encoding="utf-8",
+        )
+
+        dataset_manifest = WhatIfBenchmarkDatasetManifest(
+            root=dataset_root,
+            split_row_counts=split_counts,
+            split_paths=split_paths,
+            heldout_cases_path=str(heldout_cases_path),
+            judge_template_path=str(judge_template_path),
+            audit_template_path=str(audit_template_path),
+            dossier_root=str(dossier_root),
+            heldout_thread_ids=sorted(
+                {row.thread_id for row in tenant_split_rows["heldout"]}
+            ),
+            metadata={
+                "benchmark_kind": "leave_one_tenant_out_world_model",
+                "parent_build_root": str(root),
+                "held_out_tenant_id": tenant_id,
+                "candidate_generation_mode": candidate_generation_mode,
+                "candidate_model": candidate_model,
+                "future_horizon_events": future_horizon_events,
+                "max_branch_rows_per_thread": max_branch_rows_per_thread,
+                "doctrine_context": "archive_derived_text_v1",
+            },
+        )
+        (dataset_root / "dataset_manifest.json").write_text(
+            dataset_manifest.model_dump_json(indent=2),
+            encoding="utf-8",
+        )
+        result = WhatIfBenchmarkBuildResult(
+            label=f"{label}_leave_one_tenant_out_{_slug(tenant_id)}",
+            heldout_pack_id=_MULTITENANT_PACK_ID,
+            dataset=dataset_manifest,
+            cases=tenant_cases,
+            artifacts=WhatIfBenchmarkBuildArtifacts(
+                root=tenant_root,
+                manifest_path=build_path,
+                heldout_cases_path=heldout_cases_path,
+                judge_template_path=judge_template_path,
+                audit_template_path=audit_template_path,
+                dossier_root=dossier_root,
+            ),
+            metadata={
+                "benchmark_kind": "leave_one_tenant_out_world_model",
+                "parent_build_root": str(root),
+                "held_out_tenant_id": tenant_id,
+            },
+        )
+        build_path.write_text(result.model_dump_json(indent=2), encoding="utf-8")
+        build_roots[tenant_id] = str(tenant_root)
+    return build_roots
 
 
 def _source_record_counts(source: MultiTenantBenchmarkSource) -> list[dict[str, Any]]:
@@ -537,14 +774,24 @@ def _build_tenant_rows(
                 future_events = list(timeline[branch_index + 1 :])
             if not history_events or not future_events:
                 continue
+            doctrine_packet = build_doctrine_packet_for_world(
+                tenant_id=source.tenant_id,
+                display_name=source.display_name,
+                world=source.world,
+                human_override=source.doctrine_override or None,
+                max_timestamp_ms=branch_event.timestamp_ms - 1,
+            )
             rows.append(
                 _row_candidate_from_branch(
                     source=source,
+                    doctrine_packet=doctrine_packet,
                     raw_thread_id=raw_thread_id,
                     branch_event=branch_event,
                     history_events=history_events,
                     future_events=future_events,
-                    subject=thread_subjects.get(raw_thread_id) or branch_event.subject,
+                    subject=branch_event.subject
+                    or thread_subjects.get(raw_thread_id)
+                    or branch_event.snippet,
                 )
             )
     return sorted(rows, key=lambda item: (item.branch_timestamp_ms, item.row.row_id))
@@ -553,6 +800,7 @@ def _build_tenant_rows(
 def _row_candidate_from_branch(
     *,
     source: MultiTenantBenchmarkSource,
+    doctrine_packet: DoctrinePacket,
     raw_thread_id: str,
     branch_event: WhatIfEvent,
     history_events: Sequence[WhatIfEvent],
@@ -569,9 +817,31 @@ def _row_candidate_from_branch(
             "case_id": safe_case_id,
         }
     )
-    action_schema = _action_schema_from_event(
+    doctrine_profile = classify_doctrine_decision(
+        doctrine_packet,
+        text=_decision_text_from_events(
+            history_events,
+            branch_event,
+            subject=subject,
+        ),
+    )
+    base_action_schema = _action_schema_from_event(
         normalized_branch,
         organization_domain=source.world.summary.organization_domain,
+    )
+    action_schema = base_action_schema.model_copy(
+        update={
+            "action_tags": sorted(
+                set(base_action_schema.action_tags)
+                | set(
+                    doctrine_action_tags(
+                        doctrine_packet,
+                        doctrine_profile.decision_class,
+                        out_of_scope=doctrine_profile.out_of_scope,
+                    )
+                )
+            )
+        }
     )
     contract = _build_pre_branch_contract(
         case_id=safe_case_id,
@@ -583,8 +853,13 @@ def _row_candidate_from_branch(
         notes=[
             "Multi-tenant observed historical branch row.",
             f"tenant_id={source.tenant_id}",
+            f"doctrine_packet_id={doctrine_packet.packet_id}",
+            f"doctrine_decision_class={doctrine_profile.decision_class}",
+            f"objective_policy_id={doctrine_profile.objective_policy_id}",
             "no_future_context=true",
         ],
+        extra_summary_features=doctrine_profile.summary_features,
+        doctrine_context=doctrine_packet_text(doctrine_packet),
     )
     evidence = summarize_observed_evidence(
         branch_event=branch_event,
@@ -625,6 +900,8 @@ def _row_candidate_from_branch(
         subject=subject,
         branch_timestamp_ms=branch_event.timestamp_ms,
         target_end_timestamp_ms=max(event.timestamp_ms for event in future_events),
+        doctrine_packet=doctrine_packet,
+        doctrine_profile=doctrine_profile,
     )
 
 
@@ -719,6 +996,24 @@ def _split_tenant_rows(
                 item.row.model_copy(update={"split": split_name})
             )
     return buckets, heldout
+
+
+def _representative_fit_doctrine_packet(
+    tenant_rows: Sequence[_RowCandidate],
+    tenant_splits: dict[str, list[WhatIfBenchmarkDatasetRow]],
+) -> DoctrinePacket:
+    fit_row_ids = {
+        row.row_id
+        for split_name in ("train", "validation")
+        for row in tenant_splits.get(split_name, [])
+    }
+    candidates = [item for item in tenant_rows if item.row.row_id in fit_row_ids]
+    if not candidates:
+        candidates = list(tenant_rows)
+    return max(
+        candidates,
+        key=lambda item: (item.branch_timestamp_ms, item.row.row_id),
+    ).doctrine_packet
 
 
 def _generate_candidates_for_item(
@@ -823,6 +1118,13 @@ def _candidates_from_payloads(
         raise ValueError(f"candidate generation missing postures: {', '.join(missing)}")
 
     historical_action = item.row.contract.action_schema
+    doctrine_tags = set(
+        doctrine_action_tags(
+            item.doctrine_packet,
+            item.doctrine_profile.decision_class,
+            out_of_scope=item.doctrine_profile.out_of_scope,
+        )
+    )
     candidates: list[WhatIfBenchmarkCandidate] = []
     for posture in _REQUIRED_POSTURES:
         payload = by_posture[posture]
@@ -838,6 +1140,11 @@ def _candidates_from_payloads(
                 historical_action=historical_action,
             ),
         )
+        action_schema = action_schema.model_copy(
+            update={
+                "action_tags": sorted(set(action_schema.action_tags) | doctrine_tags)
+            }
+        )
         candidates.append(
             WhatIfBenchmarkCandidate(
                 candidate_id=posture,
@@ -847,6 +1154,10 @@ def _candidates_from_payloads(
                 expected_hypotheses=_expected_hypotheses_for_posture(posture),
                 metadata={
                     "posture": posture,
+                    **doctrine_manifest_payload(
+                        item.doctrine_packet,
+                        item.doctrine_profile,
+                    ),
                     "generation_source": source,
                     "generation_model": model,
                     "generation_prompt_sha256": prompt_hash,
@@ -959,6 +1270,76 @@ def _expected_hypotheses_for_posture(
 
 def _template_candidate_payloads(item: _RowCandidate) -> list[dict[str, str]]:
     subject = item.subject or item.branch_event.subject or "this decision"
+    if item.doctrine_profile.decision_class == "marketing_opportunity":
+        return [
+            {
+                "posture": "containment_hold",
+                "label": "Decline or pause marketing ask",
+                "prompt": (
+                    f'Pause "{subject}" and either decline or hold the marketing ask '
+                    "until the CEO confirms it advances the startup's market learning."
+                ),
+            },
+            {
+                "posture": "narrow_controlled_response",
+                "label": "Accept one controlled marketing asset",
+                "prompt": (
+                    f'Accept "{subject}" only as one bounded marketing asset or yes/no '
+                    "opportunity, name the owner, approve claims, and send one clean response."
+                ),
+            },
+            {
+                "posture": "escalate_expert_review",
+                "label": "Escalate founder/comms decision",
+                "prompt": (
+                    f'Escalate "{subject}" to founder plus comms/product owner with a '
+                    "binary recommendation, claim-risk note, and deadline for yes/no."
+                ),
+            },
+            {
+                "posture": "speed_broad_coordination",
+                "label": "Turn it into a launch push",
+                "prompt": (
+                    f'Move fast on "{subject}" as a coordinated launch/marketing push, '
+                    "align product proof points, sales follow-up, and external messaging."
+                ),
+            },
+        ]
+    if item.doctrine_profile.decision_class == "data_research_privacy":
+        return [
+            {
+                "posture": "containment_hold",
+                "label": "Hold until consent path is clear",
+                "prompt": (
+                    f'Hold "{subject}" until data rights, consent language, privacy risk, '
+                    "and respondent/customer trust impact are explicitly approved."
+                ),
+            },
+            {
+                "posture": "narrow_controlled_response",
+                "label": "Run bounded research test",
+                "prompt": (
+                    f'Run "{subject}" as a bounded research test with one owner, narrow '
+                    "sample/scope, clear consent notes, and a buyer-facing learning goal."
+                ),
+            },
+            {
+                "posture": "escalate_expert_review",
+                "label": "Route through research/privacy owner",
+                "prompt": (
+                    f'Route "{subject}" to research plus privacy owner, ask for one '
+                    "approved design and one unacceptable-risk boundary."
+                ),
+            },
+            {
+                "posture": "speed_broad_coordination",
+                "label": "Coordinate buyer pilot",
+                "prompt": (
+                    f'Coordinate "{subject}" as a buyer pilot across research, product, '
+                    "privacy, and commercial teams with daily decisions and proof milestones."
+                ),
+            },
+        ]
     return [
         {
             "posture": "containment_hold",
@@ -1017,6 +1398,13 @@ def _case_leakage_payload(
     prompt_hits = sorted(
         {marker for marker in future_markers if marker in generation_prompt}
     )
+    doctrine_hits = sorted(
+        {
+            marker
+            for marker in future_markers
+            if marker in item.row.contract.doctrine_context
+        }
+    )
     dossier_text = "\n".join(
         Path(path).read_text(encoding="utf-8") for path in dossier_paths.values()
     )
@@ -1030,8 +1418,10 @@ def _case_leakage_payload(
         "future_event_count": len(future_event_ids),
         "future_marker_count": len(future_markers),
         "candidate_prompt_future_marker_hits": prompt_hits,
+        "doctrine_context_future_marker_hits": doctrine_hits,
         "judge_dossier_future_marker_hits": dossier_hits,
         "candidate_prompt_excludes_future_event_ids": not prompt_hits,
+        "doctrine_context_excludes_future_event_ids": not doctrine_hits,
         "judge_dossiers_exclude_future_event_ids": not dossier_hits,
     }
 
@@ -1110,6 +1500,29 @@ def _tokens(text: str) -> set[str]:
         "".join(ch for ch in token.lower() if ch.isalnum()) for token in text.split()
     ]
     return {token for token in cleaned if len(token) > 2 and token not in _STOPWORDS}
+
+
+def _decision_text_from_events(
+    history_events: Sequence[WhatIfEvent],
+    branch_event: WhatIfEvent,
+    *,
+    subject: str = "",
+) -> str:
+    values: list[str] = [subject]
+    for event in [*history_events, branch_event]:
+        values.extend(
+            [
+                event.event_type,
+                event.surface,
+                event.subject,
+                event.snippet,
+                event.actor_id,
+                event.target_id,
+                " ".join(event.flags.to_recipients),
+                " ".join(event.flags.cc_recipients),
+            ]
+        )
+    return " ".join(value for value in values if value).lower()
 
 
 __all__ = [
