@@ -424,7 +424,7 @@ def _score_state_point_candidates(
     for (index, candidate, candidate_type, _row), prediction in zip(
         pending_rows,
         predictions,
-        strict=False,
+        strict=True,
     ):
         predicted_evidence = prediction["evidence_heads"]
         predicted_business = prediction["business_heads"]

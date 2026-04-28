@@ -144,10 +144,32 @@ def run_branch_point_benchmark_predictions(
         runtime_root=runtime_root,
     )
     payload = json.loads(response_path.read_text(encoding="utf-8"))
-    predictions = payload.get("predictions")
-    if not isinstance(predictions, list):
+    raw_predictions = payload.get("predictions")
+    if not isinstance(raw_predictions, list):
         raise RuntimeError("benchmark bridge predict-batch returned no predictions")
-    return [dict(item) for item in predictions if isinstance(item, dict)]
+    if len(raw_predictions) != len(rows):
+        raise RuntimeError(
+            "benchmark bridge predict-batch returned mismatched prediction count "
+            f"(expected {len(rows)}, got {len(raw_predictions)})"
+        )
+    predictions: list[dict[str, Any]] = []
+    for index, (row, item) in enumerate(
+        zip(rows, raw_predictions, strict=True), start=1
+    ):
+        if not isinstance(item, dict):
+            raise RuntimeError(
+                "benchmark bridge predict-batch returned invalid prediction "
+                f"at index {index}"
+            )
+        prediction = dict(item)
+        if prediction.get("row_id") != row.row_id:
+            raise RuntimeError(
+                "benchmark bridge predict-batch returned out-of-order prediction "
+                f"at index {index} (expected row_id={row.row_id!r}, "
+                f"got {prediction.get('row_id')!r})"
+            )
+        predictions.append(prediction)
+    return predictions
 
 
 def _default_prediction_runtime_root(checkpoint: Path) -> Path:

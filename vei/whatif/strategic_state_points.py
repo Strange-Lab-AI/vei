@@ -536,7 +536,7 @@ def _score_state_point(
     for (index, candidate, candidate_type, _row), prediction in zip(
         pending_rows,
         predictions,
-        strict=False,
+        strict=True,
     ):
         business = dict(prediction["business_heads"])
         future_state_heads = dict(prediction["future_state_heads"])
