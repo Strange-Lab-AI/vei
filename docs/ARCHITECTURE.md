@@ -45,6 +45,25 @@ VEI is one kernel with four operating modes sharing the same world session, conn
 - **Sandbox / What-if** — fork the same world, change policy or actions, compare alternate futures with snapshot comparisons
 - **Train / Data** — turn traces and trajectories into rollouts, demonstrations, and RL-friendly data
 
+Copy-safe product language:
+
+- The world kernel is the deterministic `WorldSession`: one mutable company state,
+  one canonical event spine, typed enterprise facades, snapshots, branching, and
+  replay.
+- A workflow twin is a typed baseline run over that same kernel, not a separate
+  script viewer. Workflow steps can resolve to graph-native actions or concrete
+  tools at execution time, then write normal run events, snapshots, and contract
+  results.
+- Replay and shadow use the same boundary. Offline replay schedules recorded
+  events or candidate futures into the kernel; governed twin mode can sit
+  between outside agents and enterprise-shaped routes, recording, denying,
+  allowing, or holding writes for approval. Live connectors are explicit and
+  policy-gated rather than the default path.
+- The agent-training surface is the event spine and derived run data: canonical
+  events, recent state, doctrine or context, candidate actions, observed future
+  events, state deltas, business heads, and human or judge preferences where
+  available. Counterfactual rankings remain decision support, not causal proof.
+
 ## Runtime Shape
 
 ```text

@@ -52,6 +52,10 @@ const state = {
   generatedImportScenarios: [],
   provenanceIndex: [],
   historicalWorkspace: null,
+  publicDemoStatus: null,
+  publicDemoChat: [],
+  publicDemoScore: null,
+  publicDemoPending: false,
   whatIfStatus: null,
   whatIfSearchPending: false,
   whatIfOpenPending: false,
@@ -85,7 +89,7 @@ const state = {
   selectedEventIndex: 0,
   selectedSnapshotFrom: null,
   selectedSnapshotTo: null,
-  studioView: "company",
+  studioView: "public-history",
   activeCompanySection: "company-overview",
   historicalAutoFocusKey: "",
   developerMode: false,
@@ -795,6 +799,9 @@ function setSurfaceHighlights(highlights, { preserveExisting = false } = {}) {
 function normalizeStudioView(view) {
   const normalized = String(view || "").toLowerCase();
   const ALIASES = {
+    history: "public-history",
+    public: "public-history",
+    "public history": "public-history",
     play: "company",
     worlds: "company",
     situations: "crisis",
@@ -808,6 +815,7 @@ function normalizeStudioView(view) {
 }
 
 const STUDIO_VIEW_HELPER_TEXT = {
+  "public-history": "Ask the historical news world what was visible, then test public actions.",
   company: "Company state, missions, and historical what-if are all in this view.",
   crisis: "Review the active situation, constraints, and objective before choosing a move.",
   outcome: "Inspect run outcomes, compare paths, and verify effects across systems.",
@@ -1025,6 +1033,23 @@ function renderWorkspaceMetrics() {
     return;
   }
   const manifest = workspace.manifest || {};
+  const isPublicHistory = manifest.metadata?.ui_mode === "public_history";
+  if (isPublicHistory) {
+    const publicDemo = state.publicDemoStatus || {};
+    const evidenceCount = Array.isArray(publicDemo.evidence_events)
+      ? publicDemo.evidence_events.length
+      : 0;
+    const actionCount = Array.isArray(publicDemo.suggested_candidate_actions)
+      ? publicDemo.suggested_candidate_actions.length
+      : 0;
+    panel.innerHTML = [
+      chip(manifest.title || manifest.name || "Public History"),
+      chip(`${evidenceCount} visible event${evidenceCount === 1 ? "" : "s"}`),
+      chip(`${actionCount} candidate action${actionCount === 1 ? "" : "s"}`),
+      chip(publicDemo.available ? "Saved bundle" : "Unavailable", publicDemo.available ? "ok" : "warn"),
+    ].join("");
+    return;
+  }
   const latestRun = state.runs[0];
   const missionState = state.missionState;
   const systemCount = state.surfaceState?.panels?.length
@@ -1048,12 +1073,21 @@ function renderWorkspaceHero() {
   }
   syncStudioTone();
   const manifest = workspace.manifest || {};
+  const isPublicHistory = manifest.metadata?.ui_mode === "public_history";
+  document.body.classList.toggle("public-history-mode", isPublicHistory);
+  if (isPublicHistory) {
+    document.title = "VEI Public History";
+  }
   const story = state.story || {};
   const title = document.getElementById("workspace-title");
   const subtitle = document.getElementById("workspace-subtitle");
+  const topbarEyebrow = document.querySelector(".brand-copy .eyebrow");
   const historical = state.historicalWorkspace;
   const companyName = historical?.organization_name || manifest.title || story.manifest?.company_name || "Workspace";
   const missionLine = currentCrisisSummary();
+  if (topbarEyebrow) {
+    topbarEyebrow.textContent = isPublicHistory ? "Public History" : "Company";
+  }
   if (title) {
     title.textContent = companyName;
   }
@@ -1064,10 +1098,14 @@ function renderWorkspaceHero() {
   const status = document.getElementById("mission-form-status");
   if (status && hasHistoricalWorkspace()) {
     status.textContent = "Inspect the saved branch point, then run the historical what-if below.";
+  } else if (status && isPublicHistory) {
+    status.textContent = "Ask the public record, then test a move.";
   }
   const hint = document.getElementById("shell-context-hint");
   if (hint && hasHistoricalWorkspace() && !state.missionState?.run_id) {
     hint.textContent = "Inspect the historical branch and compare alternate paths";
+  } else if (hint && isPublicHistory) {
+    hint.textContent = "Ask the historical news world what was visible, then test public actions.";
   }
   renderWorkspaceMetrics();
   renderStudioShell();
@@ -1079,6 +1117,11 @@ function renderWorkspaceHero() {
 function renderTrustStrip() {
   const el = document.getElementById("workspace-trust-strip");
   if (!el) {
+    return;
+  }
+  const manifest = state.workspace?.manifest || {};
+  if (manifest.metadata?.ui_mode === "public_history") {
+    el.textContent = "Public news snapshot: historical cutoff enforced";
     return;
   }
   const parts = [];

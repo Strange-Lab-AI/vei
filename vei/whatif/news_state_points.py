@@ -78,6 +78,30 @@ _ACTIVE_NEWS_PUBLIC_WORLD_POLICY = _NewsObjectivePolicy(
 )
 
 _TOPIC_KEYWORDS: dict[str, tuple[str, ...]] = {
+    "all_public_record": (
+        "bank",
+        "credit",
+        "treasury",
+        "congress",
+        "president",
+        "petition",
+        "slavery",
+        "labor",
+        "employment",
+        "prices",
+        "riot",
+        "relief",
+        "texas",
+        "mexico",
+        "seminole",
+        "british",
+        "cotton",
+        "trade",
+        "canada",
+        "public",
+        "election",
+        "newspaper",
+    ),
     "banking_markets": (
         "bank",
         "banks",
@@ -120,6 +144,43 @@ _TOPIC_KEYWORDS: dict[str, tuple[str, ...]] = {
         "cabinet",
         "administration",
     ),
+    "public_order": (
+        "riot",
+        "relief",
+        "police",
+        "crowd",
+        "meeting",
+        "public",
+        "distress",
+        "poor",
+        "bread",
+        "flour",
+        "prices",
+    ),
+    "slavery_petitions": (
+        "slavery",
+        "abolition",
+        "petition",
+        "petitions",
+        "gag",
+        "adams",
+        "district",
+        "texas",
+        "annexation",
+    ),
+    "international": (
+        "british",
+        "england",
+        "london",
+        "cotton",
+        "trade",
+        "mexico",
+        "texas",
+        "canada",
+        "border",
+        "foreign",
+        "seminole",
+    ),
     "labor_work": (
         "labor",
         "work",
@@ -131,6 +192,41 @@ _TOPIC_KEYWORDS: dict[str, tuple[str, ...]] = {
         "mechanic",
     ),
 }
+
+_ALL_PUBLIC_RECORD_EVIDENCE_GROUPS: tuple[tuple[str, tuple[str, ...]], ...] = (
+    (
+        "markets",
+        (
+            "bank",
+            "credit",
+            "specie",
+            "deposit",
+            "cotton",
+            "currency",
+            "commercial",
+        ),
+    ),
+    (
+        "politics",
+        ("congress", "president", "treasury", "policy", "session", "cabinet"),
+    ),
+    (
+        "labor_relief",
+        ("labor", "wages", "employment", "relief", "poor", "workshops"),
+    ),
+    (
+        "public_order",
+        ("riot", "crowd", "public order", "police", "prices", "food"),
+    ),
+    (
+        "rights_petitions",
+        ("slavery", "abolition", "petition", "gag", "adams", "lovejoy"),
+    ),
+    (
+        "international",
+        ("texas", "mexico", "seminole", "british", "canada", "queen"),
+    ),
+)
 
 
 class NewsStatePointCandidateInput(BaseModel):
@@ -296,6 +392,7 @@ def build_news_state_point(
     future_horizon_days: int = 90,
     max_history_events: int = 240,
     max_evidence_events: int = 12,
+    allow_empty_history: bool = False,
 ) -> _NewsStatePoint:
     topic = _normalize_topic(topic)
     as_of_dt = _parse_datetime(as_of)
@@ -307,7 +404,7 @@ def build_news_state_point(
     history_events = [
         event for event in topic_events if _parse_datetime(event.timestamp) <= as_of_dt
     ][-max_history_events:]
-    if not history_events:
+    if not history_events and not allow_empty_history:
         raise ValueError(f"no pre-as-of events found for topic={topic!r} as_of={as_of}")
     future_events = [
         event
@@ -537,11 +634,24 @@ def _action_schema_for_candidate(
             "congress",
             "treasury",
             "bank",
+            "relief",
+            "labor",
+            "petition",
+            "texas",
+            "canada",
+            "seminole",
         )
     )
     broad = any(
         token in lowered
-        for token in ("broad", "coordinate", "regional", "congress", "treasury")
+        for token in (
+            "broad",
+            "coordinate",
+            "regional",
+            "congress",
+            "treasury",
+            "cross-topic",
+        )
     )
     hold = any(token in lowered for token in ("hold", "defer", "do not"))
     review = any(token in lowered for token in ("review", "legal", "expert"))
@@ -614,6 +724,12 @@ def _infer_candidate_type(action: str) -> str:
             "economy",
             "economic",
             "congress",
+            "petition",
+            "relief",
+            "labor",
+            "texas",
+            "canada",
+            "seminole",
         )
     ):
         return "commercial_reset"
@@ -669,10 +785,16 @@ def _summarize_state(
         )
         if count
     ][:8]
-    first = history_events[0].timestamp[:10]
-    last = history_events[-1].timestamp[:10]
     topic_label = topic.replace("_", " ")
     terms = ", ".join(top_terms) if top_terms else "no high-confidence terms"
+    if not history_events:
+        return (
+            f"As of {as_of.date().isoformat()}, the {topic_label} lens has no "
+            f"topic-matched public evidence before the cutoff. Recurring signals "
+            f"include: {terms}."
+        )
+    first = history_events[0].timestamp[:10]
+    last = history_events[-1].timestamp[:10]
     return (
         f"As of {as_of.date().isoformat()}, the {topic_label} state is built from "
         f"{len(history_events)} topic-matched news events dated {first} through {last}. "
@@ -686,6 +808,8 @@ def _select_evidence_events(
     topic: str,
     max_events: int,
 ) -> list[WhatIfEvent]:
+    if topic == "all_public_record":
+        return _select_all_public_record_evidence(history_events, max_events=max_events)
     keywords = _keywords_for_topic(topic)
     scored = sorted(
         history_events,
@@ -701,7 +825,45 @@ def _select_evidence_events(
     return selected
 
 
+def _select_all_public_record_evidence(
+    history_events: Sequence[WhatIfEvent],
+    *,
+    max_events: int,
+) -> list[WhatIfEvent]:
+    selected_by_id: dict[str, WhatIfEvent] = {}
+    for _group, keywords in _ALL_PUBLIC_RECORD_EVIDENCE_GROUPS:
+        ranked = sorted(
+            history_events,
+            key=lambda event: (
+                -sum(1 for keyword in keywords if keyword in _event_text(event)),
+                -event.timestamp_ms,
+                event.event_id,
+            ),
+        )
+        for event in ranked:
+            if any(keyword in _event_text(event) for keyword in keywords):
+                selected_by_id[event.event_id] = event
+                break
+    broad_keywords = _keywords_for_topic("all_public_record")
+    fill = sorted(
+        history_events,
+        key=lambda event: (
+            -sum(1 for keyword in broad_keywords if keyword in _event_text(event)),
+            -event.timestamp_ms,
+            event.event_id,
+        ),
+    )
+    for event in fill:
+        if len(selected_by_id) >= max_events:
+            break
+        selected_by_id.setdefault(event.event_id, event)
+    selected = list(selected_by_id.values())[:max_events]
+    return sorted(selected, key=lambda event: (event.timestamp_ms, event.event_id))
+
+
 def _event_matches_topic(event: WhatIfEvent, topic: str) -> bool:
+    if topic == "all_public_record":
+        return True
     haystack = " ".join(
         [
             event.thread_id,

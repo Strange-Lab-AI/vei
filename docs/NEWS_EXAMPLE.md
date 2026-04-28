@@ -14,12 +14,28 @@ The news setup is not a full internal operating model. It does not see private
 emails, tickets, customer records, or meeting notes. It sees dated public
 articles or newspaper pages and turns them into canonical timeline events.
 
+The repo also ships a small no-key Studio demo with a compact checked-in JEPA
+checkpoint:
+
+```bash
+vei ui serve \
+  --root docs/examples/news-public-history-demo/workspace \
+  --host 127.0.0.1 \
+  --port 3055
+```
+
+Open the **Public History** tab to choose a cutoff date, inspect cited
+pre-cutoff evidence, and score candidate public actions through the live JEPA
+state-point path. The score route returns unavailable instead of falling back to
+a local estimate if the checkpoint is missing.
+
 That makes it useful for questions like:
 
 - as of a historical date, what public risks were visible?
 - what next public event or policy choice should we test?
-- what happens if a banking bill passes, a reform stalls, or an emergency credit
-  support action is announced?
+- what happens if a Treasury reform stalls, a relief bulletin is issued, a
+  slavery-petition fight escalates, Texas diplomacy shifts, or border risk
+  worsens?
 - which candidate action creates better predicted future risk, trust, drag,
   commercial, or public-confidence tradeoffs?
 
@@ -63,6 +79,14 @@ python scripts/build_news_world_model_snapshot.py \
 The output is a normal VEI context snapshot, so it can be pooled with company
 tenants in the multi-tenant world-model benchmark.
 
+To refresh the checked-in Public History demo from that broader local bundle:
+
+```bash
+python scripts/build_public_history_demo_fixture.py \
+  --input _vei_out/datasets/news_americanstories_1836_1838 \
+  --workspace docs/examples/news-public-history-demo/workspace
+```
+
 ## Decision Point Shape
 
 For news, a decision point does not need to be an existing article. It should be
@@ -72,17 +96,18 @@ an as-of state question:
 Date: 1837-09-06
 State known so far:
 - Panic of 1837 ongoing
-- specie suspensions reported
-- bank-credit stress visible
-- commercial failures and unemployment pressure visible
-- political debate over Treasury/banking policy active
+- specie suspensions and bank-credit stress visible
+- commercial failures, employment pressure, and relief needs visible
+- political debate over Treasury policy active
+- slavery-petition, Texas, Seminole War, British credit, and Canada-border
+  signals visible
 
 Candidate next event/action:
-- a new banking bill passes
+- publish a cross-topic public bulletin
 - Treasury adopts Independent Treasury policy
 - state banks suspend or resume specie
-- Congress delays banking reform
-- emergency credit support is announced
+- Congress changes petition procedure
+- Texas or Canada border risk escalates
 ```
 
 This is the same strategic state-point interface used for companies. The LLM or
@@ -96,7 +121,7 @@ vei whatif benchmark strategic-state-points \
   --input news=_vei_out/datasets/news_americanstories_1836_1838/context_snapshot.json \
   --checkpoint _vei_out/world_model_multitenant_jepa/enron_dispatch_powr_news_fuller_cap512_h12_20260427/model_runs/jepa_latent/model.pt \
   --artifacts-root _vei_out/world_model_strategic_state_points \
-  --label news_banking_statepoints \
+  --label news_public_world_statepoints \
   --as-of news=1837-09-06 \
   --decisions-per-tenant 3 \
   --candidates-per-decision 8 \

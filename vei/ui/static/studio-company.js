@@ -99,6 +99,10 @@ function updateContextHint() {
   if (!hint) {
     return;
   }
+  if (state.workspace?.manifest?.metadata?.ui_mode === "public_history") {
+    hint.textContent = "Ask the historical news world what was visible, then test public actions.";
+    return;
+  }
   if (hasHistoricalWorkspace()) {
     hint.textContent = "Inspect the historical branch and compare alternate paths";
     return;

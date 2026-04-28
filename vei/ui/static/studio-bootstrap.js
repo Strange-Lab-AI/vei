@@ -182,6 +182,9 @@ function bindCompanySubnav() {
 }
 
 function bindControls() {
+  if (typeof bindPublicDemoControls === "function") {
+    bindPublicDemoControls();
+  }
   document.getElementById("run-form").addEventListener("submit", startRun);
   document.getElementById("start-mission-button").addEventListener("click", () => {
     void startMission();
@@ -335,7 +338,7 @@ function initializeStudioMode() {
 }
 
 function applyStudioChrome() {
-  const labels = ["Company", "Crisis", "Outcome", "Audit"];
+  const labels = ["Public History", "Company", "Crisis", "Outcome", "Audit"];
   const buttons = document.querySelectorAll("#studio-nav .studio-nav-button");
   buttons.forEach((btn, i) => {
     if (labels[i]) btn.textContent = labels[i];

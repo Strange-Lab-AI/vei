@@ -45,6 +45,19 @@ from ._api_models import (
 )
 from ._imports_routes import register_imports_routes
 from ._playable_routes import register_playable_routes
+from ._public_demo_models import (
+    PublicDemoCandidateInput,
+    PublicDemoChatRequest,
+    PublicDemoChatResponse,
+    PublicDemoEvidenceEvent,
+    PublicDemoScoredCandidate,
+    PublicDemoScoreRequest,
+    PublicDemoScoreResponse,
+    PublicDemoSourceSummary,
+    PublicDemoStatusResponse,
+    PublicDemoTimelinePoint,
+)
+from ._public_demo_routes import register_public_demo_routes
 from ._run_routes import register_run_routes
 from ._workspace_routes import register_workspace_routes
 
@@ -78,6 +91,16 @@ __all__ = [
     "MissionStartRequest",
     "OrchestratorApprovalDecisionRequest",
     "OrchestratorTaskCommentRequest",
+    "PublicDemoCandidateInput",
+    "PublicDemoChatRequest",
+    "PublicDemoChatResponse",
+    "PublicDemoEvidenceEvent",
+    "PublicDemoScoredCandidate",
+    "PublicDemoScoreRequest",
+    "PublicDemoScoreResponse",
+    "PublicDemoSourceSummary",
+    "PublicDemoStatusResponse",
+    "PublicDemoTimelinePoint",
     "RunLaunchRequest",
     "ScenarioActivateRequest",
     "ServiceOpsPolicyReplayRequest",
@@ -105,6 +128,7 @@ def create_ui_app(workspace_root: str | Path) -> FastAPI:
         return FileResponse(static_dir / "favicon.svg")
 
     register_workspace_routes(app, root, deps=deps)
+    register_public_demo_routes(app, root)
     register_playable_routes(app, root)
     register_run_routes(app, root, deps=deps)
     register_imports_routes(app, root)

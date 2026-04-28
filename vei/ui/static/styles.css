@@ -543,11 +543,32 @@ button:disabled {
 
 .hidden-panel,
 .developer-only {
-  display: none;
+  display: none !important;
 }
 
 body.developer-mode .developer-only {
   display: block;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+body.public-history-mode .sandbox-only {
+  display: none !important;
+}
+
+body.public-history-mode .studio-topbar-controls {
+  grid-template-columns: auto;
+  justify-content: end;
+}
+
+body.public-history-mode .toolbar-field-world {
+  display: none !important;
+}
+
+body.public-history-mode #mission-form-status {
+  color: rgba(244, 248, 251, 0.76);
 }
 
 body.developer-mode .studio-nav-button.developer-only {
@@ -2933,11 +2954,614 @@ body.developer-mode .studio-nav-button.developer-only {
   cursor: pointer;
 }
 
+body.public-history-mode {
+  font-family: Georgia, "Times New Roman", serif;
+  background: #fff;
+  color: #262626;
+}
+
+body.public-history-mode .studio-topbar,
+body.public-history-mode .studio-shell-card,
+body.public-history-mode .card:not(.public-history-card),
+body.public-history-mode details,
+body.public-history-mode #timeline-section,
+body.public-history-mode #connect-panel {
+  display: none !important;
+}
+
+body.public-history-mode summary::before,
+body.public-history-mode summary::after {
+  content: none !important;
+  display: none !important;
+}
+
+body.public-history-mode .layout-container,
+body.public-history-mode .layout {
+  display: block;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+}
+
+body.public-history-mode .public-history-card {
+  max-width: 900px;
+  min-height: 100svh;
+  margin: 0 auto;
+  padding: 46px 22px 72px;
+  border: 0;
+  background: transparent;
+}
+
+body.public-history-mode .public-demo-hero {
+  display: block;
+  padding: 0 0 20px;
+  border-bottom: 1px solid #d8d8d8;
+}
+
+body.public-history-mode .eyebrow {
+  margin: 0 0 10px;
+  color: #333;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+body.public-history-mode .public-demo-hero h1 {
+  max-width: 720px;
+  margin: 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.75rem;
+  line-height: 1.18;
+  letter-spacing: 0;
+  color: #2c2c2c;
+}
+
+body.public-history-mode .public-demo-hero p:not(.eyebrow) {
+  max-width: 720px;
+  margin: 12px 0 0;
+  font-size: 1rem;
+  line-height: 1.48;
+  color: #222;
+}
+
+body.public-history-mode .public-history-cutoff {
+  max-width: 720px;
+  margin-top: 12px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #555;
+  font-size: 0.95rem;
+}
+
+body.public-history-mode .public-demo-source-strip {
+  margin: 14px 0 22px;
+}
+
+body.public-history-mode .public-demo-source {
+  display: block;
+  max-width: 760px;
+  color: #333;
+  font-size: 1rem;
+  line-height: 1.48;
+}
+
+body.public-history-mode .public-demo-source strong {
+  display: block;
+  margin-bottom: 5px;
+  color: #2c2c2c;
+}
+
+body.public-history-mode .public-demo-source span {
+  display: block;
+}
+
+body.public-history-mode .public-demo-timeline-section {
+  display: grid;
+  gap: 12px;
+  margin: 26px 0 30px;
+  padding: 18px 0 20px;
+  border-top: 1px solid #d8d8d8;
+  border-bottom: 1px solid #d8d8d8;
+}
+
+body.public-history-mode .public-demo-timeline-head {
+  display: flex;
+  gap: 18px;
+  align-items: end;
+  justify-content: space-between;
+}
+
+body.public-history-mode .public-demo-timeline-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: end;
+  justify-content: flex-end;
+}
+
+body.public-history-mode .public-demo-timeline-tools label {
+  display: grid;
+  gap: 6px;
+}
+
+body.public-history-mode .public-demo-timeline-tools span {
+  font-size: 0.92rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: none;
+  color: #333;
+}
+
+body.public-history-mode #public-demo-topic-select {
+  min-width: 180px;
+  border: 1px solid #aaa;
+  border-radius: 0;
+  padding: 5px 7px;
+  background: #fff;
+  color: #222;
+  font: inherit;
+}
+
+body.public-history-mode .public-demo-timeline-head h2 {
+  margin: 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.2rem;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+body.public-history-mode #public-demo-timeline-date {
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  color: #555;
+}
+
+body.public-history-mode #public-demo-timeline-range {
+  width: 100%;
+  accent-color: #333;
+}
+
+body.public-history-mode .public-demo-timeline-points {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
+  gap: 14px;
+  padding: 2px 0 4px;
+}
+
+body.public-history-mode .public-demo-timeline-point {
+  width: 100%;
+  height: 76px;
+  border: 0;
+  border-top: 1px solid #d8d8d8;
+  border-radius: 0;
+  padding: 8px 0 0;
+  background: #fff;
+  color: #333;
+  font: inherit;
+  font-size: 0.84rem;
+  line-height: 1.25;
+  text-align: left;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+body.public-history-mode .public-demo-timeline-point span {
+  display: block;
+  margin-bottom: 3px;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: #666;
+}
+
+body.public-history-mode .public-demo-timeline-point strong {
+  display: block;
+  color: #222;
+  font-size: 0.86rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+body.public-history-mode .public-demo-timeline-point small {
+  display: block;
+  margin-top: 5px;
+  color: #666;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  line-height: 1.15;
+}
+
+body.public-history-mode .public-demo-timeline-point.is-selected {
+  border-top-color: #222;
+  background: #fff;
+  color: #111;
+}
+
+body.public-history-mode .public-demo-known-summary {
+  display: grid;
+  gap: 7px;
+  max-width: 760px;
+}
+
+body.public-history-mode .public-demo-known-summary strong {
+  color: #2c2c2c;
+}
+
+body.public-history-mode .public-demo-known-summary p {
+  margin: 0;
+  color: #333;
+  line-height: 1.48;
+}
+
+body.public-history-mode .public-demo-known-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+body.public-history-mode .public-demo-known-list span {
+  border-left: 1px solid #aaa;
+  padding-left: 8px;
+  color: #333;
+  font-size: 0.88rem;
+}
+
+.public-history-hidden-controls {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+body.public-history-mode .public-demo-surface {
+  display: grid;
+  gap: 24px;
+  align-items: start;
+}
+
+body.public-history-mode .public-demo-chat-pane,
+body.public-history-mode .public-demo-side,
+body.public-history-mode .public-demo-evidence-section,
+body.public-history-mode .public-demo-action-section {
+  min-width: 0;
+}
+
+body.public-history-mode .public-demo-chat-pane {
+  display: grid;
+  gap: 14px;
+}
+
+body.public-history-mode .public-demo-chat-log {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  min-height: 150px;
+  max-height: none;
+  padding: 0;
+  overflow: visible;
+}
+
+body.public-history-mode .public-demo-message {
+  display: grid;
+  gap: 5px;
+  padding: 14px 0;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+body.public-history-mode .public-demo-message span {
+  color: #555;
+}
+
+body.public-history-mode .public-demo-message p {
+  max-width: 72ch;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+body.public-history-mode .public-demo-message.is-user,
+body.public-history-mode .public-demo-message.is-assistant {
+  padding-left: 0;
+  border-left: 0;
+}
+
+body.public-history-mode .public-demo-message.is-user p {
+  color: #222;
+  font-weight: 600;
+}
+
+body.public-history-mode .public-demo-citations code {
+  border-radius: 0;
+  background: #f3f3f3;
+  color: #333;
+}
+
+body.public-history-mode .public-demo-citations {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+body.public-history-mode .public-demo-prompt-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: end;
+  padding: 12px 0 0;
+  background: #fff;
+}
+
+body.public-history-mode .public-demo-prompt-label {
+  grid-column: 1 / -1;
+  font-size: 0.92rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: none;
+  color: #333;
+}
+
+body.public-history-mode #public-demo-message-input,
+body.public-history-mode #public-demo-action-input {
+  width: 100%;
+  resize: vertical;
+  border: 1px solid #aaa;
+  border-radius: 0;
+  background: #fff;
+  color: #222;
+  font: inherit;
+  line-height: 1.5;
+  box-shadow: none;
+}
+
+body.public-history-mode #public-demo-message-input {
+  min-height: 74px;
+  padding: 10px 11px;
+  font-size: 1rem;
+}
+
+body.public-history-mode #public-demo-chat-btn,
+body.public-history-mode #public-demo-score-btn {
+  border: 1px solid #222;
+  border-radius: 0;
+  background: #222;
+  color: #fff;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+body.public-history-mode #public-demo-chat-btn {
+  min-width: 104px;
+  min-height: 74px;
+}
+
+body.public-history-mode #public-demo-chat-btn:hover,
+body.public-history-mode #public-demo-score-btn:hover {
+  background: #fff;
+  color: #222;
+}
+
+body.public-history-mode #public-demo-chat-btn:disabled,
+body.public-history-mode #public-demo-score-btn:disabled {
+  cursor: wait;
+  opacity: 0.64;
+}
+
+body.public-history-mode .public-demo-side {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 0.75fr);
+  gap: 24px;
+}
+
+body.public-history-mode .public-demo-side-head {
+  margin-bottom: 12px;
+}
+
+body.public-history-mode .public-demo-side-head h2 {
+  margin: 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.08rem;
+  line-height: 1.2;
+  letter-spacing: 0;
+  color: #2c2c2c;
+}
+
+body.public-history-mode .public-demo-evidence-list {
+  display: grid;
+  gap: 0;
+  border-top: 1px solid #d8d8d8;
+}
+
+body.public-history-mode .public-demo-evidence-item {
+  display: grid;
+  gap: 5px;
+  padding: 12px 0;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+body.public-history-mode .public-demo-evidence-item strong,
+body.public-history-mode .public-demo-score-item strong {
+  color: #222;
+}
+
+body.public-history-mode .public-demo-evidence-item strong {
+  font-size: 0.95rem;
+}
+
+body.public-history-mode .public-demo-evidence-item span:last-child {
+  font-size: 0.9rem;
+}
+
+body.public-history-mode .public-demo-action-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+body.public-history-mode .public-demo-action-option {
+  border: 1px solid rgba(17, 34, 53, 0.16);
+  border-radius: 0;
+  padding: 8px 11px;
+  background: #fff;
+  color: #333;
+  font: inherit;
+  font-size: 0.86rem;
+  cursor: pointer;
+}
+
+body.public-history-mode .public-demo-action-option.is-selected {
+  border-color: #222;
+  background: #f4f4f4;
+  color: #111;
+}
+
+body.public-history-mode .public-demo-action-field {
+  display: grid;
+  gap: 8px;
+}
+
+body.public-history-mode .public-demo-action-field span {
+  font-size: 0.92rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: none;
+  color: #333;
+}
+
+body.public-history-mode #public-demo-action-input {
+  min-height: 104px;
+  padding: 12px 13px;
+}
+
+body.public-history-mode #public-demo-score-btn {
+  width: 100%;
+  min-height: 46px;
+  margin-top: 12px;
+}
+
+body.public-history-mode .public-demo-score-result {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+body.public-history-mode .public-demo-score-head {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #d8d8d8;
+}
+
+body.public-history-mode .public-demo-score-head span {
+  color: #555;
+  font-size: 0.82rem;
+}
+
+body.public-history-mode .public-demo-score-list {
+  display: grid;
+  gap: 0;
+}
+
+body.public-history-mode .public-demo-score-item {
+  display: flex;
+  gap: 10px;
+  align-items: start;
+  padding: 13px 0;
+  border: 0;
+  border-bottom: 1px solid #e0e0e0;
+  border-radius: 0;
+  background: transparent;
+}
+
+body.public-history-mode .public-demo-score-item.is-lead {
+  background: transparent;
+}
+
+body.public-history-mode .public-demo-score-item.is-custom {
+  padding: 15px 0;
+  border-top: 1px solid #999;
+  border-bottom-color: #999;
+}
+
+body.public-history-mode .public-demo-score-rank {
+  width: 26px;
+  height: 26px;
+  flex-basis: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0;
+  background: transparent;
+  color: #222;
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+body.public-history-mode .public-demo-rank-note {
+  display: inline-block;
+  margin-left: 8px;
+  color: #555;
+  font-size: 0.82rem;
+  font-style: italic;
+}
+
+body.public-history-mode .public-demo-score-item p {
+  margin: 5px 0 0;
+  font-size: 0.9rem;
+}
+
+body.public-history-mode .whatif-empty {
+  border: 1px dashed #c8c8c8;
+  border-radius: 0;
+  background: #fff;
+}
+
+@media (max-width: 860px) {
+  body.public-history-mode .public-history-card {
+    padding: 28px 16px 48px;
+  }
+
+  body.public-history-mode .public-demo-hero,
+  body.public-history-mode .public-demo-surface,
+  body.public-history-mode .public-demo-side,
+  body.public-history-mode .public-demo-prompt-row,
+  body.public-history-mode .public-demo-timeline-head {
+    grid-template-columns: 1fr;
+    display: grid;
+  }
+
+  body.public-history-mode .public-demo-hero h1 {
+    font-size: 1.55rem;
+  }
+
+  body.public-history-mode #public-demo-chat-btn {
+    width: 100%;
+    min-height: 52px;
+  }
+}
+
 @media (max-width: 960px) {
   .whatif-controls,
   .whatif-playbar,
   .whatif-runner {
     grid-template-columns: 1fr;
+  }
+
+  .public-history-controls,
+  .public-history-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .public-history-cutoff {
+    justify-self: stretch;
   }
 
   .whatif-scene-grid {

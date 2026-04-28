@@ -54,6 +54,7 @@ For live planning backends, VEI supports OpenAI, Anthropic, Google, OpenRouter, 
 
 - See the product: `vei quickstart run`
 - Connect an outside agent: start with quickstart, then use the Twin Gateway URLs and token from `.vei/quickstart.json`
+- Try the public history demo: `vei ui serve --root docs/examples/news-public-history-demo/workspace --host 127.0.0.1 --port 3055`
 - Replay a real historical decision: `vei ui serve --root docs/examples/enron-master-agreement-public-context/workspace --host 127.0.0.1 --port 3055`
 - Run a benchmark: `vei eval benchmark --runner workflow --family security_containment`
 

@@ -77,7 +77,8 @@
       <section class="card studio-shell-card">
         <p class="eyebrow" id="shell-context-hint">Track the company, then make the next move</p>
         <div id="studio-nav" class="studio-nav">
-          <button type="button" class="studio-nav-button active" data-studio-view="company">Company</button>
+          <button type="button" class="studio-nav-button active" data-studio-view="public-history">Public History</button>
+          <button type="button" class="studio-nav-button" data-studio-view="company">Company</button>
           <button type="button" class="studio-nav-button" data-studio-view="crisis">Crisis</button>
           <button type="button" class="studio-nav-button" data-studio-view="outcome">Outcome</button>
           <button type="button" class="studio-nav-button" data-studio-view="audit">Audit</button>
@@ -141,6 +142,82 @@
       </section>
 
       <main class="layout">
+
+        <!-- ========== TAB: PUBLIC HISTORY ========== -->
+        <section class="card public-history-card" data-studio-view="public-history">
+          <div class="public-demo-hero">
+            <div>
+              <p class="eyebrow">VEI Public History</p>
+              <h1 id="public-demo-title">Ask the public news world</h1>
+              <p id="public-demo-summary">
+                Loading the historical news world...
+              </p>
+            </div>
+            <div class="public-history-cutoff" id="public-demo-cutoff">
+              Historical cutoff loading
+            </div>
+          </div>
+
+          <div id="public-demo-status" class="public-demo-source-strip" role="status" aria-live="polite"></div>
+
+          <div class="public-history-hidden-controls" hidden>
+            <input id="public-demo-asof-input" type="date" value="1837-09-06" tabindex="-1" />
+            <input id="public-demo-decision-input" type="text" value="Public-world response" tabindex="-1" />
+            <textarea id="public-demo-candidates-input" rows="1" placeholder="Label | action" tabindex="-1"></textarea>
+          </div>
+
+          <section class="public-demo-timeline-section" aria-label="Historical timeline">
+            <div class="public-demo-timeline-head">
+              <div>
+                <p class="eyebrow">Timeline</p>
+                <h2>Choose what the world knows</h2>
+              </div>
+              <div class="public-demo-timeline-tools">
+                <label for="public-demo-topic-select">
+                  <span>Lens</span>
+                  <select id="public-demo-topic-select">
+                    <option value="all_public_record">All public record</option>
+                    <option value="banking_markets">Markets</option>
+                    <option value="government_policy">Politics</option>
+                    <option value="labor_work">Labor</option>
+                    <option value="public_order">Public order</option>
+                    <option value="slavery_petitions">Slavery petitions</option>
+                    <option value="international">International</option>
+                  </select>
+                </label>
+                <output id="public-demo-timeline-date">1837-09-06</output>
+              </div>
+            </div>
+            <input id="public-demo-timeline-range" type="range" min="0" max="0" value="0" />
+            <div id="public-demo-timeline-points" class="public-demo-timeline-points"></div>
+            <div id="public-demo-known-summary" class="public-demo-known-summary"></div>
+          </section>
+
+          <div class="public-demo-surface">
+            <aside class="public-demo-side">
+              <section class="public-demo-evidence-section">
+                <div class="public-demo-side-head">
+                  <p class="eyebrow">Evidence</p>
+                  <h2>Visible before cutoff</h2>
+                </div>
+                <div id="public-demo-evidence-list" class="public-demo-evidence-list"></div>
+              </section>
+
+              <section class="public-demo-action-section">
+                <div class="public-demo-side-head">
+                  <p class="eyebrow">Action Test</p>
+                  <h2>Type a scenario to test</h2>
+                </div>
+                <label class="public-demo-action-field" for="public-demo-action-input">
+                  <span>Scenario</span>
+                  <textarea id="public-demo-action-input" rows="4" placeholder="Example: publish a dated public bulletin across banks, labor, relief, petitions, Texas, and Canada."></textarea>
+                </label>
+                <button id="public-demo-score-btn" type="button">Test action</button>
+                <div id="public-demo-score-result" class="public-demo-score-result"></div>
+              </section>
+            </aside>
+          </div>
+        </section>
 
         <!-- ========== TIMELINE / CAUSALITY VIEW ========== -->
         <section id="timeline-section" class="timeline-section" data-studio-view="company" style="display:none">
@@ -546,6 +623,7 @@
     <script src="/static/studio-compare.js"></script>
     <script src="/static/studio-company.js"></script>
     <script src="/static/studio-whatif.js"></script>
+    <script src="/static/studio-public-demo.js"></script>
     <script src="/static/studio-audit.js"></script>
     <script src="/static/studio-outcome.js"></script>
     <script src="/static/studio-bootstrap.js"></script>

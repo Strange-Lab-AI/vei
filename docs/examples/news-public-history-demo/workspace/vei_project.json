@@ -1,0 +1,19 @@
+{
+  "version": "1",
+  "name": "news_public_history_demo",
+  "title": "Public History Demo",
+  "description": "Bounded historical news world for as-of public decision support.",
+  "created_at": "2026-04-28T00:00:00Z",
+  "source_kind": "example",
+  "source_ref": "news-public-history-demo",
+  "source_registry_path": null,
+  "source_sync_history_path": null,
+  "active_scenario": "default",
+  "scenarios": [],
+  "metadata": {
+    "ui_mode": "public_history",
+    "public_demo": {
+      "source_id": "news_americanstories_public_world"
+    }
+  }
+}

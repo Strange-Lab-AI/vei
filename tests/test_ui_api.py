@@ -88,6 +88,10 @@ def test_ui_index_contains_company_subnav_and_whatif_steps(tmp_path: Path) -> No
 
     assert response.status_code == 200
     body = response.text
+    assert "Public History" in body
+    assert 'id="public-demo-chat-log"' not in body
+    assert 'id="public-demo-evidence-list"' in body
+    assert 'id="public-demo-score-btn"' in body
     assert 'id="studio-view-helper"' in body
     assert 'id="company-subnav"' in body
     assert 'data-company-target="company-historical"' in body

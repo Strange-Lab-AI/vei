@@ -708,7 +708,7 @@ function togglePlayback() {
 
 async function loadWorkspace() {
   const previousHistoricalFocusKey = state.historicalAutoFocusKey || "";
-  const [workspace, storyArtifacts, playableArtifacts, scenarios, importSummary, identityFlow, importSources, importNormalization, importReview, generatedImportScenarios, provenanceIndex, governorWorkspace, historicalWorkspace, whatIfStatus] = await Promise.all([
+  const [workspace, storyArtifacts, playableArtifacts, scenarios, importSummary, identityFlow, importSources, importNormalization, importReview, generatedImportScenarios, provenanceIndex, governorWorkspace, historicalWorkspace, whatIfStatus, publicDemoStatus] = await Promise.all([
     getJson("/api/workspace"),
     fetchStoryArtifacts(),
     fetchPlayableArtifacts(),
@@ -723,6 +723,11 @@ async function loadWorkspace() {
     getJson("/api/workspace/governor").catch(() => ({})),
     getJson("/api/workspace/historical").catch(() => ({})),
     getJson("/api/workspace/whatif").catch((error) => ({
+      available: false,
+      unavailable_reason: "fetch_error",
+      error: error?.message || String(error),
+    })),
+    getJson("/api/workspace/public-demo").catch((error) => ({
       available: false,
       unavailable_reason: "fetch_error",
       error: error?.message || String(error),
@@ -752,6 +757,7 @@ async function loadWorkspace() {
   state.generatedImportScenarios = generatedImportScenarios;
   state.provenanceIndex = provenanceIndex;
   state.whatIfStatus = whatIfStatus;
+  state.publicDemoStatus = publicDemoStatus;
   const evalProviderInput = document.getElementById("eval-provider-input");
   if (evalProviderInput && state.whatIfStatus?.default_provider) {
     const currentValue = evalProviderInput.value?.trim() || "";
@@ -769,6 +775,9 @@ async function loadWorkspace() {
   renderFidelityPanel();
   if (typeof renderWhatIfStudio === "function") {
     renderWhatIfStudio();
+  }
+  if (typeof renderPublicDemo === "function") {
+    renderPublicDemo();
   }
   if (typeof primeWhatIfSceneFromHistoricalWorkspace === "function") {
     void primeWhatIfSceneFromHistoricalWorkspace();

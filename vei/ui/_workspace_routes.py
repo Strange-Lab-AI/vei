@@ -90,6 +90,11 @@ def register_workspace_routes(app: FastAPI, root: Path, *, deps: Any) -> None:
     def _saved_bundle():
         return resolve_saved_whatif_bundle(root)
 
+    def _is_public_history_workspace() -> bool:
+        summary = load_ui_workspace_summary(root)
+        metadata = summary.manifest.metadata if summary is not None else {}
+        return metadata.get("ui_mode") == "public_history"
+
     def _whatif_artifacts_root() -> Path:
         path = root / ".artifacts" / "whatif_ui"
         path.mkdir(parents=True, exist_ok=True)
@@ -114,6 +119,8 @@ def register_workspace_routes(app: FastAPI, root: Path, *, deps: Any) -> None:
 
     @app.get("/api/workspace/historical")
     def api_workspace_historical() -> JSONResponse:
+        if _is_public_history_workspace():
+            return JSONResponse({})
         payload = _load_historical_summary_or_400(root)
         return JSONResponse(payload.model_dump(mode="json") if payload else {})
 
@@ -134,6 +141,8 @@ def register_workspace_routes(app: FastAPI, root: Path, *, deps: Any) -> None:
 
     @app.get("/api/workspace/whatif")
     def api_workspace_whatif_status() -> JSONResponse:
+        if _is_public_history_workspace():
+            return JSONResponse({"available": False})
         from vei.context.api import (
             build_canonical_history_readiness,
             canonical_history_sidecars_exist,
@@ -511,6 +520,8 @@ def register_workspace_routes(app: FastAPI, root: Path, *, deps: Any) -> None:
 
     @app.get("/api/workspace/governor")
     def api_workspace_governor() -> JSONResponse:
+        if _is_public_history_workspace():
+            return JSONResponse({"mode": "public_history"})
         live_governor_payload: dict[str, Any] | None = None
         live_workforce_payload: dict[str, Any] | None = None
         try:
