@@ -44,14 +44,17 @@ def test_public_demo_status_and_chat_only_use_pre_cutoff_evidence() -> None:
     suggested_types = [
         action["candidate_type"] for action in status["suggested_candidate_actions"]
     ]
-    assert "Publish a dated bulletin" in suggested_labels
+    assert "Prepare a governance memo" in suggested_labels
+    assert "Open a petition-rights review" in suggested_labels
+    assert "Prepare a foreign-risk brief" in suggested_labels
+    assert "Publish a finance bulletin" in suggested_labels
     assert "bank credit" in suggested_labels
     assert "cross-topic public bulletin" not in suggested_labels
     assert suggested_types == [
-        "customer_status_note",
         "decision_log_evidence",
-        "narrow_pilot",
-        "hold_compliance_review",
+        "expert_review_gate",
+        "customer_status_note",
+        "cross_function_war_room",
     ]
     assert 10 <= len(status["timeline_points"]) <= 13
     assert not any(
@@ -288,13 +291,16 @@ def test_public_demo_score_without_candidates_uses_dynamic_evidence_actions(
     assert response.status_code == 200
     labels = [candidate.label for candidate in calls["candidates"]]
     types = [candidate.candidate_type for candidate in calls["candidates"]]
-    assert labels[0].startswith("Publish a dated bulletin on")
+    assert labels[0].startswith("Prepare a governance memo on")
+    assert any(label.startswith("Open a petition-rights review on") for label in labels)
+    assert any(label.startswith("Prepare a foreign-risk brief on") for label in labels)
+    assert any(label.startswith("Publish a finance bulletin on") for label in labels)
     assert "cross-topic public bulletin" not in " ".join(labels)
     assert types == [
-        "customer_status_note",
         "decision_log_evidence",
-        "narrow_pilot",
-        "hold_compliance_review",
+        "expert_review_gate",
+        "customer_status_note",
+        "cross_function_war_room",
     ]
 
 
