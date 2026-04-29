@@ -90,6 +90,35 @@ _DEFAULT_ACTIONS = [
     ),
 ]
 
+_ACTION_SIGNAL_LABELS: tuple[tuple[str, str], ...] = (
+    ("bank", "bank credit"),
+    ("credit", "credit stress"),
+    ("treasury", "Treasury deposits"),
+    ("specie", "specie payments"),
+    ("currency", "currency pressure"),
+    ("congress", "Congress"),
+    ("senate", "Senate"),
+    ("president", "presidential policy"),
+    ("petition", "petitions"),
+    ("slavery", "slavery petitions"),
+    ("abolition", "abolition petitions"),
+    ("labor", "labor reports"),
+    ("employment", "employment reports"),
+    ("wages", "wage reports"),
+    ("relief", "relief requests"),
+    ("poor", "poor relief"),
+    ("prices", "price reports"),
+    ("riot", "public-order reports"),
+    ("texas", "Texas"),
+    ("mexico", "Mexico"),
+    ("canada", "Canada"),
+    ("seminole", "Seminole war costs"),
+    ("british", "British trade"),
+    ("cotton", "cotton trade"),
+    ("trade", "trade reports"),
+    ("election", "election signals"),
+)
+
 
 def register_public_demo_routes(app: FastAPI, root: Path) -> None:
     @app.get("/api/workspace/public-demo")
@@ -138,7 +167,7 @@ def register_public_demo_routes(app: FastAPI, root: Path) -> None:
                 selected_as_of=state_point.as_of,
             ),
             evidence_events=_evidence_payloads(state_point.evidence_events),
-            suggested_candidate_actions=_suggested_actions(root),
+            suggested_candidate_actions=_suggested_actions(state_point),
             scoring_available=checkpoint_path is not None,
             scoring_source="live_jepa",
             scoring_checkpoint_path=str(checkpoint_path or ""),
@@ -177,7 +206,7 @@ def register_public_demo_routes(app: FastAPI, root: Path) -> None:
             ),
             cited_event_ids=[event.event_id for event in cited],
             cited_events=_evidence_payloads(cited),
-            suggested_candidate_actions=_suggested_actions(root),
+            suggested_candidate_actions=_suggested_actions(state_point),
             caveat=PUBLIC_DEMO_CAVEAT,
         )
         return JSONResponse(response.model_dump(mode="json"))
@@ -194,17 +223,26 @@ def register_public_demo_routes(app: FastAPI, root: Path) -> None:
             topic=request.topic,
             as_of=request.as_of,
         )
-        candidates = request.candidates or _suggested_actions(root)
+        candidates = request.candidates or _suggested_actions(state_point)
         try:
             candidate_inputs = [
                 NewsStatePointCandidateInput(
                     label=candidate.label,
                     action=candidate.action,
+                    candidate_type=candidate.candidate_type,
                 )
                 for candidate in candidates
             ]
         except ValidationError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
+        if not candidate_inputs:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "at least one candidate action is required; no evidence-grounded "
+                    "suggestions were available for this cutoff"
+                ),
+            )
 
         checkpoint_path = _jepa_checkpoint_path(root, manifest)
         if checkpoint_path is None:
@@ -634,15 +672,116 @@ def _chat_answer(*, state_summary: str, cited_events: Sequence[WhatIfEvent]) -> 
         cited_text = "No matching pre-cutoff evidence was found in the bounded sample."
     return (
         f"{state_summary} The evidence I can cite before the cutoff is: "
-        f"{cited_text} I would test public-world actions that either publish a "
-        "bounded public bulletin, map a cross-topic evidence memo, open a relief "
-        "or risk watch, or delay "
-        "until source review is stronger. I am not using later outcomes to answer."
+        f"{cited_text} I am not using later outcomes to answer. Use the action "
+        "test to score a concrete scenario against the live model at this cutoff."
     )
 
 
-def _suggested_actions(_root: Path) -> list[PublicDemoCandidateInput]:
-    return list(_DEFAULT_ACTIONS)
+def _suggested_actions(
+    state_point: Any | None = None,
+) -> list[PublicDemoCandidateInput]:
+    if state_point is None:
+        return []
+    signals = _candidate_signal_terms(
+        list(state_point.evidence_events) or list(state_point.history_events)[-80:]
+    )
+    if not signals:
+        return []
+
+    primary = _join_signal_terms(signals[:3])
+    broad = _join_signal_terms(signals[:5])
+    date = str(state_point.as_of)[:10]
+    actors = _candidate_actor_phrase(signals)
+    watch = _candidate_watch_phrase(signals)
+    return [
+        PublicDemoCandidateInput(
+            label=f"Publish a dated bulletin on {primary}",
+            action=(
+                f"Publish a dated public bulletin on {broad}, citing only reports "
+                f"visible by {date} and naming unresolved uncertainties."
+            ),
+            candidate_type="customer_status_note",
+        ),
+        PublicDemoCandidateInput(
+            label=f"Prepare an evidence memo for {actors}",
+            action=(
+                f"Prepare an evidence memo for {actors} that separates {broad} by "
+                f"source and date before recommending public action."
+            ),
+            candidate_type="decision_log_evidence",
+        ),
+        PublicDemoCandidateInput(
+            label=f"Open a {watch} watch",
+            action=(
+                f"Open a public {watch} watch that tracks {broad}, updates the "
+                f"record weekly, and flags where reports conflict."
+            ),
+            candidate_type="narrow_pilot",
+        ),
+        PublicDemoCandidateInput(
+            label=f"Hold recommendations pending {primary} verification",
+            action=(
+                f"Hold public recommendations on {primary} until cross-source "
+                f"verification is stronger; publish only a short uncertainty note."
+            ),
+            candidate_type="hold_compliance_review",
+        ),
+    ]
+
+
+def _candidate_signal_terms(events: Sequence[WhatIfEvent]) -> list[str]:
+    counts: dict[str, int] = {}
+    first_seen: dict[str, int] = {}
+    for event_index, event in enumerate(events):
+        text = _event_text(event)
+        for keyword, label in _ACTION_SIGNAL_LABELS:
+            if keyword in text:
+                counts[label] = counts.get(label, 0) + 1
+                first_seen.setdefault(label, event_index)
+    return [
+        label
+        for label, _count in sorted(
+            counts.items(),
+            key=lambda item: (-item[1], first_seen[item[0]], item[0].lower()),
+        )
+    ][:8]
+
+
+def _join_signal_terms(terms: Sequence[str]) -> str:
+    cleaned = [term for term in terms if term]
+    if not cleaned:
+        return "the visible public record"
+    if len(cleaned) == 1:
+        return cleaned[0]
+    if len(cleaned) == 2:
+        return f"{cleaned[0]} and {cleaned[1]}"
+    return f"{', '.join(cleaned[:-1])}, and {cleaned[-1]}"
+
+
+def _candidate_actor_phrase(signals: Sequence[str]) -> str:
+    text = " ".join(signals).lower()
+    if any(token in text for token in ("congress", "senate", "treasury")):
+        return "Congress and Treasury actors"
+    if any(token in text for token in ("bank", "credit", "currency", "specie")):
+        return "banking and state officials"
+    if any(token in text for token in ("texas", "mexico", "canada", "british")):
+        return "foreign-affairs and state actors"
+    if any(token in text for token in ("labor", "employment", "relief", "price")):
+        return "relief and municipal actors"
+    return "public officials"
+
+
+def _candidate_watch_phrase(signals: Sequence[str]) -> str:
+    text = " ".join(signals).lower()
+    if any(token in text for token in ("labor", "employment", "relief", "wage")):
+        return "relief and employment"
+    if any(token in text for token in ("bank", "credit", "treasury", "specie")):
+        return "bank-credit and Treasury"
+    if any(token in text for token in ("texas", "mexico", "canada", "british")):
+        return "foreign-risk"
+    if any(token in text for token in ("petition", "slavery", "abolition")):
+        return "petition and rights"
+    return "public-risk"
 
 
 def _score_candidates_with_live_jepa(

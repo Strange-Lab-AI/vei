@@ -8,6 +8,7 @@ from vei.whatif.api import WhatIfBusinessOutcomeHeads, WhatIfFutureStateHeads
 class PublicDemoCandidateInput(BaseModel):
     label: str
     action: str
+    candidate_type: str = ""
 
 
 class PublicDemoEvidenceEvent(BaseModel):

@@ -38,6 +38,21 @@ def test_public_demo_status_and_chat_only_use_pre_cutoff_evidence() -> None:
     assert status["scoring_available"] is True
     assert status["scoring_source"] == "live_jepa"
     assert status["scoring_checkpoint_path"].endswith("jepa_model.pt")
+    suggested_labels = " ".join(
+        action["label"] for action in status["suggested_candidate_actions"]
+    )
+    suggested_types = [
+        action["candidate_type"] for action in status["suggested_candidate_actions"]
+    ]
+    assert "Publish a dated bulletin" in suggested_labels
+    assert "bank credit" in suggested_labels
+    assert "cross-topic public bulletin" not in suggested_labels
+    assert suggested_types == [
+        "customer_status_note",
+        "decision_log_evidence",
+        "narrow_pilot",
+        "hold_compliance_review",
+    ]
     assert 10 <= len(status["timeline_points"]) <= 13
     assert not any(
         point["label"] == "Decision point" for point in status["timeline_points"]
@@ -207,10 +222,80 @@ def test_public_demo_scores_custom_scenario_with_live_jepa(
     assert calls["topic"] == "all_public_record"
     assert calls["as_of"] == "1837-06-02T00:00:00Z"
     assert calls["checkpoint_path"] == checkpoint
+    assert calls["candidates"][0].candidate_type == ""
     assert all(
         event["timestamp"] <= "1837-06-02T00:00:00Z"
         for event in payload["evidence_events"]
     )
+
+
+def test_public_demo_score_without_candidates_uses_dynamic_evidence_actions(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    checkpoint = tmp_path / "model.pt"
+    checkpoint.write_text("stub", encoding="utf-8")
+    monkeypatch.setenv("VEI_PUBLIC_DEMO_JEPA_CHECKPOINT", str(checkpoint))
+    monkeypatch.setenv("VEI_PUBLIC_DEMO_ARTIFACTS_ROOT", str(tmp_path / "runs"))
+    calls: dict[str, Any] = {}
+
+    def fake_run(*_args: Any, **kwargs: Any) -> SimpleNamespace:
+        calls.update(kwargs)
+        result_root = tmp_path / "runs" / "fake"
+        result_root.mkdir(parents=True, exist_ok=True)
+        result_path = result_root / "result.json"
+        result_path.write_text(
+            json.dumps(
+                {
+                    "candidates": [
+                        {
+                            "candidate_id": f"candidate_{index}",
+                            "label": candidate.label,
+                            "action": candidate.action,
+                            "strategic_rank": index,
+                            "strategic_usefulness_score": 0.7 - (index * 0.01),
+                            "business_heads": {},
+                            "future_state_heads": {},
+                        }
+                        for index, candidate in enumerate(kwargs["candidates"], start=1)
+                    ]
+                }
+            ),
+            encoding="utf-8",
+        )
+        return SimpleNamespace(
+            artifacts=SimpleNamespace(result_json_path=result_path),
+        )
+
+    monkeypatch.setattr(
+        public_demo_routes,
+        "run_news_state_point_counterfactual",
+        fake_run,
+    )
+    client = TestClient(ui_api.create_ui_app(PUBLIC_DEMO_ROOT))
+
+    response = client.post(
+        "/api/workspace/public-demo/score",
+        json={
+            "source_id": "news_americanstories_public_world",
+            "as_of": "1837-09-06",
+            "topic": "all_public_record",
+            "decision_title": "Use suggested actions",
+            "candidates": [],
+        },
+    )
+
+    assert response.status_code == 200
+    labels = [candidate.label for candidate in calls["candidates"]]
+    types = [candidate.candidate_type for candidate in calls["candidates"]]
+    assert labels[0].startswith("Publish a dated bulletin on")
+    assert "cross-topic public bulletin" not in " ".join(labels)
+    assert types == [
+        "customer_status_note",
+        "decision_log_evidence",
+        "narrow_pilot",
+        "hold_compliance_review",
+    ]
 
 
 def test_public_demo_rejects_unknown_source_and_invalid_date() -> None:
@@ -257,6 +342,10 @@ def test_public_demo_topic_lenses_filter_broad_world() -> None:
     )
     subjects = " ".join(event["subject"] for event in payload["evidence_events"])
     assert "President" in subjects or "Senate" in subjects or "Congress" in subjects
+    assert any(
+        "Congress" in action["label"] or "Treasury" in action["label"]
+        for action in payload["suggested_candidate_actions"]
+    )
 
     early_lens = client.get(
         "/api/workspace/public-demo",
