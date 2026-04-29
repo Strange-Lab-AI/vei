@@ -3518,6 +3518,24 @@ body.public-history-mode .public-demo-score-item p {
   font-size: 0.9rem;
 }
 
+body.public-history-mode .public-demo-score-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(58px, 1fr));
+  gap: 8px 12px;
+  margin: 8px 0 0;
+}
+
+body.public-history-mode .public-demo-score-metrics dt {
+  color: #666;
+  font-size: 0.72rem;
+}
+
+body.public-history-mode .public-demo-score-metrics dd {
+  margin: 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.88rem;
+}
+
 body.public-history-mode .whatif-empty {
   border: 1px dashed #c8c8c8;
   border-radius: 0;

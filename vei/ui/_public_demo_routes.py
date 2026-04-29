@@ -718,29 +718,8 @@ def _scored_candidate_from_jepa_row(
         score=score,
         predicted_business_heads=business,
         predicted_future_heads=future,
-        reason=_reason_for_heads(business=business, future=future),
+        reason="",
         source="live_jepa",
-    )
-
-
-def _reason_for_heads(
-    *,
-    business: WhatIfBusinessOutcomeHeads,
-    future: WhatIfFutureStateHeads,
-) -> str:
-    if business.enterprise_risk <= 0.35 and business.stakeholder_trust >= 0.55:
-        return (
-            "Ranks higher because it lowers predicted risk while preserving public "
-            "trust in the bounded forecast heads."
-        )
-    if future.liquidity_stress >= 0.65:
-        return (
-            "Ranks lower because liquidity stress remains high in the predicted "
-            "future heads."
-        )
-    return (
-        "Ranks in the middle because it trades public confidence and execution "
-        "drag without a decisive risk improvement."
     )
 
 

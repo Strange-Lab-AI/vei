@@ -202,6 +202,8 @@ def test_public_demo_scores_custom_scenario_with_live_jepa(
     assert payload["scoring_artifact_path"].endswith("result.json")
     assert payload["candidates"][0]["label"] == "Your scenario"
     assert payload["candidates"][0]["source"] == "live_jepa"
+    assert payload["candidates"][0]["reason"] == ""
+    assert "Ranks in the middle" not in json.dumps(payload)
     assert calls["topic"] == "all_public_record"
     assert calls["as_of"] == "1837-06-02T00:00:00Z"
     assert calls["checkpoint_path"] == checkpoint

@@ -450,13 +450,25 @@ function renderPublicDemoScore() {
       ${displayCandidates
         .map((candidate) => {
           const isCustom = candidate.label === "Your scenario";
+          const metrics = publicDemoScoreMetrics(candidate);
           return `
             <article class="public-demo-score-item ${isCustom ? "is-custom" : ""} ${candidate.rank === 1 ? "is-lead" : ""}">
               <div class="public-demo-score-rank">${escapeHtml(candidate.rank)}</div>
               <div>
                 <strong>${escapeHtml(candidate.label)}</strong>
                 ${isCustom ? `<span class="public-demo-rank-note">ranked ${escapeHtml(candidate.rank)} of ${escapeHtml(candidates.length)}</span>` : ""}
-                <p>${escapeHtml(publicDemoPlainReason(candidate.reason || ""))}</p>
+                <dl class="public-demo-score-metrics">
+                  ${metrics
+                    .map(
+                      (metric) => `
+                        <div>
+                          <dt>${escapeHtml(metric.label)}</dt>
+                          <dd>${escapeHtml(metric.value)}</dd>
+                        </div>
+                      `
+                    )
+                    .join("")}
+                </dl>
               </div>
             </article>
           `;
@@ -479,17 +491,26 @@ function publicDemoDisplayCandidates(candidates) {
   });
 }
 
-function publicDemoPlainReason(reason) {
-  return String(reason || "")
-    .replace(" while preserving public trust in the bounded forecast heads", " while preserving public trust")
-    .replace(" in the predicted future heads", "")
-    .replace(" in the bounded forecast heads", "")
-    .replace("forecast heads", "forecast");
+function publicDemoScoreMetrics(candidate) {
+  const business = candidate.predicted_business_heads || {};
+  const future = candidate.predicted_future_heads || {};
+  return [
+    { label: "score", value: publicDemoFixed(candidate.score) },
+    { label: "risk", value: publicDemoFixed(business.enterprise_risk) },
+    { label: "trust", value: publicDemoFixed(business.stakeholder_trust) },
+    { label: "drag", value: publicDemoFixed(business.execution_drag) },
+    { label: "liquidity", value: publicDemoFixed(future.liquidity_stress) },
+  ];
+}
+
+function publicDemoFixed(value) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number.toFixed(3) : "--";
 }
 
 function publicDemoSourceLabel(value) {
   return String(value || "")
-    .replace("live_jepa", "live JEPA")
+    .replace("live_jepa", "live JEPA inference")
     .replaceAll("_", " ");
 }
 
