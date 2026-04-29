@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import re
+from dataclasses import dataclass
 from hashlib import sha256
 from pathlib import Path
 from typing import Any, Sequence
@@ -90,6 +91,18 @@ _DEFAULT_ACTIONS = [
     ),
 ]
 
+
+@dataclass(frozen=True)
+class _ActionSignalGroup:
+    key: str
+    title: str
+    keywords: tuple[str, ...]
+    labels: tuple[str, ...]
+    candidate_type: str
+    label_template: str
+    action_template: str
+
+
 _ACTION_SIGNAL_LABELS: tuple[tuple[str, str], ...] = (
     ("bank", "bank credit"),
     ("credit", "credit stress"),
@@ -117,6 +130,133 @@ _ACTION_SIGNAL_LABELS: tuple[tuple[str, str], ...] = (
     ("cotton", "cotton trade"),
     ("trade", "trade reports"),
     ("election", "election signals"),
+)
+
+_ACTION_SIGNAL_GROUPS: tuple["_ActionSignalGroup", ...] = (
+    # Keep finance first only inside its domain; group ranking below prevents it
+    # from crowding out politics, rights, labor, and foreign affairs.
+    _ActionSignalGroup(
+        key="finance",
+        title="bank credit, Treasury deposits, and currency",
+        keywords=(
+            "bank",
+            "banking",
+            "credit",
+            "treasury",
+            "specie",
+            "currency",
+            "deposit",
+        ),
+        labels=(
+            "bank credit",
+            "Treasury deposits",
+            "specie payments",
+            "currency pressure",
+        ),
+        candidate_type="customer_status_note",
+        label_template="Publish a finance bulletin on {terms}",
+        action_template=(
+            "Publish a dated public finance bulletin on {terms}, citing only reports "
+            "visible by {date} and separating bank credit, Treasury, specie, and "
+            "currency uncertainty."
+        ),
+    ),
+    _ActionSignalGroup(
+        key="governance",
+        title="Congress, the presidency, and public policy",
+        keywords=(
+            "congress",
+            "senate",
+            "president",
+            "presidential",
+            "election",
+            "policy",
+        ),
+        labels=("Congress", "Senate", "presidential policy", "election signals"),
+        candidate_type="decision_log_evidence",
+        label_template="Prepare a governance memo on {terms}",
+        action_template=(
+            "Prepare a dated governance memo on {terms} for public officials, "
+            "separating newspaper claims from congressional and executive signals "
+            "visible by {date}."
+        ),
+    ),
+    _ActionSignalGroup(
+        key="rights",
+        title="slavery petitions and rights politics",
+        keywords=(
+            "petition",
+            "petitions",
+            "slavery",
+            "abolition",
+            "arkansas",
+            "admission",
+        ),
+        labels=(
+            "petitions",
+            "slavery petitions",
+            "abolition petitions",
+            "Arkansas admission",
+        ),
+        candidate_type="expert_review_gate",
+        label_template="Open a petition-rights review on {terms}",
+        action_template=(
+            "Open a public petition-rights review on {terms}, tracking which claims "
+            "were visible by {date} before recommending any official posture."
+        ),
+    ),
+    _ActionSignalGroup(
+        key="foreign",
+        title="Texas, Mexico, Canada, and foreign affairs",
+        keywords=("texas", "mexico", "canada", "seminole", "british", "foreign", "war"),
+        labels=("Texas", "Mexico", "Canada", "Seminole war costs", "British trade"),
+        candidate_type="cross_function_war_room",
+        label_template="Prepare a foreign-risk brief on {terms}",
+        action_template=(
+            "Prepare a foreign-risk brief on {terms}, comparing visible reports by "
+            "{date} and flagging where public confidence or military-cost signals "
+            "remain unresolved."
+        ),
+    ),
+    _ActionSignalGroup(
+        key="labor",
+        title="labor, prices, relief, and employment",
+        keywords=("labor", "employment", "wages", "relief", "poor", "prices", "work"),
+        labels=(
+            "labor reports",
+            "employment reports",
+            "wage reports",
+            "relief requests",
+            "price reports",
+        ),
+        candidate_type="narrow_pilot",
+        label_template="Open a relief-and-prices watch on {terms}",
+        action_template=(
+            "Open a dated relief-and-prices watch on {terms}, updating the visible "
+            "record after {date} only when new public reports arrive."
+        ),
+    ),
+    _ActionSignalGroup(
+        key="public_order",
+        title="public order and local civic stress",
+        keywords=(
+            "riot",
+            "crowd",
+            "public order",
+            "meeting",
+            "local",
+            "civic",
+            "school",
+            "church",
+        ),
+        labels=("public-order reports", "local civic reports"),
+        candidate_type="narrow_pilot",
+        label_template="Open a local public-order watch on {terms}",
+        action_template=(
+            "Open a local public-order watch on {terms}, distinguishing civic notices "
+            "from risk reports visible by {date}."
+        ),
+    ),
 )
 
 
@@ -682,69 +822,77 @@ def _suggested_actions(
 ) -> list[PublicDemoCandidateInput]:
     if state_point is None:
         return []
-    signals = _candidate_signal_terms(
-        list(state_point.evidence_events) or list(state_point.history_events)[-80:]
+    groups = _candidate_signal_groups(
+        list(state_point.evidence_events) or list(state_point.history_events)[-120:],
+        state_summary=str(getattr(state_point, "state_summary", "")),
     )
-    if not signals:
+    if not groups:
         return []
 
-    primary = _join_signal_terms(signals[:3])
-    broad = _join_signal_terms(signals[:5])
     date = str(state_point.as_of)[:10]
-    actors = _candidate_actor_phrase(signals)
-    watch = _candidate_watch_phrase(signals)
-    return [
-        PublicDemoCandidateInput(
-            label=f"Publish a dated bulletin on {primary}",
-            action=(
-                f"Publish a dated public bulletin on {broad}, citing only reports "
-                f"visible by {date} and naming unresolved uncertainties."
-            ),
-            candidate_type="customer_status_note",
-        ),
-        PublicDemoCandidateInput(
-            label=f"Prepare an evidence memo for {actors}",
-            action=(
-                f"Prepare an evidence memo for {actors} that separates {broad} by "
-                f"source and date before recommending public action."
-            ),
-            candidate_type="decision_log_evidence",
-        ),
-        PublicDemoCandidateInput(
-            label=f"Open a {watch} watch",
-            action=(
-                f"Open a public {watch} watch that tracks {broad}, updates the "
-                f"record weekly, and flags where reports conflict."
-            ),
-            candidate_type="narrow_pilot",
-        ),
-        PublicDemoCandidateInput(
-            label=f"Hold recommendations pending {primary} verification",
-            action=(
-                f"Hold public recommendations on {primary} until cross-source "
-                f"verification is stronger; publish only a short uncertainty note."
-            ),
-            candidate_type="hold_compliance_review",
-        ),
-    ]
-
-
-def _candidate_signal_terms(events: Sequence[WhatIfEvent]) -> list[str]:
-    counts: dict[str, int] = {}
-    first_seen: dict[str, int] = {}
-    for event_index, event in enumerate(events):
-        text = _event_text(event)
-        for keyword, label in _ACTION_SIGNAL_LABELS:
-            if keyword in text:
-                counts[label] = counts.get(label, 0) + 1
-                first_seen.setdefault(label, event_index)
-    return [
-        label
-        for label, _count in sorted(
-            counts.items(),
-            key=lambda item: (-item[1], first_seen[item[0]], item[0].lower()),
+    actions: list[PublicDemoCandidateInput] = []
+    for group, terms in groups[:4]:
+        joined_terms = _join_signal_terms(terms[:3] or [group.title])
+        actions.append(
+            PublicDemoCandidateInput(
+                label=group.label_template.format(terms=joined_terms),
+                action=group.action_template.format(terms=joined_terms, date=date),
+                candidate_type=group.candidate_type,
+            )
         )
-    ][:8]
+    return actions
+
+
+def _candidate_signal_groups(
+    events: Sequence[WhatIfEvent],
+    *,
+    state_summary: str = "",
+) -> list[tuple[_ActionSignalGroup, list[str]]]:
+    counts: dict[str, int] = {group.key: 0 for group in _ACTION_SIGNAL_GROUPS}
+    first_seen: dict[str, int] = {}
+    labels_by_group: dict[str, dict[str, int]] = {
+        group.key: {} for group in _ACTION_SIGNAL_GROUPS
+    }
+    texts = [_event_text(event) for event in events]
+    if state_summary:
+        texts.append(state_summary.lower())
+    for text_index, text in enumerate(texts):
+        for group in _ACTION_SIGNAL_GROUPS:
+            if any(keyword in text for keyword in group.keywords):
+                counts[group.key] += 1
+                first_seen.setdefault(group.key, text_index)
+                label_counts = labels_by_group[group.key]
+                for label in group.labels:
+                    if any(part in text for part in _label_match_parts(label)):
+                        label_counts[label] = label_counts.get(label, 0) + 1
+    groups = [
+        (
+            group,
+            [
+                label
+                for label, _count in sorted(
+                    labels_by_group[group.key].items(),
+                    key=lambda item: (-item[1], item[0].lower()),
+                )
+            ],
+        )
+        for group in _ACTION_SIGNAL_GROUPS
+        if counts[group.key] > 0
+    ]
+    return sorted(
+        groups,
+        key=lambda item: (
+            -min(counts[item[0].key], 4),
+            first_seen.get(item[0].key, 10_000),
+            item[0].key,
+        ),
+    )
+
+
+def _label_match_parts(label: str) -> tuple[str, ...]:
+    if label == "Arkansas admission":
+        return ("arkansas", "admission")
+    return tuple(part for part in re.split(r"[^a-z0-9]+", label.lower()) if part)
 
 
 def _join_signal_terms(terms: Sequence[str]) -> str:
@@ -756,32 +904,6 @@ def _join_signal_terms(terms: Sequence[str]) -> str:
     if len(cleaned) == 2:
         return f"{cleaned[0]} and {cleaned[1]}"
     return f"{', '.join(cleaned[:-1])}, and {cleaned[-1]}"
-
-
-def _candidate_actor_phrase(signals: Sequence[str]) -> str:
-    text = " ".join(signals).lower()
-    if any(token in text for token in ("congress", "senate", "treasury")):
-        return "Congress and Treasury actors"
-    if any(token in text for token in ("bank", "credit", "currency", "specie")):
-        return "banking and state officials"
-    if any(token in text for token in ("texas", "mexico", "canada", "british")):
-        return "foreign-affairs and state actors"
-    if any(token in text for token in ("labor", "employment", "relief", "price")):
-        return "relief and municipal actors"
-    return "public officials"
-
-
-def _candidate_watch_phrase(signals: Sequence[str]) -> str:
-    text = " ".join(signals).lower()
-    if any(token in text for token in ("labor", "employment", "relief", "wage")):
-        return "relief and employment"
-    if any(token in text for token in ("bank", "credit", "treasury", "specie")):
-        return "bank-credit and Treasury"
-    if any(token in text for token in ("texas", "mexico", "canada", "british")):
-        return "foreign-risk"
-    if any(token in text for token in ("petition", "slavery", "abolition")):
-        return "petition and rights"
-    return "public-risk"
 
 
 def _score_candidates_with_live_jepa(
