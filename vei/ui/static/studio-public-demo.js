@@ -10,6 +10,38 @@ function publicDemoAsOf() {
   return document.getElementById("public-demo-asof-input")?.value || "1837-09-06";
 }
 
+const PUBLIC_DEMO_STOPWORDS = new Set([
+  "about",
+  "after",
+  "again",
+  "against",
+  "because",
+  "before",
+  "between",
+  "could",
+  "decided",
+  "does",
+  "from",
+  "happens",
+  "have",
+  "into",
+  "over",
+  "public",
+  "should",
+  "take",
+  "that",
+  "their",
+  "there",
+  "this",
+  "through",
+  "what",
+  "when",
+  "where",
+  "will",
+  "with",
+  "would",
+]);
+
 function bindPublicDemoControls() {
   document.getElementById("public-demo-chat-btn")?.addEventListener("click", () => {
     void askPublicDemo();
@@ -378,7 +410,7 @@ async function scorePublicDemoActions() {
     state.publicDemoScore = {
       error:
         status.scoring_unavailable_reason ||
-        "Live JEPA scoring is unavailable. No ranking was produced.",
+        "Live model inference is unavailable. No ranking was produced.",
       candidates: [],
     };
     renderPublicDemoScore();
@@ -429,10 +461,10 @@ function renderPublicDemoScore() {
   if (!score) {
     const status = state.publicDemoStatus || {};
     if (status.scoring_available === false) {
-      node.innerHTML = `<div class="whatif-empty">${escapeHtml(status.scoring_unavailable_reason || "Live JEPA scoring is unavailable. No ranking was produced.")}</div>`;
+      node.innerHTML = `<div class="whatif-empty">${escapeHtml(status.scoring_unavailable_reason || "Live model inference is unavailable. No ranking was produced.")}</div>`;
       return;
     }
-    node.innerHTML = `<div class="whatif-empty">Test an action with the live JEPA checkpoint.</div>`;
+    node.innerHTML = `<div class="whatif-empty">Test an action with the live model checkpoint.</div>`;
     return;
   }
   if (score.error) {
@@ -451,12 +483,14 @@ function renderPublicDemoScore() {
         .map((candidate) => {
           const isCustom = candidate.label === "Your scenario";
           const metrics = publicDemoScoreMetrics(candidate);
+          const fit = isCustom ? publicDemoEvidenceFit(candidate.action || "") : null;
           return `
             <article class="public-demo-score-item ${isCustom ? "is-custom" : ""} ${candidate.rank === 1 ? "is-lead" : ""}">
               <div class="public-demo-score-rank">${escapeHtml(candidate.rank)}</div>
               <div>
                 <strong>${escapeHtml(candidate.label)}</strong>
                 ${isCustom ? `<span class="public-demo-rank-note">ranked ${escapeHtml(candidate.rank)} of ${escapeHtml(candidates.length)}</span>` : ""}
+                ${fit ? publicDemoEvidenceFitMarkup(fit) : ""}
                 <dl class="public-demo-score-metrics">
                   ${metrics
                     .map(
@@ -510,8 +544,64 @@ function publicDemoFixed(value) {
 
 function publicDemoSourceLabel(value) {
   return String(value || "")
-    .replace("live_jepa", "live JEPA inference")
+    .replace("live_jepa", "live model inference")
     .replaceAll("_", " ");
+}
+
+function publicDemoEvidenceFit(action) {
+  const actionTokens = publicDemoKeywordTokens(action);
+  if (!actionTokens.length) {
+    return {
+      label: "not enough text",
+      matchedCount: 0,
+      tokenCount: 0,
+      matchedTokens: [],
+    };
+  }
+  const status = state.publicDemoStatus || {};
+  const evidenceText = [
+    status.state_summary || "",
+    ...(status.evidence_events || []).map(
+      (event) => `${event.subject || ""} ${event.snippet || ""}`,
+    ),
+  ].join(" ");
+  const visibleTokens = new Set(publicDemoKeywordTokens(evidenceText));
+  const matchedTokens = actionTokens.filter((token) => visibleTokens.has(token));
+  const ratio = matchedTokens.length / actionTokens.length;
+  let label = "weak";
+  if (ratio >= 0.55) {
+    label = "strong";
+  } else if (ratio >= 0.25) {
+    label = "partial";
+  }
+  return {
+    label,
+    matchedCount: matchedTokens.length,
+    tokenCount: actionTokens.length,
+    matchedTokens,
+  };
+}
+
+function publicDemoEvidenceFitMarkup(fit) {
+  const matched = fit.matchedTokens.slice(0, 5).join(", ");
+  const matchedText = matched ? ` · visible terms: ${escapeHtml(matched)}` : "";
+  const label =
+    fit.label === "weak"
+      ? "weak evidence fit; treat as out-of-domain"
+      : `${fit.label} evidence fit`;
+  return `<p class="public-demo-evidence-fit is-${escapeHtml(fit.label)}">${escapeHtml(label)} · ${escapeHtml(fit.matchedCount)} / ${escapeHtml(fit.tokenCount)} scenario terms found in visible evidence${matchedText}</p>`;
+}
+
+function publicDemoKeywordTokens(text) {
+  return [
+    ...new Set(
+      String(text || "")
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, " ")
+        .split(/\s+/)
+        .filter((token) => token.length > 3 && !PUBLIC_DEMO_STOPWORDS.has(token)),
+    ),
+  ].slice(0, 80);
 }
 
 function updatePublicDemoScoreButton() {
@@ -522,13 +612,13 @@ function updatePublicDemoScoreButton() {
   }
   if (status.scoring_available === false) {
     button.disabled = true;
-    button.textContent = "Live JEPA unavailable";
+    button.textContent = "Model unavailable";
     button.title =
       status.scoring_unavailable_reason ||
-      "Live JEPA checkpoint is not configured.";
+      "Live model checkpoint is not configured.";
     return;
   }
   button.disabled = false;
   button.textContent = "Test action";
-  button.title = "Run this scenario through the live JEPA checkpoint.";
+  button.title = "Run this scenario through live model inference.";
 }

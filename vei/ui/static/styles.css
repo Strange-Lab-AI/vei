@@ -3518,6 +3518,14 @@ body.public-history-mode .public-demo-score-item p {
   font-size: 0.9rem;
 }
 
+body.public-history-mode .public-demo-evidence-fit {
+  color: #555;
+}
+
+body.public-history-mode .public-demo-evidence-fit.is-weak {
+  color: #8a3b22;
+}
+
 body.public-history-mode .public-demo-score-metrics {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(58px, 1fr));
