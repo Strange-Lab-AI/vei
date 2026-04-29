@@ -109,13 +109,7 @@ def test_news_state_point_run_writes_human_candidates_and_scores(
                     "evidence_control": 0.33,
                     "external_confidence_pressure": 0.71,
                 },
-                "objective_scores": {
-                    "minimize_enterprise_risk": 0.70,
-                    "protect_commercial_position": 0.54,
-                    "reduce_org_strain": 0.68,
-                    "preserve_stakeholder_trust": 0.44,
-                    "maintain_execution_velocity": 0.52,
-                },
+                "objective_scores": {},
             }
             for _row in kwargs["rows"]
         ]
@@ -150,6 +144,8 @@ def test_news_state_point_run_writes_human_candidates_and_scores(
     assert candidate["no_future_context"] is True
     assert candidate["candidate_type"] == "commercial_reset"
     assert candidate["future_state_heads"]["liquidity_stress"] == 0.62
+    assert candidate["objective_scores"]["minimize_enterprise_risk"] > 0.0
+    assert candidate["balanced_ceo_score"] > 0.0
 
 
 def test_news_state_point_cli_accepts_human_candidates(

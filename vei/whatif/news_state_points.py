@@ -18,6 +18,8 @@ from .benchmark import (
 from .benchmark_runtime import run_branch_point_benchmark_predictions
 from .benchmark_business import (
     evidence_to_business_outcomes,
+    list_business_objective_packs,
+    score_business_objective,
     summarize_future_state_heads,
     summarize_observed_evidence,
 )
@@ -25,7 +27,9 @@ from .models import (
     WhatIfActionSchema,
     WhatIfArtifactFlags,
     WhatIfBenchmarkDatasetRow,
+    WhatIfBusinessOutcomeHeads,
     WhatIfEvent,
+    WhatIfObservedEvidenceHeads,
     WhatIfWorld,
 )
 
@@ -526,10 +530,11 @@ def _score_state_point_candidates(
         predicted_evidence = prediction["evidence_heads"]
         predicted_business = prediction["business_heads"]
         predicted_future_state = prediction["future_state_heads"]
-        objective_scores = {
-            str(key): float(value)
-            for key, value in dict(prediction["objective_scores"]).items()
-        }
+        objective_scores = _predicted_objective_scores(
+            predicted_business=predicted_business,
+            predicted_evidence=predicted_evidence,
+            prediction=prediction,
+        )
         balanced = _balanced_score(objective_scores)
         strategic = _objective_policy_score(
             balanced_score=balanced,
@@ -561,6 +566,33 @@ def _score_state_point_candidates(
             }
         )
     return rows
+
+
+def _predicted_objective_scores(
+    *,
+    predicted_business: dict[str, Any],
+    predicted_evidence: dict[str, Any],
+    prediction: dict[str, Any],
+) -> dict[str, float]:
+    objective_scores = {
+        str(key): float(value)
+        for key, value in dict(prediction.get("objective_scores") or {}).items()
+    }
+    if objective_scores:
+        return objective_scores
+
+    business = WhatIfBusinessOutcomeHeads.model_validate(predicted_business)
+    evidence = WhatIfObservedEvidenceHeads.model_validate(predicted_evidence)
+    return {
+        str(pack.pack_id): float(
+            score_business_objective(
+                pack=pack,
+                outcomes=business,
+                evidence=evidence,
+            ).overall_score
+        )
+        for pack in list_business_objective_packs()
+    }
 
 
 def _balanced_score(objective_scores: dict[str, float]) -> float:
