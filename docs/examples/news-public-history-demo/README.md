@@ -17,6 +17,14 @@ vei ui serve \
   --port 3055
 ```
 
+Export the browser-hosted static assets used by strangelab.ai:
+
+```bash
+python scripts/export_public_history_static_assets.py \
+  --workspace docs/examples/news-public-history-demo/workspace \
+  --output /path/to/strangelab.ai/public/public-history
+```
+
 The live JEPA ranking is exploratory decision support. It is not causal proof,
 and unsupported scenarios should be treated as weakly grounded until broader
 retrieval and confidence checks are added.
