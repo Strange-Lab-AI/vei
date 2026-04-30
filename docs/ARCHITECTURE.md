@@ -97,6 +97,38 @@ The router is a transport and tool-dispatch adapter. The twin gateway is an HTTP
 
 `CanonicalEvent` is the single source of truth. `StateStore`, run timelines, and connector receipts are derived views. Control-plane events (governance: approvals, holds, denials, connector safety state, receipts) share the same spine. Raw provider payloads in the ingest RawLog are pre-canonical and not authoritative.
 
+## VEI Control / Agent Provenance
+
+VEI Control is a capture-first evidence surface over the same spine. It has two
+ingest classes:
+
+- `vei.context` captures company state: messages, docs, tickets, CRM records,
+  identity state, and other business objects.
+- `vei.ingest.agent_activity` captures agent behavior: generic JSONL landing
+  zones, MCP transcripts, and OpenAI org usage/audit evidence.
+
+Both classes emit or load `CanonicalEvent` records. Provenance reports treat
+workspace context events and imported agent-activity events as one logical
+spine. Imported activity is stored under
+`provenance/agent_activity/<source>/<batch>/canonical_events.jsonl` with a
+manifest containing source, cursor/window, counts, timestamps, and hashes used
+for dedupe.
+
+Event builders for tool calls, LLM calls, identity, data IO, artifacts, and
+governance decisions live under `vei.events.*`. The v1 envelope is unchanged;
+related event IDs are carried in `StateDelta.data.link_refs`, while `case_id`
+clusters decision chains. Large or sensitive payloads use `TextHandle`.
+
+`vei.provenance` is read-side only. It builds timelines, company activity
+graphs, access reviews, blast-radius reports, policy replay reports, and OTel
+GenAI/MCP-shaped exports. Reports preserve source granularity (`per_call`,
+`transcript`, `aggregate`, `audit_only`) so aggregate usage cannot masquerade
+as exact per-call evidence.
+
+The same spine also supports the JEPA/counterfactual path. Enron and public
+news timelines can be opened in Worlds/Research for learned counterfactual
+scoring or in Control for activity graph, blast radius, and policy replay.
+
 ## Product Workflow Layer
 
 VEI now has a product-shaped layer above the kernel:

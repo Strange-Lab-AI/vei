@@ -33,6 +33,8 @@ from vei.run.api import (
     RunManifest,
     RunTimelineEvent,
 )
+from vei.events.api import ActorRef
+from vei.events.api import emit_policy_decision
 from vei.workforce.api import (
     WorkforceCommandRecord,
     WorkforceState,
@@ -61,9 +63,8 @@ from ._governance import (
     check_policy_profile as _check_policy_profile,
     check_surface_access as _check_surface_access,
     connector_statuses as _connector_statuses,
-    event_surface as _event_surface,
-    mirror_operation_class as _mirror_operation_class,
 )
+from .policy_evaluator import PolicyEvaluator
 from ._runtime_support import (
     channel_for_focus as _channel_for_focus,
     contract_summary as _contract_summary,
@@ -721,93 +722,30 @@ class TwinRuntime:
         agent: GovernorAgentSpec,
         approval_granted: bool = False,
     ) -> GovernorActionPlan:
-        action = "dispatch" if event.resolved_tool else "inject"
-        tool_name = str(event.resolved_tool or event.external_tool or "")
-        surface = _event_surface(event)
-        operation_class = _mirror_operation_class(tool_name)
-        if operation_class is None and action == "inject":
-            operation_class = "write_safe"
-        if operation_class is None:
-            return GovernorActionPlan(
-                action=action,
-                surface=surface,
-                resolved_tool=tool_name,
-                operation_class="read",
-                decision="deny",
-                reason_code="mirror.unknown_operation_class",
-                reason=(
-                    f"mirror does not have an operation class for '{tool_name}' yet"
-                ),
-            )
-
-        surface_denial = self._check_surface_access(agent, surface)
-        if surface_denial is not None:
-            return GovernorActionPlan(
-                action=action,
-                surface=surface,
-                resolved_tool=tool_name,
-                operation_class=operation_class,
-                decision="deny",
-                reason_code="mirror.surface_denied",
-                reason=surface_denial,
-            )
-
-        profile_decision = self._check_policy_profile(
+        evaluation = PolicyEvaluator(
+            config=self.mirror_config,
+            connector_mode=self.mirror_config.connector_mode,
+        ).evaluate(
+            event=event,
             agent=agent,
-            operation_class=operation_class,
             approval_granted=approval_granted,
         )
-        if profile_decision is not None:
-            return GovernorActionPlan(
-                action=action,
-                surface=surface,
-                resolved_tool=tool_name,
-                operation_class=operation_class,
-                decision=profile_decision["decision"],
-                reason_code=profile_decision["code"],
-                reason=profile_decision["reason"],
-            )
-
-        approval_rule_decision = self._check_approval_rules(
-            tool_name=tool_name,
-            surface=surface,
-            operation_class=operation_class,
-            approval_granted=approval_granted,
+        emit_policy_decision(
+            actor_ref=ActorRef(
+                actor_id=agent.agent_id,
+                display_name=agent.name or "",
+                role=agent.role or "",
+            ),
+            decision=evaluation.decision,
+            policy_code=evaluation.reason_code,
+            reason=evaluation.reason,
+            detail={
+                "surface": evaluation.surface,
+                "resolved_tool": evaluation.resolved_tool,
+                "operation_class": evaluation.operation_class,
+            },
         )
-        if approval_rule_decision is not None:
-            return GovernorActionPlan(
-                action=action,
-                surface=surface,
-                resolved_tool=tool_name,
-                operation_class=operation_class,
-                decision=approval_rule_decision["decision"],
-                reason_code=approval_rule_decision["code"],
-                reason=approval_rule_decision["reason"],
-            )
-
-        connector_decision = self._check_connector_safety(
-            tool_name=tool_name,
-            surface=surface,
-            operation_class=operation_class,
-            approval_granted=approval_granted,
-        )
-        if connector_decision is not None:
-            return GovernorActionPlan(
-                action=action,
-                surface=surface,
-                resolved_tool=tool_name,
-                operation_class=operation_class,
-                decision=connector_decision["decision"],
-                reason_code=connector_decision["code"],
-                reason=connector_decision["reason"],
-            )
-
-        return GovernorActionPlan(
-            action=action,
-            surface=surface,
-            resolved_tool=tool_name,
-            operation_class=operation_class,
-        )
+        return GovernorActionPlan(**evaluation.model_dump())
 
     def execute_mirror_action(
         self,

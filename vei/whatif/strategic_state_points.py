@@ -15,6 +15,7 @@ from pydantic import BaseModel, Field
 
 from vei.llm.codex_cli import run_codex_json
 from vei.score_frontier import run_llm_json_prompt
+from vei.events.api import emit_llm_call_completed, emit_llm_call_failed
 
 from .benchmark import (
     _build_pre_branch_contract,
@@ -312,6 +313,15 @@ def _build_state_points_for_source(
                 temperature=None if proposal_model.startswith("gpt-5") else 0.0,
             )
             raw_response = json.dumps(payload, indent=2, sort_keys=True)
+            emit_llm_call_completed(
+                provider="codex" if _proposal_uses_codex() else "api",
+                model=proposal_model,
+                prompt=prompt,
+                response=raw_response,
+                status="completed",
+                source_id=f"whatif.strategic_state_points:{source.tenant_id}",
+                source_granularity="per_call",
+            )
             proposal_source = "llm"
         else:
             payload = _template_proposal_payload(
@@ -322,6 +332,16 @@ def _build_state_points_for_source(
             )
             raw_response = json.dumps(payload, indent=2)
     except Exception as exc:  # pragma: no cover - exercised in live Codex/API runs.
+        if proposal_mode == "llm":
+            emit_llm_call_failed(
+                provider="codex" if _proposal_uses_codex() else "api",
+                model=proposal_model,
+                prompt=prompt,
+                status="failed",
+                error=str(exc),
+                source_id=f"whatif.strategic_state_points:{source.tenant_id}",
+                source_granularity="per_call",
+            )
         payload = _template_proposal_payload(
             source=source,
             as_of=as_of_dt,
@@ -621,6 +641,11 @@ def _score_state_point(
                 "observable_source": observables["observable_source"],
                 "no_future_context": True,
                 "pre_branch_evidence_sha256": state_point.evidence_hash,
+                "evidence.event_ids": json.dumps(
+                    [event.event_id for event in state_point.evidence_events],
+                    sort_keys=True,
+                ),
+                "policy_replay_hits": json.dumps([], sort_keys=True),
                 "generation_prompt_sha256": state_point.prompt_hash,
                 "ranking_basis": (
                     "Pareto frontier over JEPA-predicted operator utility and domain-risk heads; "

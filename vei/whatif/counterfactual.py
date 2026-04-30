@@ -11,6 +11,7 @@ from vei.blueprint.api import create_world_session_from_blueprint
 from vei.blueprint.api import BlueprintAsset
 from vei.data.models import BaseEvent, VEIDataset
 from vei.llm import providers
+from vei.events.api import emit_llm_call_completed, emit_llm_call_failed
 from vei.project_settings import default_model_for_provider
 from vei.twin import load_customer_twin
 
@@ -610,6 +611,17 @@ def run_llm_counterfactual(
                 timeout_s=timeout_s,
             )
         )
+        emit_llm_call_completed(
+            provider=provider,
+            model=model,
+            prompt=user,
+            response=str(response.plan),
+            status="completed",
+            source_id=f"whatif.counterfactual:{workspace_root}",
+            source_granularity="per_call",
+            link_refs=[manifest.branch_event_id] if manifest.branch_event_id else [],
+            case_id=manifest.case_id,
+        )
         messages, notes = _normalize_llm_messages(
             _counterfactual_args(response.plan),
             manifest=manifest,
@@ -619,6 +631,17 @@ def run_llm_counterfactual(
         if not messages:
             raise ValueError("LLM returned no usable messages")
     except _COUNTERFACTUAL_FAILURES as exc:
+        emit_llm_call_failed(
+            provider=provider,
+            model=model,
+            prompt=user,
+            status="failed",
+            error=str(exc) or type(exc).__name__,
+            source_id=f"whatif.counterfactual:{workspace_root}",
+            source_granularity="per_call",
+            link_refs=[manifest.branch_event_id] if manifest.branch_event_id else [],
+            case_id=manifest.case_id,
+        )
         logger.warning(
             "whatif llm counterfactual generation failed for %s (%s)",
             workspace_root,

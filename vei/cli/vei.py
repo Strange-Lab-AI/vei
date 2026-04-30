@@ -67,6 +67,14 @@ class VEILazyGroup(LazyTyperGroup):
             module_path="vei.cli.vei_skillmap",
             help="Build evidence-backed company skill maps from context bundles.",
         ),
+        "ingest": LazyCommandSpec(
+            module_path="vei.cli.vei_ingest",
+            help="Ingest company state and agent-activity evidence.",
+        ),
+        "provenance": LazyCommandSpec(
+            module_path="vei.cli.vei_provenance",
+            help="Inspect agent evidence, access review, blast radius, and policy replay.",
+        ),
         "contract": LazyCommandSpec(
             module_path="vei.cli.vei_contract",
             help="Inspect and validate workspace contracts.",

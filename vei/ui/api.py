@@ -58,6 +58,7 @@ from ._public_demo_models import (
     PublicDemoTimelinePoint,
 )
 from ._public_demo_routes import register_public_demo_routes
+from ._provenance_routes import register_provenance_routes
 from ._run_routes import register_run_routes
 from ._workspace_routes import register_workspace_routes
 
@@ -132,4 +133,5 @@ def create_ui_app(workspace_root: str | Path) -> FastAPI:
     register_playable_routes(app, root)
     register_run_routes(app, root, deps=deps)
     register_imports_routes(app, root)
+    register_provenance_routes(app, root)
     return app

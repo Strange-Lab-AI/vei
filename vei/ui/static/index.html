@@ -81,6 +81,7 @@
           <button type="button" class="studio-nav-button" data-studio-view="company">Company</button>
           <button type="button" class="studio-nav-button" data-studio-view="crisis">Crisis</button>
           <button type="button" class="studio-nav-button" data-studio-view="outcome">Outcome</button>
+          <button type="button" class="studio-nav-button" data-studio-view="control">Control</button>
           <button type="button" class="studio-nav-button" data-studio-view="audit">Audit</button>
         </div>
         <p id="studio-view-helper" class="studio-view-helper">Company state, missions, and historical what-if are all in this view.</p>
@@ -221,6 +222,29 @@
 
         <!-- ========== TIMELINE / CAUSALITY VIEW ========== -->
         <section id="timeline-section" class="timeline-section" data-studio-view="company" style="display:none">
+        </section>
+
+        <!-- ========== TAB: CONTROL ========== -->
+        <section class="card control-card hidden-panel" data-studio-view="control">
+          <div class="section-header">
+            <div>
+              <p class="eyebrow">VEI Control</p>
+              <h2>Agent evidence and replay surface</h2>
+              <p class="metric-detail">Capture-first provenance over canonical events, imported agent logs, policy decisions, and counterfactual evidence.</p>
+            </div>
+            <button id="control-refresh-button" type="button" class="ghost-button">Refresh</button>
+          </div>
+          <div id="control-status" class="control-status-grid"></div>
+          <div class="control-grid">
+            <section>
+              <h3>Recent Activity</h3>
+              <div id="control-timeline" class="control-list"></div>
+            </section>
+            <section>
+              <h3>Activity Graph</h3>
+              <div id="control-graph" class="control-list"></div>
+            </section>
+          </div>
         </section>
 
         <!-- ========== CONNECT PANEL ========== -->
@@ -624,6 +648,7 @@
     <script src="/static/studio-company.js"></script>
     <script src="/static/studio-whatif.js"></script>
     <script src="/static/studio-public-demo.js"></script>
+    <script src="/static/studio-control.js"></script>
     <script src="/static/studio-audit.js"></script>
     <script src="/static/studio-outcome.js"></script>
     <script src="/static/studio-bootstrap.js"></script>

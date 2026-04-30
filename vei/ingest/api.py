@@ -27,6 +27,53 @@ class SessionSlice(BaseModel):
     metadata: Dict[str, Any] = Field(default_factory=dict)
 
 
+def load_agent_activity_events(workspace: str) -> List[CanonicalEvent]:
+    from vei.ingest.agent_activity.api import load_workspace_canonical_events
+
+    return load_workspace_canonical_events(workspace)
+
+
+def agent_activity_ingest_status(workspace: str) -> Dict[str, Any]:
+    from vei.ingest.agent_activity.api import ingest_status
+
+    return ingest_status(workspace)
+
+
+def ingest_agent_activity_source(
+    *,
+    source: str,
+    workspace: str,
+    path: str | None = None,
+    token_env: str = "OPENAI_ADMIN_KEY",
+    window: str = "",
+    tenant_id: str = "",
+) -> Dict[str, Any]:
+    from vei.ingest.agent_activity.agent_activity_jsonl import AgentActivityJsonlAdapter
+    from vei.ingest.agent_activity.api import ingest_agent_activity
+    from vei.ingest.agent_activity.mcp_transcript import McpTranscriptAdapter
+    from vei.ingest.agent_activity.openai_org import OpenAIOrgAdapter
+
+    if source == "agent_activity_jsonl":
+        if path is None:
+            raise ValueError("path is required for agent_activity_jsonl")
+        adapter = AgentActivityJsonlAdapter(path, tenant_id=tenant_id)
+    elif source == "mcp_transcript":
+        if path is None:
+            raise ValueError("path is required for mcp_transcript")
+        adapter = McpTranscriptAdapter(path, tenant_id=tenant_id)
+    elif source == "openai_org":
+        adapter = OpenAIOrgAdapter(token_env=token_env, tenant_id=tenant_id)
+    else:
+        raise ValueError(
+            "source must be one of: agent_activity_jsonl, mcp_transcript, openai_org"
+        )
+    return ingest_agent_activity(
+        adapter=adapter,
+        workspace=workspace,
+        window=window,
+    ).model_dump(mode="json")
+
+
 # ---------------------------------------------------------------------------
 # Protocols
 # ---------------------------------------------------------------------------
