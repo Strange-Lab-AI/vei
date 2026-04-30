@@ -15,7 +15,7 @@ emails, tickets, customer records, or meeting notes. It sees dated public
 articles or newspaper pages and turns them into canonical timeline events.
 
 The repo also ships a no-key Studio demo with a compact checked-in JEPA
-checkpoint and an expanded 1,200-record AmericanStories public-news fixture:
+checkpoint and an expanded 2,400-record AmericanStories public-news fixture:
 
 ```bash
 vei ui serve \
@@ -33,9 +33,9 @@ That makes it useful for questions like:
 
 - as of a historical date, what public risks were visible?
 - what next public event or policy choice should we test?
-- what happens if a Treasury reform stalls, a relief bulletin is issued, a
-  slavery-petition fight escalates, Texas diplomacy shifts, or border risk
-  worsens?
+- what happens if secession accelerates, Fort Sumter escalates, emancipation
+  policy shifts, a draft crisis spreads, or blockade and battlefield reports
+  change public confidence?
 - which candidate action creates better predicted future risk, trust, drag,
   commercial, or public-confidence tradeoffs?
 
@@ -57,10 +57,10 @@ Example:
 ```bash
 python scripts/build_news_world_model_snapshot.py \
   --dataset americanstories \
-  --output-root _vei_out/datasets/news_americanstories_1836_1838 \
-  --start-date 1836-01-01 \
-  --end-date 1838-12-31 \
-  --max-pages-per-day 30 \
+  --output-root _vei_out/datasets/news_americanstories_1859_1865 \
+  --start-date 1859-01-01 \
+  --end-date 1865-12-31 \
+  --max-pages-per-day 18 \
   --max-pages-per-source-per-day 3
 ```
 
@@ -83,16 +83,15 @@ To refresh the checked-in Public History demo from that broader local bundle:
 
 ```bash
 python scripts/build_public_history_demo_fixture.py \
-  --input _vei_out/datasets/news_americanstories_1836_1838 \
+  --input _vei_out/datasets/news_americanstories_1859_1865 \
   --workspace docs/examples/news-public-history-demo/workspace
 ```
 
-By default the fixture builder selects 1,200 records stratified by month and
+By default the fixture builder selects 2,400 records stratified by month and
 source topic from the broader local bundle. The checked-in demo currently spans
-1836-01-01 through 1838-12-26 and includes markets, policy, war and foreign
-affairs, local civic life, slavery and abolition, labor, agriculture and
-weather, public health and disasters, crime and courts, and transport
-infrastructure.
+1859 through 1865 and includes markets, policy, secession and war, local civic
+life, slavery and emancipation, labor, agriculture and weather, public health
+and disasters, crime and courts, and transport infrastructure.
 
 ## Decision Point Shape
 
@@ -100,21 +99,20 @@ For news, a decision point does not need to be an existing article. It should be
 an as-of state question:
 
 ```text
-Date: 1837-09-06
+Date: 1861-04-12
 State known so far:
-- Panic of 1837 ongoing
-- specie suspensions and bank-credit stress visible
-- commercial failures, employment pressure, and relief needs visible
-- political debate over Treasury policy active
-- slavery-petition, Texas, Seminole War, British credit, and Canada-border
-  signals visible
+- secession and the Lincoln administration visible in the public record
+- slavery and emancipation politics visible as national fault lines
+- bank, cotton, gold, and war-finance signals visible
+- army, navy, Fort Sumter, blockade, and battlefield reports visible
+- public-order, draft, labor, railroad, telegraph, and casualty signals visible
 
 Candidate next event/action:
-- publish a cross-topic public bulletin
-- Treasury adopts Independent Treasury policy
-- state banks suspend or resume specie
-- Congress changes petition procedure
-- Texas or Canada border risk escalates
+- publish a national risk bulletin
+- brief Congress before public release
+- hold for cross-source verification
+- open a secession and blockade watch
+- issue a narrow public-order and relief advisory
 ```
 
 This is the same strategic state-point interface used for companies. The LLM or
@@ -125,11 +123,11 @@ only; JEPA scores the predicted future vector.
 
 ```bash
 vei whatif benchmark strategic-state-points \
-  --input news=_vei_out/datasets/news_americanstories_1836_1838/context_snapshot.json \
+  --input news=_vei_out/datasets/news_americanstories_1859_1865/context_snapshot.json \
   --checkpoint _vei_out/world_model_multitenant_jepa/enron_dispatch_powr_news_fuller_cap512_h12_20260427/model_runs/jepa_latent/model.pt \
   --artifacts-root _vei_out/world_model_strategic_state_points \
   --label news_public_world_statepoints \
-  --as-of news=1837-09-06 \
+  --as-of news=1861-04-12 \
   --decisions-per-tenant 3 \
   --candidates-per-decision 8 \
   --proposal-mode llm \

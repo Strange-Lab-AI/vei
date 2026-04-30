@@ -39,7 +39,7 @@ from ._public_demo_models import (
 PUBLIC_DEMO_MANIFEST_FILE = "public_demo_manifest.json"
 PUBLIC_DEMO_DEFAULT_SOURCE_ID = "news_americanstories_public_world"
 PUBLIC_DEMO_DEFAULT_TOPIC = "all_public_record"
-PUBLIC_DEMO_DEFAULT_AS_OF = "1837-09-06"
+PUBLIC_DEMO_DEFAULT_AS_OF = "1861-04-12"
 PUBLIC_DEMO_JEPA_CHECKPOINT_ENV = "VEI_PUBLIC_DEMO_JEPA_CHECKPOINT"
 PUBLIC_DEMO_JEPA_ARTIFACTS_ROOT_ENV = "VEI_PUBLIC_DEMO_ARTIFACTS_ROOT"
 PUBLIC_DEMO_DEFAULT_JEPA_CHECKPOINT = (
@@ -61,7 +61,7 @@ _DEFAULT_ACTIONS = [
         label="Publish a cross-topic public bulletin",
         action=(
             "Publish a public bulletin that maps the visible market, labor, "
-            "public-order, petition, Texas, Seminole, and international-credit "
+            "public-order, slavery, secession, military, and international-credit "
             "signals without claiming certainty about the future."
         ),
     ),
@@ -70,14 +70,14 @@ _DEFAULT_ACTIONS = [
         action=(
             "Prepare a public evidence memo for congressional and state actors that "
             "separates what is known by date across Treasury policy, banks, "
-            "petitions, Texas, Seminole costs, labor, and relief."
+            "slavery and emancipation, secession, the army, labor, and relief."
         ),
     ),
     PublicDemoCandidateInput(
         label="Start a relief and employment watch",
         action=(
             "Open a dated relief and employment watch that tracks wages, workshops, "
-            "food prices, poor relief, public order, bank credit, and local-budget "
+            "food prices, poor relief, draft pressure, public order, bank credit, and local-budget "
             "stress before recommending intervention."
         ),
     ),
@@ -112,6 +112,19 @@ _ACTION_SIGNAL_LABELS: tuple[tuple[str, str], ...] = (
     ("congress", "Congress"),
     ("senate", "Senate"),
     ("president", "presidential policy"),
+    ("lincoln", "Lincoln administration"),
+    ("secession", "secession reports"),
+    ("confederate", "Confederate reports"),
+    ("union", "Union reports"),
+    ("emancipation", "emancipation reports"),
+    ("proclamation", "proclamation reports"),
+    ("fort sumter", "Fort Sumter"),
+    ("battle", "battle reports"),
+    ("army", "army reports"),
+    ("navy", "navy reports"),
+    ("blockade", "blockade reports"),
+    ("draft", "draft reports"),
+    ("conscription", "conscription reports"),
     ("petition", "petitions"),
     ("slavery", "slavery petitions"),
     ("abolition", "abolition petitions"),
@@ -177,10 +190,23 @@ _ACTION_SIGNAL_GROUPS: tuple["_ActionSignalGroup", ...] = (
             "senate",
             "president",
             "presidential",
+            "lincoln",
             "election",
             "policy",
+            "emancipation",
+            "proclamation",
+            "draft",
+            "conscription",
         ),
-        labels=("Congress", "Senate", "presidential policy", "election signals"),
+        labels=(
+            "Congress",
+            "Senate",
+            "Lincoln administration",
+            "presidential policy",
+            "emancipation reports",
+            "draft reports",
+            "election signals",
+        ),
         candidate_type="decision_log_evidence",
         label_template="Prepare a governance memo on {terms}",
         action_template=(
@@ -197,6 +223,10 @@ _ACTION_SIGNAL_GROUPS: tuple["_ActionSignalGroup", ...] = (
             "petitions",
             "slavery",
             "abolition",
+            "emancipation",
+            "proclamation",
+            "freedmen",
+            "contraband",
             "arkansas",
             "admission",
         ),
@@ -204,6 +234,9 @@ _ACTION_SIGNAL_GROUPS: tuple["_ActionSignalGroup", ...] = (
             "petitions",
             "slavery petitions",
             "abolition petitions",
+            "emancipation reports",
+            "proclamation reports",
+            "freedmen reports",
             "Arkansas admission",
         ),
         candidate_type="expert_review_gate",
@@ -215,9 +248,34 @@ _ACTION_SIGNAL_GROUPS: tuple["_ActionSignalGroup", ...] = (
     ),
     _ActionSignalGroup(
         key="foreign",
-        title="Texas, Mexico, Canada, and foreign affairs",
-        keywords=("texas", "mexico", "canada", "seminole", "british", "foreign", "war"),
-        labels=("Texas", "Mexico", "Canada", "Seminole war costs", "British trade"),
+        title="secession, war, blockade, and foreign affairs",
+        keywords=(
+            "texas",
+            "mexico",
+            "canada",
+            "seminole",
+            "british",
+            "foreign",
+            "war",
+            "secession",
+            "confederate",
+            "confederacy",
+            "union",
+            "fort sumter",
+            "battle",
+            "army",
+            "navy",
+            "blockade",
+        ),
+        labels=(
+            "secession reports",
+            "Fort Sumter",
+            "battle reports",
+            "Confederate reports",
+            "Union reports",
+            "blockade reports",
+            "British trade",
+        ),
         candidate_type="cross_function_war_room",
         label_template="Prepare a foreign-risk brief on {terms}",
         action_template=(
@@ -249,6 +307,8 @@ _ACTION_SIGNAL_GROUPS: tuple["_ActionSignalGroup", ...] = (
         title="public order and local civic stress",
         keywords=(
             "riot",
+            "draft",
+            "conscription",
             "crowd",
             "public order",
             "meeting",
@@ -257,7 +317,7 @@ _ACTION_SIGNAL_GROUPS: tuple["_ActionSignalGroup", ...] = (
             "school",
             "church",
         ),
-        labels=("public-order reports", "local civic reports"),
+        labels=("public-order reports", "draft reports", "local civic reports"),
         candidate_type="narrow_pilot",
         label_template="Open a local public-order watch on {terms}",
         action_template=(
@@ -276,6 +336,8 @@ _ACTION_SIGNAL_GROUPS: tuple["_ActionSignalGroup", ...] = (
             "court",
             "trial",
             "railroad",
+            "telegraph",
+            "blockade",
             "canal",
             "crop",
             "weather",

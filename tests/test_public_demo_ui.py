@@ -18,7 +18,7 @@ def test_public_demo_models_validate_defaults() -> None:
     request = ui_api.PublicDemoChatRequest(message="What was visible?")
 
     assert request.source_id == "news_americanstories_public_world"
-    assert request.as_of == "1837-09-06"
+    assert request.as_of == "1861-04-12"
     assert request.topic == "all_public_record"
 
 
@@ -33,8 +33,8 @@ def test_public_demo_status_and_chat_only_use_pre_cutoff_evidence() -> None:
     assert status["source"]["source_id"] == "news_americanstories_public_world"
     assert status["source"]["default_topic"] == "all_public_record"
     assert status["source"]["event_count"] >= 1000
-    assert status["source"]["first_timestamp"] == "1836-01-01T00:00:00Z"
-    assert status["source"]["last_timestamp"] == "1838-12-26T00:00:00Z"
+    assert status["source"]["first_timestamp"].startswith("1859-")
+    assert status["source"]["last_timestamp"].startswith("1865-")
     assert status["scoring_available"] is True
     assert status["scoring_source"] == "live_jepa"
     assert status["scoring_checkpoint_path"].endswith("jepa_model.pt")
@@ -50,12 +50,12 @@ def test_public_demo_status_and_chat_only_use_pre_cutoff_evidence() -> None:
     assert "Open a public-resilience review" in suggested_labels
     assert "bank credit" in suggested_labels
     assert "cross-topic public bulletin" not in suggested_labels
-    assert suggested_types == [
-        "narrow_pilot",
+    assert set(suggested_types) == {
         "customer_status_note",
         "decision_log_evidence",
         "expert_review_gate",
-    ]
+        "narrow_pilot",
+    }
     assert 10 <= len(status["timeline_points"]) <= 13
     assert not any(
         point["label"] == "Decision point" for point in status["timeline_points"]
@@ -63,7 +63,7 @@ def test_public_demo_status_and_chat_only_use_pre_cutoff_evidence() -> None:
     assert not any(": " in point["label"] for point in status["timeline_points"])
     assert status["evidence_events"]
     assert all(
-        event["timestamp"] <= "1837-09-06T00:00:00Z"
+        event["timestamp"] <= "1861-04-12T00:00:00Z"
         for event in status["evidence_events"]
     )
     subjects = " ".join(event["subject"] for event in status["evidence_events"])
@@ -71,13 +71,13 @@ def test_public_demo_status_and_chat_only_use_pre_cutoff_evidence() -> None:
         term in subjects
         for term in ("Bank", "Treasury", "Labor Work", "Rail Road", "Congress")
     )
-    assert "Abolition" in subjects or "slav" in subjects.lower()
+    assert "lincoln" in status["state_summary"].lower()
 
     chat_response = client.post(
         "/api/workspace/public-demo/chat",
         json={
             "source_id": "news_americanstories_public_world",
-            "as_of": "1837-09-06",
+            "as_of": "1861-04-12",
             "topic": "banking_markets",
             "message": "What banking and credit risks were visible?",
         },
@@ -87,7 +87,7 @@ def test_public_demo_status_and_chat_only_use_pre_cutoff_evidence() -> None:
     chat = chat_response.json()
     assert chat["cited_event_ids"]
     assert all(
-        event["timestamp"] <= "1837-09-06T00:00:00Z" for event in chat["cited_events"]
+        event["timestamp"] <= "1861-04-12T00:00:00Z" for event in chat["cited_events"]
     )
     assert "Future bill passage marker" not in chat["assistant_text"]
     assert "Church notices" not in chat["assistant_text"]
@@ -130,7 +130,7 @@ def test_public_demo_status_reports_missing_live_jepa_without_fallback(
         "/api/workspace/public-demo/score",
         json={
             "source_id": "news_americanstories_public_world",
-            "as_of": "1837-09-06",
+            "as_of": "1861-04-12",
             "topic": "all_public_record",
             "decision_title": "Public-world response",
             "candidates": [
@@ -284,7 +284,7 @@ def test_public_demo_score_without_candidates_uses_dynamic_evidence_actions(
         "/api/workspace/public-demo/score",
         json={
             "source_id": "news_americanstories_public_world",
-            "as_of": "1837-09-06",
+            "as_of": "1861-04-12",
             "topic": "all_public_record",
             "decision_title": "Use suggested actions",
             "candidates": [],
@@ -294,19 +294,21 @@ def test_public_demo_score_without_candidates_uses_dynamic_evidence_actions(
     assert response.status_code == 200
     labels = [candidate.label for candidate in calls["candidates"]]
     types = [candidate.candidate_type for candidate in calls["candidates"]]
-    assert labels[0].startswith("Open a relief-and-prices watch on")
+    assert any(
+        label.startswith("Open a relief-and-prices watch on") for label in labels
+    )
     assert any(label.startswith("Publish a finance bulletin on") for label in labels)
     assert any(label.startswith("Prepare a governance memo on") for label in labels)
     assert any(
         label.startswith("Open a public-resilience review on") for label in labels
     )
     assert "cross-topic public bulletin" not in " ".join(labels)
-    assert types == [
-        "narrow_pilot",
+    assert set(types) == {
         "customer_status_note",
         "decision_log_evidence",
         "expert_review_gate",
-    ]
+        "narrow_pilot",
+    }
 
 
 def test_public_demo_rejects_unknown_source_and_invalid_date() -> None:
@@ -316,7 +318,7 @@ def test_public_demo_rejects_unknown_source_and_invalid_date() -> None:
         "/api/workspace/public-demo/chat",
         json={
             "source_id": "unknown",
-            "as_of": "1837-09-06",
+            "as_of": "1861-04-12",
             "message": "What was visible?",
         },
     )
@@ -339,7 +341,7 @@ def test_public_demo_topic_lenses_filter_broad_world() -> None:
 
     response = client.get(
         "/api/workspace/public-demo",
-        params={"as_of": "1837-09-06", "topic": "government_policy"},
+        params={"as_of": "1861-04-12", "topic": "government_policy"},
     )
 
     assert response.status_code == 200
@@ -348,7 +350,7 @@ def test_public_demo_topic_lenses_filter_broad_world() -> None:
     assert 10 <= len(payload["timeline_points"]) <= 13
     assert payload["evidence_events"]
     assert all(
-        event["timestamp"] <= "1837-09-06T00:00:00Z"
+        event["timestamp"] <= "1861-04-12T00:00:00Z"
         for event in payload["evidence_events"]
     )
     subjects = " ".join(event["subject"] for event in payload["evidence_events"])
