@@ -11,12 +11,13 @@ async function loadControlSurface() {
   try {
     const data = await getJson("/api/workspace/provenance/control");
     status.innerHTML = renderControlMetrics(data);
-    agents.innerHTML = renderAgents(data.agents || []);
-    accessReview.innerHTML = renderAccessReview(data.access_review);
+    agents.innerHTML = `<p class="metric-detail">Loading agents...</p>`;
+    void loadControlAgents();
+    accessReview.innerHTML = renderAccessReview(null);
     timeline.innerHTML = renderTimeline(data);
-    blastRadius.innerHTML = renderBlastRadius(data.blast_radius);
+    blastRadius.innerHTML = renderBlastRadius(null);
     policyReplay.innerHTML = renderPolicyReplay();
-    evidencePack.innerHTML = renderEvidencePack(data.evidence_pack);
+    evidencePack.innerHTML = renderEvidencePack(null);
     bindControlActions();
   } catch (error) {
     status.innerHTML = `<p class="connect-error">Control load failed: ${escapeHtml(error?.message || error)}</p>`;
@@ -27,9 +28,21 @@ function renderControlMetrics(data) {
   return `
     <div class="metric-tile"><strong>${escapeHtml(data.event_count || 0)}</strong><span>canonical events</span></div>
     <div class="metric-tile"><strong>${escapeHtml(data.ingest?.batch_count || 0)}</strong><span>ingest batches</span></div>
-    <div class="metric-tile"><strong>${escapeHtml((data.agents || []).length)}</strong><span>agents</span></div>
+    <div class="metric-tile"><strong>${escapeHtml(data.agent_count || 0)}</strong><span>agents</span></div>
     <div class="metric-tile"><strong>${escapeHtml(data.graph?.edge_count || 0)}</strong><span>evidence edges</span></div>
   `;
+}
+
+async function loadControlAgents() {
+  const panel = document.getElementById("control-agents");
+  if (!panel) return;
+  try {
+    const payload = await getJson("/api/workspace/provenance/agents");
+    panel.innerHTML = renderAgents(payload.agents || []);
+    bindControlActions();
+  } catch (error) {
+    panel.innerHTML = `<p class="connect-error">Agent inventory failed: ${escapeHtml(error?.message || error)}</p>`;
+  }
 }
 
 function renderAgents(items) {
@@ -91,7 +104,12 @@ function renderPolicyReplay() {
 }
 
 function renderEvidencePack(pack) {
-  if (!pack) return `<p class="metric-detail">No evidence pack yet.</p>`;
+  if (!pack) {
+    return `
+      <button id="control-evidence-pack-button" type="button" class="ghost-button">Build Evidence Pack</button>
+      <div id="control-evidence-pack-result" class="control-list"><p class="metric-detail">Build a compact pack from the current evidence spine.</p></div>
+    `;
+  }
   return `
     ${renderWarnings(pack.warnings || [])}
     <div class="control-row"><span>Timeline events</span><strong>${escapeHtml(pack.timeline?.event_count || 0)}</strong></div>
@@ -112,26 +130,26 @@ function renderWarnings(warnings) {
 
 function bindControlActions() {
   document.querySelectorAll("[data-control-agent]").forEach((button) => {
-    button.addEventListener("click", async () => {
+    button.onclick = async () => {
       const panel = document.getElementById("control-access-review");
       const agentId = button.getAttribute("data-control-agent");
       if (!panel || !agentId) return;
       const review = await getJson(`/api/workspace/provenance/agents/${encodeURIComponent(agentId)}/access-review`);
       panel.innerHTML = renderAccessReview(review);
-    });
+    };
   });
   document.querySelectorAll("[data-control-event]").forEach((button) => {
-    button.addEventListener("click", async () => {
+    button.onclick = async () => {
       const panel = document.getElementById("control-blast-radius");
       const eventId = button.getAttribute("data-control-event");
       if (!panel || !eventId) return;
       const report = await getJson(`/api/workspace/provenance/events/${encodeURIComponent(eventId)}/blast-radius`);
       panel.innerHTML = renderBlastRadius(report);
-    });
+    };
   });
   const replayButton = document.getElementById("control-policy-replay-button");
   if (replayButton) {
-    replayButton.addEventListener("click", async () => {
+    replayButton.onclick = async () => {
       const input = document.getElementById("control-policy-input");
       const result = document.getElementById("control-policy-replay-result");
       if (!input || !result) return;
@@ -146,7 +164,20 @@ function bindControlActions() {
       } catch (error) {
         result.innerHTML = `<p class="connect-error">Policy replay failed: ${escapeHtml(error?.message || error)}</p>`;
       }
-    });
+    };
+  }
+  const evidenceButton = document.getElementById("control-evidence-pack-button");
+  if (evidenceButton) {
+    evidenceButton.onclick = async () => {
+      const result = document.getElementById("control-evidence-pack-result");
+      if (!result) return;
+      try {
+        const pack = await getJson("/api/workspace/provenance/evidence-pack");
+        result.innerHTML = renderEvidencePack(pack);
+      } catch (error) {
+        result.innerHTML = `<p class="connect-error">Evidence pack failed: ${escapeHtml(error?.message || error)}</p>`;
+      }
+    };
   }
 }
 

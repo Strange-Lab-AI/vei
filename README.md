@@ -66,6 +66,7 @@ For live planning backends, VEI supports OpenAI, Anthropic, Google, OpenRouter, 
 - Compile a company skill map: `vei skillmap build --source-dir _vei_out/<company>/context_snapshot.json --output _vei_out/<company>/skill_map`
 - Capture agent evidence: `vei ingest agent-activity --source agent_activity_jsonl --path ./logs --workspace _vei_out/<company>`
 - Review provenance: `vei provenance access-review --agent-id <agent-id> --workspace _vei_out/<company>`
+- Verify evidence: `vei provenance verify --workspace _vei_out/<company>`
 - Export an evidence pack: `vei provenance export --format evidence-pack --workspace _vei_out/<company> --output _vei_out/<company>/evidence_pack.json`
 - Run a benchmark: `vei eval benchmark --runner workflow --family security_containment`
 

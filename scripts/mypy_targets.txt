@@ -9,6 +9,9 @@ vei/world/replay.py
 vei/world/state.py
 vei/world/models.py
 vei/router/api.py
+vei/events
+vei/provenance
+vei/skillmap
 vei/workspace/api.py
 vei/run/api.py
 vei/run/models.py

@@ -2,11 +2,19 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
+from collections import Counter
 from pathlib import Path
 from typing import Iterable
 
-from vei.events.api import CanonicalEvent, ObjectRef, link_event_ids, typed_event_links
+from vei.events.api import (
+    CanonicalEvent,
+    ObjectRef,
+    link_event_ids,
+    malformed_event_links,
+    typed_event_links,
+)
 from vei.ingest.api import load_agent_activity_events
 
 from .models import (
@@ -21,6 +29,8 @@ from .models import (
     EvidenceQuality,
     PolicyReplayHit,
     PolicyReplayReport,
+    ProvenanceVerificationIssue,
+    ProvenanceVerificationReport,
     ProvenanceTimeline,
     TimelineItem,
 )
@@ -123,6 +133,10 @@ def inspect_timeline(events: Iterable[CanonicalEvent]) -> ProvenanceTimeline:
             warnings.append(
                 f"{event.event_id} is {granularity}; it is not per-call evidence"
             )
+        for malformed in malformed_event_links(_delta(event)):
+            warnings.append(
+                f"{event.event_id} has malformed typed link at index {malformed.get('index')}: {malformed.get('reason')}"
+            )
         items.append(
             TimelineItem(
                 event_id=event.event_id,
@@ -187,6 +201,7 @@ def build_activity_graph(events: Iterable[CanonicalEvent]) -> CompanyActivityGra
         event_node_id = f"event:{event.event_id}"
         add_node(event_node_id, "event", event.kind, event.event_id)
         actor_id = _event_actor_id(event)
+        tool_id = ""
         if actor_id:
             add_node(
                 actor_id,
@@ -210,7 +225,12 @@ def build_activity_graph(events: Iterable[CanonicalEvent]) -> CompanyActivityGra
         for ref in event.object_refs:
             object_id = f"object:{ref.domain}:{ref.kind}:{ref.object_id}"
             add_node(object_id, "object", ref.label or ref.object_id, event.event_id)
-            add_edge(tool_id or actor_id, object_id, "touched_object", event.event_id)
+            add_edge(
+                tool_id or actor_id or event_node_id,
+                object_id,
+                "touched_object",
+                event.event_id,
+            )
         if event.kind.startswith("governance."):
             policy_id = f"policy:{event.event_id}"
             add_node(
@@ -239,6 +259,10 @@ def build_activity_graph(events: Iterable[CanonicalEvent]) -> CompanyActivityGra
         granularity = _source_granularity(event)
         if granularity in {"aggregate", "audit_only"}:
             warnings.add(f"{granularity} evidence present; some links are coarse")
+        for malformed in malformed_event_links(_delta(event)):
+            warnings.add(
+                f"{event.event_id} malformed typed link at index {malformed.get('index')}: {malformed.get('reason')}"
+            )
 
     return CompanyActivityGraph(
         node_count=len(nodes),
@@ -288,11 +312,11 @@ def blast_radius(
         if event.event_id not in related_ids:
             continue
         qualities.append(evidence_quality(event))
-        refs = [ref.object_id for ref in event.object_refs]
+        object_ids = [ref.object_id for ref in event.object_refs]
         if event.kind.endswith(".read") or ".read" in event.kind:
-            read_objects.update(refs)
+            read_objects.update(object_ids)
         if event.kind.endswith(".written") or ".write" in event.kind:
-            written_objects.update(refs)
+            written_objects.update(object_ids)
         if event.kind.startswith("artifact."):
             artifacts.add(event.event_id)
         if event.kind.startswith("governance.policy."):
@@ -460,6 +484,7 @@ def build_evidence_pack(
     anchor_event_id: str | None = None,
     policy: dict | None = None,
     configured_agents: Iterable[dict] | None = None,
+    workspace: str | Path | None = None,
 ) -> EvidencePack:
     event_list = list(events)
     agents = agent_inventory(event_list, configured_agents=configured_agents)
@@ -487,13 +512,123 @@ def build_evidence_pack(
         warnings.update(blast.unknowns)
     if replay:
         warnings.update(replay.warnings)
+    verification = verify_provenance(workspace) if workspace is not None else None
+    if verification:
+        warnings.update(verification.warnings)
     return EvidencePack(
         timeline=inspect_timeline(event_list),
         agents=agents,
         access_reviews=reviews,
         blast_radius=blast,
         policy_replay=replay,
+        verification=verification,
         warnings=sorted(warnings),
+    )
+
+
+def verify_provenance(workspace: str | Path) -> ProvenanceVerificationReport:
+    workspace_path = Path(workspace).expanduser().resolve()
+    events_by_path = _read_events_by_path(workspace_path)
+    events = [event for event_list in events_by_path.values() for event in event_list]
+    issues: list[ProvenanceVerificationIssue] = []
+
+    id_counts = Counter(event.event_id for event in events)
+    duplicate_ids = sorted(
+        event_id for event_id, count in id_counts.items() if count > 1
+    )
+    for event_id in duplicate_ids:
+        issues.append(
+            ProvenanceVerificationIssue(
+                severity="error",
+                code="duplicate_event_id",
+                message=f"duplicate event_id {event_id}",
+                event_id=event_id,
+            )
+        )
+
+    event_ids = set(id_counts)
+    missing_links: set[str] = set()
+    for path, event_list in events_by_path.items():
+        for event in event_list:
+            expected_hash = event.compute_hash()
+            if event.hash and event.hash != expected_hash:
+                issues.append(
+                    ProvenanceVerificationIssue(
+                        severity="error",
+                        code="event_hash_mismatch",
+                        message="event hash does not match canonical payload",
+                        event_id=event.event_id,
+                        path=str(path),
+                    )
+                )
+            elif not event.hash:
+                issues.append(
+                    ProvenanceVerificationIssue(
+                        severity="warning",
+                        code="event_hash_missing",
+                        message="event has no stored hash",
+                        event_id=event.event_id,
+                        path=str(path),
+                    )
+                )
+            for malformed in malformed_event_links(_delta(event)):
+                issues.append(
+                    ProvenanceVerificationIssue(
+                        severity="warning",
+                        code="malformed_typed_link",
+                        message=str(malformed.get("reason", "malformed link")),
+                        event_id=event.event_id,
+                        path=str(path),
+                    )
+                )
+            for linked_event_id in _link_refs(event):
+                if linked_event_id not in event_ids:
+                    missing_links.add(linked_event_id)
+                    issues.append(
+                        ProvenanceVerificationIssue(
+                            severity="warning",
+                            code="missing_link_event",
+                            message=f"linked event {linked_event_id} was not found",
+                            event_id=event.event_id,
+                            path=str(path),
+                        )
+                    )
+            granularity = _source_granularity(event)
+            if granularity in {"aggregate", "audit_only"}:
+                issues.append(
+                    ProvenanceVerificationIssue(
+                        severity="info",
+                        code="coarse_evidence",
+                        message=f"{granularity} evidence is not per-call evidence",
+                        event_id=event.event_id,
+                        path=str(path),
+                    )
+                )
+
+    manifest_paths = sorted(
+        (workspace_path / "provenance" / "agent_activity").glob("*/*/manifest.json")
+    )
+    for manifest_path in manifest_paths:
+        issues.extend(_verify_manifest(manifest_path))
+
+    warnings = sorted(
+        {
+            issue.message
+            for issue in issues
+            if issue.severity in {"info", "warning", "error"} and issue.message
+        }
+    )
+    valid = not any(issue.severity == "error" for issue in issues)
+    return ProvenanceVerificationReport(
+        workspace=str(workspace_path),
+        event_count=len(events),
+        manifest_count=len(manifest_paths),
+        duplicate_event_ids=duplicate_ids,
+        missing_link_event_ids=sorted(missing_links),
+        valid=valid,
+        issue_count=len(issues),
+        issues=issues,
+        warnings=warnings,
     )
 
 
@@ -564,6 +699,128 @@ def _configured_access_by_agent(
         if agent_id:
             mapping[agent_id] = _configured_access_entries(agent)
     return mapping
+
+
+def _read_events_by_path(workspace: Path) -> dict[Path, list[CanonicalEvent]]:
+    paths: list[Path] = []
+    direct = workspace / "canonical_events.jsonl"
+    if direct.exists():
+        paths.append(direct)
+    workspace_direct = workspace / "workspace" / "canonical_events.jsonl"
+    if workspace_direct.exists():
+        paths.append(workspace_direct)
+    activity_root = workspace / "provenance" / "agent_activity"
+    if activity_root.exists():
+        paths.extend(sorted(activity_root.glob("*/*/canonical_events.jsonl")))
+
+    events_by_path: dict[Path, list[CanonicalEvent]] = {}
+    for path in paths:
+        events: list[CanonicalEvent] = []
+        with path.open("r", encoding="utf-8") as fh:
+            for line in fh:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    events.append(CanonicalEvent.model_validate_json(line))
+                except ValueError:
+                    events.append(CanonicalEvent.model_validate(json.loads(line)))
+        events_by_path[path] = events
+    return events_by_path
+
+
+def _verify_manifest(manifest_path: Path) -> list[ProvenanceVerificationIssue]:
+    issues: list[ProvenanceVerificationIssue] = []
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except (OSError, ValueError, TypeError) as exc:
+        return [
+            ProvenanceVerificationIssue(
+                severity="error",
+                code="manifest_unreadable",
+                message=f"cannot read manifest: {exc}",
+                path=str(manifest_path),
+            )
+        ]
+    events_path = manifest_path.parent / "canonical_events.jsonl"
+    events = _read_events_by_path(manifest_path.parent).get(events_path, [])
+    hashes = [event.hash for event in events]
+    expected_batch_hash = _stable_hash(hashes)
+    if manifest.get("batch_hash") and manifest.get("batch_hash") != expected_batch_hash:
+        issues.append(
+            ProvenanceVerificationIssue(
+                severity="error",
+                code="batch_hash_mismatch",
+                message="batch hash does not match canonical event hashes",
+                path=str(manifest_path),
+            )
+        )
+    if int(
+        manifest.get("batch_event_count") or manifest.get("event_count") or 0
+    ) != len(events):
+        issues.append(
+            ProvenanceVerificationIssue(
+                severity="error",
+                code="batch_event_count_mismatch",
+                message="manifest event count does not match canonical event file",
+                path=str(manifest_path),
+            )
+        )
+    previous_hash = _previous_batch_hash_for_manifest(manifest_path)
+    if manifest.get("previous_batch_hash", "") != previous_hash:
+        issues.append(
+            ProvenanceVerificationIssue(
+                severity="warning",
+                code="previous_batch_hash_mismatch",
+                message="previous batch hash does not match prior source manifest",
+                path=str(manifest_path),
+            )
+        )
+    manifest_hash = str(manifest.get("manifest_hash", ""))
+    if manifest_hash:
+        expected_manifest_hash = _stable_hash(
+            {key: value for key, value in manifest.items() if key != "manifest_hash"}
+        )
+        if manifest_hash != expected_manifest_hash:
+            issues.append(
+                ProvenanceVerificationIssue(
+                    severity="error",
+                    code="manifest_hash_mismatch",
+                    message="manifest hash does not match manifest payload",
+                    path=str(manifest_path),
+                )
+            )
+    else:
+        issues.append(
+            ProvenanceVerificationIssue(
+                severity="warning",
+                code="manifest_hash_missing",
+                message="manifest has no manifest_hash",
+                path=str(manifest_path),
+            )
+        )
+    return issues
+
+
+def _stable_hash(payload: object) -> str:
+    blob = json.dumps(payload, sort_keys=True, separators=(",", ":"), default=str)
+    return hashlib.sha256(blob.encode("utf-8")).hexdigest()
+
+
+def _previous_batch_hash_for_manifest(manifest_path: Path) -> str:
+    source_dir = manifest_path.parent.parent
+    previous = [
+        path
+        for path in sorted(source_dir.glob("*/manifest.json"))
+        if str(path.parent) < str(manifest_path.parent)
+    ]
+    if not previous:
+        return ""
+    try:
+        payload = json.loads(previous[-1].read_text(encoding="utf-8"))
+    except (OSError, ValueError, TypeError):
+        return ""
+    return str(payload.get("batch_hash") or payload.get("manifest_hash") or "")
 
 
 def replay_policy(

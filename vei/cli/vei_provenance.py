@@ -17,6 +17,7 @@ from vei.provenance.api import (
     load_workspace_events,
     provenance_actor_id,
     replay_policy,
+    verify_provenance,
 )
 
 app = typer.Typer(no_args_is_help=True, help="Inspect VEI Control provenance.")
@@ -92,6 +93,18 @@ def replay_policy_cmd(
     _echo(replay_policy(_events(workspace), policy=load_policy_file(policy)))
 
 
+@app.command("verify")
+def verify_cmd(
+    workspace: Path = typer.Option(..., help="VEI workspace root"),
+    format: str = typer.Option("json", help="json"),
+) -> None:
+    _validate_json_format(format)
+    report = verify_provenance(workspace)
+    _echo(report)
+    if not report.valid:
+        raise typer.Exit(code=1)
+
+
 @app.command("evidence-pack")
 def evidence_pack_cmd(
     workspace: Path = typer.Option(..., help="VEI workspace root"),
@@ -107,6 +120,7 @@ def evidence_pack_cmd(
             agent_id=agent_id,
             anchor_event_id=event_id,
             policy=load_policy_file(policy) if policy else None,
+            workspace=workspace,
         )
     )
 
@@ -120,7 +134,9 @@ def export(
     if format == "otel":
         payload = export_otel(_events(workspace))
     elif format == "evidence-pack":
-        payload = build_evidence_pack(_events(workspace)).model_dump(mode="json")
+        payload = build_evidence_pack(
+            _events(workspace), workspace=workspace
+        ).model_dump(mode="json")
     else:
         raise typer.BadParameter("only --format otel or evidence-pack is implemented")
     output.parent.mkdir(parents=True, exist_ok=True)

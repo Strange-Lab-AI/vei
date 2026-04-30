@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import tomllib
 from pathlib import Path
 
 from fastapi.testclient import TestClient
@@ -11,9 +12,12 @@ from vei.events.api import (
     ActorRef,
     CanonicalEvent,
     EventContext,
+    EventDomain,
     ExecutionPrincipal,
     ObjectRef,
+    StateDelta,
     WorkspaceEventStore,
+    build_event,
     build_llm_call_event,
     build_tool_call_event,
     extract_object_refs,
@@ -31,11 +35,13 @@ from vei.provenance.api import (
     blast_radius,
     build_activity_graph,
     build_evidence_pack,
+    verify_provenance,
 )
 from vei.provenance.api import replay_policy
 from vei.provenance.exporters.otel_genai import export_otel_genai
 from vei.router.api import create_router
 from vei.ui import api as ui_api
+import vei
 
 
 def test_provenance_event_builders_preserve_canonical_v1() -> None:
@@ -77,6 +83,11 @@ def test_provenance_event_builders_preserve_canonical_v1() -> None:
     assert llm.delta is not None
     assert "prompt_handle" in llm.delta.data
     assert "private prompt" not in llm.model_dump_json()
+
+
+def test_package_version_matches_pyproject() -> None:
+    payload = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
+    assert vei.__version__ == payload["project"]["version"]
 
 
 def test_agent_activity_jsonl_ingest_is_idempotent_and_reportable(
@@ -135,6 +146,108 @@ def test_workspace_event_store_reads_workspace_spine(tmp_path: Path) -> None:
     assert first.event_id == second.event_id
     assert len(events) == 1
     assert store.get(event.event_id) is not None
+
+
+def test_provenance_verify_reports_clean_manifest_chain(tmp_path: Path) -> None:
+    workspace = tmp_path / "workspace"
+    store = WorkspaceEventStore(workspace, source="unit", batch_id="batch-1")
+    store.append(
+        build_tool_call_event(
+            kind="tool.call.completed",
+            tool_name="docs.read",
+            source_id="unit",
+        )
+    )
+
+    report = verify_provenance(workspace)
+
+    assert report.valid
+    assert report.event_count == 1
+    assert report.manifest_count == 1
+    assert report.issue_count == 0
+
+
+def test_provenance_verify_checks_previous_batch_hash(tmp_path: Path) -> None:
+    workspace = tmp_path / "workspace"
+    first = WorkspaceEventStore(workspace, source="unit", batch_id="batch-1")
+    first.append(
+        build_tool_call_event(
+            kind="tool.call.completed",
+            tool_name="docs.read",
+            source_id="unit",
+        )
+    )
+    second = WorkspaceEventStore(workspace, source="unit", batch_id="batch-2")
+    second.append(
+        build_tool_call_event(
+            kind="tool.call.completed",
+            tool_name="mail.search",
+            source_id="unit",
+        )
+    )
+
+    clean = verify_provenance(workspace)
+    assert clean.valid
+    assert clean.manifest_count == 2
+    assert "previous_batch_hash_mismatch" not in {issue.code for issue in clean.issues}
+
+    manifest = json.loads(second.manifest_path.read_text(encoding="utf-8"))
+    manifest["previous_batch_hash"] = "tampered"
+    second.manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+
+    report = verify_provenance(workspace)
+    assert "previous_batch_hash_mismatch" in {issue.code for issue in report.issues}
+
+
+def test_provenance_verify_detects_manifest_tampering(tmp_path: Path) -> None:
+    workspace = tmp_path / "workspace"
+    store = WorkspaceEventStore(workspace, source="unit", batch_id="batch-1")
+    store.append(
+        build_tool_call_event(
+            kind="tool.call.completed",
+            tool_name="docs.read",
+            source_id="unit",
+        )
+    )
+    manifest = json.loads(store.manifest_path.read_text(encoding="utf-8"))
+    manifest["batch_hash"] = "tampered"
+    store.manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+
+    report = verify_provenance(workspace)
+
+    assert not report.valid
+    assert {issue.code for issue in report.issues} >= {
+        "batch_hash_mismatch",
+        "manifest_hash_mismatch",
+    }
+
+
+def test_provenance_verify_warns_on_malformed_and_missing_links(tmp_path: Path) -> None:
+    workspace = tmp_path / "workspace"
+    store = WorkspaceEventStore(workspace, source="unit", batch_id="links")
+    event = build_event(
+        domain=EventDomain.INTERNAL,
+        kind="artifact.created",
+        delta=StateDelta(
+            domain=EventDomain.INTERNAL,
+            data={
+                "links": [{"kind": "generated_from", "event_id": ""}, "bad-link"],
+                "link_refs": ["evt-missing"],
+            },
+        ),
+    )
+    store.append(event)
+
+    report = verify_provenance(workspace)
+    timeline = build_evidence_pack(
+        load_workspace_canonical_events(workspace), workspace=workspace
+    )
+
+    assert report.valid
+    assert "evt-missing" in report.missing_link_event_ids
+    assert "malformed_typed_link" in {issue.code for issue in report.issues}
+    assert timeline.verification is not None
+    assert timeline.verification.missing_link_event_ids == ["evt-missing"]
 
 
 def test_mcp_transcript_ingest_reconstructs_tool_call(tmp_path: Path) -> None:
@@ -461,6 +574,24 @@ def test_semantic_graph_and_blast_radius_use_typed_links() -> None:
     assert report.inferred == ["evt-completed completed_by evt-request"]
 
 
+def test_activity_graph_handles_object_ref_only_events() -> None:
+    event = build_event(
+        domain=EventDomain.DATA_GRAPH,
+        kind="data.object.read",
+        object_refs=[ObjectRef(object_id="doc-1", domain="doc_graph", kind="document")],
+    )
+
+    graph = build_activity_graph([event])
+
+    assert any(node.id == f"event:{event.event_id}" for node in graph.nodes)
+    assert any(
+        edge.source == f"event:{event.event_id}"
+        and edge.target == "object:doc_graph:document:doc-1"
+        and edge.kind == "touched_object"
+        for edge in graph.edges
+    )
+
+
 def test_object_ref_registry_connector_specific_mappings() -> None:
     refs = extract_object_refs(tool_name="slack.post_message", args={"channel": "C1"})
     refs += extract_object_refs(tool_name="jira.issue.update", args={"issue_id": "J1"})
@@ -566,6 +697,19 @@ def test_evidence_pack_cli_and_ui_routes(tmp_path: Path) -> None:
     )
     assert result.exit_code == 0, result.output
     assert "evidence_pack_v1" in result.output
+    result = runner.invoke(
+        app,
+        [
+            "provenance",
+            "verify",
+            "--workspace",
+            str(workspace),
+            "--format",
+            "json",
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    assert json.loads(result.output)["valid"] is True
 
     client = TestClient(ui_api.create_ui_app(workspace))
     assert client.get("/api/workspace/provenance/agents").status_code == 200
@@ -586,4 +730,35 @@ def test_evidence_pack_cli_and_ui_routes(tmp_path: Path) -> None:
     assert replay_response.json()["hit_count"] == 1
     pack_response = client.get("/api/workspace/provenance/evidence-pack")
     assert pack_response.status_code == 200
-    assert pack_response.json()["schema_version"] == "evidence_pack_v1"
+    pack_payload = pack_response.json()
+    assert pack_payload["schema_version"] == "evidence_pack_v1"
+    assert pack_payload["verification"]["valid"] is True
+
+
+def test_control_overview_is_light_and_task_routes_remain_available(
+    tmp_path: Path,
+) -> None:
+    workspace = tmp_path / "workspace"
+    store = WorkspaceEventStore(workspace, source="unit", batch_id="overview")
+    store.append(
+        build_tool_call_event(
+            kind="tool.call.completed",
+            tool_name="docs.read",
+            actor_ref=ActorRef(actor_id="agent-1"),
+            source_id="unit",
+        )
+    )
+    client = TestClient(ui_api.create_ui_app(workspace))
+
+    overview = client.get("/api/workspace/provenance/control")
+    agents = client.get("/api/workspace/provenance/agents")
+
+    assert overview.status_code == 200
+    payload = overview.json()
+    assert payload["event_count"] == 1
+    assert payload["agent_count"] == 1
+    assert "access_review" not in payload
+    assert "blast_radius" not in payload
+    assert "evidence_pack" not in payload
+    assert agents.status_code == 200
+    assert agents.json()["agents"][0]["agent_id"] == "agent-1"

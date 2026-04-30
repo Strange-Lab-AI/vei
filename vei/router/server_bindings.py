@@ -158,7 +158,7 @@ def register_vei_tools(
 
     @srv.tool(
         name="vei.skill_map",
-        description="Inspect the evidence-backed company skill map for the current world without mutating state",
+        description="Inspect session-observed skill-map evidence and gaps without mutating state; full LLM synthesis runs through the CLI",
     )
     def vei_skill_map(limit: int = 12) -> dict[str, Any]:
         return build_company_skill_map_from_session(

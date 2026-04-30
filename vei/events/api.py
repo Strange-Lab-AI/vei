@@ -11,7 +11,7 @@ from typing import Any, Dict, List, Optional
 
 from .legacy import _infer_domain as _legacy_infer_domain
 from .context import EventContext, ExecutionPrincipal
-from .links import EventLink, link_event_ids, typed_event_links
+from .links import EventLink, link_event_ids, malformed_event_links, typed_event_links
 from .models import (
     CaseRef,
     ObjectRef,
@@ -211,6 +211,7 @@ __all__ = [
     "extract_object_refs",
     "infer_domain",
     "link_event_ids",
+    "malformed_event_links",
     "spine_snapshot",
     "stable_event_id",
     "typed_event_links",

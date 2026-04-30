@@ -130,6 +130,27 @@ class PolicyReplayReport(BaseModel):
     warnings: list[str] = Field(default_factory=list)
 
 
+class ProvenanceVerificationIssue(BaseModel):
+    severity: str = "warning"
+    code: str
+    message: str
+    event_id: str = ""
+    path: str = ""
+
+
+class ProvenanceVerificationReport(BaseModel):
+    schema_version: str = "provenance_verification_v1"
+    workspace: str = ""
+    event_count: int = 0
+    manifest_count: int = 0
+    duplicate_event_ids: list[str] = Field(default_factory=list)
+    missing_link_event_ids: list[str] = Field(default_factory=list)
+    valid: bool = True
+    issue_count: int = 0
+    issues: list[ProvenanceVerificationIssue] = Field(default_factory=list)
+    warnings: list[str] = Field(default_factory=list)
+
+
 class EvidencePack(BaseModel):
     schema_version: str = "evidence_pack_v1"
     timeline: ProvenanceTimeline
@@ -137,6 +158,7 @@ class EvidencePack(BaseModel):
     access_reviews: list[AccessReviewReport] = Field(default_factory=list)
     blast_radius: BlastRadiusReport | None = None
     policy_replay: PolicyReplayReport | None = None
+    verification: ProvenanceVerificationReport | None = None
     warnings: list[str] = Field(default_factory=list)
 
 
