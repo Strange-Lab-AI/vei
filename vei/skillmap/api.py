@@ -8,7 +8,7 @@ import re
 import threading
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, Literal, cast
 
 from pydantic import BaseModel, Field
 
@@ -288,7 +288,7 @@ def build_company_skill_map_from_context_path(
         },
     )
     if include_replay:
-        replay_world = _load_replay_world(snapshot_path)
+        replay_world, replay_error = _load_replay_world(snapshot_path)
         if replay_world is not None:
             _attach_replay_results(skill_map, replay_world, limit=limit)
         else:
@@ -297,7 +297,10 @@ def build_company_skill_map_from_context_path(
                     gap_id="gap:replay_world_unavailable",
                     title="Replay world unavailable",
                     severity="warning",
-                    reason="The skill map could not load a historical what-if world for shadow replay.",
+                    reason=(
+                        "The skill map could not load a historical what-if world for shadow replay"
+                        + (f": {replay_error}" if replay_error else ".")
+                    ),
                     recommendation="Ensure the context bundle has canonical history sidecars before using replay scores for activation.",
                 )
             )
@@ -1957,10 +1960,10 @@ def _coerce_llm_skills(
             continue
         requested_mode = str(raw.get("execution_mode") or "shadow").strip()
         execution_mode: SkillExecutionMode = (
-            requested_mode
+            cast(SkillExecutionMode, requested_mode)
             if requested_mode in {"read_only", "shadow", "approval_gated"}
             else "shadow"
-        )  # type: ignore[assignment]
+        )
         has_write_step = any(not step.read_only for step in steps)
         if has_write_step:
             for step in steps:
@@ -2108,7 +2111,8 @@ def _coerce_llm_steps(raw_steps: Any, *, title: str) -> tuple[list[SkillStep], s
         requires_approval = bool(payload.get("requires_approval", False))
         if not read_only:
             requires_approval = True
-        args = payload.get("args") if isinstance(payload.get("args"), dict) else {}
+        raw_args = payload.get("args")
+        args = raw_args if isinstance(raw_args, dict) else {}
         steps.append(
             SkillStep(
                 step_id=_clean_llm_text(payload.get("step_id"), max_len=80)
@@ -2258,16 +2262,21 @@ def _build_map_gaps(
     return gaps
 
 
-def _load_replay_world(snapshot_path: Path) -> WhatIfWorld | None:
+def _load_replay_world(snapshot_path: Path) -> tuple[WhatIfWorld | None, str]:
     try:
-        return load_world(
-            source="company_history",
-            source_dir=snapshot_path,
-            include_content=False,
-            include_situation_graph=True,
+        return (
+            load_world(
+                source="company_history",
+                source_dir=snapshot_path,
+                include_content=False,
+                include_situation_graph=True,
+            ),
+            "",
         )
-    except Exception:  # noqa: BLE001
-        return None
+    except (FileNotFoundError, ValueError, OSError) as exc:
+        return None, str(exc)
+    except Exception as exc:  # noqa: BLE001 - preserve gap detail for replay setup
+        return None, f"{type(exc).__name__}: {exc}"
 
 
 def _attach_replay_results(

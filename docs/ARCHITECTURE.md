@@ -138,6 +138,10 @@ lightweight evidence-quality fields for source integrity, time, object, link,
 and identity confidence, so aggregate usage cannot masquerade as exact per-call
 evidence.
 
+`vei provenance verify` checks the local evidence chain before export: event
+hashes, duplicate IDs, batch and manifest hashes, previous-batch links,
+malformed typed links, missing referenced events, and coarse evidence warnings.
+
 The same spine also supports the JEPA/counterfactual path. Enron and public
 news timelines can be opened in Worlds/Research for learned counterfactual
 scoring or in Control for activity graph, blast radius, and policy replay.

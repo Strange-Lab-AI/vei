@@ -91,3 +91,26 @@ def typed_event_links(data: dict[str, Any]) -> list[EventLink]:
         except ValueError:
             continue
     return parsed
+
+
+def malformed_event_links(data: dict[str, Any]) -> list[dict[str, Any]]:
+    links = data.get("links")
+    if not isinstance(links, list):
+        return []
+    malformed: list[dict[str, Any]] = []
+    for index, item in enumerate(links):
+        if not isinstance(item, dict):
+            malformed.append({"index": index, "value": item, "reason": "not_object"})
+            continue
+        try:
+            link = EventLink.model_validate(item)
+        except ValueError as exc:
+            malformed.append(
+                {"index": index, "value": item, "reason": str(exc).splitlines()[0]}
+            )
+            continue
+        if not link.event_id:
+            malformed.append(
+                {"index": index, "value": item, "reason": "missing_event_id"}
+            )
+    return malformed

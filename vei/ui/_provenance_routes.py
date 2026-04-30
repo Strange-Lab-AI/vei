@@ -16,6 +16,7 @@ from vei.provenance.api import (
     inspect_timeline,
     load_workspace_events,
     replay_policy,
+    verify_provenance,
 )
 
 
@@ -27,39 +28,18 @@ def register_provenance_routes(app: FastAPI, workspace_root: Path) -> None:
         graph = build_activity_graph(events)
         configured_agents = _load_configured_agents(workspace_root)
         agents = agent_inventory(events, configured_agents=configured_agents)
-        selected_agent = agents[0].agent_id if agents else ""
-        selected_event = timeline.items[-1].event_id if timeline.items else ""
         return {
             "available": True,
             "event_count": timeline.event_count,
             "ingest": agent_activity_ingest_status(str(workspace_root)),
             "timeline": [item.model_dump(mode="json") for item in timeline.items[-20:]],
-            "graph": graph.model_dump(mode="json"),
-            "agents": [item.model_dump(mode="json") for item in agents],
-            "access_review": (
-                access_review(
-                    events,
-                    agent_id=selected_agent,
-                    configured_access=_configured_access_for(
-                        configured_agents, selected_agent
-                    ),
-                ).model_dump(mode="json")
-                if selected_agent
-                else None
-            ),
-            "blast_radius": (
-                blast_radius(events, anchor_event_id=selected_event).model_dump(
-                    mode="json"
-                )
-                if selected_event
-                else None
-            ),
-            "evidence_pack": build_evidence_pack(
-                events,
-                agent_id=selected_agent or None,
-                anchor_event_id=selected_event or None,
-                configured_agents=configured_agents,
-            ).model_dump(mode="json"),
+            "graph": {
+                "schema_version": graph.schema_version,
+                "node_count": graph.node_count,
+                "edge_count": graph.edge_count,
+                "warnings": graph.warnings,
+            },
+            "agent_count": len(agents),
             "warnings": timeline.warnings + graph.warnings,
         }
 
@@ -112,7 +92,12 @@ def register_provenance_routes(app: FastAPI, workspace_root: Path) -> None:
             agent_id=agent_id,
             anchor_event_id=event_id,
             configured_agents=configured_agents,
+            workspace=workspace_root,
         ).model_dump(mode="json")
+
+    @app.get("/api/workspace/provenance/verify")
+    def provenance_verify() -> dict:
+        return verify_provenance(workspace_root).model_dump(mode="json")
 
 
 def _load_configured_agents(workspace_root: Path) -> list[dict[str, Any]]:
