@@ -7,7 +7,7 @@ function publicDemoTopic() {
 }
 
 function publicDemoAsOf() {
-  return document.getElementById("public-demo-asof-input")?.value || "1837-09-06";
+  return document.getElementById("public-demo-asof-input")?.value || "1861-04-12";
 }
 
 const PUBLIC_DEMO_STOPWORDS = new Set([
@@ -113,7 +113,7 @@ function renderPublicDemo() {
     }
   }
   if (titleNode) {
-    titleNode.textContent = `Ask the public world as of ${(status.as_of || "1837-09-06").slice(0, 10)}`;
+    titleNode.textContent = `Ask the public world as of ${(status.as_of || "1861-04-12").slice(0, 10)}`;
   }
   summaryNode.textContent = source.summary || status.state_summary || "";
   cutoffNode.textContent = status.historical_cutoff || "Only pre-cutoff evidence is visible.";
@@ -195,7 +195,7 @@ function publicDemoTimelineRange(status, points) {
     source.first_timestamp ||
     points[0]?.timestamp ||
     status.as_of ||
-    "1837-09-06"
+    "1861-04-12"
   ).slice(0, 10);
   const end = (
     source.last_timestamp ||
@@ -226,7 +226,7 @@ function publicDemoDayOffset(start, value) {
 function publicDemoDateFromOffset(start, offset) {
   const startMs = publicDemoDateMs(start);
   if (!Number.isFinite(startMs)) {
-    return "1837-09-06";
+    return "1861-04-12";
   }
   return new Date(startMs + Number(offset || 0) * 86400000).toISOString().slice(0, 10);
 }

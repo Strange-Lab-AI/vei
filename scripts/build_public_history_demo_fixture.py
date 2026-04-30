@@ -13,9 +13,9 @@ from typing import Iterable
 
 from vei.whatif.api import WhatIfEvent, load_world
 
-DEFAULT_INPUT = Path("_vei_out/datasets/news_americanstories_1836_1838")
+DEFAULT_INPUT = Path("_vei_out/datasets/news_americanstories_1859_1865")
 DEFAULT_WORKSPACE = Path("docs/examples/news-public-history-demo/workspace")
-DEFAULT_AS_OF = "1837-09-06"
+DEFAULT_AS_OF = "1861-04-12"
 SOURCE_ID = "news_americanstories_public_world"
 
 TARGET_TOPIC_LABELS = {
@@ -49,8 +49,15 @@ NOISY_AD_TERMS = (
     "pills",
     "sarsapari",
     "goods",
+    "hair dye",
+    "piano",
+    "pills",
+    "remedies",
+    "sewing machine",
     "warehouse",
     "store",
+    "special notices",
+    "new advertisements",
     "valuable property",
 )
 
@@ -59,7 +66,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--input", type=Path, default=DEFAULT_INPUT)
     parser.add_argument("--workspace", type=Path, default=DEFAULT_WORKSPACE)
-    parser.add_argument("--max-events", type=int, default=1200)
+    parser.add_argument("--max-events", type=int, default=2400)
     parser.add_argument("--per-month-topic", type=int, default=4)
     args = parser.parse_args()
 
@@ -153,15 +160,16 @@ def write_context_snapshot(
             }
         )
 
+    captured_at = events[-1].timestamp if events else f"{DEFAULT_AS_OF}T00:00:00Z"
     payload = {
         "version": "1",
         "organization_name": "AmericanStories Historical News Demo",
         "organization_domain": "historical-news.local",
-        "captured_at": "1838-12-31T00:00:00Z",
+        "captured_at": captured_at,
         "sources": [
             {
                 "provider": "google",
-                "captured_at": "1838-12-31T00:00:00Z",
+                "captured_at": captured_at,
                 "status": "ok",
                 "record_counts": {"documents": len(docs)},
                 "data": {
@@ -191,8 +199,8 @@ def write_context_snapshot(
 
 
 def write_manifest(path: Path, events: list[WhatIfEvent]) -> None:
-    start_date = events[0].timestamp[:10] if events else "1836-01-01"
-    end_date = events[-1].timestamp[:10] if events else "1838-12-31"
+    start_date = events[0].timestamp[:10] if events else "1859-01-01"
+    end_date = events[-1].timestamp[:10] if events else "1865-12-31"
     start_year = start_date[:4]
     end_year = end_date[:4]
     range_label = start_year if start_year == end_year else f"{start_year}-{end_year}"
@@ -238,6 +246,22 @@ def _quality_score(event: WhatIfEvent) -> float:
             "president",
             "treasury",
             "war",
+            "civil war",
+            "lincoln",
+            "secession",
+            "confederate",
+            "confederacy",
+            "union army",
+            "fort sumter",
+            "emancipation",
+            "proclamation",
+            "blockade",
+            "battle",
+            "draft",
+            "conscription",
+            "greenback",
+            "gold",
+            "cotton",
             "foreign",
             "public",
             "market",
