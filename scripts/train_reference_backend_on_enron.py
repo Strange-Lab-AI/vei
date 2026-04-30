@@ -23,6 +23,7 @@ SHIPPED_REFERENCE_FILES = {
     "train_result.json",
     "eval_result.json",
     "metrics_card.md",
+    "metrics_card.json",
 }
 
 
@@ -95,6 +96,21 @@ def sanitize_shipped_reference_outputs(output_root: Path) -> None:
         _rewrite_json(candidate, _scrub_repo_local_paths(payload))
 
 
+def _write_metrics_card_json(*, output_root: Path, observed: dict[str, Any]) -> None:
+    payload = {
+        "schema_version": 1,
+        "factual_next_event_auroc": observed.get("auroc_any_external_spread"),
+        "factual_next_event_brier": observed.get("brier_any_external_spread"),
+        "calibration_ece": observed.get(
+            "calibration_error_any_external_spread",
+        ),
+    }
+    (output_root / "metrics_card.json").write_text(
+        json.dumps(payload, indent=2) + "\n",
+        encoding="utf-8",
+    )
+
+
 def _write_metrics_card(
     *,
     output_root: Path,
@@ -131,6 +147,7 @@ def _write_metrics_card(
         "\n".join(lines) + "\n",
         encoding="utf-8",
     )
+    _write_metrics_card_json(output_root=output_root, observed=observed)
 
 
 def _prune_output_root(output_root: Path, eval_result: dict[str, Any]) -> dict[str, Any]:

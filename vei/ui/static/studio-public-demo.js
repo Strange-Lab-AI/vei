@@ -475,7 +475,7 @@ function renderPublicDemoScore() {
   const displayCandidates = publicDemoDisplayCandidates(candidates);
   node.innerHTML = `
     <div class="public-demo-score-head">
-      <strong>Action test result</strong>
+      <strong>Action test result · JEPA + policy</strong>
       <span>${escapeHtml(publicDemoSourceLabel(score.scoring_source || "saved result"))}</span>
     </div>
     <div class="public-demo-score-list">

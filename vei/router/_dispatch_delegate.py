@@ -6,6 +6,7 @@ from vei.connectors import ConnectorInvocationError
 from vei.events.api import (
     ExecutionPrincipal,
     build_tool_call_event,
+    classify_tool_call_failure,
     extract_object_refs,
     stable_event_id,
 )
@@ -179,6 +180,7 @@ class RouterDispatch:
                     status="failed",
                     error=str(exc) or type(exc).__name__,
                     source_id=source_id,
+                    error_class=classify_tool_call_failure(exc),
                     link_refs=[requested_event.event_id],
                     links=[{"kind": "failed_by", "event_id": requested_event.event_id}],
                     context=context.model_copy(

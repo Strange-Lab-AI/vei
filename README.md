@@ -33,6 +33,9 @@ vei doctor
 vei quickstart run
 ```
 
+If your clone lives in a differently named folder (`digital-enterprise-twin`, a Git worktree,
+etc.), skip `cd vei` or replace it with `cd …` pointing at your checkout root—the tree layout is unchanged.
+
 `vei quickstart run` gives you a ready world to inspect:
 
 - Studio on `http://127.0.0.1:3011`

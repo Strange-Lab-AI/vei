@@ -8,7 +8,7 @@ VEI is a deterministic enterprise simulation and evaluation system. The same
 event spine supports the CLI, Studio UI, twin gateway, branch-point what-if
 experiments, company skill-map compilation, and learned world-model benchmarks.
 
-The practical job is usually one of four things:
+The practical job is usually one of five things:
 
 - run a deterministic enterprise scenario and score an agent
 - turn real historical records into a canonical timeline

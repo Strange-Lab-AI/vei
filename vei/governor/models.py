@@ -134,6 +134,47 @@ class GovernorEventResult(BaseModel):
     result: dict[str, Any] = Field(default_factory=dict)
 
 
+class Policy(BaseModel):
+    """Typed policy payload for provenance replay + simple rule paths."""
+
+    name: str = ""
+    deny_event_kinds: list[str] = Field(default_factory=list)
+    hold_tools: list[str] = Field(default_factory=list)
+    deny_source_granularities: list[str] = Field(default_factory=list)
+    governor_config: GovernorWorkspaceConfig | None = None
+    governor_agents: list[GovernorAgentSpec] = Field(default_factory=list)
+    connector_mode: str = ""
+
+    @classmethod
+    def from_legacy_dict(cls, payload: dict[str, Any]) -> Policy:
+        if not isinstance(payload, dict):
+            return cls()
+        gov = payload.get("governor") or {}
+        gov = gov if isinstance(gov, dict) else {}
+        cfg_raw = gov.get("config", payload.get("config"))
+        agents_raw = gov.get("agents", payload.get("agents"))
+        governor_config = (
+            GovernorWorkspaceConfig.model_validate(cfg_raw) if cfg_raw else None
+        )
+        agents_list: list[GovernorAgentSpec] = []
+        if isinstance(agents_raw, list):
+            for item in agents_raw:
+                agents_list.append(GovernorAgentSpec.model_validate(item))
+        return cls(
+            name=str(payload.get("name", "") or ""),
+            deny_event_kinds=[str(x) for x in (payload.get("deny_event_kinds") or [])],
+            hold_tools=[str(x) for x in (payload.get("hold_tools") or [])],
+            deny_source_granularities=[
+                str(x) for x in (payload.get("deny_source_granularities") or [])
+            ],
+            governor_config=governor_config,
+            governor_agents=agents_list,
+            connector_mode=str(
+                gov.get("connector_mode") or payload.get("connector_mode") or ""
+            ).strip(),
+        )
+
+
 class GovernorRecentEvent(BaseModel):
     event_id: str | None = None
     agent_id: str

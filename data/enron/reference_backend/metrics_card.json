@@ -1,0 +1,6 @@
+{
+  "schema_version": 1,
+  "factual_next_event_auroc": 0.787817,
+  "factual_next_event_brier": 0.332025,
+  "calibration_ece": 0.373951
+}

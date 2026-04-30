@@ -45,6 +45,14 @@ jobs:
         if: github.event_name != 'pull_request'
         run: make test-full
 
+      - name: Dynamics eval pull request
+        if: github.event_name == 'pull_request'
+        run: make dynamics-eval
+
+      - name: Dynamics eval full
+        if: github.event_name != 'pull_request'
+        run: make dynamics-eval
+
       - name: LLM Live
         if: github.event_name != 'pull_request'
         env:

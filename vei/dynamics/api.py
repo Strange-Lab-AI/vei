@@ -134,6 +134,43 @@ def _auto_register() -> None:
     except Exception:
         pass
 
+    try:
+        from vei.dynamics.backends.external_subprocess import (
+            ExternalSubprocessBackend,
+        )
+
+        class AutoExternalSubprocessBackend(ExternalSubprocessBackend):
+            """Subprocess dynamics adapter wired from env unless overridden."""
+
+            def __init__(
+                self,
+                *,
+                executable: str | None = None,
+                args: list[str] | None = None,
+                **kwargs: Any,
+            ) -> None:
+                import os
+
+                resolved_exe = (
+                    str(executable or "").strip()
+                    or os.environ.get("VEI_EXTERNAL_DYNAMICS_EXECUTABLE", "").strip()
+                ).strip()
+                args_env_raw = os.environ.get("VEI_EXTERNAL_DYNAMICS_ARGS", "").strip()
+                resolved_args = args
+                if resolved_args is None and args_env_raw:
+                    resolved_args = args_env_raw.split()
+                kwargs.pop("executable", None)
+                kwargs.pop("args", None)
+                super().__init__(
+                    executable=resolved_exe or "__VEI_EXTERNAL_DYNAMICS_UNCONFIGURED__",
+                    args=resolved_args,
+                    **kwargs,
+                )
+
+        register_backend("external_subprocess", AutoExternalSubprocessBackend)
+    except Exception:
+        pass
+
 
 _auto_register()
 

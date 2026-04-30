@@ -6,15 +6,18 @@ import hashlib
 import json
 from collections import Counter
 from pathlib import Path
-from typing import Iterable
+from typing import Any, Iterable
 
 from vei.events.api import (
     CanonicalEvent,
+    canonical_event_paths,
+    load_canonical_events_jsonl,
     ObjectRef,
     link_event_ids,
     malformed_event_links,
     typed_event_links,
 )
+from vei.governor.api import Policy, replay_policy_with_evaluator
 from vei.ingest.api import load_agent_activity_events
 
 from .models import (
@@ -702,30 +705,9 @@ def _configured_access_by_agent(
 
 
 def _read_events_by_path(workspace: Path) -> dict[Path, list[CanonicalEvent]]:
-    paths: list[Path] = []
-    direct = workspace / "canonical_events.jsonl"
-    if direct.exists():
-        paths.append(direct)
-    workspace_direct = workspace / "workspace" / "canonical_events.jsonl"
-    if workspace_direct.exists():
-        paths.append(workspace_direct)
-    activity_root = workspace / "provenance" / "agent_activity"
-    if activity_root.exists():
-        paths.extend(sorted(activity_root.glob("*/*/canonical_events.jsonl")))
-
     events_by_path: dict[Path, list[CanonicalEvent]] = {}
-    for path in paths:
-        events: list[CanonicalEvent] = []
-        with path.open("r", encoding="utf-8") as fh:
-            for line in fh:
-                line = line.strip()
-                if not line:
-                    continue
-                try:
-                    events.append(CanonicalEvent.model_validate_json(line))
-                except ValueError:
-                    events.append(CanonicalEvent.model_validate(json.loads(line)))
-        events_by_path[path] = events
+    for path in canonical_event_paths(workspace):
+        events_by_path[path] = load_canonical_events_jsonl(path)
     return events_by_path
 
 
@@ -826,17 +808,18 @@ def _previous_batch_hash_for_manifest(manifest_path: Path) -> str:
 def replay_policy(
     events: Iterable[CanonicalEvent],
     *,
-    policy: dict,
+    policy: dict[str, Any] | Policy,
 ) -> PolicyReplayReport:
     event_list = list(events)
-    evaluator_report = _replay_with_policy_evaluator(event_list, policy)
+    pol = policy if isinstance(policy, Policy) else Policy.from_legacy_dict(policy)
+
+    evaluator_report = replay_policy_with_evaluator(event_list, pol)
     if evaluator_report is not None:
         return evaluator_report
-    denied_kinds = {str(item) for item in policy.get("deny_event_kinds", [])}
-    hold_tools = {str(item) for item in policy.get("hold_tools", [])}
-    deny_granularities = {
-        str(item) for item in policy.get("deny_source_granularities", [])
-    }
+
+    denied_kinds = {str(item) for item in pol.deny_event_kinds}
+    hold_tools = {str(item) for item in pol.hold_tools}
+    deny_granularities = {str(item) for item in pol.deny_source_granularities}
     hits: list[PolicyReplayHit] = []
     for event in event_list:
         replay_decision = ""
@@ -863,89 +846,10 @@ def replay_policy(
                 )
             )
     return PolicyReplayReport(
-        policy_name=str(policy.get("name", "")),
+        policy_name=pol.name,
         event_count=len(event_list),
         hit_count=len(hits),
         hits=hits,
-    )
-
-
-def _replay_with_policy_evaluator(
-    events: list[CanonicalEvent],
-    policy: dict,
-) -> PolicyReplayReport | None:
-    governor_policy = policy.get("governor") or {}
-    if not isinstance(governor_policy, dict):
-        return None
-    config_payload = governor_policy.get("config", policy.get("config"))
-    agents_payload = governor_policy.get("agents", policy.get("agents"))
-    if not config_payload and not agents_payload:
-        return None
-
-    from vei.governor import (
-        GovernorAgentSpec,
-        GovernorIngestEvent,
-        GovernorWorkspaceConfig,
-        resolve_governor_policy_profile,
-    )
-    from vei.twin.api import PolicyEvaluator
-
-    config = GovernorWorkspaceConfig.model_validate(config_payload or {})
-    connector_mode = str(
-        governor_policy.get("connector_mode")
-        or policy.get("connector_mode")
-        or config.connector_mode
-    )
-    agents: dict[str, GovernorAgentSpec] = {}
-    for item in agents_payload or []:
-        agent = GovernorAgentSpec.model_validate(item)
-        agent.resolved_policy_profile = resolve_governor_policy_profile(
-            agent.policy_profile_id
-        )
-        agents[agent.agent_id] = agent
-
-    evaluator = PolicyEvaluator(config=config, connector_mode=connector_mode)
-    hits: list[PolicyReplayHit] = []
-    warnings: set[str] = set()
-    for event in events:
-        if not event.kind.startswith("tool.call."):
-            continue
-        data = _delta(event)
-        tool_name = str(data.get("tool_name", ""))
-        if not tool_name:
-            continue
-        agent_id = _event_actor_id(event) or str(_context(event).get("agent_id", ""))
-        if not agent_id:
-            warnings.add(f"{event.event_id}: cannot reconstruct agent identity")
-            continue
-        agent = agents.get(agent_id)
-        if agent is None:
-            warnings.add(f"{event.event_id}: no replay agent config for {agent_id}")
-            continue
-        replay_event = GovernorIngestEvent(
-            event_id=event.event_id,
-            agent_id=agent_id,
-            external_tool=tool_name,
-            resolved_tool=tool_name,
-            args=dict(data.get("args") or {}),
-        )
-        evaluation = evaluator.evaluate(event=replay_event, agent=agent)
-        if evaluation.decision != "allow":
-            hits.append(
-                PolicyReplayHit(
-                    event_id=event.event_id,
-                    original_decision=str(data.get("decision", "")),
-                    replay_decision=evaluation.decision,
-                    reason=evaluation.reason or evaluation.reason_code,
-                    event_kind=event.kind,
-                )
-            )
-    return PolicyReplayReport(
-        policy_name=str(policy.get("name", "")),
-        event_count=len(events),
-        hit_count=len(hits),
-        hits=hits,
-        warnings=sorted(warnings),
     )
 
 

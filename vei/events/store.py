@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Iterable, Protocol, runtime_checkable
 
 from .models import CanonicalEvent
+from .paths import canonical_event_paths, load_canonical_events_jsonl
 
 
 @runtime_checkable
@@ -73,8 +74,8 @@ class WorkspaceEventStore:
 
     def query(self) -> list[CanonicalEvent]:
         events: list[CanonicalEvent] = []
-        for path in _canonical_event_paths(self.workspace):
-            events.extend(_read_events(path))
+        for path in canonical_event_paths(self.workspace):
+            events.extend(load_canonical_events_jsonl(path))
         return events
 
     def get(self, event_id: str) -> CanonicalEvent | None:
@@ -89,7 +90,11 @@ class WorkspaceEventStore:
         return self._known_event_ids
 
     def _write_manifest(self) -> None:
-        events = _read_events(self.events_path) if self.events_path.exists() else []
+        events = (
+            load_canonical_events_jsonl(self.events_path)
+            if self.events_path.exists()
+            else []
+        )
         ts_values = [event.ts_ms for event in events if event.ts_ms]
         source_hashes = [event.hash for event in events]
         previous_batch_hash = _previous_batch_hash(self.batch_dir)
@@ -109,35 +114,6 @@ class WorkspaceEventStore:
         }
         payload["manifest_hash"] = _stable_hash(payload)
         self.manifest_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
-
-
-def _read_events(path: Path) -> list[CanonicalEvent]:
-    events: list[CanonicalEvent] = []
-    with path.open("r", encoding="utf-8") as fh:
-        for line in fh:
-            line = line.strip()
-            if not line:
-                continue
-            try:
-                events.append(CanonicalEvent.model_validate_json(line))
-            except ValueError:
-                events.append(CanonicalEvent.model_validate(json.loads(line)))
-    return events
-
-
-def _canonical_event_paths(workspace: str | Path) -> list[Path]:
-    root = Path(workspace).expanduser().resolve()
-    paths: list[Path] = []
-    direct = root / "canonical_events.jsonl"
-    if direct.exists():
-        paths.append(direct)
-    workspace_direct = root / "workspace" / "canonical_events.jsonl"
-    if workspace_direct.exists():
-        paths.append(workspace_direct)
-    activity_root = root / "provenance" / "agent_activity"
-    if activity_root.exists():
-        paths.extend(sorted(activity_root.glob("*/*/canonical_events.jsonl")))
-    return paths
 
 
 def _stable_hash(payload: object) -> str:

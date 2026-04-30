@@ -83,7 +83,9 @@ def test_skill_map_requires_llm_credentials_when_building_context_bundle(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     snapshot_path = _write_skillmap_snapshot(tmp_path)
-    monkeypatch.setattr("vei.skillmap.api._llm_available", lambda provider: False)
+    monkeypatch.setattr(
+        "vei.skillmap.skill_pipeline._llm_available", lambda provider: False
+    )
 
     with pytest.raises(
         RuntimeError, match="deterministic skill extraction is disabled"
@@ -366,9 +368,11 @@ def _patch_skillmap_llm(monkeypatch: pytest.MonkeyPatch) -> None:
         )
 
     monkeypatch.setattr(
-        "vei.skillmap.api.plan_once_with_usage", fake_plan_once_with_usage
+        "vei.skillmap.skill_pipeline.plan_once_with_usage", fake_plan_once_with_usage
     )
-    monkeypatch.setattr("vei.skillmap.api._llm_available", lambda provider: True)
+    monkeypatch.setattr(
+        "vei.skillmap.skill_pipeline._llm_available", lambda provider: True
+    )
 
 
 def _write_skillmap_snapshot(tmp_path: Path) -> Path:

@@ -558,7 +558,7 @@ def _predict_payloads(
     model.eval()
     checkpoint_id = _file_sha256(checkpoint_path)
 
-    encoded_rows = [preprocessor.encode_row(row) for row in rows]
+    encoded_rows = [preprocessor.encode_row_for_predict(row) for row in rows]
     predictions = predict_rows(
         model=model,
         rows=encoded_rows,
@@ -900,6 +900,14 @@ class BenchmarkPreprocessor:
             future_state_target=self._encode_future_state(row.observed_future_state),
             row=row,
         )
+
+    def encode_row_for_predict(self, row: WhatIfBenchmarkDatasetRow) -> _RowEncoding:
+        """Encode a row through the predictor path — labels stripped only for ``heldout``."""
+        assert row.split == "heldout", (
+            "predict-time encoding requires split='heldout' to omit labels;"
+            f" got split={row.split!r}"
+        )
+        return self.encode_row(row)
 
     def encode_counterfactual(
         self,

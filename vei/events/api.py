@@ -7,6 +7,7 @@ Other modules should import from here:
 from __future__ import annotations
 
 import logging
+import warnings
 from typing import Any, Dict, List, Optional
 
 from .legacy import _infer_domain as _legacy_infer_domain
@@ -25,6 +26,7 @@ from .models import (
     StateDelta,
 )
 from .object_refs import extract_object_refs, parse_object_refs
+from .paths import canonical_event_paths, load_canonical_events_jsonl
 from .store import CanonicalEventSink, CanonicalEventStore, WorkspaceEventStore
 
 _BOUNDARY_EXPORTS = (
@@ -50,10 +52,30 @@ def infer_domain(kind: str, payload: dict) -> EventDomain:
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
-# Module-level spine (in-process collector; replaced by ingest layer later)
+# Module-level spine (in-process collector; durable evidence uses JSONL stores)
 # ---------------------------------------------------------------------------
 
 _spine: List[CanonicalEvent] = []
+_IN_PROCESS_SPINE_ENABLED = True
+
+
+def disable_spine() -> None:
+    """Stop recording into the in-process spine and clear any buffered events.
+
+    Durable workspace timelines use :class:`WorkspaceEventStore` or ingest
+    JSONL; the module spine is a dev/test scratchpad only.
+    """
+
+    global _IN_PROCESS_SPINE_ENABLED
+    _IN_PROCESS_SPINE_ENABLED = False
+    _spine.clear()
+
+
+def enable_spine() -> None:
+    """Re-enable the in-process spine (default on import)."""
+
+    global _IN_PROCESS_SPINE_ENABLED
+    _IN_PROCESS_SPINE_ENABLED = True
 
 
 def emit_event(
@@ -62,8 +84,10 @@ def emit_event(
     sink: Optional[CanonicalEventSink] = None,
 ) -> CanonicalEvent:
     """Append a canonical event to the compatibility spine and optional sink."""
+
     hashed = event.with_hash()
-    _spine.append(hashed)
+    if _IN_PROCESS_SPINE_ENABLED:
+        _spine.append(hashed)
     if sink is not None:
         sink.append(hashed)
     return hashed
@@ -78,6 +102,16 @@ def drain_spine() -> List[CanonicalEvent]:
 
 def spine_snapshot() -> List[CanonicalEvent]:
     """Return a snapshot without clearing."""
+
+    if not _IN_PROCESS_SPINE_ENABLED:
+        warnings.warn(
+            (
+                "in-process spine is disabled; snapshots are empty. "
+                "Use workspace JSONL or WorkspaceEventStore for durable timelines."
+            ),
+            DeprecationWarning,
+            stacklevel=2,
+        )
     return list(_spine)
 
 
@@ -158,7 +192,9 @@ from .llm_calls import (  # noqa: E402
     emit_llm_usage_observed,
 )
 from .tool_calls import (  # noqa: E402
+    ToolCallErrorClass,
     build_tool_call_event,
+    classify_tool_call_failure,
     emit_tool_completed,
     emit_tool_failed,
     emit_tool_requested,
@@ -182,11 +218,15 @@ __all__ = [
     "ProvenanceRecord",
     "StateDelta",
     "TextHandle",
+    "ToolCallErrorClass",
     "WorkspaceEventStore",
     "build_event",
     "build_llm_call_event",
     "build_llm_usage_observed",
     "build_tool_call_event",
+    "canonical_event_paths",
+    "classify_tool_call_failure",
+    "disable_spine",
     "drain_spine",
     "emit_agent_identity_resolved",
     "emit_agent_session_closed",
@@ -208,9 +248,11 @@ __all__ = [
     "emit_tool_completed",
     "emit_tool_failed",
     "emit_tool_requested",
+    "enable_spine",
     "extract_object_refs",
     "infer_domain",
     "link_event_ids",
+    "load_canonical_events_jsonl",
     "malformed_event_links",
     "spine_snapshot",
     "stable_event_id",

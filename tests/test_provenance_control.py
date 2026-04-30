@@ -38,6 +38,7 @@ from vei.provenance.api import (
     verify_provenance,
 )
 from vei.provenance.api import replay_policy
+from vei.governor.models import Policy
 from vei.provenance.exporters.otel_genai import export_otel_genai
 from vei.router.api import create_router
 from vei.ui import api as ui_api
@@ -382,6 +383,20 @@ def test_router_dispatch_emits_tool_events() -> None:
     assert "tool.call.completed" in {event.kind for event in events}
 
 
+def test_router_dispatch_unknown_tool_failed_event_has_error_class() -> None:
+    drain_spine()
+    router = create_router(seed=1)
+    try:
+        router.call_and_step("slack.tool_that_does_not_exist_vei_test", {})
+    except Exception:
+        pass
+    events = drain_spine()
+    failed = [e for e in events if e.kind == "tool.call.failed"]
+    assert failed, "expected failed tool event"
+    err_class = (failed[0].delta.data or {}).get("error_class")
+    assert err_class in {"validation", "permission", "infra", "unknown", "timeout"}
+
+
 def test_router_dispatch_persists_workspace_events(tmp_path: Path) -> None:
     drain_spine()
     router = create_router(seed=1, artifacts_dir=str(tmp_path))
@@ -425,6 +440,31 @@ def test_policy_replay_uses_policy_evaluator_when_reconstructable() -> None:
     assert report.hit_count == 1
     assert report.hits[0].replay_decision == "deny"
     assert "surface" in report.hits[0].reason
+
+
+def test_policy_replay_accepts_policy_model() -> None:
+    event = build_tool_call_event(
+        kind="tool.call.requested",
+        tool_name="docs.read",
+        actor_ref=ActorRef(actor_id="agent-1"),
+        source_id="unit",
+    )
+    raw = {
+        "name": "surface-lockdown",
+        "governor": {
+            "config": {"connector_mode": "sim"},
+            "agents": [
+                {
+                    "agent_id": "agent-1",
+                    "name": "Agent One",
+                    "allowed_surfaces": ["mail"],
+                }
+            ],
+        },
+    }
+    report = replay_policy([event], policy=Policy.from_legacy_dict(raw))
+    assert report.hit_count == 1
+    assert report.hits[0].replay_decision == "deny"
 
 
 def test_otel_export_preserves_vei_ids() -> None:

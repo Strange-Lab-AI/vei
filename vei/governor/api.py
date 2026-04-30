@@ -7,10 +7,14 @@ from ._config import (
 )
 from ._demo import default_service_ops_demo_agents, default_service_ops_demo_steps
 from ._runtime import GovernorRuntime, GovernorTarget
+from .models import Policy
+from .policy_replay import replay_policy_with_evaluator
 
 __all__ = [
     "GovernorRuntime",
     "GovernorTarget",
+    "Policy",
+    "replay_policy_with_evaluator",
     "default_governor_workspace_config",
     "default_service_ops_demo_agents",
     "default_service_ops_demo_steps",

@@ -9,6 +9,7 @@ import pytest
 
 from vei.dynamics.api import (
     DynamicsBackend,
+    ensure_builtin_backends_registered,
     get_backend,
     list_backends,
     register_backend,
@@ -258,3 +259,44 @@ class TestReferenceBackend:
         assert response.state_delta_summary["model_id"] == "ft_transformer"
         assert "evidence_heads" in response.state_delta_summary
         assert response.predicted_events
+
+    def test_loads_calibration_metrics_from_sidecar(
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        checkpoint_path = tmp_path / "reference-model.pt"
+        checkpoint_path.write_bytes(b"placeholder")
+        sidecar = {
+            "schema_version": 1,
+            "factual_next_event_auroc": 0.555555,
+            "calibration_ece": 0.123456,
+        }
+        (checkpoint_path.parent / "metrics_card.json").write_text(
+            json.dumps(sidecar),
+            encoding="utf-8",
+        )
+
+        monkeypatch.setattr(
+            "vei.dynamics.backends.reference.run_branch_point_benchmark_prediction",
+            _reference_prediction_stub,
+        )
+        backend = ReferenceBackend(checkpoint_path=str(checkpoint_path))
+        response = backend.forecast(DynamicsRequest(seed=42))
+
+        assert response.calibration.auroc == pytest.approx(0.555555)
+        assert response.calibration.ece == pytest.approx(0.123456)
+
+
+class TestExternalSubprocessRegistry:
+    """``external_subprocess`` is auto-registered alongside other built-ins."""
+
+    def test_list_includes_external_stub(self) -> None:
+        reset_registry()
+        ensure_builtin_backends_registered()
+        names = sorted(list_backends().keys())
+        try:
+            assert "external_subprocess" in names
+        finally:
+            reset_registry()
+            ensure_builtin_backends_registered()

@@ -3,6 +3,7 @@ from .api import (
     GovernorTarget,
     default_governor_workspace_config,
     governor_policy_profiles,
+    replay_policy_with_evaluator,
     resolve_governor_policy_profile,
     default_service_ops_demo_agents,
     default_service_ops_demo_steps,
@@ -10,6 +11,7 @@ from .api import (
     governor_metadata_payload,
 )
 from .models import (
+    Policy,
     GovernorActionPlan,
     GovernorApprovalRule,
     GovernorAgentSpec,
@@ -25,6 +27,8 @@ from .models import (
 
 __all__ = [
     "GovernorAgentSpec",
+    "Policy",
+    "replay_policy_with_evaluator",
     "GovernorActionPlan",
     "GovernorApprovalRule",
     "GovernorConnectorStatus",

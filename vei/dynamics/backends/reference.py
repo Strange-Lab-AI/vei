@@ -9,8 +9,10 @@ result.
 from __future__ import annotations
 
 import hashlib
+import json
 import logging
 import os
+import re
 from pathlib import Path
 from typing import Any, Sequence
 
@@ -44,6 +46,71 @@ from vei.whatif.api import (
 from vei.whatif.api import run_branch_point_benchmark_prediction
 
 logger = logging.getLogger(__name__)
+
+
+def _load_calibration(checkpoint_dir: Path) -> CalibrationMetrics:
+    """Hydrate CalibrationMetrics from ``metrics_card.json`` or Markdown sidecar."""
+
+    json_path = checkpoint_dir / "metrics_card.json"
+    if json_path.is_file():
+        try:
+            payload = json.loads(json_path.read_text(encoding="utf-8"))
+            return CalibrationMetrics(
+                auroc=_maybe_float(payload.get("factual_next_event_auroc")),
+                ece=_maybe_float(payload.get("calibration_ece")),
+                interval_coverage=_maybe_float(payload.get("interval_coverage")),
+            )
+        except (OSError, ValueError, json.JSONDecodeError):
+            logger.warning(
+                "reference_calibration_sidecar_bad_json",
+                extra={"path": str(json_path)},
+            )
+
+    md_path = checkpoint_dir / "metrics_card.md"
+    if md_path.is_file():
+        try:
+            return _calibration_from_metrics_md(
+                md_path.read_text(encoding="utf-8"),
+            )
+        except OSError:
+            pass
+
+    logger.debug(
+        "reference_calibration_sidecar_missing",
+        extra={"dir": str(checkpoint_dir)},
+    )
+    return CalibrationMetrics()
+
+
+def _maybe_float(raw: object) -> float | None:
+    if raw is None:
+        return None
+    try:
+        return float(str(raw))
+    except (TypeError, ValueError):
+        return None
+
+
+def _calibration_from_metrics_md(markdown_body: str) -> CalibrationMetrics:
+    auroc = _extract_metric_float(
+        markdown_body,
+        r"Factual next-event AUROC:\s*`([0-9.eE+-]+)`",
+    )
+    ece = _extract_metric_float(markdown_body, r"Calibration ECE:\s*`([0-9.eE+-]+)`")
+    return CalibrationMetrics(
+        auroc=auroc,
+        ece=ece,
+        interval_coverage=None,
+    )
+
+
+def _extract_metric_float(text: str, pattern: str) -> float | None:
+    matched = re.search(pattern, text)
+    if not matched:
+        return None
+    return _maybe_float(matched.group(1))
+
+
 _DEFAULT_REFERENCE_CHECKPOINT = (
     Path(__file__).resolve().parents[3]
     / "data"
@@ -108,6 +175,8 @@ class ReferenceBackend:
             prediction["evidence_heads"]
         )
         binary_probability = float(prediction["binary_probability"])
+        calibration = _load_calibration(loaded["checkpoint_path"].resolve().parent)
+
         business_heads = self._business_heads_from_evidence(evidence_heads)
         predicted_events = self._predicted_events(
             request.recent_events,
@@ -123,7 +192,7 @@ class ReferenceBackend:
                 business_heads,
                 action_text=self._action_text(request),
             ),
-            calibration=CalibrationMetrics(),
+            calibration=calibration,
             state_delta_summary={
                 "model_id": str(prediction.get("model_id", "reference")),
                 "checkpoint_path": str(loaded["checkpoint_path"]),

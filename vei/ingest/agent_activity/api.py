@@ -10,7 +10,11 @@ from typing import Any, Iterable, Protocol, runtime_checkable
 
 from pydantic import BaseModel, Field
 
-from vei.events.api import CanonicalEvent
+from vei.events.api import (
+    CanonicalEvent,
+    canonical_event_paths,
+    load_canonical_events_jsonl,
+)
 
 
 class RawAgentActivity(BaseModel):
@@ -71,33 +75,11 @@ def _agent_activity_root(workspace: str | Path) -> Path:
     return Path(workspace).expanduser().resolve() / "provenance" / "agent_activity"
 
 
-def _canonical_event_paths(workspace: str | Path) -> list[Path]:
-    root = Path(workspace).expanduser().resolve()
-    paths: list[Path] = []
-    direct = root / "canonical_events.jsonl"
-    if direct.exists():
-        paths.append(direct)
-    for path in sorted((root / "workspace").glob("canonical_events.jsonl")):
-        paths.append(path)
-    activity_root = _agent_activity_root(root)
-    if activity_root.exists():
-        paths.extend(sorted(activity_root.glob("*/*/canonical_events.jsonl")))
-    return paths
-
-
 def load_workspace_canonical_events(workspace: str | Path) -> list[CanonicalEvent]:
     events: list[CanonicalEvent] = []
-    for path in _canonical_event_paths(workspace):
-        with path.open("r", encoding="utf-8") as fh:
-            for line in fh:
-                line = line.strip()
-                if not line:
-                    continue
-                try:
-                    events.append(CanonicalEvent.model_validate_json(line))
-                except ValueError:
-                    payload = json.loads(line)
-                    events.append(CanonicalEvent.model_validate(payload))
+    workspace_path = Path(workspace).expanduser().resolve()
+    for path in canonical_event_paths(workspace_path):
+        events.extend(load_canonical_events_jsonl(path))
     return events
 
 

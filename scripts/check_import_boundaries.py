@@ -41,6 +41,7 @@ PUBLIC_MODULE_SURFACES = {
 CROSS_BOUNDARY_ALLOWED = {
     ("dynamics", "whatif", "benchmark_bridge"),
     ("ui", "whatif", "artifact_validation"),
+    ("governor", "provenance", "models"),
 }
 
 

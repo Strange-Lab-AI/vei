@@ -203,6 +203,48 @@ def test_reference_runtime_scratch_defaults_to_vei_out(tmp_path: Path) -> None:
     assert runtime_root != checkpoint.parent
 
 
+def test_benchmark_preprocessor_predict_encoding_requires_heldout_split() -> None:
+    """Predict path must refuse training rows whose labels leak into tensors."""
+
+    from vei.whatif.benchmark_bridge import (
+        BenchmarkPreprocessor,
+        _EVIDENCE_TARGET_NAMES,
+    )
+
+    preprocessor = BenchmarkPreprocessor(
+        summary_feature_names=["history_event_count"],
+        summary_mean=[0.0],
+        summary_std=[1.0],
+        action_tag_names=["hold"],
+        event_type_names=["__summary__", "message"],
+        target_mean=[0.0] * len(_EVIDENCE_TARGET_NAMES),
+        target_std=[1.0] * len(_EVIDENCE_TARGET_NAMES),
+    )
+    branch = WhatIfEventReference(
+        event_id="row-ev",
+        timestamp="2026-01-01T00:00:00Z",
+        actor_id="a@example.com",
+        event_type="message",
+        thread_id="t1",
+    )
+    contract = WhatIfPreBranchContract(
+        case_id="c",
+        thread_id=branch.thread_id,
+        branch_event_id=branch.event_id,
+        branch_event=branch,
+    )
+    row = WhatIfBenchmarkDatasetRow(
+        row_id="r1",
+        split="train",
+        thread_id=branch.thread_id,
+        branch_event_id=branch.event_id,
+        contract=contract,
+    )
+
+    with pytest.raises(AssertionError):
+        preprocessor.encode_row_for_predict(row)
+
+
 def _benchmark_row(row_id: str) -> WhatIfBenchmarkDatasetRow:
     branch_event = WhatIfEventReference(
         event_id=f"{row_id}-event",
