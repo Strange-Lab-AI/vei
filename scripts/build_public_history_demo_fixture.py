@@ -60,14 +60,33 @@ NOISY_AD_TERMS = (
     "new advertisements",
     "valuable property",
 )
+PRIORITY_PUBLIC_TERMS = (
+    ("fort sumter", 100),
+    ("sumter", 80),
+    ("secession", 16),
+    ("emancipation", 16),
+    ("confederate", 12),
+    ("confederacy", 12),
+    ("blockade", 12),
+    ("lincoln", 10),
+    ("draft", 8),
+    ("conscription", 8),
+    ("battle", 6),
+)
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--input", type=Path, default=DEFAULT_INPUT)
     parser.add_argument("--workspace", type=Path, default=DEFAULT_WORKSPACE)
-    parser.add_argument("--max-events", type=int, default=2400)
+    parser.add_argument("--max-events", type=int, default=1150)
     parser.add_argument("--per-month-topic", type=int, default=4)
+    parser.add_argument(
+        "--source-event-count",
+        type=int,
+        default=0,
+        help="Original source event count to record in metadata when downsampling.",
+    )
     args = parser.parse_args()
 
     world = load_world(
@@ -84,7 +103,7 @@ def main() -> None:
     write_context_snapshot(
         selected,
         output_path=args.workspace / "context_snapshot.json",
-        source_event_count=len(world.events),
+        source_event_count=args.source_event_count or len(world.events),
     )
     write_manifest(args.workspace / "public_demo_manifest.json", selected)
 
@@ -118,6 +137,20 @@ def select_events(
         for topic in TOPIC_ORDER:
             for event in buckets.get((month, topic), [])[:stratified_quota]:
                 selected_by_id.setdefault(event.event_id, event)
+
+    for event in sorted(
+        all_events,
+        key=lambda item: (
+            -_priority_score(item),
+            -_quality_score(item),
+            item.event_id,
+        ),
+    ):
+        if len(selected_by_id) >= max_events:
+            break
+        if _priority_score(event) <= 0:
+            break
+        selected_by_id.setdefault(event.event_id, event)
 
     fill = sorted(
         all_events, key=lambda event: (-_quality_score(event), event.event_id)
@@ -224,12 +257,23 @@ def _topic_label(event: WhatIfEvent) -> str:
     subject_topic = _topic_from_subject(event.subject)
     if subject_topic:
         return subject_topic
+    snippet_topic = _topic_from_snippet(event.snippet)
+    if snippet_topic:
+        return snippet_topic
     return TARGET_TOPIC_LABELS.get(event.target_id, event.subject or "Public Record")
 
 
 def _topic_from_subject(subject: str) -> str:
     prefix = str(subject or "").split(":", 1)[0]
     normalized = _clean_text(prefix.replace("_", " "), max_chars=80).title()
+    return normalized if normalized in TOPIC_SET else ""
+
+
+def _topic_from_snippet(snippet: str) -> str:
+    match = re.search(r"\bTopic:\s*([A-Za-z ]+)\.", str(snippet or ""))
+    if not match:
+        return ""
+    normalized = _clean_text(match.group(1), max_chars=80).title()
     return normalized if normalized in TOPIC_SET else ""
 
 
@@ -284,6 +328,11 @@ def _quality_score(event: WhatIfEvent) -> float:
         + specificity_bonus
         - noise_penalty
     )
+
+
+def _priority_score(event: WhatIfEvent) -> int:
+    text = _clean_text(" ".join([event.subject, event.snippet]), max_chars=1200).lower()
+    return sum(weight for token, weight in PRIORITY_PUBLIC_TERMS if token in text)
 
 
 def _display_headline(event: WhatIfEvent, *, topic: str) -> str:

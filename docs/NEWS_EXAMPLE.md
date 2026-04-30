@@ -15,7 +15,7 @@ emails, tickets, customer records, or meeting notes. It sees dated public
 articles or newspaper pages and turns them into canonical timeline events.
 
 The repo also ships a no-key Studio demo with a compact checked-in JEPA
-checkpoint and an expanded 2,400-record AmericanStories public-news fixture:
+checkpoint and an expanded 1,150-record AmericanStories public-news fixture:
 
 ```bash
 vei ui serve \
@@ -87,7 +87,7 @@ python scripts/build_public_history_demo_fixture.py \
   --workspace docs/examples/news-public-history-demo/workspace
 ```
 
-By default the fixture builder selects 2,400 records stratified by month and
+By default the fixture builder selects 1,150 records stratified by month and
 source topic from the broader local bundle. The checked-in demo currently spans
 1859 through 1865 and includes markets, policy, secession and war, local civic
 life, slavery and emancipation, labor, agriculture and weather, public health
