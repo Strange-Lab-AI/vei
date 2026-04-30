@@ -10,6 +10,8 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from .legacy import _infer_domain as _legacy_infer_domain
+from .context import EventContext
+from .links import EventLink, link_event_ids
 from .models import (
     CaseRef,
     ObjectRef,
@@ -22,6 +24,8 @@ from .models import (
     ProvenanceRecord,
     StateDelta,
 )
+from .object_refs import extract_object_refs, parse_object_refs
+from .store import CanonicalEventSink, CanonicalEventStore, WorkspaceEventStore
 
 _BOUNDARY_EXPORTS = (
     ActorRef,
@@ -52,10 +56,16 @@ logger = logging.getLogger(__name__)
 _spine: List[CanonicalEvent] = []
 
 
-def emit_event(event: CanonicalEvent) -> CanonicalEvent:
-    """Append a canonical event to the in-process spine and return it hashed."""
+def emit_event(
+    event: CanonicalEvent,
+    *,
+    sink: Optional[CanonicalEventSink] = None,
+) -> CanonicalEvent:
+    """Append a canonical event to the compatibility spine and optional sink."""
     hashed = event.with_hash()
     _spine.append(hashed)
+    if sink is not None:
+        sink.append(hashed)
     return hashed
 
 
@@ -158,14 +168,20 @@ from .tool_calls import (  # noqa: E402
 __all__ = [
     "ActorRef",
     "CanonicalEvent",
+    "CanonicalEventSink",
+    "CanonicalEventStore",
     "CaseRef",
     "EventDomain",
+    "EventContext",
+    "EventLink",
     "EventProvenance",
     "InternalExternal",
     "ObjectRef",
+    "parse_object_refs",
     "ProvenanceRecord",
     "StateDelta",
     "TextHandle",
+    "WorkspaceEventStore",
     "build_event",
     "build_llm_call_event",
     "build_llm_usage_observed",
@@ -191,7 +207,9 @@ __all__ = [
     "emit_tool_completed",
     "emit_tool_failed",
     "emit_tool_requested",
+    "extract_object_refs",
     "infer_domain",
+    "link_event_ids",
     "spine_snapshot",
     "stable_event_id",
 ]

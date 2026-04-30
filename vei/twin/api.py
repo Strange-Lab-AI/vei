@@ -58,6 +58,7 @@ from .models import (
     TwinGatewayConfig,
     TwinMatrixBundle,
 )
+from .policy_evaluator import PolicyEvaluator as PolicyEvaluator
 
 TWIN_MANIFEST_FILE = "twin_manifest.json"
 _MODEL_T = TypeVar("_MODEL_T", bound=BaseModel)

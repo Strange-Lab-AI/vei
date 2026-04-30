@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 from typing import Iterable
 
-from vei.events.api import CanonicalEvent
+from vei.events.api import CanonicalEvent, link_event_ids
 from vei.ingest.api import load_agent_activity_events
 
 from .models import (
@@ -30,13 +30,27 @@ def _delta(event: CanonicalEvent) -> dict:
     return event.delta.data if event.delta is not None else {}
 
 
+def _context(event: CanonicalEvent) -> dict:
+    context = _delta(event).get("context", {})
+    return context if isinstance(context, dict) else {}
+
+
 def _link_refs(event: CanonicalEvent) -> list[str]:
-    refs = _delta(event).get("link_refs", [])
-    return [str(ref) for ref in refs] if isinstance(refs, list) else []
+    return link_event_ids(_delta(event))
 
 
 def _source_granularity(event: CanonicalEvent) -> str:
-    return str(_delta(event).get("source_granularity", ""))
+    data = _delta(event)
+    return str(
+        data.get("source_granularity") or _context(event).get("source_granularity", "")
+    )
+
+
+def _event_actor_id(event: CanonicalEvent) -> str:
+    if event.actor_ref:
+        return event.actor_ref.actor_id
+    context = _context(event)
+    return str(context.get("agent_id") or context.get("human_user_id") or "")
 
 
 def inspect_timeline(events: Iterable[CanonicalEvent]) -> ProvenanceTimeline:
@@ -57,7 +71,7 @@ def inspect_timeline(events: Iterable[CanonicalEvent]) -> ProvenanceTimeline:
                 event_id=event.event_id,
                 ts_ms=event.ts_ms,
                 kind=event.kind,
-                actor_id=event.actor_ref.actor_id if event.actor_ref else "",
+                actor_id=_event_actor_id(event),
                 object_ids=object_ids,
                 source_id=event.provenance.source_id,
                 source_granularity=granularity,
@@ -97,12 +111,12 @@ def build_activity_graph(events: Iterable[CanonicalEvent]) -> CompanyActivityGra
             edge.event_ids.append(event_id)
 
     for event in events:
-        actor_id = event.actor_ref.actor_id if event.actor_ref else ""
+        actor_id = _event_actor_id(event)
         if actor_id:
             add_node(
                 actor_id,
                 "actor",
-                event.actor_ref.display_name or actor_id,
+                (event.actor_ref.display_name if event.actor_ref else "") or actor_id,
                 event.event_id,
             )
         tool_name = str(_delta(event).get("tool_name", ""))
@@ -121,12 +135,7 @@ def build_activity_graph(events: Iterable[CanonicalEvent]) -> CompanyActivityGra
         for ref in event.object_refs:
             object_id = f"object:{ref.domain}:{ref.kind}:{ref.object_id}"
             add_node(object_id, "object", ref.label or ref.object_id, event.event_id)
-            add_edge(
-                actor_id or tool_id if tool_name else actor_id,
-                object_id,
-                "touched_object",
-                event.event_id,
-            )
+            add_edge(tool_id or actor_id, object_id, "touched_object", event.event_id)
         if event.kind.startswith("governance."):
             policy_id = f"policy:{event.event_id}"
             add_node(
@@ -219,7 +228,7 @@ def access_review(
     granularities: set[str] = set()
     warnings: set[str] = set()
     for event in events:
-        actor_id = event.actor_ref.actor_id if event.actor_ref else ""
+        actor_id = _event_actor_id(event)
         if actor_id != agent_id:
             continue
         touched_objects.update(ref.object_id for ref in event.object_refs)
@@ -250,6 +259,9 @@ def replay_policy(
     policy: dict,
 ) -> PolicyReplayReport:
     event_list = list(events)
+    evaluator_report = _replay_with_policy_evaluator(event_list, policy)
+    if evaluator_report is not None:
+        return evaluator_report
     denied_kinds = {str(item) for item in policy.get("deny_event_kinds", [])}
     hold_tools = {str(item) for item in policy.get("hold_tools", [])}
     deny_granularities = {
@@ -285,6 +297,85 @@ def replay_policy(
         event_count=len(event_list),
         hit_count=len(hits),
         hits=hits,
+    )
+
+
+def _replay_with_policy_evaluator(
+    events: list[CanonicalEvent],
+    policy: dict,
+) -> PolicyReplayReport | None:
+    governor_policy = policy.get("governor") or {}
+    if not isinstance(governor_policy, dict):
+        return None
+    config_payload = governor_policy.get("config", policy.get("config"))
+    agents_payload = governor_policy.get("agents", policy.get("agents"))
+    if not config_payload and not agents_payload:
+        return None
+
+    from vei.governor import (
+        GovernorAgentSpec,
+        GovernorIngestEvent,
+        GovernorWorkspaceConfig,
+        resolve_governor_policy_profile,
+    )
+    from vei.twin.api import PolicyEvaluator
+
+    config = GovernorWorkspaceConfig.model_validate(config_payload or {})
+    connector_mode = str(
+        governor_policy.get("connector_mode")
+        or policy.get("connector_mode")
+        or config.connector_mode
+    )
+    agents: dict[str, GovernorAgentSpec] = {}
+    for item in agents_payload or []:
+        agent = GovernorAgentSpec.model_validate(item)
+        agent.resolved_policy_profile = resolve_governor_policy_profile(
+            agent.policy_profile_id
+        )
+        agents[agent.agent_id] = agent
+
+    evaluator = PolicyEvaluator(config=config, connector_mode=connector_mode)
+    hits: list[PolicyReplayHit] = []
+    warnings: set[str] = set()
+    for event in events:
+        if not event.kind.startswith("tool.call."):
+            continue
+        data = _delta(event)
+        tool_name = str(data.get("tool_name", ""))
+        if not tool_name:
+            continue
+        agent_id = _event_actor_id(event) or str(_context(event).get("agent_id", ""))
+        if not agent_id:
+            warnings.add(f"{event.event_id}: cannot reconstruct agent identity")
+            continue
+        agent = agents.get(agent_id)
+        if agent is None:
+            warnings.add(f"{event.event_id}: no replay agent config for {agent_id}")
+            continue
+        replay_event = GovernorIngestEvent(
+            event_id=event.event_id,
+            agent_id=agent_id,
+            external_tool=tool_name,
+            resolved_tool=tool_name,
+            args=dict(data.get("args") or {}),
+        )
+        evaluation = evaluator.evaluate(event=replay_event, agent=agent)
+        if evaluation.decision != "allow":
+            hits.append(
+                PolicyReplayHit(
+                    event_id=event.event_id,
+                    original_decision=str(data.get("decision", "")),
+                    replay_decision=evaluation.decision,
+                    reason=evaluation.reason or evaluation.reason_code,
+                    event_kind=event.kind,
+                )
+            )
+    return PolicyReplayReport(
+        policy_name=str(policy.get("name", "")),
+        event_count=len(events),
+        hit_count=len(hits),
+        hits=hits,
+        warnings=sorted(warnings),
     )
 
 

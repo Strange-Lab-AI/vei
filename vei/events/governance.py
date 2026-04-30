@@ -10,6 +10,8 @@ from __future__ import annotations
 from typing import Any, Dict, List, Optional
 
 from .api import build_event, emit_event
+from .context import EventContext, merge_event_context
+from .links import EventLink, merge_event_links
 from .models import (
     ActorRef,
     CanonicalEvent,
@@ -238,14 +240,17 @@ def emit_policy_decision(
     reason: str = "",
     detail: Optional[Dict[str, Any]] = None,
     link_refs: Optional[List[str]] = None,
+    links: Optional[List[EventLink | Dict[str, Any]]] = None,
+    context: EventContext | Dict[str, Any] | None = None,
 ) -> CanonicalEvent:
     payload = {
         "decision": decision,
         "policy_code": policy_code,
         "reason": reason,
-        "link_refs": list(link_refs or []),
         **(detail or {}),
     }
+    payload = merge_event_links(payload, links=links, link_refs=link_refs)
+    payload = merge_event_context(payload, context)
     return emit_event(
         build_event(
             domain=EventDomain.GOVERNANCE,

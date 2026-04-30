@@ -5,6 +5,8 @@ from __future__ import annotations
 from typing import Any
 
 from .api import build_event, emit_event
+from .context import EventContext, merge_event_context
+from .links import EventLink, merge_event_links
 from .models import ActorRef, CanonicalEvent, EventDomain, EventProvenance, ObjectRef
 
 
@@ -21,9 +23,12 @@ def build_artifact_or_incident_event(
     provenance_origin: EventProvenance = EventProvenance.SIMULATED,
     detail: dict[str, Any] | None = None,
     link_refs: list[str] | None = None,
+    links: list[EventLink | dict[str, Any]] | None = None,
+    context: EventContext | dict[str, Any] | None = None,
 ) -> CanonicalEvent:
     payload = dict(detail or {})
-    payload.setdefault("link_refs", list(link_refs or []))
+    payload = merge_event_links(payload, links=links, link_refs=link_refs)
+    payload = merge_event_context(payload, context)
     return build_event(
         event_id=event_id,
         domain=EventDomain.OPS_GRAPH,

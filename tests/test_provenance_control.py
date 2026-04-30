@@ -8,7 +8,10 @@ from typer.testing import CliRunner
 from vei.cli.vei import app
 from vei.events.api import (
     ActorRef,
+    CanonicalEvent,
+    EventContext,
     ObjectRef,
+    WorkspaceEventStore,
     build_llm_call_event,
     build_tool_call_event,
     drain_spine,
@@ -21,11 +24,13 @@ from vei.ingest.agent_activity.api import (
 from vei.ingest.agent_activity.mcp_transcript import McpTranscriptAdapter
 from vei.ingest.agent_activity.openai_org import OpenAIOrgAdapter
 from vei.provenance.api import access_review, blast_radius, build_activity_graph
+from vei.provenance.api import replay_policy
 from vei.provenance.exporters.otel_genai import export_otel_genai
 from vei.router.api import create_router
 
 
 def test_provenance_event_builders_preserve_canonical_v1() -> None:
+    envelope_fields = set(CanonicalEvent.model_fields)
     event = build_tool_call_event(
         kind="tool.call.completed",
         tool_name="slack.post_message",
@@ -34,13 +39,21 @@ def test_provenance_event_builders_preserve_canonical_v1() -> None:
         args={"text": "secret"},
         response={"ok": True},
         source_id="unit",
+        context=EventContext(agent_id="agent-1", trace_id="trace-1"),
+        links=[{"kind": "completed_by", "event_id": "evt-request"}],
     )
 
+    assert set(CanonicalEvent.model_fields) == envelope_fields
     assert event.schema_version == 1
     assert event.kind == "tool.call.completed"
     assert event.delta is not None
     assert "args_handle" in event.delta.data
     assert "args" not in event.delta.data
+    assert event.delta.data["context"]["agent_id"] == "agent-1"
+    assert event.delta.data["links"] == [
+        {"kind": "completed_by", "event_id": "evt-request"}
+    ]
+    assert event.delta.data["link_refs"] == ["evt-request"]
     assert event.hash
 
     llm = build_llm_call_event(
@@ -91,6 +104,28 @@ def test_agent_activity_jsonl_ingest_is_idempotent_and_reportable(
     assert graph.node_count >= 2
     review = access_review(events, agent_id="agent-1")
     assert review.tools_used == ["docs.read"]
+    assert review.touched_objects == ["doc-1"]
+
+
+def test_workspace_event_store_reads_workspace_spine(tmp_path: Path) -> None:
+    workspace = tmp_path / "workspace"
+    store = WorkspaceEventStore(workspace, source="router", batch_id="test")
+    event = build_tool_call_event(
+        kind="tool.call.completed",
+        tool_name="docs.read",
+        actor_ref=ActorRef(actor_id="agent-1"),
+        args={"doc_id": "doc-1"},
+        object_refs=[ObjectRef(object_id="doc-1", domain="doc_graph", kind="document")],
+        source_id="unit",
+    )
+
+    first = store.append(event)
+    second = store.append(event)
+    events = load_workspace_canonical_events(workspace)
+
+    assert first.event_id == second.event_id
+    assert len(events) == 1
+    assert store.get(event.event_id) is not None
 
 
 def test_mcp_transcript_ingest_reconstructs_tool_call(tmp_path: Path) -> None:
@@ -140,6 +175,13 @@ def test_mcp_transcript_ingest_reconstructs_tool_call(tmp_path: Path) -> None:
         for event in events
         if event.delta
     )
+    completed = next(event for event in events if event.kind == "tool.call.completed")
+    requested = next(event for event in events if event.kind == "tool.call.requested")
+    assert completed.delta is not None
+    assert completed.delta.data["links"] == [
+        {"kind": "completed_by", "event_id": requested.event_id}
+    ]
+    assert completed.delta.data["link_refs"] == [requested.event_id]
 
 
 def test_openai_org_usage_stays_aggregate(tmp_path: Path) -> None:
@@ -218,14 +260,74 @@ def test_router_dispatch_emits_tool_events() -> None:
     assert "tool.call.completed" in {event.kind for event in events}
 
 
+def test_router_dispatch_persists_workspace_events(tmp_path: Path) -> None:
+    drain_spine()
+    router = create_router(seed=1, artifacts_dir=str(tmp_path))
+    created = router.call_and_step(
+        "docs.create", {"title": "Plan", "body": "Body", "tags": ["test"]}
+    )
+
+    events = load_workspace_canonical_events(tmp_path)
+    assert {event.kind for event in events} >= {
+        "tool.call.requested",
+        "tool.call.completed",
+    }
+    review = access_review(events, agent_id="")
+    assert created["doc_id"] in review.touched_objects
+
+
+def test_policy_replay_uses_policy_evaluator_when_reconstructable() -> None:
+    event = build_tool_call_event(
+        kind="tool.call.requested",
+        tool_name="docs.read",
+        actor_ref=ActorRef(actor_id="agent-1"),
+        source_id="unit",
+    )
+    report = replay_policy(
+        [event],
+        policy={
+            "name": "surface-lockdown",
+            "governor": {
+                "config": {"connector_mode": "sim"},
+                "agents": [
+                    {
+                        "agent_id": "agent-1",
+                        "name": "Agent One",
+                        "allowed_surfaces": ["mail"],
+                    }
+                ],
+            },
+        },
+    )
+
+    assert report.hit_count == 1
+    assert report.hits[0].replay_decision == "deny"
+    assert "surface" in report.hits[0].reason
+
+
 def test_otel_export_preserves_vei_ids() -> None:
     event = build_tool_call_event(
         kind="tool.call.completed",
         tool_name="mail.search",
+        args={"q": "contract"},
         source_id="unit",
+        context=EventContext(
+            trace_id="trace-1",
+            parent_event_id="evt-parent",
+            jsonrpc_request_id="1",
+            mcp_session_id="sess-1",
+        ),
     )
     exported = export_otel_genai([event])
     span = exported["resourceSpans"][0]["scopeSpans"][0]["spans"][0]
-    attrs = {item["key"]: item["value"]["stringValue"] for item in span["attributes"]}
+    attrs = {
+        item["key"]: next(iter(item["value"].values())) for item in span["attributes"]
+    }
+    assert span["traceId"]
+    assert span["spanId"]
+    assert span["parentSpanId"]
     assert attrs["vei.event_id"] == event.event_id
     assert attrs["vei.event_hash"] == event.hash
+    assert attrs["gen_ai.operation.name"] == "execute_tool"
+    assert attrs["gen_ai.tool.name"] == "mail.search"
+    assert attrs["jsonrpc.request.id"] == "1"

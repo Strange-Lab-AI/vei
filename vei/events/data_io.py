@@ -5,6 +5,8 @@ from __future__ import annotations
 from typing import Any
 
 from .api import build_event, emit_event
+from .context import EventContext, merge_event_context
+from .links import EventLink, merge_event_links
 from .models import (
     ActorRef,
     CanonicalEvent,
@@ -30,10 +32,13 @@ def build_data_io_event(
     detail: dict[str, Any] | None = None,
     body_text: str | None = None,
     link_refs: list[str] | None = None,
+    links: list[EventLink | dict[str, Any]] | None = None,
+    context: EventContext | dict[str, Any] | None = None,
 ) -> CanonicalEvent:
     payload = dict(detail or {})
     payload.setdefault("source_granularity", source_granularity)
-    payload.setdefault("link_refs", list(link_refs or []))
+    payload = merge_event_links(payload, links=links, link_refs=link_refs)
+    payload = merge_event_context(payload, context)
     handle = (
         TextHandle.from_text(body_text, store_uri=f"payload://{source_id}/body")
         if body_text is not None

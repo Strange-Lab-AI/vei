@@ -4,9 +4,9 @@ from typing import TYPE_CHECKING, Any, Dict, Optional
 
 from vei.connectors import ConnectorInvocationError
 from vei.events.api import (
-    emit_tool_completed,
-    emit_tool_failed,
-    emit_tool_requested,
+    EventContext,
+    build_tool_call_event,
+    extract_object_refs,
     stable_event_id,
 )
 
@@ -108,51 +108,110 @@ class RouterDispatch:
         source_id = (
             f"router:{getattr(router.state_store, 'branch', 'main')}:{ts_ms}:{tool}"
         )
-        requested_event = emit_tool_requested(
-            event_id=stable_event_id(source_id, "requested"),
-            ts_ms=ts_ms,
-            tool_name=tool,
-            args=args,
-            status="requested",
+        context = EventContext(
+            workspace_id=str(
+                getattr(getattr(router, "event_sink", None), "workspace", "")
+            ),
+            run_id=str(getattr(router.state_store, "branch", "")),
+            trace_id=source_id,
+            span_id=stable_event_id(source_id, "requested"),
             source_id=source_id,
+            source_granularity="per_call",
+        )
+        requested_event = router._emit_canonical_event(
+            build_tool_call_event(
+                kind="tool.call.requested",
+                event_id=stable_event_id(source_id, "requested"),
+                ts_ms=ts_ms,
+                tool_name=tool,
+                object_refs=extract_object_refs(tool_name=tool, args=args),
+                args=args,
+                status="requested",
+                source_id=source_id,
+                context=context,
+            )
         )
         if tool == "vei.observe":
             focus = args.get("focus") if isinstance(args, dict) else None
             result = router.observe(focus_hint=focus).model_dump()
-            emit_tool_completed(
-                event_id=stable_event_id(source_id, "completed"),
-                ts_ms=int(getattr(router.bus, "clock_ms", ts_ms)),
-                tool_name=tool,
-                args=args,
-                response=result,
-                status="completed",
-                source_id=source_id,
-                link_refs=[requested_event.event_id],
+            router._emit_canonical_event(
+                build_tool_call_event(
+                    kind="tool.call.completed",
+                    event_id=stable_event_id(source_id, "completed"),
+                    ts_ms=int(getattr(router.bus, "clock_ms", ts_ms)),
+                    tool_name=tool,
+                    object_refs=extract_object_refs(
+                        tool_name=tool, args=args, response=result
+                    ),
+                    args=args,
+                    response=result,
+                    status="completed",
+                    source_id=source_id,
+                    link_refs=[requested_event.event_id],
+                    links=[
+                        {
+                            "kind": "completed_by",
+                            "event_id": requested_event.event_id,
+                        }
+                    ],
+                    context=context.model_copy(
+                        update={
+                            "span_id": stable_event_id(source_id, "completed"),
+                            "parent_event_id": requested_event.event_id,
+                        }
+                    ),
+                )
             )
             return result
         try:
             result = RouterDispatch._execute_inner(router, tool, args)
         except Exception as exc:
-            emit_tool_failed(
-                event_id=stable_event_id(source_id, "failed", type(exc).__name__),
-                ts_ms=int(getattr(router.bus, "clock_ms", ts_ms)),
-                tool_name=tool,
-                args=args,
-                status="failed",
-                error=str(exc) or type(exc).__name__,
-                source_id=source_id,
-                link_refs=[requested_event.event_id],
+            router._emit_canonical_event(
+                build_tool_call_event(
+                    kind="tool.call.failed",
+                    event_id=stable_event_id(source_id, "failed", type(exc).__name__),
+                    ts_ms=int(getattr(router.bus, "clock_ms", ts_ms)),
+                    tool_name=tool,
+                    object_refs=extract_object_refs(tool_name=tool, args=args),
+                    args=args,
+                    status="failed",
+                    error=str(exc) or type(exc).__name__,
+                    source_id=source_id,
+                    link_refs=[requested_event.event_id],
+                    links=[{"kind": "failed_by", "event_id": requested_event.event_id}],
+                    context=context.model_copy(
+                        update={
+                            "span_id": stable_event_id(
+                                source_id, "failed", type(exc).__name__
+                            ),
+                            "parent_event_id": requested_event.event_id,
+                        }
+                    ),
+                )
             )
             raise
-        emit_tool_completed(
-            event_id=stable_event_id(source_id, "completed"),
-            ts_ms=int(getattr(router.bus, "clock_ms", ts_ms)),
-            tool_name=tool,
-            args=args,
-            response=result,
-            status="completed",
-            source_id=source_id,
-            link_refs=[requested_event.event_id],
+        router._emit_canonical_event(
+            build_tool_call_event(
+                kind="tool.call.completed",
+                event_id=stable_event_id(source_id, "completed"),
+                ts_ms=int(getattr(router.bus, "clock_ms", ts_ms)),
+                tool_name=tool,
+                object_refs=extract_object_refs(
+                    tool_name=tool, args=args, response=result
+                ),
+                args=args,
+                response=result,
+                status="completed",
+                source_id=source_id,
+                link_refs=[requested_event.event_id],
+                links=[{"kind": "completed_by", "event_id": requested_event.event_id}],
+                context=context.model_copy(
+                    update={
+                        "span_id": stable_event_id(source_id, "completed"),
+                        "parent_event_id": requested_event.event_id,
+                    }
+                ),
+            )
         )
         return result
 
