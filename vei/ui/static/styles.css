@@ -5404,6 +5404,40 @@ body.timeline-mode .timeline-toggle {
   border-color: rgba(74, 222, 128, 0.2);
 }
 
+.control-status-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+  margin: 16px 0;
+}
+
+.control-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.control-list {
+  display: grid;
+  gap: 8px;
+}
+
+.control-row {
+  display: grid;
+  gap: 4px;
+  padding: 10px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.42);
+}
+
+.control-warning {
+  padding: 10px;
+  border: 1px solid rgba(217, 164, 65, 0.55);
+  border-radius: 8px;
+  color: rgba(253, 224, 138, 0.92);
+}
+
 /* ================================================================
    Control Room
    ================================================================ */

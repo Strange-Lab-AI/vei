@@ -3,6 +3,12 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, Dict, Optional
 
 from vei.connectors import ConnectorInvocationError
+from vei.events.api import (
+    emit_tool_completed,
+    emit_tool_failed,
+    emit_tool_requested,
+    stable_event_id,
+)
 
 from ._dispatch import GUARDED_PREFIXES, build_dispatch_table
 from .errors import MCPError
@@ -98,9 +104,60 @@ class RouterDispatch:
 
     @staticmethod
     def execute(router: Router, tool: str, args: Dict[str, Any]) -> Any:
+        ts_ms = int(getattr(router.bus, "clock_ms", 0))
+        source_id = (
+            f"router:{getattr(router.state_store, 'branch', 'main')}:{ts_ms}:{tool}"
+        )
+        requested_event = emit_tool_requested(
+            event_id=stable_event_id(source_id, "requested"),
+            ts_ms=ts_ms,
+            tool_name=tool,
+            args=args,
+            status="requested",
+            source_id=source_id,
+        )
         if tool == "vei.observe":
             focus = args.get("focus") if isinstance(args, dict) else None
-            return router.observe(focus_hint=focus).model_dump()
+            result = router.observe(focus_hint=focus).model_dump()
+            emit_tool_completed(
+                event_id=stable_event_id(source_id, "completed"),
+                ts_ms=int(getattr(router.bus, "clock_ms", ts_ms)),
+                tool_name=tool,
+                args=args,
+                response=result,
+                status="completed",
+                source_id=source_id,
+                link_refs=[requested_event.event_id],
+            )
+            return result
+        try:
+            result = RouterDispatch._execute_inner(router, tool, args)
+        except Exception as exc:
+            emit_tool_failed(
+                event_id=stable_event_id(source_id, "failed", type(exc).__name__),
+                ts_ms=int(getattr(router.bus, "clock_ms", ts_ms)),
+                tool_name=tool,
+                args=args,
+                status="failed",
+                error=str(exc) or type(exc).__name__,
+                source_id=source_id,
+                link_refs=[requested_event.event_id],
+            )
+            raise
+        emit_tool_completed(
+            event_id=stable_event_id(source_id, "completed"),
+            ts_ms=int(getattr(router.bus, "clock_ms", ts_ms)),
+            tool_name=tool,
+            args=args,
+            response=result,
+            status="completed",
+            source_id=source_id,
+            link_refs=[requested_event.event_id],
+        )
+        return result
+
+    @staticmethod
+    def _execute_inner(router: Router, tool: str, args: Dict[str, Any]) -> Any:
         if tool == "vei.tick":
             return router.tick(**args)
         if tool == "vei.state":

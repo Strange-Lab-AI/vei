@@ -5,6 +5,12 @@ VEI turns built-in scenarios or real company records into a runnable company wor
 
 The same engine powers every path: one world state, one event history, one replay model, and one CLI.
 
+VEI Control is the capture-first agent-evidence surface on that same spine. It
+does not require every existing agent to route through VEI on day one. Instead,
+it ingests existing agent/runtime logs, joins them with company-state context,
+and shows access review, blast radius, and policy replay. New agents can still
+be governed through the twin gateway when they are routed through VEI.
+
 ## Contents
 
 - [Quick Start](#quick-start)
@@ -58,11 +64,20 @@ For live planning backends, VEI supports OpenAI, Anthropic, Google, OpenRouter, 
 - Try the public history demo: `vei ui serve --root docs/examples/news-public-history-demo/workspace --host 127.0.0.1 --port 3055`
 - Replay a real historical decision: `vei ui serve --root docs/examples/enron-master-agreement-public-context/workspace --host 127.0.0.1 --port 3055`
 - Compile a company skill map: `vei skillmap build --source-dir _vei_out/<company>/context_snapshot.json --output _vei_out/<company>/skill_map`
+- Capture agent evidence: `vei ingest agent-activity --source agent_activity_jsonl --path ./logs --workspace _vei_out/<company>`
+- Review provenance: `vei provenance access-review --agent-id <agent-id> --workspace _vei_out/<company>`
 - Run a benchmark: `vei eval benchmark --runner workflow --family security_containment`
 
 ## How VEI Works
 
 VEI has five first-class surfaces.
+
+The Control path is capture-first. VEI has two ingest classes: `vei context`
+captures company state, while `vei ingest agent-activity` captures agent
+behavior from JSONL landing zones, MCP transcripts, and coarse OpenAI org
+usage/audit evidence. Both land on the canonical spine, so reports can connect
+what an agent did to the company objects it touched. Aggregate sources stay
+marked as aggregate; VEI does not turn bucketed usage into fake per-call traces.
 
 The runnable company path starts from a built-in world or a captured company snapshot. VEI compiles that into one deterministic world session with connected surfaces such as mail, chat, tickets, docs, CRM, identity, and knowledge assets. Agents and humans act through VEI tools and routes. VEI records what happened, scores the run, and lets you replay or branch it.
 

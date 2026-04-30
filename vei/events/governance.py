@@ -224,3 +224,39 @@ def emit_receipt_recorded(
             },
         )
     )
+
+
+def emit_policy_decision(
+    *,
+    tenant_id: str = "",
+    ts_ms: int = 0,
+    actor_ref: Optional[ActorRef] = None,
+    object_refs: Optional[List[ObjectRef]] = None,
+    case_id: Optional[str] = None,
+    decision: str = "",
+    policy_code: str = "",
+    reason: str = "",
+    detail: Optional[Dict[str, Any]] = None,
+    link_refs: Optional[List[str]] = None,
+) -> CanonicalEvent:
+    payload = {
+        "decision": decision,
+        "policy_code": policy_code,
+        "reason": reason,
+        "link_refs": list(link_refs or []),
+        **(detail or {}),
+    }
+    return emit_event(
+        build_event(
+            domain=EventDomain.GOVERNANCE,
+            kind="governance.policy.decision",
+            tenant_id=tenant_id,
+            ts_ms=ts_ms,
+            case_id=case_id,
+            actor_ref=actor_ref,
+            object_refs=object_refs,
+            internal_external=InternalExternal.INTERNAL,
+            provenance_origin=EventProvenance.SIMULATED,
+            delta_data=payload,
+        )
+    )

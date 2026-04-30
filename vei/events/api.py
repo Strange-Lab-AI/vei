@@ -73,6 +73,7 @@ def spine_snapshot() -> List[CanonicalEvent]:
 
 def build_event(
     *,
+    event_id: Optional[str] = None,
     domain: EventDomain | str,
     kind: str,
     tenant_id: str = "",
@@ -99,6 +100,7 @@ def build_event(
     if delta is None and delta_data is not None:
         delta = StateDelta(domain=domain, delta_schema_version=0, data=delta_data)
     return CanonicalEvent(
+        event_id=event_id or CanonicalEvent().event_id,
         domain=domain,
         kind=kind,
         tenant_id=tenant_id,
@@ -118,6 +120,41 @@ def build_event(
     )
 
 
+# Public builders are imported lazily after build_event/emit_event are defined so
+# implementation modules can use this API without circular initialization issues.
+from .artifacts import emit_artifact_created, emit_incident_flagged  # noqa: E402
+from .data_io import (  # noqa: E402
+    emit_data_asset_read,
+    emit_data_object_read,
+    emit_data_object_written,
+)
+from .governance import (  # noqa: E402
+    emit_approval_denied,
+    emit_approval_granted,
+    emit_approval_requested,
+    emit_policy_decision,
+)
+from .identity import (  # noqa: E402
+    emit_agent_identity_resolved,
+    emit_agent_session_closed,
+    emit_agent_session_opened,
+)
+from .llm_calls import (  # noqa: E402
+    build_llm_call_event,
+    build_llm_usage_observed,
+    emit_llm_call_completed,
+    emit_llm_call_failed,
+    emit_llm_call_started,
+    emit_llm_usage_observed,
+)
+from .tool_calls import (  # noqa: E402
+    build_tool_call_event,
+    emit_tool_completed,
+    emit_tool_failed,
+    emit_tool_requested,
+    stable_event_id,
+)
+
 __all__ = [
     "ActorRef",
     "CanonicalEvent",
@@ -130,8 +167,31 @@ __all__ = [
     "StateDelta",
     "TextHandle",
     "build_event",
+    "build_llm_call_event",
+    "build_llm_usage_observed",
+    "build_tool_call_event",
     "drain_spine",
+    "emit_agent_identity_resolved",
+    "emit_agent_session_closed",
+    "emit_agent_session_opened",
+    "emit_artifact_created",
+    "emit_approval_denied",
+    "emit_approval_granted",
+    "emit_approval_requested",
+    "emit_data_asset_read",
+    "emit_data_object_read",
+    "emit_data_object_written",
     "emit_event",
+    "emit_incident_flagged",
+    "emit_llm_call_completed",
+    "emit_llm_call_failed",
+    "emit_llm_call_started",
+    "emit_llm_usage_observed",
+    "emit_policy_decision",
+    "emit_tool_completed",
+    "emit_tool_failed",
+    "emit_tool_requested",
     "infer_domain",
     "spine_snapshot",
+    "stable_event_id",
 ]

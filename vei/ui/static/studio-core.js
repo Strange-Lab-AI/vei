@@ -819,6 +819,7 @@ const STUDIO_VIEW_HELPER_TEXT = {
   company: "Company state, missions, and historical what-if are all in this view.",
   crisis: "Review the active situation, constraints, and objective before choosing a move.",
   outcome: "Inspect run outcomes, compare paths, and verify effects across systems.",
+  control: "Review agent evidence, access paths, blast radius, and policy replay from the canonical spine.",
   audit: "Audit model-ranked decisions and log reviewer judgments.",
 };
 
@@ -855,6 +856,9 @@ function setStudioView(view) {
   });
   if (state.studioView === "audit" && typeof loadAuditQueue === "function") {
     loadAuditQueue();
+  }
+  if (state.studioView === "control" && typeof loadControlSurface === "function") {
+    loadControlSurface();
   }
   const companySubnav = document.getElementById("company-subnav");
   if (companySubnav) {

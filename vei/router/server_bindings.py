@@ -9,6 +9,13 @@ from pydantic import Field
 from vei.blueprint import list_runtime_facade_plugins
 from vei.router.api import RouterServerAPI
 from vei.skillmap.api import build_company_skill_map_from_session
+from vei.events.api import spine_snapshot
+from vei.provenance.api import (
+    access_review,
+    blast_radius,
+    build_activity_graph,
+    replay_policy,
+)
 from vei.world.api import WorldSessionAPI
 
 from .alias_packs import CRM_ALIAS_PACKS, ERP_ALIAS_PACKS
@@ -159,6 +166,38 @@ def register_vei_tools(
         ).model_dump(mode="json")
 
     @srv.tool(
+        name="vei.provenance",
+        description="Inspect read-only VEI Control reports over canonical agent evidence",
+    )
+    def vei_provenance(
+        report: str = "activity_graph",
+        agent_id: str = None,
+        event_id: str = None,
+        policy: dict[str, Any] = Field(default_factory=dict),
+    ) -> dict[str, Any]:
+        events = spine_snapshot()
+        if report == "activity_graph":
+            return build_activity_graph(events).model_dump(mode="json")
+        if report == "access_review":
+            return access_review(events, agent_id=agent_id or "").model_dump(
+                mode="json"
+            )
+        if report == "blast_radius":
+            return blast_radius(events, anchor_event_id=event_id or "").model_dump(
+                mode="json"
+            )
+        if report == "policy_replay":
+            return replay_policy(events, policy=dict(policy or {})).model_dump(
+                mode="json"
+            )
+        return {
+            "error": {
+                "code": "unknown_report",
+                "message": "report must be activity_graph, blast_radius, access_review, or policy_replay",
+            }
+        }
+
+    @srv.tool(
         name="vei.graph_action",
         description="Apply a graph-native mutation step, either by explicit domain/action or by a suggested step_id from vei.graph_plan",
     )
@@ -259,6 +298,7 @@ def register_vei_tools(
                 {"tool": "vei.capability_graphs", "args": {"domain": "identity_graph"}},
                 {"tool": "vei.graph_plan", "args": {"domain": "identity_graph"}},
                 {"tool": "vei.skill_map", "args": {"limit": 8}},
+                {"tool": "vei.provenance", "args": {"report": "activity_graph"}},
                 {
                     "tool": "vei.graph_action",
                     "args": {

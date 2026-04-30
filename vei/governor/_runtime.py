@@ -6,6 +6,13 @@ import time
 from datetime import UTC, datetime
 from typing import Any, Protocol
 
+from vei.events.api import (
+    ActorRef,
+    emit_approval_denied,
+    emit_approval_granted,
+    emit_approval_requested,
+)
+
 from ._config import (
     load_governor_workspace_config,
     governor_policy_profiles,
@@ -621,6 +628,19 @@ class GovernorRuntime:
                 source_mode=event.source_mode,
             )
             self._pending_approvals.append(approval)
+            emit_approval_requested(
+                actor_ref=ActorRef(actor_id=event.agent_id),
+                case_id=approval.approval_id,
+                detail={
+                    "approval_id": approval.approval_id,
+                    "surface": plan.surface,
+                    "resolved_tool": plan.resolved_tool,
+                    "operation_class": plan.operation_class,
+                    "reason_code": approval.reason_code,
+                    "reason": approval.reason,
+                    "link_refs": [],
+                },
+            )
             return approval
 
     def _store_resolved_approval(self, updated: GovernorPendingApproval) -> None:
@@ -733,6 +753,26 @@ class GovernorRuntime:
                     timestamp=self._last_event_at,
                 )
             )
+            if reason_code == "mirror.approval_rejected" or handled_by == "denied":
+                emit_approval_denied(
+                    actor_ref=ActorRef(actor_id=updated_agent.agent_id),
+                    detail={
+                        "surface": surface,
+                        "resolved_tool": resolved_tool,
+                        "reason_code": reason_code,
+                        "reason": reason,
+                    },
+                )
+            elif reason_code == "mirror.approval_executed":
+                emit_approval_granted(
+                    actor_ref=ActorRef(actor_id=updated_agent.agent_id),
+                    detail={
+                        "surface": surface,
+                        "resolved_tool": resolved_tool,
+                        "reason_code": reason_code,
+                        "reason": reason,
+                    },
+                )
             if len(self._recent_events) > self._max_recent_events:
                 self._recent_events = self._recent_events[-self._max_recent_events :]
             event_result = GovernorEventResult(

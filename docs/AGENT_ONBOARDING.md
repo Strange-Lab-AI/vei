@@ -12,6 +12,7 @@ The practical job is usually one of four things:
 
 - run a deterministic enterprise scenario and score an agent
 - turn real historical records into a canonical timeline
+- ingest agent-activity evidence and review VEI Control reports
 - compile company-specific draft skills from the normalized company bundle
 - train or apply the JEPA-style world model to forecast future state and rank
   counterfactual actions
@@ -61,6 +62,10 @@ make deps-audit
 - `vei/workspace/` and `vei/run/` hold the file-backed workspace and run model.
 - `vei/skillmap/` compiles evidence-backed, replay-checked company skills from
   normalized bundles.
+- `vei/ingest/agent_activity/` captures external agent behavior from JSONL
+  landing zones, MCP transcripts, and OpenAI org usage/audit evidence.
+- `vei/provenance/` builds Control reports: timeline, activity graph, access
+  review, blast radius, policy replay, and OTel export.
 - `vei/whatif/` handles branch-point replay, counterfactuals, benchmarks, and
   saved example bundles.
 - `vei/verticals/` holds seeded business packs and overlays.
@@ -86,6 +91,8 @@ Useful entrypoints:
 vei quickstart run
 vei eval benchmark --runner workflow --family security_containment
 vei skillmap build --source-dir _vei_out/<tenant>/context_snapshot.json --output _vei_out/<tenant>/skill_map
+vei ingest agent-activity --source agent_activity_jsonl --path ./logs --workspace _vei_out/<tenant>
+vei provenance access-review --agent-id <agent-id> --workspace _vei_out/<tenant>
 vei ui serve --root docs/examples/enron-master-agreement-public-context/workspace --host 127.0.0.1 --port 3055
 ```
 
