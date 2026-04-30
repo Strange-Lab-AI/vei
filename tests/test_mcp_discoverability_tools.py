@@ -49,6 +49,7 @@ async def _exercise_mcp_discovery_tools() -> None:
             assert "vei.structure_view" in tool_names
             assert "vei.capability_graphs" in tool_names
             assert "vei.graph_plan" in tool_names
+            assert "vei.skill_map" in tool_names
             assert "vei.graph_action" in tool_names
 
             orientation = _normalize_result(
@@ -81,6 +82,12 @@ async def _exercise_mcp_discovery_tools() -> None:
                 for step in graph_plan["suggested_steps"]
             )
 
+            skill_map = _normalize_result(
+                await session.call_tool("vei.skill_map", {"limit": 4})
+            )
+            assert skill_map["schema_version"] == "company_skill_map_v1"
+            assert skill_map["source_ref"] == "world_session"
+
             graph_action = _normalize_result(
                 await session.call_tool(
                     "vei.graph_action",
@@ -107,4 +114,5 @@ async def _exercise_mcp_discovery_tools() -> None:
             assert "vei.orientation" in example_tools
             assert "vei.capability_graphs" in example_tools
             assert "vei.graph_plan" in example_tools
+            assert "vei.skill_map" in example_tools
             assert "vei.graph_action" in example_tools

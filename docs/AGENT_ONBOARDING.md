@@ -1,16 +1,18 @@
 # Agent Onboarding
 
 This is the one starting document for an agent working on VEI. It explains what
-VEI is, how to run it, and how to use it for world-model experiments.
+VEI is, how to run it, and how to use it for world-model experiments and
+company skill maps.
 
 VEI is a deterministic enterprise simulation and evaluation system. The same
 event spine supports the CLI, Studio UI, twin gateway, branch-point what-if
-experiments, and learned world-model benchmarks.
+experiments, company skill-map compilation, and learned world-model benchmarks.
 
-The practical job is usually one of three things:
+The practical job is usually one of four things:
 
 - run a deterministic enterprise scenario and score an agent
 - turn real historical records into a canonical timeline
+- compile company-specific draft skills from the normalized company bundle
 - train or apply the JEPA-style world model to forecast future state and rank
   counterfactual actions
 
@@ -57,6 +59,8 @@ make deps-audit
   helpers.
 - `vei/twin/` exposes the HTTP governed twin surface.
 - `vei/workspace/` and `vei/run/` hold the file-backed workspace and run model.
+- `vei/skillmap/` compiles evidence-backed, replay-checked company skills from
+  normalized bundles.
 - `vei/whatif/` handles branch-point replay, counterfactuals, benchmarks, and
   saved example bundles.
 - `vei/verticals/` holds seeded business packs and overlays.
@@ -81,6 +85,7 @@ Useful entrypoints:
 ```bash
 vei quickstart run
 vei eval benchmark --runner workflow --family security_containment
+vei skillmap build --source-dir _vei_out/<tenant>/context_snapshot.json --output _vei_out/<tenant>/skill_map
 vei ui serve --root docs/examples/enron-master-agreement-public-context/workspace --host 127.0.0.1 --port 3055
 ```
 
