@@ -116,8 +116,15 @@ for dedupe.
 
 Event builders for tool calls, LLM calls, identity, data IO, artifacts, and
 governance decisions live under `vei.events.*`. The v1 envelope is unchanged;
-related event IDs are carried in `StateDelta.data.link_refs`, while `case_id`
-clusters decision chains. Large or sensitive payloads use `TextHandle`.
+identity, run, trace, and source context live in `StateDelta.data.context`.
+Related events use typed `StateDelta.data.links` records, with legacy
+`link_refs` still written for older readers, while `case_id` clusters decision
+chains. Large or sensitive payloads use `TextHandle`.
+
+Runtime provenance writes through a small `CanonicalEventSink` /
+`CanonicalEventStore` boundary. The local implementation is still append-only
+JSONL in the workspace; the in-process spine remains a compatibility collector,
+not the durable evidence store.
 
 `vei.provenance` is read-side only. It builds timelines, company activity
 graphs, access reviews, blast-radius reports, policy replay reports, and OTel

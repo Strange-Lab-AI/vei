@@ -7,6 +7,8 @@ from hashlib import sha256
 from typing import Any
 
 from .api import build_event, emit_event
+from .context import EventContext, merge_event_context
+from .links import EventLink, merge_event_links
 from .models import (
     ActorRef,
     CanonicalEvent,
@@ -67,13 +69,14 @@ def build_tool_call_event(
     source_granularity: str = "per_call",
     provenance_origin: EventProvenance = EventProvenance.SIMULATED,
     link_refs: list[str] | None = None,
+    links: list[EventLink | dict[str, Any]] | None = None,
+    context: EventContext | dict[str, Any] | None = None,
     inline_payload: bool = False,
 ) -> CanonicalEvent:
     delta_data: dict[str, Any] = {
         "tool_name": tool_name,
         "status": status,
         "source_granularity": source_granularity,
-        "link_refs": list(link_refs or []),
     }
     if error:
         delta_data["error"] = error
@@ -93,6 +96,8 @@ def build_tool_call_event(
             )
             if handle is not None:
                 delta_data["response_handle"] = handle.model_dump(mode="json")
+    delta_data = merge_event_links(delta_data, links=links, link_refs=link_refs)
+    delta_data = merge_event_context(delta_data, context)
 
     return build_event(
         event_id=event_id,

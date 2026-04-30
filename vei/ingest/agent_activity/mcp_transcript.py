@@ -8,12 +8,14 @@ from typing import Iterable
 
 from vei.events.api import (
     CanonicalEvent,
+    EventContext,
     EventProvenance,
     build_tool_call_event,
     stable_event_id,
 )
 
 from .api import RawAgentActivity
+from .object_refs import extract_object_refs
 
 
 class McpTranscriptAdapter:
@@ -38,7 +40,19 @@ class McpTranscriptAdapter:
                     rpc_id = str(msg.get("id", payload.get("id", f"{path.name}:{idx}")))
                     if method in {"tools/call", "tool/call"}:
                         params = dict(msg.get("params", {}))
-                        pending[rpc_id] = params
+                        request_source_id = (
+                            f"{self.source_name}:{path.name}:{rpc_id}:requested"
+                        )
+                        request_event_id = stable_event_id(
+                            request_source_id, "tool.call.requested"
+                        )
+                        pending[rpc_id] = {
+                            "params": params,
+                            "request_event_id": request_event_id,
+                            "request_ts_ms": int(
+                                payload.get("ts_ms", payload.get("time_ms", 0)) or 0
+                            ),
+                        }
                         yield RawAgentActivity(
                             source=self.source_name,
                             source_record_id=f"{path.name}:{rpc_id}:requested",
@@ -49,10 +63,16 @@ class McpTranscriptAdapter:
                             tool_name=str(params.get("name", params.get("tool", ""))),
                             status="requested",
                             source_granularity="transcript",
-                            payload={"args": params.get("arguments", {}), **payload},
+                            payload={
+                                "args": params.get("arguments", {}),
+                                "jsonrpc_request_id": rpc_id,
+                                "mcp_method_name": method,
+                                **payload,
+                            },
                         )
                     elif rpc_id in pending and "result" in msg:
-                        params = pending.pop(rpc_id)
+                        pending_item = pending.pop(rpc_id)
+                        params = dict(pending_item.get("params", {}))
                         yield RawAgentActivity(
                             source=self.source_name,
                             source_record_id=f"{path.name}:{rpc_id}:completed",
@@ -66,11 +86,21 @@ class McpTranscriptAdapter:
                             payload={
                                 "args": params.get("arguments", {}),
                                 "response": msg.get("result"),
+                                "jsonrpc_request_id": rpc_id,
+                                "mcp_method_name": "tools/call",
+                                "request_event_id": pending_item.get(
+                                    "request_event_id", ""
+                                ),
+                                "latency_ms": _latency_ms(
+                                    pending_item.get("request_ts_ms"),
+                                    payload.get("ts_ms", payload.get("time_ms", 0)),
+                                ),
                                 **payload,
                             },
                         )
                     elif rpc_id in pending and "error" in msg:
-                        params = pending.pop(rpc_id)
+                        pending_item = pending.pop(rpc_id)
+                        params = dict(pending_item.get("params", {}))
                         yield RawAgentActivity(
                             source=self.source_name,
                             source_record_id=f"{path.name}:{rpc_id}:failed",
@@ -84,12 +114,49 @@ class McpTranscriptAdapter:
                             payload={
                                 "args": params.get("arguments", {}),
                                 "error": msg.get("error"),
+                                "jsonrpc_request_id": rpc_id,
+                                "mcp_method_name": "tools/call",
+                                "request_event_id": pending_item.get(
+                                    "request_event_id", ""
+                                ),
+                                "latency_ms": _latency_ms(
+                                    pending_item.get("request_ts_ms"),
+                                    payload.get("ts_ms", payload.get("time_ms", 0)),
+                                ),
                                 **payload,
                             },
                         )
 
     def to_canonical_events(self, raw: RawAgentActivity) -> Iterable[CanonicalEvent]:
         source_id = f"{self.source_name}:{raw.source_record_id}"
+        payload = raw.payload
+        request_event_id = str(payload.get("request_event_id", ""))
+        link_kind = ""
+        if raw.kind == "tool.call.completed" and request_event_id:
+            link_kind = "completed_by"
+        elif raw.kind == "tool.call.failed" and request_event_id:
+            link_kind = "failed_by"
+        context = EventContext(
+            agent_id=str(payload.get("agent_id", payload.get("client_id", ""))),
+            human_user_id=str(payload.get("human_user_id", payload.get("user_id", ""))),
+            source_id=source_id,
+            source_granularity=raw.source_granularity,
+            jsonrpc_request_id=str(payload.get("jsonrpc_request_id", "")),
+            mcp_session_id=str(
+                payload.get("mcp_session_id", payload.get("session_id", ""))
+            ),
+            mcp_client_id=str(
+                payload.get("mcp_client_id", payload.get("client_id", ""))
+            ),
+            mcp_server_id=str(
+                payload.get("mcp_server_id", payload.get("server_id", ""))
+            ),
+            mcp_protocol_version=str(
+                payload.get("mcp_protocol_version", payload.get("protocol_version", ""))
+            ),
+            mcp_transport=str(payload.get("transport", "")),
+            mcp_method_name=str(payload.get("mcp_method_name", "")),
+        )
         yield build_tool_call_event(
             kind=raw.kind,
             event_id=stable_event_id(source_id, raw.kind),
@@ -98,9 +165,34 @@ class McpTranscriptAdapter:
             tool_name=raw.tool_name,
             args=raw.payload.get("args"),
             response=raw.payload.get("response"),
+            object_refs=extract_object_refs(
+                tool_name=raw.tool_name,
+                args=raw.payload.get("args"),
+                response=raw.payload.get("response"),
+                explicit_refs=raw.payload.get("object_refs"),
+            ),
             status=raw.status,
             error=json.dumps(raw.payload.get("error", "")),
+            latency_ms=raw.payload.get("latency_ms"),
             source_id=source_id,
             source_granularity=raw.source_granularity,
             provenance_origin=EventProvenance.IMPORTED,
+            links=(
+                [{"kind": link_kind, "event_id": request_event_id}]
+                if link_kind
+                else None
+            ),
+            link_refs=[request_event_id] if request_event_id else None,
+            context=context,
         )
+
+
+def _latency_ms(start: object, end: object) -> int | None:
+    try:
+        start_ms = int(start or 0)
+        end_ms = int(end or 0)
+    except (TypeError, ValueError):
+        return None
+    if not start_ms or not end_ms:
+        return None
+    return max(0, end_ms - start_ms)

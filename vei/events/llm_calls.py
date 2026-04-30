@@ -5,6 +5,8 @@ from __future__ import annotations
 from typing import Any
 
 from .api import build_event, emit_event
+from .context import EventContext, merge_event_context
+from .links import EventLink, merge_event_links
 from .models import ActorRef, CanonicalEvent, EventDomain, EventProvenance, TextHandle
 from .tool_calls import stable_event_id
 
@@ -38,13 +40,14 @@ def build_llm_call_event(
     source_granularity: str = "per_call",
     provenance_origin: EventProvenance = EventProvenance.SIMULATED,
     link_refs: list[str] | None = None,
+    links: list[EventLink | dict[str, Any]] | None = None,
+    context: EventContext | dict[str, Any] | None = None,
 ) -> CanonicalEvent:
     delta_data: dict[str, Any] = {
         "provider": provider,
         "model": model,
         "status": status,
         "source_granularity": source_granularity,
-        "link_refs": list(link_refs or []),
     }
     for key, value in {
         "error": error,
@@ -64,6 +67,8 @@ def build_llm_call_event(
         delta_data["prompt_handle"] = prompt_handle.model_dump(mode="json")
     if response_handle is not None:
         delta_data["response_handle"] = response_handle.model_dump(mode="json")
+    delta_data = merge_event_links(delta_data, links=links, link_refs=link_refs)
+    delta_data = merge_event_context(delta_data, context)
     return build_event(
         event_id=event_id,
         domain=EventDomain.OBS_GRAPH,

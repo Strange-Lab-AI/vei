@@ -9,6 +9,7 @@ from typing import Iterable
 from vei.events.api import (
     ActorRef,
     CanonicalEvent,
+    EventContext,
     EventProvenance,
     build_llm_call_event,
     build_llm_usage_observed,
@@ -17,6 +18,7 @@ from vei.events.api import (
 )
 
 from .api import RawAgentActivity
+from .object_refs import extract_object_refs
 
 
 class AgentActivityJsonlAdapter:
@@ -73,6 +75,16 @@ class AgentActivityJsonlAdapter:
             else None
         )
         source_id = f"{self.source_name}:{raw.source_record_id}"
+        context = EventContext(
+            agent_id=str(payload.get("agent_id", raw.actor_id)),
+            human_user_id=str(payload.get("human_user_id", payload.get("user_id", ""))),
+            run_id=str(payload.get("run_id", "")),
+            trace_id=str(payload.get("trace_id", "")),
+            span_id=str(payload.get("span_id", "")),
+            parent_event_id=str(payload.get("parent_event_id", "")),
+            source_id=source_id,
+            source_granularity=raw.source_granularity,
+        )
         if raw.kind == "llm.usage.observed" or raw.source_granularity == "aggregate":
             yield build_llm_usage_observed(
                 event_id=stable_event_id(source_id, "llm.usage.observed"),
@@ -86,7 +98,15 @@ class AgentActivityJsonlAdapter:
             return
         if raw.tool_name:
             status = raw.status or "completed"
-            kind = "tool.call.failed" if status == "failed" else "tool.call.completed"
+            kind = (
+                raw.kind
+                if raw.kind.startswith("tool.call.")
+                else (
+                    "tool.call.failed" if status == "failed" else "tool.call.completed"
+                )
+            )
+            args = payload.get("args")
+            response = payload.get("response")
             yield build_tool_call_event(
                 kind=kind,
                 event_id=stable_event_id(source_id, kind),
@@ -94,13 +114,30 @@ class AgentActivityJsonlAdapter:
                 ts_ms=raw.ts_ms,
                 actor_ref=actor,
                 tool_name=raw.tool_name,
-                args=payload.get("args"),
-                response=payload.get("response"),
+                object_refs=extract_object_refs(
+                    tool_name=raw.tool_name,
+                    args=args,
+                    response=response,
+                    explicit_refs=payload.get("object_refs"),
+                ),
+                args=args,
+                response=response,
                 status=status,
                 error=str(payload.get("error", "")),
                 source_id=source_id,
                 source_granularity=raw.source_granularity,
                 provenance_origin=EventProvenance.IMPORTED,
+                context=context,
+                links=(
+                    payload.get("links")
+                    if isinstance(payload.get("links"), list)
+                    else None
+                ),
+                link_refs=(
+                    [str(item) for item in payload.get("link_refs", []) if item]
+                    if isinstance(payload.get("link_refs"), list)
+                    else None
+                ),
             )
             return
         yield build_llm_call_event(
@@ -121,4 +158,5 @@ class AgentActivityJsonlAdapter:
             source_id=source_id,
             source_granularity=raw.source_granularity,
             provenance_origin=EventProvenance.IMPORTED,
+            context=context,
         )

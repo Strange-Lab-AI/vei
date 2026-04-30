@@ -11,6 +11,7 @@ from pydantic import BaseModel
 from vei.blueprint import FacadePlugin
 from vei.blueprint.api import FacadeRuntimeBinding
 from vei.connectors import create_default_runtime, parse_adapter_mode
+from vei.events.api import CanonicalEvent, WorkspaceEventStore, emit_event
 from vei.monitors import MonitorManager
 from vei.router._policy import DEFAULT_RULES, PolicyEngine, PromoteMonitorRule
 from vei.world import (
@@ -136,6 +137,20 @@ class Router:
         self._actor_dispatch: Optional[Any] = None
 
         self.trace = TraceLogger(artifacts_dir)
+        event_workspace = (
+            os.environ.get("VEI_EVENT_WORKSPACE")
+            or artifacts_dir
+            or (
+                str(self.state_store.storage_dir)
+                if self.state_store.storage_dir
+                else ""
+            )
+        )
+        self.event_sink = (
+            WorkspaceEventStore(event_workspace, source="router", batch_id=branch)
+            if event_workspace
+            else None
+        )
         self.scenario = scenario or load_from_env(seed)
         self.slack = None  # type: ignore[assignment]
         self.mail = None  # type: ignore[assignment]
@@ -419,6 +434,9 @@ class Router:
             logger.warning(
                 "Failed to persist receipt to %s", self._receipts_path, exc_info=True
             )
+
+    def _emit_canonical_event(self, event: CanonicalEvent) -> CanonicalEvent:
+        return emit_event(event, sink=self.event_sink)
 
     def state_snapshot(
         self,
