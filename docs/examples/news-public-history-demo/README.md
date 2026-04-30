@@ -1,12 +1,13 @@
 # News Public History Demo
 
-This workspace is the public-history Studio demo. It uses a compact
-AmericanStories-derived 1836-1838 historical news snapshot across markets,
-government policy, war and foreign affairs, local civic life, slavery and
-abolition, and transport infrastructure so the UI can choose a historical
-cutoff, show only pre-cutoff evidence, and score candidate public actions with a
-bundled JEPA checkpoint. It does not use live LLM keys and it does not fabricate
-rankings when the checkpoint is unavailable.
+This workspace is the public-history Studio demo. It uses an expanded
+AmericanStories-derived 1836-1838 historical news snapshot with 1,200 selected
+public records across markets, government policy, war and foreign affairs,
+local civic life, slavery and abolition, labor, agriculture and weather, public
+health and disasters, crime and courts, and transport infrastructure. The UI can
+choose a historical cutoff, show only pre-cutoff evidence, and score candidate
+public actions with a bundled JEPA checkpoint. It does not use live LLM keys and
+it does not fabricate rankings when the checkpoint is unavailable.
 
 Run it locally:
 

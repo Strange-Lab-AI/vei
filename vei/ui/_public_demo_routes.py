@@ -130,6 +130,14 @@ _ACTION_SIGNAL_LABELS: tuple[tuple[str, str], ...] = (
     ("cotton", "cotton trade"),
     ("trade", "trade reports"),
     ("election", "election signals"),
+    ("fire", "fire reports"),
+    ("flood", "flood reports"),
+    ("disease", "disease reports"),
+    ("court", "court reports"),
+    ("trial", "trial reports"),
+    ("railroad", "railroad reports"),
+    ("canal", "canal reports"),
+    ("crop", "crop reports"),
 )
 
 _ACTION_SIGNAL_GROUPS: tuple["_ActionSignalGroup", ...] = (
@@ -255,6 +263,37 @@ _ACTION_SIGNAL_GROUPS: tuple["_ActionSignalGroup", ...] = (
         action_template=(
             "Open a local public-order watch on {terms}, distinguishing civic notices "
             "from risk reports visible by {date}."
+        ),
+    ),
+    _ActionSignalGroup(
+        key="public_resilience",
+        title="health, courts, transport, and crop disruption",
+        keywords=(
+            "fire",
+            "flood",
+            "disease",
+            "health",
+            "court",
+            "trial",
+            "railroad",
+            "canal",
+            "crop",
+            "weather",
+        ),
+        labels=(
+            "fire reports",
+            "flood reports",
+            "disease reports",
+            "court reports",
+            "railroad reports",
+            "crop reports",
+        ),
+        candidate_type="expert_review_gate",
+        label_template="Open a public-resilience review on {terms}",
+        action_template=(
+            "Open a public-resilience review on {terms}, tying health, court, "
+            "transport, and crop signals to dated reports visible by {date} before "
+            "publishing any recommendation."
         ),
     ),
 )
@@ -429,7 +468,7 @@ def _load_manifest(root: Path) -> dict[str, Any]:
         "source_id": PUBLIC_DEMO_DEFAULT_SOURCE_ID,
         "title": "Public History: AmericanStories News World",
         "summary": (
-            "Choose a point from a compact 1836-1838 public-news record, inspect "
+            "Choose a point from an expanded public-news record, inspect "
             "what was visible by then, and test a scenario from that state."
         ),
         "source_path": "context_snapshot.json",

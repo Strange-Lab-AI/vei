@@ -1,8 +1,9 @@
 {
   "source_id": "news_americanstories_public_world",
   "title": "Public History: AmericanStories News World",
-  "summary": "Choose a point from a compact 1836-1838 public-news record, inspect what was visible by then, and test a scenario from that state.",
+  "summary": "Choose a point from an expanded 1836-1838 public-news record, inspect what was visible by then, and test a scenario from that state.",
   "source_path": "context_snapshot.json",
+  "saved_result_path": "public_demo_saved_result.json",
   "jepa_checkpoint_path": "jepa_model.pt",
   "default_topic": "all_public_record",
   "default_as_of": "1837-09-06"

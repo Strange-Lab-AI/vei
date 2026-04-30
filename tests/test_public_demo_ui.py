@@ -32,8 +32,8 @@ def test_public_demo_status_and_chat_only_use_pre_cutoff_evidence() -> None:
     assert status["available"] is True
     assert status["source"]["source_id"] == "news_americanstories_public_world"
     assert status["source"]["default_topic"] == "all_public_record"
-    assert status["source"]["event_count"] >= 400
-    assert status["source"]["first_timestamp"] == "1836-01-06T00:00:00Z"
+    assert status["source"]["event_count"] >= 1000
+    assert status["source"]["first_timestamp"] == "1836-01-01T00:00:00Z"
     assert status["source"]["last_timestamp"] == "1838-12-26T00:00:00Z"
     assert status["scoring_available"] is True
     assert status["scoring_source"] == "live_jepa"
@@ -44,17 +44,17 @@ def test_public_demo_status_and_chat_only_use_pre_cutoff_evidence() -> None:
     suggested_types = [
         action["candidate_type"] for action in status["suggested_candidate_actions"]
     ]
-    assert "Prepare a governance memo" in suggested_labels
-    assert "Open a petition-rights review" in suggested_labels
-    assert "Prepare a foreign-risk brief" in suggested_labels
+    assert "Open a relief-and-prices watch" in suggested_labels
     assert "Publish a finance bulletin" in suggested_labels
+    assert "Prepare a governance memo" in suggested_labels
+    assert "Open a public-resilience review" in suggested_labels
     assert "bank credit" in suggested_labels
     assert "cross-topic public bulletin" not in suggested_labels
     assert suggested_types == [
+        "narrow_pilot",
+        "customer_status_note",
         "decision_log_evidence",
         "expert_review_gate",
-        "customer_status_note",
-        "cross_function_war_room",
     ]
     assert 10 <= len(status["timeline_points"]) <= 13
     assert not any(
@@ -67,8 +67,11 @@ def test_public_demo_status_and_chat_only_use_pre_cutoff_evidence() -> None:
         for event in status["evidence_events"]
     )
     subjects = " ".join(event["subject"] for event in status["evidence_events"])
-    assert "President" in subjects or "Senate" in subjects or "Congress" in subjects
-    assert "Abolition" in subjects or "slavery" in subjects.lower()
+    assert any(
+        term in subjects
+        for term in ("Bank", "Treasury", "Labor Work", "Rail Road", "Congress")
+    )
+    assert "Abolition" in subjects or "slav" in subjects.lower()
 
     chat_response = client.post(
         "/api/workspace/public-demo/chat",
@@ -291,16 +294,18 @@ def test_public_demo_score_without_candidates_uses_dynamic_evidence_actions(
     assert response.status_code == 200
     labels = [candidate.label for candidate in calls["candidates"]]
     types = [candidate.candidate_type for candidate in calls["candidates"]]
-    assert labels[0].startswith("Prepare a governance memo on")
-    assert any(label.startswith("Open a petition-rights review on") for label in labels)
-    assert any(label.startswith("Prepare a foreign-risk brief on") for label in labels)
+    assert labels[0].startswith("Open a relief-and-prices watch on")
     assert any(label.startswith("Publish a finance bulletin on") for label in labels)
+    assert any(label.startswith("Prepare a governance memo on") for label in labels)
+    assert any(
+        label.startswith("Open a public-resilience review on") for label in labels
+    )
     assert "cross-topic public bulletin" not in " ".join(labels)
     assert types == [
+        "narrow_pilot",
+        "customer_status_note",
         "decision_log_evidence",
         "expert_review_gate",
-        "customer_status_note",
-        "cross_function_war_room",
     ]
 
 

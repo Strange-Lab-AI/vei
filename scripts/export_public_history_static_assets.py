@@ -39,6 +39,10 @@ _TOPICS: tuple[tuple[str, str], ...] = (
     ("slavery_petitions", "Slavery and petitions"),
     ("international", "International affairs"),
     ("labor_work", "Labor and work"),
+    ("public_health_disaster", "Public health and disasters"),
+    ("crime_courts", "Crime and courts"),
+    ("agriculture_weather", "Agriculture and weather"),
+    ("transport_infrastructure", "Transport and infrastructure"),
 )
 
 

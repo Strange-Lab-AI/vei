@@ -14,8 +14,8 @@ The news setup is not a full internal operating model. It does not see private
 emails, tickets, customer records, or meeting notes. It sees dated public
 articles or newspaper pages and turns them into canonical timeline events.
 
-The repo also ships a small no-key Studio demo with a compact checked-in JEPA
-checkpoint:
+The repo also ships a no-key Studio demo with a compact checked-in JEPA
+checkpoint and an expanded 1,200-record AmericanStories public-news fixture:
 
 ```bash
 vei ui serve \
@@ -86,6 +86,13 @@ python scripts/build_public_history_demo_fixture.py \
   --input _vei_out/datasets/news_americanstories_1836_1838 \
   --workspace docs/examples/news-public-history-demo/workspace
 ```
+
+By default the fixture builder selects 1,200 records stratified by month and
+source topic from the broader local bundle. The checked-in demo currently spans
+1836-01-01 through 1838-12-26 and includes markets, policy, war and foreign
+affairs, local civic life, slavery and abolition, labor, agriculture and
+weather, public health and disasters, crime and courts, and transport
+infrastructure.
 
 ## Decision Point Shape
 

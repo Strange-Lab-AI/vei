@@ -18,13 +18,12 @@ DEFAULT_WORKSPACE = Path("docs/examples/news-public-history-demo/workspace")
 DEFAULT_AS_OF = "1837-09-06"
 SOURCE_ID = "news_americanstories_public_world"
 
-TOPIC_LABELS = {
+TARGET_TOPIC_LABELS = {
     "news:banking_markets": "Banking Markets",
     "news:government_policy": "Government Policy",
     "news:war_foreign_affairs": "War Foreign Affairs",
     "news:local_civic": "Local Civic",
     "news:slavery_abolition": "Slavery Abolition",
-    "public@outside.local": "Transport Infrastructure",
 }
 
 TOPIC_ORDER = (
@@ -33,8 +32,13 @@ TOPIC_ORDER = (
     "War Foreign Affairs",
     "Local Civic",
     "Slavery Abolition",
+    "Labor Work",
+    "Agriculture Weather",
+    "Public Health Disaster",
+    "Crime Courts",
     "Transport Infrastructure",
 )
+TOPIC_SET = set(TOPIC_ORDER)
 
 GENERIC_HEADLINES = {label.lower() for label in TOPIC_ORDER}
 NOISY_AD_TERMS = (
@@ -55,8 +59,8 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--input", type=Path, default=DEFAULT_INPUT)
     parser.add_argument("--workspace", type=Path, default=DEFAULT_WORKSPACE)
-    parser.add_argument("--max-events", type=int, default=480)
-    parser.add_argument("--per-month-topic", type=int, default=2)
+    parser.add_argument("--max-events", type=int, default=1200)
+    parser.add_argument("--per-month-topic", type=int, default=4)
     args = parser.parse_args()
 
     world = load_world(
@@ -75,7 +79,7 @@ def main() -> None:
         output_path=args.workspace / "context_snapshot.json",
         source_event_count=len(world.events),
     )
-    write_manifest(args.workspace / "public_demo_manifest.json")
+    write_manifest(args.workspace / "public_demo_manifest.json", selected)
 
 
 def select_events(
@@ -96,11 +100,16 @@ def select_events(
     for bucket in buckets.values():
         bucket.sort(key=lambda event: (-_quality_score(event), event.event_id))
 
-    selected_by_id: dict[str, WhatIfEvent] = {}
     months = sorted({event.timestamp[:7] for event in all_events})
+    month_topic_slots = max(1, len(months) * len(TOPIC_ORDER))
+    stratified_quota = per_month_topic
+    if month_topic_slots * per_month_topic > max_events:
+        stratified_quota = max(1, max_events // month_topic_slots)
+
+    selected_by_id: dict[str, WhatIfEvent] = {}
     for month in months:
         for topic in TOPIC_ORDER:
-            for event in buckets.get((month, topic), [])[:per_month_topic]:
+            for event in buckets.get((month, topic), [])[:stratified_quota]:
                 selected_by_id.setdefault(event.event_id, event)
 
     fill = sorted(
@@ -173,24 +182,30 @@ def write_context_snapshot(
             "end_date": events[-1].timestamp[:10] if events else "",
             "selection_method": "stratified_by_month_and_topic",
             "notes": (
-                "Compact public demo fixture derived from the local AmericanStories "
-                "1836-1838 news world bundle."
+                "Expanded public demo fixture derived from the local AmericanStories "
+                "news world bundle."
             ),
         },
     }
     output_path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
 
 
-def write_manifest(path: Path) -> None:
+def write_manifest(path: Path, events: list[WhatIfEvent]) -> None:
+    start_date = events[0].timestamp[:10] if events else "1836-01-01"
+    end_date = events[-1].timestamp[:10] if events else "1838-12-31"
+    start_year = start_date[:4]
+    end_year = end_date[:4]
+    range_label = start_year if start_year == end_year else f"{start_year}-{end_year}"
     payload = {
         "source_id": SOURCE_ID,
         "title": "Public History: AmericanStories News World",
         "summary": (
-            "Choose a point from a compact 1836-1838 public-news record, inspect "
+            f"Choose a point from an expanded {range_label} public-news record, inspect "
             "what was visible by then, and test a scenario from that state."
         ),
         "source_path": "context_snapshot.json",
         "saved_result_path": "public_demo_saved_result.json",
+        "jepa_checkpoint_path": "jepa_model.pt",
         "default_topic": "all_public_record",
         "default_as_of": DEFAULT_AS_OF,
     }
@@ -198,7 +213,16 @@ def write_manifest(path: Path) -> None:
 
 
 def _topic_label(event: WhatIfEvent) -> str:
-    return TOPIC_LABELS.get(event.target_id, event.subject or "Public Record")
+    subject_topic = _topic_from_subject(event.subject)
+    if subject_topic:
+        return subject_topic
+    return TARGET_TOPIC_LABELS.get(event.target_id, event.subject or "Public Record")
+
+
+def _topic_from_subject(subject: str) -> str:
+    prefix = str(subject or "").split(":", 1)[0]
+    normalized = _clean_text(prefix.replace("_", " "), max_chars=80).title()
+    return normalized if normalized in TOPIC_SET else ""
 
 
 def _quality_score(event: WhatIfEvent) -> float:
