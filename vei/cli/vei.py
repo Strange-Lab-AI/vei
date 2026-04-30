@@ -63,6 +63,10 @@ class VEILazyGroup(LazyTyperGroup):
             module_path="vei.cli.vei_knowledge",
             help="Capture knowledge assets and compose grounded business artifacts.",
         ),
+        "skillmap": LazyCommandSpec(
+            module_path="vei.cli.vei_skillmap",
+            help="Build evidence-backed company skill maps from context bundles.",
+        ),
         "contract": LazyCommandSpec(
             module_path="vei.cli.vei_contract",
             help="Inspect and validate workspace contracts.",

@@ -16,6 +16,8 @@ KnowledgeAssetKind = Literal[
     "metric_snapshot",
     "brief",
     "weekly_review",
+    "skill_map",
+    "company_skill",
 ]
 KnowledgeAssetStatus = Literal["active", "stale", "superseded", "expired"]
 KnowledgeEdgeKind = Literal["cites", "supersedes", "derived_from", "applies_to"]

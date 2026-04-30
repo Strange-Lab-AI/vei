@@ -8,6 +8,7 @@ from pydantic import Field
 
 from vei.blueprint import list_runtime_facade_plugins
 from vei.router.api import RouterServerAPI
+from vei.skillmap.api import build_company_skill_map_from_session
 from vei.world.api import WorldSessionAPI
 
 from .alias_packs import CRM_ALIAS_PACKS, ERP_ALIAS_PACKS
@@ -149,6 +150,15 @@ def register_vei_tools(
         )
 
     @srv.tool(
+        name="vei.skill_map",
+        description="Inspect the evidence-backed company skill map for the current world without mutating state",
+    )
+    def vei_skill_map(limit: int = 12) -> dict[str, Any]:
+        return build_company_skill_map_from_session(
+            get_session(), limit=limit
+        ).model_dump(mode="json")
+
+    @srv.tool(
         name="vei.graph_action",
         description="Apply a graph-native mutation step, either by explicit domain/action or by a suggested step_id from vei.graph_plan",
     )
@@ -248,6 +258,7 @@ def register_vei_tools(
                 {"tool": "vei.orientation", "args": {}},
                 {"tool": "vei.capability_graphs", "args": {"domain": "identity_graph"}},
                 {"tool": "vei.graph_plan", "args": {"domain": "identity_graph"}},
+                {"tool": "vei.skill_map", "args": {"limit": 8}},
                 {
                     "tool": "vei.graph_action",
                     "args": {

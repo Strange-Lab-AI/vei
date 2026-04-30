@@ -168,7 +168,19 @@ def test_fastmcp_server_registers_wrappers_and_special_tools(
             return _DumpModel({"organization_name": "Acme"})
 
         def structure_view(self) -> _DumpModel:
-            return _DumpModel({"source_mode": "world_state_event_log", "cases": []})
+            return _DumpModel(
+                {
+                    "source_mode": "world_state_event_log",
+                    "total_event_count": 0,
+                    "cases": [],
+                    "entities": [],
+                    "relations": [],
+                    "timelines": [],
+                    "hypotheses": [],
+                    "suggested_investigations": [],
+                    "metadata": {},
+                }
+            )
 
         def capability_graphs(self) -> _DumpModel:
             return _DumpModel(
@@ -177,6 +189,7 @@ def test_fastmcp_server_registers_wrappers_and_special_tools(
                     "clock_ms": 123,
                     "available_domains": ["identity_graph"],
                     "identity_graph": {"nodes": 2},
+                    "metadata": {"organization_domain": "acme.example"},
                 }
             )
 
@@ -198,6 +211,7 @@ def test_fastmcp_server_registers_wrappers_and_special_tools(
     tool_names = set(server._tool_manager._tools)
 
     assert "vei.help" in tool_names
+    assert "vei.skill_map" in tool_names
     assert "vei.structure_view" in tool_names
     assert "xero.create_purchase_order" in tool_names
     assert "salesforce.account.list" in tool_names
@@ -228,13 +242,21 @@ def test_fastmcp_server_registers_wrappers_and_special_tools(
     }
     assert server._tool_manager.get_tool("vei.structure_view").fn() == {
         "source_mode": "world_state_event_log",
+        "total_event_count": 0,
         "cases": [],
+        "entities": [],
+        "relations": [],
+        "timelines": [],
+        "hypotheses": [],
+        "suggested_investigations": [],
+        "metadata": {},
     }
     assert server._tool_manager.get_tool("vei.capability_graphs").fn() == {
         "branch": "main",
         "clock_ms": 123,
         "available_domains": ["identity_graph"],
         "identity_graph": {"nodes": 2},
+        "metadata": {"organization_domain": "acme.example"},
     }
     assert server._tool_manager.get_tool("vei.capability_graphs").fn(
         domain="identity_graph"
@@ -259,6 +281,9 @@ def test_fastmcp_server_registers_wrappers_and_special_tools(
         "limit": 3,
         "suggested_steps": [],
     }
+    skill_map = server._tool_manager.get_tool("vei.skill_map").fn(limit=3)
+    assert skill_map["schema_version"] == "company_skill_map_v1"
+    assert skill_map["source_ref"] == "world_session"
     assert server._tool_manager.get_tool("vei.graph_action").fn(
         domain="identity_graph",
         action="assign_application",

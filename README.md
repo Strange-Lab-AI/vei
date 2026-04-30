@@ -1,7 +1,7 @@
 ## VEI
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/Strange-Lab-AI/vei)
 
-VEI turns built-in scenarios or real company records into a runnable company world. You can use it to test an agent before it touches a real company, watch an outside agent through a governed twin, branch from a real historical decision and compare a different move, or draft grounded knowledge artifacts from the same company state.
+VEI turns built-in scenarios or real company records into a runnable company world. You can use it to test an agent before it touches a real company, watch an outside agent through a governed twin, branch from a real historical decision and compare a different move, draft grounded knowledge artifacts, or compile company-specific agent skills from the same company state.
 
 The same engine powers every path: one world state, one event history, one replay model, and one CLI.
 
@@ -12,6 +12,7 @@ The same engine powers every path: one world state, one event history, one repla
 - [How VEI Works](#how-vei-works)
 - [Walk Through The Enron Case](#walk-through-the-enron-case)
 - [Knowledge Authoring Demo](#knowledge-authoring-demo)
+- [Company Skill Map Demo](#company-skill-map-demo)
 - [Bring Your Own Company History](#bring-your-own-company-history)
 - [Repo Checks](#repo-checks)
 - [Docs](#docs)
@@ -56,11 +57,12 @@ For live planning backends, VEI supports OpenAI, Anthropic, Google, OpenRouter, 
 - Connect an outside agent: start with quickstart, then use the Twin Gateway URLs and token from `.vei/quickstart.json`
 - Try the public history demo: `vei ui serve --root docs/examples/news-public-history-demo/workspace --host 127.0.0.1 --port 3055`
 - Replay a real historical decision: `vei ui serve --root docs/examples/enron-master-agreement-public-context/workspace --host 127.0.0.1 --port 3055`
+- Compile a company skill map: `vei skillmap build --source-dir _vei_out/<company>/context_snapshot.json --output _vei_out/<company>/skill_map`
 - Run a benchmark: `vei eval benchmark --runner workflow --family security_containment`
 
 ## How VEI Works
 
-VEI has three top-level paths.
+VEI has five first-class surfaces.
 
 The runnable company path starts from a built-in world or a captured company snapshot. VEI compiles that into one deterministic world session with connected surfaces such as mail, chat, tickets, docs, CRM, identity, and knowledge assets. Agents and humans act through VEI tools and routes. VEI records what happened, scores the run, and lets you replay or branch it.
 
@@ -69,6 +71,8 @@ The governed twin path supports three write outcomes: allow, deny, or hold for a
 The agent-facing discovery ladder inside that world is now explicit: start with `vei.orientation`, then `vei.structure_view`, then `vei.capability_graphs`, `vei.graph_plan`, and `vei.graph_action`. `vei.structure_view` shows the event-derived read model with inferred entities, case clusters, timelines, and open ambiguities. Hidden truth comparison stays in the SDK, contract, and benchmark layers instead of the MCP tool surface.
 
 The knowledge authoring path rides on that same world. VEI hydrates notes, transcripts, metric snapshots, SOPs, pricing sheets, and deliverables into one `knowledge_graph`, then composes proposals or briefs with citations, freshness checks, and contract scoring. The deterministic baseline runs without an API key. The bounded LLM mode uses the same recorded event spine and the same workspace/run model.
+
+The company skill map path turns that event spine, structure view, capability graph, and knowledge graph into a reviewed skills file for agents. Skills are evidence-backed and draft by default. Historical replay scores test candidate skills against the same past/future case splits used by the what-if layer. Read-only steps can run directly in the twin, while any executable write step is shadow-mode or approval-gated until a named owner, reviewer, and replay proof are in place.
 
 The historical what-if path starts from one normalized company history bundle. The outer layer is `context_snapshot.json`. It keeps the raw sources parallel as typed records, with provider health, timestamps, actors, cases, and linked records. VEI explores that bundle, ranks branch candidates, and picks one real decision point.
 
@@ -303,6 +307,50 @@ vei knowledge ingest \
   --org "Northstar Growth" \
   --output _vei_out/knowledge_snapshot.json
 ```
+
+## Company Skill Map Demo
+
+Build a deployable draft skill map from a normalized company bundle:
+
+```bash
+vei skillmap build \
+  --source-dir _vei_out/<company>/context_snapshot.json \
+  --output _vei_out/<company>/skill_map \
+  --limit 12 \
+  --provider openai \
+  --model gpt-5-mini
+```
+
+The command writes:
+
+- `company_skill_map.json`: the typed `company_skill_map_v1` file
+- `company_skills.md`: the human-readable skill catalog
+- `skill_evidence_report.md`: the source evidence behind each skill
+- `skill_replay_report.md`: historical shadow tests for each skill
+- `skill_refresh_report.md`: what changed versus a previous map
+- `skill_gap_report.md`: missing data, stale evidence, source errors, and open ambiguities
+
+Validate the file before activation:
+
+```bash
+vei skillmap validate \
+  --map _vei_out/<company>/skill_map/company_skill_map.json
+```
+
+Skill synthesis is LLM-first and evidence-bound. The builder builds one evidence catalog from the full normalized company bundle, processes every catalog item in LLM shards, then runs a global finalizer over the strongest evidence clusters so cross-system operating rules can beat local one-off summaries. Final skills carry a candidate type (`flagship_skill`, `support_skill`, `workflow`, or `preprocessor`), positive and negative triggers, concrete output artifacts, usefulness scores, approval boundaries, and replay checks. Skills that do not cite supplied evidence IDs are rejected. The builder does not fall back to deterministic regex extraction; set `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GOOGLE_API_KEY` or `GEMINI_API_KEY`, or `OPENROUTER_API_KEY`, or pass a configured `--provider/--model`.
+
+By default, `build` attaches deterministic replay checks when the bundle can be loaded as a company-history what-if world. Use `--no-replay` only when you want the raw LLM-synthesized map before replay scoring. To refresh after new company data lands, pass the previous output:
+
+```bash
+vei skillmap build \
+  --source-dir _vei_out/<company>/context_snapshot.json \
+  --output _vei_out/<company>/skill_map_next \
+  --previous-map _vei_out/<company>/skill_map/company_skill_map.json
+```
+
+Bundle-built skills are compiled only from the supplied company bundle: canonical events, structure view, linked knowledge assets, and replayable history. The builder does not pull generic scenario-template action plans into `company_skill_map.json`.
+
+Inside a running MCP world, agents can inspect the same surface with `vei.skill_map`. The tool is read-only. It does not grant live company writes; generated write steps remain shadow-mode or approval-gated.
 
 ## Bring Your Own Company History
 
