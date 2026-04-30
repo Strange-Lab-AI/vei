@@ -185,6 +185,8 @@ def test_cli_ingest_and_provenance_commands(tmp_path: Path) -> None:
             str(source),
             "--workspace",
             str(workspace),
+            "--format",
+            "json",
         ],
     )
     assert result.exit_code == 0, result.output
@@ -198,6 +200,8 @@ def test_cli_ingest_and_provenance_commands(tmp_path: Path) -> None:
             "agent-1",
             "--workspace",
             str(workspace),
+            "--format",
+            "json",
         ],
     )
     assert result.exit_code == 0, result.output

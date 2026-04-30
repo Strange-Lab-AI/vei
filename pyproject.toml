@@ -69,7 +69,7 @@ jepa = [
   "numpy>=1.26.0",
   "pandas>=2.2.3",
   "torch>=2.4.0",
-  "onnx>=1.17.0",
+  "onnx>=1.21.0",
   "onnxscript>=0.7.0",
 ]
 test = [

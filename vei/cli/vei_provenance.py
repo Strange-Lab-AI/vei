@@ -24,6 +24,11 @@ def _events(workspace: Path) -> list:
     return load_workspace_events(workspace)
 
 
+def _validate_json_format(format: str) -> None:
+    if format != "json":
+        raise typer.BadParameter("only --format json is implemented for this command")
+
+
 def _echo(payload: object) -> None:
     if hasattr(payload, "model_dump"):
         typer.echo(
@@ -34,7 +39,11 @@ def _echo(payload: object) -> None:
 
 
 @app.command("inspect")
-def inspect(workspace: Path = typer.Option(..., help="VEI workspace root")) -> None:
+def inspect(
+    workspace: Path = typer.Option(..., help="VEI workspace root"),
+    format: str = typer.Option("json", help="json"),
+) -> None:
+    _validate_json_format(format)
     _echo(inspect_timeline(_events(workspace)))
 
 
@@ -42,7 +51,9 @@ def inspect(workspace: Path = typer.Option(..., help="VEI workspace root")) -> N
 def graph(
     workspace: Path = typer.Option(..., help="VEI workspace root"),
     agent_id: Optional[str] = typer.Option(None, help="Optional agent filter"),
+    format: str = typer.Option("json", help="json"),
 ) -> None:
+    _validate_json_format(format)
     events = _events(workspace)
     if agent_id:
         events = [
@@ -57,7 +68,9 @@ def graph(
 def blast_radius_cmd(
     event_id: str = typer.Option(..., help="Anchor canonical event id"),
     workspace: Path = typer.Option(..., help="VEI workspace root"),
+    format: str = typer.Option("json", help="json"),
 ) -> None:
+    _validate_json_format(format)
     _echo(blast_radius(_events(workspace), anchor_event_id=event_id))
 
 
@@ -65,7 +78,9 @@ def blast_radius_cmd(
 def access_review_cmd(
     agent_id: str = typer.Option(..., help="Agent or actor id"),
     workspace: Path = typer.Option(..., help="VEI workspace root"),
+    format: str = typer.Option("json", help="json"),
 ) -> None:
+    _validate_json_format(format)
     _echo(access_review(_events(workspace), agent_id=agent_id))
 
 
@@ -73,7 +88,9 @@ def access_review_cmd(
 def replay_policy_cmd(
     policy: Path = typer.Option(..., help="Policy JSON path"),
     workspace: Path = typer.Option(..., help="VEI workspace root"),
+    format: str = typer.Option("json", help="json"),
 ) -> None:
+    _validate_json_format(format)
     _echo(replay_policy(_events(workspace), policy=load_policy_file(policy)))
 
 

@@ -11,6 +11,11 @@ from vei.ingest.api import agent_activity_ingest_status, ingest_agent_activity_s
 app = typer.Typer(no_args_is_help=True, help="Ingest external evidence into VEI.")
 
 
+def _validate_json_format(format: str) -> None:
+    if format != "json":
+        raise typer.BadParameter("only --format json is implemented for this command")
+
+
 @app.command("agent-activity")
 def agent_activity(
     source: str = typer.Option(
@@ -25,7 +30,9 @@ def agent_activity(
     ),
     since: str = typer.Option("", help="Batch window/cursor hint, for example 7d"),
     tenant_id: str = typer.Option("", help="Optional tenant id"),
+    format: str = typer.Option("json", help="json"),
 ) -> None:
+    _validate_json_format(format)
     try:
         result = ingest_agent_activity_source(
             source=source,
@@ -41,7 +48,11 @@ def agent_activity(
 
 
 @app.command("status")
-def status(workspace: Path = typer.Option(..., help="VEI workspace root")) -> None:
+def status(
+    workspace: Path = typer.Option(..., help="VEI workspace root"),
+    format: str = typer.Option("json", help="json"),
+) -> None:
+    _validate_json_format(format)
     typer.echo(
         json.dumps(
             agent_activity_ingest_status(str(workspace)), indent=2, sort_keys=True
