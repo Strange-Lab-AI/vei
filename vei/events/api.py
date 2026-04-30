@@ -10,8 +10,8 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from .legacy import _infer_domain as _legacy_infer_domain
-from .context import EventContext
-from .links import EventLink, link_event_ids
+from .context import EventContext, ExecutionPrincipal
+from .links import EventLink, link_event_ids, typed_event_links
 from .models import (
     CaseRef,
     ObjectRef,
@@ -175,6 +175,7 @@ __all__ = [
     "EventContext",
     "EventLink",
     "EventProvenance",
+    "ExecutionPrincipal",
     "InternalExternal",
     "ObjectRef",
     "parse_object_refs",
@@ -212,4 +213,5 @@ __all__ = [
     "link_event_ids",
     "spine_snapshot",
     "stable_event_id",
+    "typed_event_links",
 ]

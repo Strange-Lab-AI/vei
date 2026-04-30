@@ -112,7 +112,9 @@ workspace context events and imported agent-activity events as one logical
 spine. Imported activity is stored under
 `provenance/agent_activity/<source>/<batch>/canonical_events.jsonl` with a
 manifest containing source, cursor/window, counts, timestamps, and hashes used
-for dedupe.
+for dedupe. Local manifests also include a batch hash, previous-batch hash when
+available, and manifest hash; this is lightweight tamper evidence for local
+workspaces, not a signing or key-management system.
 
 Event builders for tool calls, LLM calls, identity, data IO, artifacts, and
 governance decisions live under `vei.events.*`. The v1 envelope is unchanged;
@@ -127,10 +129,14 @@ JSONL in the workspace; the in-process spine remains a compatibility collector,
 not the durable evidence store.
 
 `vei.provenance` is read-side only. It builds timelines, company activity
-graphs, access reviews, blast-radius reports, policy replay reports, and OTel
-GenAI/MCP-shaped exports. Reports preserve source granularity (`per_call`,
-`transcript`, `aggregate`, `audit_only`) so aggregate usage cannot masquerade
-as exact per-call evidence.
+graphs, access reviews, blast-radius reports, policy replay reports, evidence
+packs, and OTel GenAI/MCP-shaped exports. The Studio Control tab is a single
+surface over the same APIs: agent inventory, access review, selected-event blast
+radius, policy replay, and evidence-pack export. Reports preserve source
+granularity (`per_call`, `transcript`, `aggregate`, `audit_only`) plus
+lightweight evidence-quality fields for source integrity, time, object, link,
+and identity confidence, so aggregate usage cannot masquerade as exact per-call
+evidence.
 
 The same spine also supports the JEPA/counterfactual path. Enron and public
 news timelines can be opened in Worlds/Research for learned counterfactual

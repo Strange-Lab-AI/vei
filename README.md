@@ -66,6 +66,7 @@ For live planning backends, VEI supports OpenAI, Anthropic, Google, OpenRouter, 
 - Compile a company skill map: `vei skillmap build --source-dir _vei_out/<company>/context_snapshot.json --output _vei_out/<company>/skill_map`
 - Capture agent evidence: `vei ingest agent-activity --source agent_activity_jsonl --path ./logs --workspace _vei_out/<company>`
 - Review provenance: `vei provenance access-review --agent-id <agent-id> --workspace _vei_out/<company>`
+- Export an evidence pack: `vei provenance export --format evidence-pack --workspace _vei_out/<company> --output _vei_out/<company>/evidence_pack.json`
 - Run a benchmark: `vei eval benchmark --runner workflow --family security_containment`
 
 ## How VEI Works
@@ -78,6 +79,10 @@ behavior from JSONL landing zones, MCP transcripts, and coarse OpenAI org
 usage/audit evidence. Both land on the canonical spine, so reports can connect
 what an agent did to the company objects it touched. Aggregate sources stay
 marked as aggregate; VEI does not turn bucketed usage into fake per-call traces.
+Studio's Control tab uses the same provenance APIs as the CLI/MCP surface:
+agent inventory, access review, selected-event blast radius, policy replay, and
+compact evidence packs all read from the canonical event spine rather than a
+separate dashboard state.
 
 The runnable company path starts from a built-in world or a captured company snapshot. VEI compiles that into one deterministic world session with connected surfaces such as mail, chat, tickets, docs, CRM, identity, and knowledge assets. Agents and humans act through VEI tools and routes. VEI records what happened, scores the run, and lets you replay or branch it.
 

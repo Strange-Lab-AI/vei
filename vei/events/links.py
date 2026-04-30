@@ -70,12 +70,24 @@ def merge_event_links(
 
 def link_event_ids(data: dict[str, Any]) -> list[str]:
     ids: list[str] = []
-    links = data.get("links")
-    if isinstance(links, list):
-        for item in links:
-            if isinstance(item, dict) and item.get("event_id"):
-                ids.append(str(item["event_id"]))
+    for link in typed_event_links(data):
+        ids.append(link.event_id)
     refs = data.get("link_refs")
     if isinstance(refs, list):
         ids.extend(str(ref) for ref in refs if ref)
     return list(dict.fromkeys(ids))
+
+
+def typed_event_links(data: dict[str, Any]) -> list[EventLink]:
+    links = data.get("links")
+    if not isinstance(links, list):
+        return []
+    parsed: list[EventLink] = []
+    for item in links:
+        if not isinstance(item, dict) or not item.get("event_id"):
+            continue
+        try:
+            parsed.append(EventLink.model_validate(item))
+        except ValueError:
+            continue
+    return parsed

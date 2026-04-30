@@ -6,15 +6,19 @@ import json
 from pathlib import Path
 from typing import Iterable
 
-from vei.events.api import CanonicalEvent, link_event_ids
+from vei.events.api import CanonicalEvent, ObjectRef, link_event_ids, typed_event_links
 from vei.ingest.api import load_agent_activity_events
 
 from .models import (
     AccessReviewReport,
+    AccessItem,
     ActivityEdge,
     ActivityNode,
+    AgentInventoryItem,
     BlastRadiusReport,
     CompanyActivityGraph,
+    EvidencePack,
+    EvidenceQuality,
     PolicyReplayHit,
     PolicyReplayReport,
     ProvenanceTimeline,
@@ -39,6 +43,10 @@ def _link_refs(event: CanonicalEvent) -> list[str]:
     return link_event_ids(_delta(event))
 
 
+def _typed_links(event: CanonicalEvent) -> list:
+    return typed_event_links(_delta(event))
+
+
 def _source_granularity(event: CanonicalEvent) -> str:
     data = _delta(event)
     return str(
@@ -46,11 +54,60 @@ def _source_granularity(event: CanonicalEvent) -> str:
     )
 
 
-def _event_actor_id(event: CanonicalEvent) -> str:
+def provenance_actor_id(event: CanonicalEvent) -> str:
     if event.actor_ref:
         return event.actor_ref.actor_id
     context = _context(event)
     return str(context.get("agent_id") or context.get("human_user_id") or "")
+
+
+def _event_actor_id(event: CanonicalEvent) -> str:
+    return provenance_actor_id(event)
+
+
+def evidence_quality(event: CanonicalEvent) -> EvidenceQuality:
+    context = _context(event)
+    granularity = _source_granularity(event)
+    warnings: list[str] = []
+    if granularity in {"aggregate", "audit_only"}:
+        warnings.append(f"{granularity} source is not per-call evidence")
+    links = _typed_links(event)
+    object_confidence = "exact" if event.object_refs else "absent"
+    if event.object_refs and any(
+        _delta(event).get(key) for key in ("args_handle", "response_handle")
+    ):
+        object_confidence = "extracted"
+    quality = EvidenceQuality(
+        source_granularity=granularity,
+        source_integrity=_source_integrity(event),
+        time_confidence="exact" if event.ts_ms else "missing",
+        object_confidence=object_confidence,
+        link_confidence=(
+            "exact" if links else ("unknown" if _link_refs(event) else "absent")
+        ),
+        identity_confidence=(
+            "verified"
+            if event.actor_ref
+            else (
+                "inferred"
+                if context.get("agent_id") or context.get("human_user_id")
+                else "absent"
+            )
+        ),
+        warnings=warnings,
+    )
+    return quality
+
+
+def _source_integrity(event: CanonicalEvent) -> str:
+    origin = getattr(event.provenance.origin, "value", str(event.provenance.origin))
+    if origin == "simulated":
+        return "simulated"
+    if event.provenance.source_id.startswith(("openai", "mcp_transcript")):
+        return "api_fetched"
+    if origin == "derived":
+        return "derived"
+    return "imported"
 
 
 def inspect_timeline(events: Iterable[CanonicalEvent]) -> ProvenanceTimeline:
@@ -77,6 +134,7 @@ def inspect_timeline(events: Iterable[CanonicalEvent]) -> ProvenanceTimeline:
                 source_granularity=granularity,
                 summary=_event_summary(event),
                 link_refs=_link_refs(event),
+                evidence_quality=evidence_quality(event),
             )
         )
     return ProvenanceTimeline(
@@ -100,17 +158,34 @@ def build_activity_graph(events: Iterable[CanonicalEvent]) -> CompanyActivityGra
         if event_id not in node.event_ids:
             node.event_ids.append(event_id)
 
-    def add_edge(source: str, target: str, kind: str, event_id: str) -> None:
+    def add_edge(
+        source: str,
+        target: str,
+        kind: str,
+        event_id: str,
+        *,
+        link_kind: str = "",
+        confidence: str = "",
+    ) -> None:
         if not source or not target:
             return
         key = (source, target, kind)
         edge = edges.setdefault(
-            key, ActivityEdge(source=source, target=target, kind=kind)
+            key,
+            ActivityEdge(
+                source=source,
+                target=target,
+                kind=kind,
+                link_kind=link_kind,
+                confidence=confidence,
+            ),
         )
         if event_id not in edge.event_ids:
             edge.event_ids.append(event_id)
 
     for event in events:
+        event_node_id = f"event:{event.event_id}"
+        add_node(event_node_id, "event", event.kind, event.event_id)
         actor_id = _event_actor_id(event)
         if actor_id:
             add_node(
@@ -145,6 +220,22 @@ def build_activity_graph(events: Iterable[CanonicalEvent]) -> CompanyActivityGra
                 event.event_id,
             )
             add_edge(actor_id, policy_id, "policy_event", event.event_id)
+        for link in _typed_links(event):
+            linked_event_node_id = f"event:{link.event_id}"
+            add_node(linked_event_node_id, "event", link.event_id, link.event_id)
+            source_node = linked_event_node_id
+            target_node = event_node_id
+            if link.kind in {"completed_by", "failed_by", "resolved_by"}:
+                source_node = linked_event_node_id
+                target_node = event_node_id
+            add_edge(
+                source_node,
+                target_node,
+                link.kind or "linked",
+                event.event_id,
+                link_kind=link.kind,
+                confidence="exact",
+            )
         granularity = _source_granularity(event)
         if granularity in {"aggregate", "audit_only"}:
             warnings.add(f"{granularity} evidence present; some links are coarse")
@@ -168,6 +259,7 @@ def blast_radius(
     event_list = list(events)
     graph = build_activity_graph(event_list)
     related_ids = {anchor_event_id}
+    inferred: set[str] = set()
     changed = True
     while changed:
         changed = False
@@ -177,6 +269,11 @@ def blast_radius(
                 before = len(related_ids)
                 related_ids.add(event.event_id)
                 related_ids.update(refs)
+                for link in _typed_links(event):
+                    if link.event_id in related_ids or event.event_id in related_ids:
+                        inferred.add(
+                            f"{event.event_id} {link.kind or 'linked'} {link.event_id}"
+                        )
                 changed = len(related_ids) != before
     reached_nodes = [node for node in graph.nodes if set(node.event_ids) & related_ids]
     reached_edges = [edge for edge in graph.edges if set(edge.event_ids) & related_ids]
@@ -186,9 +283,11 @@ def blast_radius(
     policies: set[str] = set()
     approvals: set[str] = set()
     unknowns: set[str] = set()
+    qualities: list[EvidenceQuality] = []
     for event in event_list:
         if event.event_id not in related_ids:
             continue
+        qualities.append(evidence_quality(event))
         refs = [ref.object_id for ref in event.object_refs]
         if event.kind.endswith(".read") or ".read" in event.kind:
             read_objects.update(refs)
@@ -214,6 +313,9 @@ def blast_radius(
         policies=sorted(policies),
         approvals=sorted(approvals),
         unknowns=sorted(unknowns),
+        observed=sorted(related_ids),
+        inferred=sorted(inferred),
+        evidence_quality=qualities,
     )
 
 
@@ -221,20 +323,39 @@ def access_review(
     events: Iterable[CanonicalEvent],
     *,
     agent_id: str,
+    configured_access: Iterable[dict] | None = None,
 ) -> AccessReviewReport:
     touched_objects: set[str] = set()
     tools_used: set[str] = set()
     policy_decisions: set[str] = set()
     granularities: set[str] = set()
     warnings: set[str] = set()
+    observed_items: dict[tuple[str, str], AccessItem] = {}
+    qualities: list[EvidenceQuality] = []
     for event in events:
         actor_id = _event_actor_id(event)
         if actor_id != agent_id:
             continue
+        qualities.append(evidence_quality(event))
         touched_objects.update(ref.object_id for ref in event.object_refs)
         tool_name = str(_delta(event).get("tool_name", ""))
         if tool_name:
             tools_used.add(tool_name)
+            _merge_access_item(
+                observed_items,
+                AccessItem(
+                    kind="tool",
+                    id=tool_name,
+                    label=tool_name,
+                    source="observed",
+                    event_ids=[event.event_id],
+                ),
+            )
+        for ref in event.object_refs:
+            _merge_access_item(
+                observed_items,
+                _object_access_item(ref, source="observed", event_id=event.event_id),
+            )
         if event.kind.startswith("governance."):
             decision = str(_delta(event).get("decision", event.kind))
             policy_decisions.add(decision)
@@ -243,14 +364,206 @@ def access_review(
             granularities.add(granularity)
         if granularity in {"aggregate", "audit_only"}:
             warnings.add(f"{granularity} source cannot prove exact object reach")
+    configured_items = [
+        _configured_access_item(item) for item in configured_access or []
+    ]
+    if configured_access is None:
+        warnings.add("configured access unavailable for this workspace")
+    observed = sorted(observed_items.values(), key=lambda item: (item.kind, item.id))
+    configured = sorted(configured_items, key=lambda item: (item.kind, item.id))
+    observed_keys = {(item.kind, item.id) for item in observed}
+    configured_keys = {(item.kind, item.id) for item in configured}
+    unused = [item for item in configured if (item.kind, item.id) not in observed_keys]
+    new_access = [
+        item for item in observed if (item.kind, item.id) not in configured_keys
+    ]
+    recommended = [
+        item
+        for item in unused
+        if item.kind in {"tool", "object", "scope", "permission"}
+    ]
     return AccessReviewReport(
         agent_id=agent_id,
         touched_objects=sorted(touched_objects),
         tools_used=sorted(tools_used),
         policy_decisions=sorted(policy_decisions),
         source_granularities=sorted(granularities),
+        observed_access=observed,
+        configured_access=configured,
+        reachable_sensitive_assets=[
+            item for item in configured if "sensitive" in item.label.lower()
+        ],
+        unused_permissions=recommended if configured else [],
+        new_access_since_last_review=new_access if configured else observed,
+        recommended_revocations=recommended,
+        evidence_quality=qualities,
         warnings=sorted(warnings),
     )
+
+
+def agent_inventory(
+    events: Iterable[CanonicalEvent],
+    *,
+    configured_agents: Iterable[dict] | None = None,
+) -> list[AgentInventoryItem]:
+    event_list = list(events)
+    configured_by_id: dict[str, list[AccessItem]] = {}
+    for agent in configured_agents or []:
+        agent_id = str(agent.get("agent_id") or agent.get("id") or "")
+        if not agent_id:
+            continue
+        configured_by_id[agent_id] = [
+            _configured_access_item(item) for item in _configured_access_entries(agent)
+        ]
+
+    grouped: dict[str, list[CanonicalEvent]] = {}
+    for event in event_list:
+        actor_id = _event_actor_id(event)
+        if actor_id:
+            grouped.setdefault(actor_id, []).append(event)
+    for agent_id in configured_by_id:
+        grouped.setdefault(agent_id, [])
+
+    inventory: list[AgentInventoryItem] = []
+    for agent_id, agent_events in sorted(grouped.items()):
+        review = access_review(
+            agent_events,
+            agent_id=agent_id,
+            configured_access=[
+                item.model_dump(mode="json")
+                for item in configured_by_id.get(agent_id, [])
+            ],
+        )
+        display_name = ""
+        for event in agent_events:
+            if event.actor_ref and event.actor_ref.display_name:
+                display_name = event.actor_ref.display_name
+                break
+        inventory.append(
+            AgentInventoryItem(
+                agent_id=agent_id,
+                display_name=display_name,
+                event_count=len(agent_events),
+                tools_used=review.tools_used,
+                touched_objects=review.touched_objects,
+                configured_access=configured_by_id.get(agent_id, []),
+                evidence_quality=review.evidence_quality,
+            )
+        )
+    return inventory
+
+
+def build_evidence_pack(
+    events: Iterable[CanonicalEvent],
+    *,
+    agent_id: str | None = None,
+    anchor_event_id: str | None = None,
+    policy: dict | None = None,
+    configured_agents: Iterable[dict] | None = None,
+) -> EvidencePack:
+    event_list = list(events)
+    agents = agent_inventory(event_list, configured_agents=configured_agents)
+    agent_ids = [agent_id] if agent_id else [agent.agent_id for agent in agents[:5]]
+    configured_by_id = _configured_access_by_agent(configured_agents or [])
+    reviews = [
+        access_review(
+            event_list,
+            agent_id=item,
+            configured_access=configured_by_id.get(item),
+        )
+        for item in agent_ids
+        if item
+    ]
+    blast = (
+        blast_radius(event_list, anchor_event_id=anchor_event_id)
+        if anchor_event_id
+        else None
+    )
+    replay = replay_policy(event_list, policy=policy) if policy else None
+    warnings = set(inspect_timeline(event_list).warnings)
+    for review in reviews:
+        warnings.update(review.warnings)
+    if blast:
+        warnings.update(blast.unknowns)
+    if replay:
+        warnings.update(replay.warnings)
+    return EvidencePack(
+        timeline=inspect_timeline(event_list),
+        agents=agents,
+        access_reviews=reviews,
+        blast_radius=blast,
+        policy_replay=replay,
+        warnings=sorted(warnings),
+    )
+
+
+def _merge_access_item(
+    items: dict[tuple[str, str], AccessItem], item: AccessItem
+) -> None:
+    key = (item.kind, item.id)
+    existing = items.get(key)
+    if existing is None:
+        items[key] = item
+        return
+    for event_id in item.event_ids:
+        if event_id not in existing.event_ids:
+            existing.event_ids.append(event_id)
+
+
+def _object_access_item(
+    ref: ObjectRef, *, source: str, event_id: str = ""
+) -> AccessItem:
+    return AccessItem(
+        kind="object",
+        id=f"{ref.domain}:{ref.kind}:{ref.object_id}".strip(":"),
+        label=ref.label or ref.object_id,
+        source=source,
+        event_ids=[event_id] if event_id else [],
+    )
+
+
+def _configured_access_item(item: dict | AccessItem) -> AccessItem:
+    if isinstance(item, AccessItem):
+        return item
+    kind = str(item.get("kind") or item.get("type") or "permission")
+    item_id = str(item.get("id") or item.get("name") or item.get("tool") or "")
+    if not item_id and item.get("surface"):
+        item_id = str(item["surface"])
+        kind = "surface"
+    return AccessItem(
+        kind=kind,
+        id=item_id,
+        label=str(item.get("label") or item.get("display_name") or item_id),
+        source=str(item.get("source") or "configured"),
+    )
+
+
+def _configured_access_entries(agent: dict) -> list[dict]:
+    entries: list[dict] = []
+    for key, kind in (
+        ("allowed_tools", "tool"),
+        ("tools", "tool"),
+        ("allowed_surfaces", "surface"),
+        ("surfaces", "surface"),
+        ("scopes", "scope"),
+        ("oauth_scopes", "scope"),
+        ("permissions", "permission"),
+    ):
+        values = agent.get(key)
+        if isinstance(values, list):
+            entries.extend({"kind": kind, "id": str(value)} for value in values)
+    return entries
+
+
+def _configured_access_by_agent(
+    configured_agents: Iterable[dict],
+) -> dict[str, list[dict]]:
+    mapping: dict[str, list[dict]] = {}
+    for agent in configured_agents:
+        agent_id = str(agent.get("agent_id") or agent.get("id") or "")
+        if agent_id:
+            mapping[agent_id] = _configured_access_entries(agent)
+    return mapping
 
 
 def replay_policy(

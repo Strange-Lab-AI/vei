@@ -8,8 +8,8 @@ from typing import Iterable
 
 from vei.events.api import (
     CanonicalEvent,
-    EventContext,
     EventProvenance,
+    ExecutionPrincipal,
     build_tool_call_event,
     stable_event_id,
 )
@@ -136,26 +136,11 @@ class McpTranscriptAdapter:
             link_kind = "completed_by"
         elif raw.kind == "tool.call.failed" and request_event_id:
             link_kind = "failed_by"
-        context = EventContext(
-            agent_id=str(payload.get("agent_id", payload.get("client_id", ""))),
-            human_user_id=str(payload.get("human_user_id", payload.get("user_id", ""))),
+        context = ExecutionPrincipal.from_mapping(
+            payload, source="mcp"
+        ).to_event_context(
             source_id=source_id,
             source_granularity=raw.source_granularity,
-            jsonrpc_request_id=str(payload.get("jsonrpc_request_id", "")),
-            mcp_session_id=str(
-                payload.get("mcp_session_id", payload.get("session_id", ""))
-            ),
-            mcp_client_id=str(
-                payload.get("mcp_client_id", payload.get("client_id", ""))
-            ),
-            mcp_server_id=str(
-                payload.get("mcp_server_id", payload.get("server_id", ""))
-            ),
-            mcp_protocol_version=str(
-                payload.get("mcp_protocol_version", payload.get("protocol_version", ""))
-            ),
-            mcp_transport=str(payload.get("transport", "")),
-            mcp_method_name=str(payload.get("mcp_method_name", "")),
         )
         yield build_tool_call_event(
             kind=raw.kind,

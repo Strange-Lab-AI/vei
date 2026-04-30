@@ -14,11 +14,23 @@ class ActivityNode(BaseModel):
     event_ids: list[str] = Field(default_factory=list)
 
 
+class EvidenceQuality(BaseModel):
+    source_granularity: str = ""
+    source_integrity: str = "imported"
+    time_confidence: str = "unknown"
+    object_confidence: str = "absent"
+    link_confidence: str = "unknown"
+    identity_confidence: str = "absent"
+    warnings: list[str] = Field(default_factory=list)
+
+
 class ActivityEdge(BaseModel):
     source: str
     target: str
     kind: str
     event_ids: list[str] = Field(default_factory=list)
+    link_kind: str = ""
+    confidence: str = ""
 
 
 class CompanyActivityGraph(BaseModel):
@@ -40,6 +52,7 @@ class TimelineItem(BaseModel):
     source_granularity: str = ""
     summary: str = ""
     link_refs: list[str] = Field(default_factory=list)
+    evidence_quality: EvidenceQuality | None = None
 
 
 class ProvenanceTimeline(BaseModel):
@@ -59,7 +72,18 @@ class BlastRadiusReport(BaseModel):
     artifacts: list[str] = Field(default_factory=list)
     policies: list[str] = Field(default_factory=list)
     approvals: list[str] = Field(default_factory=list)
+    observed: list[str] = Field(default_factory=list)
+    inferred: list[str] = Field(default_factory=list)
     unknowns: list[str] = Field(default_factory=list)
+    evidence_quality: list[EvidenceQuality] = Field(default_factory=list)
+
+
+class AccessItem(BaseModel):
+    kind: str
+    id: str
+    label: str = ""
+    source: str = ""
+    event_ids: list[str] = Field(default_factory=list)
 
 
 class AccessReviewReport(BaseModel):
@@ -69,7 +93,24 @@ class AccessReviewReport(BaseModel):
     tools_used: list[str] = Field(default_factory=list)
     policy_decisions: list[str] = Field(default_factory=list)
     source_granularities: list[str] = Field(default_factory=list)
+    observed_access: list[AccessItem] = Field(default_factory=list)
+    configured_access: list[AccessItem] = Field(default_factory=list)
+    reachable_sensitive_assets: list[AccessItem] = Field(default_factory=list)
+    unused_permissions: list[AccessItem] = Field(default_factory=list)
+    new_access_since_last_review: list[AccessItem] = Field(default_factory=list)
+    recommended_revocations: list[AccessItem] = Field(default_factory=list)
+    evidence_quality: list[EvidenceQuality] = Field(default_factory=list)
     warnings: list[str] = Field(default_factory=list)
+
+
+class AgentInventoryItem(BaseModel):
+    agent_id: str
+    display_name: str = ""
+    event_count: int = 0
+    tools_used: list[str] = Field(default_factory=list)
+    touched_objects: list[str] = Field(default_factory=list)
+    configured_access: list[AccessItem] = Field(default_factory=list)
+    evidence_quality: list[EvidenceQuality] = Field(default_factory=list)
 
 
 class PolicyReplayHit(BaseModel):
@@ -86,6 +127,16 @@ class PolicyReplayReport(BaseModel):
     event_count: int = 0
     hit_count: int = 0
     hits: list[PolicyReplayHit] = Field(default_factory=list)
+    warnings: list[str] = Field(default_factory=list)
+
+
+class EvidencePack(BaseModel):
+    schema_version: str = "evidence_pack_v1"
+    timeline: ProvenanceTimeline
+    agents: list[AgentInventoryItem] = Field(default_factory=list)
+    access_reviews: list[AccessReviewReport] = Field(default_factory=list)
+    blast_radius: BlastRadiusReport | None = None
+    policy_replay: PolicyReplayReport | None = None
     warnings: list[str] = Field(default_factory=list)
 
 

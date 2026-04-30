@@ -9,8 +9,8 @@ from typing import Iterable
 from vei.events.api import (
     ActorRef,
     CanonicalEvent,
-    EventContext,
     EventProvenance,
+    ExecutionPrincipal,
     build_llm_call_event,
     build_llm_usage_observed,
     build_tool_call_event,
@@ -75,9 +75,10 @@ class AgentActivityJsonlAdapter:
             else None
         )
         source_id = f"{self.source_name}:{raw.source_record_id}"
-        context = EventContext(
-            agent_id=str(payload.get("agent_id", raw.actor_id)),
-            human_user_id=str(payload.get("human_user_id", payload.get("user_id", ""))),
+        context = ExecutionPrincipal.from_mapping(
+            {**payload, "actor_id": payload.get("actor_id", raw.actor_id)},
+            source="import",
+        ).to_event_context(
             run_id=str(payload.get("run_id", "")),
             trace_id=str(payload.get("trace_id", "")),
             span_id=str(payload.get("span_id", "")),

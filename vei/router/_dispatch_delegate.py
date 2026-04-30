@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Any, Dict, Optional
 
 from vei.connectors import ConnectorInvocationError
 from vei.events.api import (
-    EventContext,
+    ExecutionPrincipal,
     build_tool_call_event,
     extract_object_refs,
     stable_event_id,
@@ -108,10 +108,12 @@ class RouterDispatch:
         source_id = (
             f"router:{getattr(router.state_store, 'branch', 'main')}:{ts_ms}:{tool}"
         )
-        context = EventContext(
+        principal = ExecutionPrincipal.from_env(source="mcp")
+        context = principal.to_event_context(
             workspace_id=str(
                 getattr(getattr(router, "event_sink", None), "workspace", "")
-            ),
+            )
+            or principal.workspace_id,
             run_id=str(getattr(router.state_store, "branch", "")),
             trace_id=source_id,
             span_id=stable_event_id(source_id, "requested"),

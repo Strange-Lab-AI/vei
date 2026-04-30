@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import hashlib
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Iterable, Protocol, runtime_checkable
@@ -37,6 +38,10 @@ class AgentActivityManifest(BaseModel):
     first_ts_ms: int = 0
     last_ts_ms: int = 0
     source_hashes: list[str] = Field(default_factory=list)
+    batch_event_count: int = 0
+    batch_hash: str = ""
+    previous_batch_hash: str = ""
+    manifest_hash: str = ""
     cursor: str = ""
     created_at: str = ""
 
@@ -129,6 +134,8 @@ def append_events_to_workspace(
             fh.write(event.model_dump_json() + "\n")
 
     ts_values = [event.ts_ms for event in event_list if event.ts_ms]
+    source_hashes = [event.hash for event in event_list]
+    batch_hash = _stable_hash(source_hashes)
     manifest = AgentActivityManifest(
         source=source,
         workspace=str(workspace_path),
@@ -138,9 +145,15 @@ def append_events_to_workspace(
         skipped_duplicate_count=skipped,
         first_ts_ms=min(ts_values) if ts_values else 0,
         last_ts_ms=max(ts_values) if ts_values else 0,
-        source_hashes=[event.hash for event in event_list],
+        source_hashes=source_hashes,
+        batch_event_count=len(event_list),
+        batch_hash=batch_hash,
+        previous_batch_hash=_previous_batch_hash(batch_dir),
         cursor=cursor,
         created_at=datetime.now(UTC).isoformat(),
+    )
+    manifest.manifest_hash = _stable_hash(
+        manifest.model_dump(mode="json", exclude={"manifest_hash"})
     )
     manifest_path.write_text(manifest.model_dump_json(indent=2), encoding="utf-8")
     return AgentActivityIngestResult(
@@ -194,3 +207,21 @@ def ingest_status(workspace: str | Path) -> dict[str, Any]:
         "event_count": sum(int(item.get("event_count", 0)) for item in sources),
         "sources": sources,
     }
+
+
+def _stable_hash(payload: object) -> str:
+    blob = json.dumps(payload, sort_keys=True, separators=(",", ":"), default=str)
+    return hashlib.sha256(blob.encode("utf-8")).hexdigest()
+
+
+def _previous_batch_hash(batch_dir: Path) -> str:
+    source_dir = batch_dir.parent
+    manifests = sorted(source_dir.glob("*/manifest.json"))
+    previous = [path for path in manifests if path.parent != batch_dir]
+    if not previous:
+        return ""
+    try:
+        payload = json.loads(previous[-1].read_text(encoding="utf-8"))
+    except (OSError, ValueError, TypeError):
+        return ""
+    return str(payload.get("batch_hash") or payload.get("manifest_hash") or "")
