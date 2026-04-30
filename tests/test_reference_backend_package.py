@@ -8,6 +8,7 @@ def test_reference_backend_directory_contains_only_shipped_files() -> None:
     shipped = {
         "eval_result.json",
         "metadata.json",
+        "metrics_card.json",
         "metrics_card.md",
         "model.pt",
         "train_result.json",
@@ -21,6 +22,11 @@ def test_reference_backend_directory_contains_only_shipped_files() -> None:
 def test_reference_backend_shipped_files_do_not_embed_local_paths() -> None:
     root = Path("data/enron/reference_backend")
 
-    for filename in ("train_result.json", "eval_result.json", "metrics_card.md"):
+    for filename in (
+        "train_result.json",
+        "eval_result.json",
+        "metrics_card.md",
+        "metrics_card.json",
+    ):
         text = (root / filename).read_text(encoding="utf-8")
         assert "/Users/" not in text

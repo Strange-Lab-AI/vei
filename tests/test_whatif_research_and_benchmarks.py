@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from types import SimpleNamespace
 
 import pyarrow as pa
 import pyarrow.parquet as pq
@@ -2869,6 +2870,21 @@ def test_vei_whatif_cli_benchmark_commands(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setattr(
         "vei.cli.vei_whatif.load_branch_point_benchmark_study_result",
         lambda *_args, **_kwargs: study_result,
+    )
+    monkeypatch.setattr(
+        "vei.cli.whatif_benchmark._cli_module",
+        lambda: SimpleNamespace(
+            build_branch_point_benchmark=lambda *args, **kwargs: build,
+            train_branch_point_benchmark_model=lambda *args, **kwargs: train_result,
+            evaluate_branch_point_benchmark_model=lambda *args, **kwargs: eval_result,
+            load_branch_point_benchmark_build_result=lambda *_args, **_kwargs: build,
+            load_branch_point_benchmark_train_result=lambda *_args, **_kwargs: train_result,
+            load_branch_point_benchmark_eval_result=lambda *_args, **_kwargs: eval_result,
+            judge_branch_point_benchmark=lambda *_args, **_kwargs: judge_result,
+            load_branch_point_benchmark_judge_result=lambda *_args, **_kwargs: judge_result,
+            run_branch_point_benchmark_study=lambda *args, **kwargs: study_result,
+            load_branch_point_benchmark_study_result=lambda *_args, **_kwargs: study_result,
+        ),
     )
 
     runner = CliRunner()
